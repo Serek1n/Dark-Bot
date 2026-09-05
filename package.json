@@ -1,0 +1,33 @@
+{
+  "name": "dark-bot",
+  "version": "1.0.0",
+  "description": "Discord bot: leveling, economy, moderation, reaction roles, temp voice, custom commands, music, YouTube/Twitch alerts + web dashboard",
+  "main": "bot/index.js",
+  "scripts": {
+    "start": "node bot/index.js",
+    "web": "node web/index.js",
+    "dev": "concurrently \"node bot/index.js\" \"node web/index.js\"",
+    "deploy-commands": "node bot/deploy-commands.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@discordjs/voice": "^0.19.2",
+    "axios": "^1.7.7",
+    "connect-sqlite3": "^0.9.15",
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "ffmpeg-static": "^5.2.0",
+    "node-cron": "^3.0.3",
+    "passport": "^0.7.0",
+    "passport-discord": "^0.1.4",
+    "play-dl": "^1.9.7",
+    "sequelize": "^6.37.3",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

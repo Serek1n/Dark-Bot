@@ -1,0 +1,19 @@
+<aside class="sidebar">
+  <div class="sidebar-guild">
+    <img src="<%= guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png' %>" alt="" class="guild-icon" />
+    <span><%= guild.name %></span>
+  </div>
+  <nav>
+    <a href="/dashboard/<%= guild.id %>" class="<%= active === 'overview' ? 'active' : '' %>">🏠 Обзор</a>
+    <a href="/dashboard/<%= guild.id %>/leveling" class="<%= active === 'leveling' ? 'active' : '' %>">📈 Уровни</a>
+    <a href="/dashboard/<%= guild.id %>/leaderboard" class="<%= active === 'leaderboard' ? 'active' : '' %>">🏆 Лидерборд</a>
+    <a href="/dashboard/<%= guild.id %>/moderation" class="<%= active === 'moderation' ? 'active' : '' %>">🛡️ Модерация</a>
+    <a href="/dashboard/<%= guild.id %>/automod" class="<%= active === 'automod' ? 'active' : '' %>">🤖 Автомодерация</a>
+    <a href="/dashboard/<%= guild.id %>/welcome" class="<%= active === 'welcome' ? 'active' : '' %>">👋 Приветствие</a>
+    <a href="/dashboard/<%= guild.id %>/reaction-roles" class="<%= active === 'reaction-roles' ? 'active' : '' %>">🎭 Роли по реакциям</a>
+    <a href="/dashboard/<%= guild.id %>/custom-commands" class="<%= active === 'custom-commands' ? 'active' : '' %>">💬 Кастом-команды</a>
+    <a href="/dashboard/<%= guild.id %>/temp-voice" class="<%= active === 'temp-voice' ? 'active' : '' %>">🔊 Врем. голосовые</a>
+    <a href="/dashboard/<%= guild.id %>/alerts" class="<%= active === 'alerts' ? 'active' : '' %>">🔔 Оповещения</a>
+  </nav>
+  <a href="/dashboard" class="back-link">← Все серверы</a>
+</aside>

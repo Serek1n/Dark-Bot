@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('partials/head', { title: 'Вход' }) %></head>
+<body>
+  <div class="login-page">
+    <h1>🌙 Dark Dashboard</h1>
+    <p>Управляйте уровнями, модерацией, ролями по реакциям, музыкой и оповещениями вашего сервера прямо из браузера.</p>
+    <% if (user) { %>
+      <a class="btn" href="/dashboard">Перейти в панель</a>
+    <% } else { %>
+      <a class="btn" href="/auth/login">Войти через Discord</a>
+    <% } %>
+  </div>
+</body>
+</html>

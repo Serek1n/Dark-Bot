@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Кастом-команды' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <h1>💬 Кастомные команды</h1>
+
+      <form method="post" class="card">
+        <h2>Новая команда</h2>
+        <div>
+          <label>Триггер (без префикса)</label>
+          <input type="text" name="trigger" placeholder="rules" required />
+        </div>
+        <div>
+          <label>Ответ бота</label>
+          <textarea name="response" placeholder="Правила сервера: ..." required></textarea>
+        </div>
+        <button class="btn" type="submit">Добавить / обновить</button>
+      </form>
+
+      <div class="card">
+        <% if (!commands.length) { %>
+          <p class="empty-state">Кастомных команд пока нет.</p>
+        <% } else { %>
+          <table>
+            <thead><tr><th>Триггер</th><th>Ответ</th><th></th></tr></thead>
+            <tbody>
+              <% commands.forEach(c => { %>
+                <tr>
+                  <td><code><%= c.trigger %></code></td>
+                  <td><%= c.response.length > 80 ? c.response.slice(0, 80) + '…' : c.response %></td>
+                  <td>
+                    <form method="post" action="/dashboard/<%= guild.id %>/custom-commands/delete/<%= c.id %>">
+                      <button class="btn btn-danger" type="submit">Удалить</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

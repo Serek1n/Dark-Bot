@@ -1,0 +1,9 @@
+services:
+  dark:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3000:3000" # web dashboard, adjust WEB_PORT in .env to match
+    volumes:
+      - ./data:/app/data

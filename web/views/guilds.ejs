@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('partials/head', { title: 'Мои серверы' }) %></head>
+<body>
+  <div class="guild-picker">
+    <h1>Выберите сервер</h1>
+    <% if (!guilds.length) { %>
+      <p class="empty-state">У вас нет серверов с правами администратора.</p>
+    <% } %>
+    <div class="guild-list">
+      <% guilds.forEach(g => { %>
+        <% if (g.botPresent) { %>
+          <a class="guild-card" href="/dashboard/<%= g.id %>">
+        <% } else { %>
+          <a class="guild-card disabled" href="https://discord.com/oauth2/authorize?client_id=<%= process.env.DISCORD_CLIENT_ID %>&scope=bot%20applications.commands&guild_id=<%= g.id %>&permissions=8" target="_blank">
+        <% } %>
+            <img src="<%= g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png' %>" alt="" />
+            <div>
+              <div class="name"><%= g.name %></div>
+              <div class="status"><%= g.botPresent ? 'Открыть панель' : 'Бот не добавлен — нажмите, чтобы пригласить' %></div>
+            </div>
+          </a>
+      <% }) %>
+    </div>
+  </div>
+</body>
+</html>

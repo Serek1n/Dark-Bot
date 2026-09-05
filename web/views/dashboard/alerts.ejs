@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Оповещения' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <h1>🔔 Оповещения YouTube / Twitch</h1>
+
+      <div class="card">
+        <p>Для работы оповещений на сервере бота должны быть настроены переменные окружения <code>YOUTUBE_API_KEY</code> и/или <code>TWITCH_CLIENT_ID</code> / <code>TWITCH_CLIENT_SECRET</code>. Бот проверяет обновления каждые несколько минут.</p>
+      </div>
+
+      <form method="post" class="card">
+        <h2>Новая подписка</h2>
+        <div class="two-col">
+          <div>
+            <label>Платформа</label>
+            <select name="platform" required>
+              <option value="youtube">YouTube</option>
+              <option value="twitch">Twitch</option>
+            </select>
+          </div>
+          <div>
+            <label>ID YouTube-канала (UC...) или логин Twitch</label>
+            <input type="text" name="targetId" required />
+          </div>
+        </div>
+        <div>
+          <label>Канал Discord для публикации</label>
+          <select name="channelId" required>
+            <% channels.filter(c => c.type === 0).forEach(c => { %>
+              <option value="<%= c.id %>">#<%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label>Текст сообщения — доступны {name} и {url}</label>
+          <input type="text" name="message" placeholder="{name} только что опубликовал(а) новое видео! {url}" />
+        </div>
+        <button class="btn" type="submit">Добавить</button>
+      </form>
+
+      <div class="card">
+        <% if (!alerts.length) { %>
+          <p class="empty-state">Подписок пока нет.</p>
+        <% } else { %>
+          <table>
+            <thead><tr><th>Платформа</th><th>Канал/логин</th><th>Публикуется в</th><th></th></tr></thead>
+            <tbody>
+              <% alerts.forEach(a => {
+                const channel = channels.find(c => c.id === a.channelId);
+              %>
+                <tr>
+                  <td><%= a.platform === 'youtube' ? '📺 YouTube' : '🟣 Twitch' %></td>
+                  <td><%= a.targetName || a.targetId %></td>
+                  <td>#<%= channel ? channel.name : a.channelId %></td>
+                  <td>
+                    <form method="post" action="/dashboard/<%= guild.id %>/alerts/delete/<%= a.id %>">
+                      <button class="btn btn-danger" type="submit">Удалить</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Роли по реакциям' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <h1>🎭 Роли по реакциям</h1>
+      <div class="card">
+        <p>Чтобы добавить новую привязку, используйте команду <code>/reactionrole add</code> прямо в Discord — боту нужно поставить реакцию на существующее сообщение, что проще сделать из чата. Здесь можно посмотреть текущие привязки и удалить ненужные.</p>
+      </div>
+      <div class="card">
+        <% if (!reactionRoles.length) { %>
+          <p class="empty-state">Привязок пока нет.</p>
+        <% } else { %>
+          <table>
+            <thead><tr><th>Канал</th><th>ID сообщения</th><th>Эмодзи</th><th>Роль</th><th></th></tr></thead>
+            <tbody>
+              <% reactionRoles.forEach(rr => {
+                const role = roles.find(r => r.id === rr.roleId);
+                const channel = channels.find(c => c.id === rr.channelId);
+              %>
+                <tr>
+                  <td>#<%= channel ? channel.name : rr.channelId %></td>
+                  <td><%= rr.messageId %></td>
+                  <td><%= rr.emoji %></td>
+                  <td>@<%= role ? role.name : rr.roleId %></td>
+                  <td>
+                    <form method="post" action="/dashboard/<%= guild.id %>/reaction-roles/delete/<%= rr.id %>">
+                      <button class="btn btn-danger" type="submit">Удалить</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

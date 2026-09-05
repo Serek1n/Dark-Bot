@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Приветствие' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <h1>👋 Приветствие и автороль</h1>
+      <form method="post" class="card">
+        <div>
+          <label>Канал приветствия</label>
+          <select name="welcomeChannelId">
+            <option value="">— выключено —</option>
+            <% channels.filter(c => c.type === 0).forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.welcomeChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label>Текст приветствия — доступны {user} и {server}</label>
+          <textarea name="welcomeMessage"><%= settings.welcomeMessage %></textarea>
+        </div>
+        <div>
+          <label>Роль, выдаваемая автоматически при входе</label>
+          <select name="autoRoleId">
+            <option value="">— не выбрано —</option>
+            <% roles.forEach(r => { %>
+              <option value="<%= r.id %>" <%= settings.autoRoleId === r.id ? 'selected' : '' %>>@<%= r.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

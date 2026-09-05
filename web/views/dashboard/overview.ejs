@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Обзор' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <h1>Обзор</h1>
+      <div class="stat-row">
+        <div class="stat-box"><div class="value"><%= guild.approximate_member_count || '—' %></div><div class="label">Участников на сервере</div></div>
+        <div class="stat-box"><div class="value"><%= memberCount %></div><div class="label">В системе уровней</div></div>
+        <div class="stat-box"><div class="value"><%= warningCount %></div><div class="label">Всего предупреждений</div></div>
+      </div>
+      <div class="card">
+        <h2>Быстрая справка</h2>
+        <p>Все параметры бота можно настроить как здесь в панели, так и слэш-командами прямо в Discord (например <code>/settings</code>, <code>/automod</code>, <code>/tempvoice</code>). Изменения применяются мгновенно — оба способа пишут в одну и ту же базу данных.</p>
+        <p>Текущий префикс кастомных команд: <code><%= settings.prefix %></code></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

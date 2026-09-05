@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Автомодерация' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <h1>🤖 Автомодерация</h1>
+      <form method="post" class="card">
+        <div class="checkbox-row">
+          <input type="checkbox" id="automodEnabled" name="automodEnabled" <%= settings.automodEnabled ? 'checked' : '' %> />
+          <label for="automodEnabled" style="margin:0;">Включить автомодерацию</label>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="automodBlockInvites" name="automodBlockInvites" <%= settings.automodBlockInvites ? 'checked' : '' %> />
+          <label for="automodBlockInvites" style="margin:0;">Блокировать ссылки-приглашения на другие серверы</label>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="automodAntiSpam" name="automodAntiSpam" <%= settings.automodAntiSpam ? 'checked' : '' %> />
+          <label for="automodAntiSpam" style="margin:0;">Анти-спам</label>
+        </div>
+
+        <div class="two-col">
+          <div>
+            <label>Макс. сообщений подряд</label>
+            <input type="number" name="automodSpamMessages" value="<%= settings.automodSpamMessages %>" min="2" />
+          </div>
+          <div>
+            <label>За сколько секунд</label>
+            <input type="number" name="automodSpamSeconds" value="<%= settings.automodSpamSeconds %>" min="2" />
+          </div>
+        </div>
+
+        <div>
+          <label>Запрещённые слова (по одному на строку)</label>
+          <textarea name="bannedWords"><%= bannedWords.join('\n') %></textarea>
+        </div>
+
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

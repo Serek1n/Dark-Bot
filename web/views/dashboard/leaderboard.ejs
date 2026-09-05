@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Лидерборд' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <h1>🏆 Таблица лидеров</h1>
+      <div class="card">
+        <% if (!top.length) { %>
+          <p class="empty-state">Пока никто не заработал опыт.</p>
+        <% } else { %>
+          <table>
+            <thead><tr><th>#</th><th>Пользователь</th><th>Уровень</th><th>Опыт</th><th>Баланс</th></tr></thead>
+            <tbody>
+              <% top.forEach((p, i) => { %>
+                <tr>
+                  <td><%= i + 1 %></td>
+                  <td><%= p.userId %></td>
+                  <td><%= p.level %></td>
+                  <td><%= p.xp %></td>
+                  <td><%= p.balance %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

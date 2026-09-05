@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Врем. голосовые' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <h1>🔊 Временные голосовые каналы</h1>
+      <form method="post" class="card">
+        <div>
+          <label>Канал "Войти чтобы создать"</label>
+          <select name="tempVoiceJoinChannelId">
+            <option value="">— выключено —</option>
+            <% channels.filter(c => c.type === 2).forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.tempVoiceJoinChannelId === c.id ? 'selected' : '' %>>🔊 <%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label>Категория для новых каналов (необязательно)</label>
+          <select name="tempVoiceCategoryId">
+            <option value="">— как у канала-триггера —</option>
+            <% channels.filter(c => c.type === 4).forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.tempVoiceCategoryId === c.id ? 'selected' : '' %>><%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label>Шаблон имени канала (доступен {user})</label>
+          <input type="text" name="tempVoiceNameTemplate" value="<%= settings.tempVoiceNameTemplate %>" />
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

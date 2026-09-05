@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Модерация' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <h1>🛡️ Модерация</h1>
+
+      <form method="post" class="card">
+        <h2>Каналы</h2>
+        <div>
+          <label>Канал журнала модерации</label>
+          <select name="modLogChannelId">
+            <option value="">— не выбрано —</option>
+            <% channels.filter(c => c.type === 0).forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.modLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label>Канал для жалоб участников (контекстное меню "Пожаловаться")</label>
+          <select name="reportChannelId">
+            <option value="">— не выбрано —</option>
+            <% channels.filter(c => c.type === 0).forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.reportChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+
+      <div class="card">
+        <h2>Последние действия (50)</h2>
+        <% if (!logs.length) { %>
+          <p class="empty-state">Действий пока нет.</p>
+        <% } else { %>
+          <table>
+            <thead><tr><th>Действие</th><th>Участник</th><th>Модератор</th><th>Причина</th><th>Дата</th></tr></thead>
+            <tbody>
+              <% logs.forEach(l => { %>
+                <tr>
+                  <td><span class="badge badge-<%= l.action %>"><%= l.action %></span></td>
+                  <td><%= l.userId %></td>
+                  <td><%= l.moderatorId %></td>
+                  <td><%= l.reason %></td>
+                  <td><%= new Date(l.createdAt).toLocaleString('ru-RU') %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
