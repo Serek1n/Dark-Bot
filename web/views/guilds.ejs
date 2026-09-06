@@ -2,8 +2,10 @@
 <html lang="ru">
 <head><%- include('partials/head', { title: 'Мои серверы' }) %></head>
 <body>
-  <div class="guild-picker">
+  <div class="night-sky"></div>
+  <div class="guild-picker" style="position: relative; z-index: 1;">
     <h1>Выберите сервер</h1>
+    <p class="subtitle">Серверы, где у вас есть права администратора.</p>
     <% if (!guilds.length) { %>
       <p class="empty-state">У вас нет серверов с правами администратора.</p>
     <% } %>

@@ -2,9 +2,19 @@
 <html lang="ru">
 <head><%- include('partials/head', { title: 'Вход' }) %></head>
 <body>
+  <div class="night-sky"></div>
   <div class="login-page">
-    <h1>🌙 Dark Dashboard</h1>
-    <p>Управляйте уровнями, модерацией, ролями по реакциям, музыкой и оповещениями вашего сервера прямо из браузера.</p>
+    <div class="wordmark">
+      <svg class="crescent" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+        <mask id="moon-mask">
+          <rect width="56" height="56" fill="#fff"/>
+          <circle cx="35" cy="19" r="17" fill="#000"/>
+        </mask>
+        <circle cx="27" cy="28" r="21" fill="#e3a857" mask="url(#moon-mask)"/>
+      </svg>
+    </div>
+    <h1>Dark</h1>
+    <p>Уровни, модерация, роли по реакциям, музыка и оповещения вашего сервера — всё в одной панели, без переключения в Discord.</p>
     <% if (user) { %>
       <a class="btn" href="/dashboard">Перейти в панель</a>
     <% } else { %>

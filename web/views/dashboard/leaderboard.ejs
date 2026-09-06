@@ -5,7 +5,7 @@
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <div class="content">
-      <h1>🏆 Таблица лидеров</h1>
+      <h1>Таблица лидеров</h1>
       <div class="card">
         <% if (!top.length) { %>
           <p class="empty-state">Пока никто не заработал опыт.</p>
@@ -15,11 +15,11 @@
             <tbody>
               <% top.forEach((p, i) => { %>
                 <tr>
-                  <td><%= i + 1 %></td>
-                  <td><%= p.userId %></td>
-                  <td><%= p.level %></td>
-                  <td><%= p.xp %></td>
-                  <td><%= p.balance %></td>
+                  <td class="mono">#<%= i + 1 %></td>
+                  <td><code><%= p.userId %></code></td>
+                  <td class="mono"><%= p.level %></td>
+                  <td class="mono"><%= p.xp %></td>
+                  <td class="mono"><%= p.balance %></td>
                 </tr>
               <% }) %>
             </tbody>
