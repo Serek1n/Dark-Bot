@@ -1,3 +1,13 @@
+<p align="center">
+  <img src="./assets/banner.png" alt="Dark — Discord-бот с веб-панелью" width="100%" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Node.js-18%2B-e3a857?style=flat-square" alt="Node.js 18+" />
+  <img src="https://img.shields.io/badge/discord.js-v14-e3a857?style=flat-square" alt="discord.js v14" />
+  <img src="https://img.shields.io/badge/license-MIT-e3a857?style=flat-square" alt="MIT license" />
+</p>
+
 # Dark — Discord-бот с веб-панелью
 
 Многофункциональный Discord-бот **Dark**: уровни/экономика, модерация с автомодом,
