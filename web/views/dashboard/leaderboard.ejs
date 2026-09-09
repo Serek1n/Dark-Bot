@@ -5,10 +5,13 @@
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <div class="content">
-      <h1>Таблица лидеров</h1>
+      <div class="page-header">
+        <h1>Таблица лидеров</h1>
+        <p class="page-intro">Топ участников сервера по количеству накопленного опыта.</p>
+      </div>
       <div class="card">
         <% if (!top.length) { %>
-          <p class="empty-state">Пока никто не заработал опыт.</p>
+          <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg>Пока никто не заработал опыт.</p>
         <% } else { %>
           <table>
             <thead><tr><th>#</th><th>Пользователь</th><th>Уровень</th><th>Опыт</th><th>Баланс</th></tr></thead>

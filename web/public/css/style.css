@@ -205,15 +205,28 @@ code {
   flex-direction: column;
   border-right: 1px solid var(--hairline);
 }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ember);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 17px;
+  margin: 2px 8px 18px;
+}
 .sidebar-guild {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 4px 6px 22px;
+  margin: 0 6px 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
   font-weight: 600;
-  font-size: 14.5px;
+  font-size: 14px;
+  color: var(--fog);
 }
-.sidebar-guild .guild-icon { width: 30px; height: 30px; border-radius: 50%; }
+.sidebar-guild .guild-icon { width: 26px; height: 26px; border-radius: 50%; }
 
 .sidebar nav { display: flex; flex-direction: column; gap: 14px; flex: 1; }
 .nav-group { display: flex; flex-direction: column; gap: 1px; }
@@ -230,8 +243,13 @@ code {
   color: var(--fog);
   font-size: 14px;
   border-left: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   transition: background 0.12s ease, color 0.12s ease;
 }
+.sidebar nav a svg { flex-shrink: 0; opacity: 0.8; }
+.sidebar nav a:hover svg, .sidebar nav a.active svg { opacity: 1; }
 .sidebar nav a:hover { background: var(--panel-raised); color: var(--paper); }
 .sidebar nav a.active {
   background: var(--ember-tint);
@@ -249,7 +267,10 @@ code {
 .back-link:hover { color: var(--paper); }
 
 .content { flex: 1; padding: 36px 44px; max-width: 880px; }
-.content h1 { margin: 0 0 26px; font-size: 1.7rem; }
+.page-header { margin-bottom: 28px; }
+.page-header h1 { margin: 0 0 8px; font-size: 1.7rem; }
+.page-header .page-intro { color: var(--fog); font-size: 14.5px; line-height: 1.6; max-width: 60ch; margin: 0; }
+.content > h1 { margin: 0 0 26px; font-size: 1.7rem; }
 
 /* ============================================================
    Panels (formerly ".card") — hairline, no shadow
@@ -261,6 +282,7 @@ code {
   border-radius: var(--radius);
   padding: 22px 24px;
   margin-bottom: 18px;
+  transition: border-color 0.15s ease;
 }
 .card h2 {
   margin: 0 0 16px;
@@ -270,7 +292,11 @@ code {
   font-weight: 600;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--hairline-soft);
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
+.card h2 svg { opacity: 0.75; flex-shrink: 0; }
 .card p { color: var(--paper); line-height: 1.65; }
 .card p + p { margin-top: 10px; }
 
@@ -349,7 +375,34 @@ td:has(> code), td.mono { font-family: var(--font-mono); font-size: 13px; }
    States
    ============================================================ */
 
-.empty-state { color: var(--fog); padding: 26px 0; text-align: center; font-size: 14px; }
+.empty-state {
+  color: var(--fog);
+  padding: 40px 0;
+  text-align: center;
+  font-size: 14px;
+}
+.empty-state svg { display: block; margin: 0 auto 12px; opacity: 0.35; }
+
+tbody tr { transition: background 0.1s ease; }
+tbody tr:hover { background: var(--hairline-soft); }
+
+/* Overview quick-links */
+.quick-links { display: flex; flex-direction: column; gap: 2px; }
+.quick-links a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  border-radius: 6px;
+  color: var(--paper);
+  font-size: 14px;
+  transition: background 0.12s ease;
+}
+.quick-links a:hover { background: var(--hairline-soft); }
+.quick-links a svg { color: var(--ember); flex-shrink: 0; }
+.quick-links a .ql-text { flex: 1; }
+.quick-links a .ql-desc { color: var(--fog); font-size: 12.5px; display: block; margin-top: 1px; }
+.quick-links a .ql-arrow { color: var(--fog-dim); }
 
 .error-page {
   position: relative; z-index: 1;

@@ -5,13 +5,16 @@
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <div class="content">
-      <h1>Роли по реакциям</h1>
+      <div class="page-header">
+        <h1>Роли по реакциям</h1>
+        <p class="page-intro">Участник получает роль, поставив реакцию на сообщение — и теряет её, убрав реакцию.</p>
+      </div>
       <div class="card">
         <p>Чтобы добавить новую привязку, используйте команду <code>/manage reactionrole add</code> прямо в Discord — боту нужно поставить реакцию на существующее сообщение, что проще сделать из чата. Здесь можно посмотреть текущие привязки и удалить ненужные.</p>
       </div>
       <div class="card">
         <% if (!reactionRoles.length) { %>
-          <p class="empty-state">Привязок пока нет.</p>
+          <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg>Привязок пока нет.</p>
         <% } else { %>
           <table>
             <thead><tr><th>Канал</th><th>ID сообщения</th><th>Эмодзи</th><th>Роль</th><th></th></tr></thead>

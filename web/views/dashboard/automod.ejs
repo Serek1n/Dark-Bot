@@ -5,7 +5,10 @@
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <div class="content">
-      <h1>Автомодерация</h1>
+      <div class="page-header">
+        <h1>Автомодерация</h1>
+        <p class="page-intro">Автоматическая проверка сообщений: запрещённые слова, анти-спам, ссылки-приглашения на другие сервера.</p>
+      </div>
       <form method="post" class="card">
         <div class="checkbox-row">
           <input type="checkbox" id="automodEnabled" name="automodEnabled" <%= settings.automodEnabled ? 'checked' : '' %> />

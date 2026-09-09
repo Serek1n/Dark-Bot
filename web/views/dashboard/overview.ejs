@@ -5,15 +5,52 @@
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <div class="content">
-      <h1>Обзор</h1>
+      <div class="page-header">
+        <h1>Обзор</h1>
+        <p class="page-intro">Общее состояние сервера. Всё, что здесь настраивается, работает и через слэш-команды в Discord — панель и бот делят одну базу данных.</p>
+      </div>
+
       <div class="stat-row">
         <div class="stat-box"><div class="value"><%= guild.approximate_member_count || '—' %></div><div class="label">Участников на сервере</div></div>
         <div class="stat-box"><div class="value"><%= memberCount %></div><div class="label">В системе уровней</div></div>
         <div class="stat-box"><div class="value"><%= warningCount %></div><div class="label">Всего предупреждений</div></div>
       </div>
+
       <div class="card">
-        <h2>Быстрая справка</h2>
-        <p>Все параметры бота можно настроить как здесь в панели, так и слэш-командами прямо в Discord (например <code>/settings</code>, <code>/automod</code>, <code>/manage</code>). Изменения применяются мгновенно — оба способа пишут в одну и ту же базу данных.</p>
+        <h2>
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 6.5V10.5L12.5 12"/></svg>
+          Быстрые переходы
+        </h2>
+        <div class="quick-links">
+          <a href="/dashboard/<%= guild.id %>/moderation">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5L16.5 5V9.5C16.5 13.5 13.7 16.8 10 17.5C6.3 16.8 3.5 13.5 3.5 9.5V5L10 2.5Z"/></svg>
+            <span class="ql-text">Журнал модерации<span class="ql-desc">Лог-канал, канал жалоб, последние действия</span></span>
+            <span class="ql-arrow">→</span>
+          </a>
+          <a href="/dashboard/<%= guild.id %>/automod">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6L10 3L17 6V9C17 13 14 16.5 10 17.5C6 16.5 3 13 3 9V6Z"/><path d="M7.5 9.5L9 11L12.5 7.5"/></svg>
+            <span class="ql-text">Автомодерация<span class="ql-desc">Запрещённые слова, анти-спам, инвайты</span></span>
+            <span class="ql-arrow">→</span>
+          </a>
+          <a href="/dashboard/<%= guild.id %>/welcome">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17V4.5C5 3.7 5.7 3 6.5 3H12L15 6V17"/><path d="M5 17H15M12 17V3M12 10.2H12.3"/></svg>
+            <span class="ql-text">Приветствие и автороль<span class="ql-desc">Что видит новый участник при входе</span></span>
+            <span class="ql-arrow">→</span>
+          </a>
+          <a href="/dashboard/<%= guild.id %>/alerts">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8C5 5.2 7.2 3 10 3C12.8 3 15 5.2 15 8C15 11.5 16.5 12.5 16.5 13.5H3.5C3.5 12.5 5 11.5 5 8Z"/><path d="M8.3 16C8.6 16.6 9.2 17 10 17C10.8 17 11.4 16.6 11.7 16"/></svg>
+            <span class="ql-text">Оповещения<span class="ql-desc">Подписки на YouTube и Twitch</span></span>
+            <span class="ql-arrow">→</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="15" height="12" rx="1.5"/><path d="M5.5 8L8 10L5.5 12M10.5 12.5H14.5"/></svg>
+          Слэш-команды и панель
+        </h2>
+        <p>Все параметры бота можно настроить как здесь, так и слэш-командами прямо в Discord (например <code>/settings</code>, <code>/automod</code>, <code>/manage</code>). Изменения применяются мгновенно — оба способа пишут в одну и ту же базу данных.</p>
         <p>Текущий префикс кастомных команд: <code><%= settings.prefix %></code></p>
       </div>
     </div>

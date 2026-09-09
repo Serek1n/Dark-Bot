@@ -5,7 +5,10 @@
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <div class="content">
-      <h1>Оповещения YouTube / Twitch</h1>
+      <div class="page-header">
+        <h1>Оповещения YouTube / Twitch</h1>
+        <p class="page-intro">Бот проверяет каналы каждые несколько минут и публикует уведомление о новом видео или начале стрима в выбранный канал.</p>
+      </div>
 
       <div class="card">
         <p>Для работы оповещений на сервере бота должны быть настроены переменные окружения <code>YOUTUBE_API_KEY</code> и/или <code>TWITCH_CLIENT_ID</code> / <code>TWITCH_CLIENT_SECRET</code>. Бот проверяет обновления каждые несколько минут.</p>
@@ -43,7 +46,7 @@
 
       <div class="card">
         <% if (!alerts.length) { %>
-          <p class="empty-state">Подписок пока нет.</p>
+          <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg>Подписок пока нет.</p>
         <% } else { %>
           <table>
             <thead><tr><th>Платформа</th><th>Канал/логин</th><th>Публикуется в</th><th></th></tr></thead>

@@ -6,22 +6,52 @@
   <nav>
     <div class="nav-group">
       <span class="nav-group-label">Профиль</span>
-      <a href="/dashboard/<%= guild.id %>" class="<%= active === 'overview' ? 'active' : '' %>">Обзор</a>
-      <a href="/dashboard/<%= guild.id %>/leveling" class="<%= active === 'leveling' ? 'active' : '' %>">Уровни</a>
-      <a href="/dashboard/<%= guild.id %>/leaderboard" class="<%= active === 'leaderboard' ? 'active' : '' %>">Лидерборд</a>
+      <a href="/dashboard/<%= guild.id %>" class="<%= active === 'overview' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="6" rx="1.2"/><rect x="11" y="3" width="6" height="6" rx="1.2"/><rect x="3" y="11" width="6" height="6" rx="1.2"/><rect x="11" y="11" width="6" height="6" rx="1.2"/></svg>
+        Обзор
+      </a>
+      <a href="/dashboard/<%= guild.id %>/leveling" class="<%= active === 'leveling' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V11M9.5 17V7M16 17V3"/></svg>
+        Уровни
+      </a>
+      <a href="/dashboard/<%= guild.id %>/leaderboard" class="<%= active === 'leaderboard' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4H14V9C14 11.2 12.2 13 10 13C7.8 13 6 11.2 6 9V4Z"/><path d="M6 5H3.5C3.5 7 4.5 8 6 8"/><path d="M14 5H16.5C16.5 7 15.5 8 14 8"/><path d="M10 13V16M7 17H13"/></svg>
+        Лидерборд
+      </a>
     </div>
     <div class="nav-group">
       <span class="nav-group-label">Модерация</span>
-      <a href="/dashboard/<%= guild.id %>/moderation" class="<%= active === 'moderation' ? 'active' : '' %>">Журнал и каналы</a>
-      <a href="/dashboard/<%= guild.id %>/automod" class="<%= active === 'automod' ? 'active' : '' %>">Автомодерация</a>
+      <a href="/dashboard/<%= guild.id %>/moderation" class="<%= active === 'moderation' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5L16.5 5V9.5C16.5 13.5 13.7 16.8 10 17.5C6.3 16.8 3.5 13.5 3.5 9.5V5L10 2.5Z"/></svg>
+        Журнал и каналы
+      </a>
+      <a href="/dashboard/<%= guild.id %>/automod" class="<%= active === 'automod' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6L10 3L17 6V9C17 13 14 16.5 10 17.5C6 16.5 3 13 3 9V6Z"/><path d="M7.5 9.5L9 11L12.5 7.5"/></svg>
+        Автомодерация
+      </a>
     </div>
     <div class="nav-group">
       <span class="nav-group-label">Настройка сервера</span>
-      <a href="/dashboard/<%= guild.id %>/welcome" class="<%= active === 'welcome' ? 'active' : '' %>">Приветствие</a>
-      <a href="/dashboard/<%= guild.id %>/reaction-roles" class="<%= active === 'reaction-roles' ? 'active' : '' %>">Роли по реакциям</a>
-      <a href="/dashboard/<%= guild.id %>/custom-commands" class="<%= active === 'custom-commands' ? 'active' : '' %>">Кастом-команды</a>
-      <a href="/dashboard/<%= guild.id %>/temp-voice" class="<%= active === 'temp-voice' ? 'active' : '' %>">Врем. голосовые</a>
-      <a href="/dashboard/<%= guild.id %>/alerts" class="<%= active === 'alerts' ? 'active' : '' %>">Оповещения</a>
+      <a href="/dashboard/<%= guild.id %>/welcome" class="<%= active === 'welcome' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17V4.5C5 3.7 5.7 3 6.5 3H12L15 6V17"/><path d="M5 17H15M12 17V3M12 10.2H12.3"/></svg>
+        Приветствие
+      </a>
+      <a href="/dashboard/<%= guild.id %>/reaction-roles" class="<%= active === 'reaction-roles' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.2"/><path d="M7.3 12C7.9 13 8.9 13.6 10 13.6C11.1 13.6 12.1 13 12.7 12"/><path d="M7.5 8H7.51M12.5 8H12.51" stroke-width="2.2"/></svg>
+        Роли по реакциям
+      </a>
+      <a href="/dashboard/<%= guild.id %>/custom-commands" class="<%= active === 'custom-commands' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="15" height="12" rx="1.5"/><path d="M5.5 8L8 10L5.5 12M10.5 12.5H14.5"/></svg>
+        Кастом-команды
+      </a>
+      <a href="/dashboard/<%= guild.id %>/temp-voice" class="<%= active === 'temp-voice' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7.5" y="2.5" width="5" height="8.5" rx="2.5"/><path d="M4.5 9.5C4.5 12.5 7 14.5 10 14.5C13 14.5 15.5 12.5 15.5 9.5M10 14.5V17.5M7 17.5H13"/></svg>
+        Врем. голосовые
+      </a>
+      <a href="/dashboard/<%= guild.id %>/alerts" class="<%= active === 'alerts' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8C5 5.2 7.2 3 10 3C12.8 3 15 5.2 15 8C15 11.5 16.5 12.5 16.5 13.5H3.5C3.5 12.5 5 11.5 5 8Z"/><path d="M8.3 16C8.6 16.6 9.2 17 10 17C10.8 17 11.4 16.6 11.7 16"/></svg>
+        Оповещения
+      </a>
     </div>
   </nav>
   <a href="/dashboard" class="back-link">← Все серверы</a>

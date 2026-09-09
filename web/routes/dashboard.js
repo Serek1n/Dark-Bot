@@ -42,7 +42,19 @@ router.get('/:guildId', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   const memberCount = await MemberProfile.count({ where: { guildId: req.params.guildId } });
   const warningCount = await Warning.count({ where: { guildId: req.params.guildId } });
-  res.render('dashboard/overview', { guild, settings, memberCount, warningCount, active: 'overview' });
+  const reactionRoleCount = await ReactionRole.count({ where: { guildId: req.params.guildId } });
+  const customCommandCount = await CustomCommand.count({ where: { guildId: req.params.guildId } });
+  const alertCount = await Alert.count({ where: { guildId: req.params.guildId } });
+  res.render('dashboard/overview', {
+    guild,
+    settings,
+    memberCount,
+    warningCount,
+    reactionRoleCount,
+    customCommandCount,
+    alertCount,
+    active: 'overview'
+  });
 });
 
 // ---- Leveling settings ----

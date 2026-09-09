@@ -10,11 +10,14 @@ const dashboardRoutes = require('./routes/dashboard');
 const logger = require('../bot/utils/logger');
 
 const app = express();
+app.set('trust proxy', 1); // needed behind nginx so secure cookies and req.protocol work correctly
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
+
+const isHttps = (process.env.WEB_BASE_URL || '').startsWith('https://');
 
 app.use(
   session({
@@ -22,7 +25,7 @@ app.use(
     secret: process.env.SESSION_SECRET || 'change-me',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
+    cookie: { maxAge: 7 * 24 * 60 * 60 * 1000, secure: isHttps }
   })
 );
 app.use(passport.initialize());
