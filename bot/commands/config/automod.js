@@ -65,8 +65,10 @@ module.exports = {
 
     if (sub === 'listwords') {
       const words = JSON.parse(settings.automodBannedWords || '[]');
+      let text = words.length ? words.map((w) => `\`${w}\``).join(', ') : 'Список пуст.';
+      if (text.length > 3900) text = `${text.slice(0, 3900)}…`;
       return interaction.reply({
-        embeds: [embeds.info(words.length ? words.map((w) => `\`${w}\``).join(', ') : 'Список пуст.')],
+        embeds: [embeds.info(text)],
         ephemeral: true
       });
     }

@@ -108,7 +108,17 @@ module.exports = {
       const target = interaction.options.getUser('пользователь');
       const warnings = await Warning.findAll({ where: { guildId: interaction.guild.id, userId: target.id }, order: [['createdAt', 'DESC']] });
       if (!warnings.length) return interaction.reply({ embeds: [embeds.info(`У <@${target.id}> нет предупреждений.`)] });
-      const lines = warnings.map((w) => `**#${w.id}** — ${w.reason} (от <@${w.moderatorId}>, ${w.createdAt.toLocaleDateString('ru-RU')})`);
+
+      const MAX_SHOWN = 15;
+      const REASON_MAX = 150;
+      const shown = warnings.slice(0, MAX_SHOWN);
+      const lines = shown.map((w) => {
+        const reason = w.reason.length > REASON_MAX ? `${w.reason.slice(0, REASON_MAX)}…` : w.reason;
+        return `**#${w.id}** — ${reason} (от <@${w.moderatorId}>, ${w.createdAt.toLocaleDateString('ru-RU')})`;
+      });
+      if (warnings.length > MAX_SHOWN) {
+        lines.push(`\n…и ещё ${warnings.length - MAX_SHOWN} предупреждений (показаны последние ${MAX_SHOWN}).`);
+      }
       return interaction.reply({ embeds: [embeds.info(lines.join('\n')).setTitle(`Предупреждения ${target.username} (${warnings.length})`)] });
     }
 

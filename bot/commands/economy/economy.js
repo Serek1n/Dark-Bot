@@ -22,10 +22,9 @@ module.exports = {
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'daily') {
-      const [profile, settings] = await Promise.all([
-        getOrCreateProfile(interaction.guild.id, interaction.user.id),
-        getOrCreateSettings(interaction.guild.id)
-      ]);
+      // Sequential — see comment in /profile for why Promise.all is avoided here.
+      const profile = await getOrCreateProfile(interaction.guild.id, interaction.user.id);
+      const settings = await getOrCreateSettings(interaction.guild.id);
 
       if (profile.lastDailyAt && Date.now() - new Date(profile.lastDailyAt).getTime() < DAY_MS) {
         const remaining = DAY_MS - (Date.now() - new Date(profile.lastDailyAt).getTime());
@@ -47,17 +46,17 @@ module.exports = {
       if (target.id === interaction.user.id) return interaction.reply({ embeds: [embeds.error('Нельзя перевести самому себе.')], ephemeral: true });
       if (target.bot) return interaction.reply({ embeds: [embeds.error('Нельзя перевести боту.')], ephemeral: true });
 
-      const [sender, receiver, settings] = await Promise.all([
-        getOrCreateProfile(interaction.guild.id, interaction.user.id),
-        getOrCreateProfile(interaction.guild.id, target.id),
-        getOrCreateSettings(interaction.guild.id)
-      ]);
+      // Sequential — see comment in /profile for why Promise.all is avoided here.
+      const sender = await getOrCreateProfile(interaction.guild.id, interaction.user.id);
+      const receiver = await getOrCreateProfile(interaction.guild.id, target.id);
+      const settings = await getOrCreateSettings(interaction.guild.id);
 
       if (Number(sender.balance) < amount) return interaction.reply({ embeds: [embeds.error('Недостаточно средств.')], ephemeral: true });
 
       sender.balance = Number(sender.balance) - amount;
       receiver.balance = Number(receiver.balance) + amount;
-      await Promise.all([sender.save(), receiver.save()]);
+      await sender.save();
+      await receiver.save();
 
       return interaction.reply({ embeds: [embeds.success(`<@${interaction.user.id}> перевёл(а) **${amount} ${settings.currencyName}** пользователю <@${target.id}>`)] });
     }

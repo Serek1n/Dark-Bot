@@ -19,10 +19,12 @@ module.exports = {
 
     if (sub === 'view') {
       const target = interaction.options.getUser('пользователь') || interaction.user;
-      const [profile, settings] = await Promise.all([
-        getOrCreateProfile(interaction.guild.id, target.id),
-        getOrCreateSettings(interaction.guild.id)
-      ]);
+      // Sequential, not Promise.all: SQLite locks the whole file for writes, and
+      // running two potential first-time inserts concurrently can race into a
+      // SQLITE_BUSY error. These are both fast local queries, so there's no real
+      // cost to awaiting them one at a time.
+      const profile = await getOrCreateProfile(interaction.guild.id, target.id);
+      const settings = await getOrCreateSettings(interaction.guild.id);
 
       const needed = xpForLevel(profile.level);
       let xpIntoLevel = Number(profile.xp);

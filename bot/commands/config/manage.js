@@ -111,8 +111,14 @@ module.exports = {
         const commands = await CustomCommand.findAll({ where: { guildId: interaction.guild.id } });
         if (!commands.length) return interaction.reply({ embeds: [embeds.info('Кастомных команд пока нет.')] });
         const settings = await getOrCreateSettings(interaction.guild.id);
-        const lines = commands.map((c) => `\`${settings.prefix}${c.trigger}\``);
-        return interaction.reply({ embeds: [embeds.info(lines.join(', ')).setTitle(`Кастомные команды (${commands.length})`)] });
+
+        const MAX_SHOWN = 150;
+        const shown = commands.slice(0, MAX_SHOWN);
+        let text = shown.map((c) => `\`${settings.prefix}${c.trigger}\``).join(', ');
+        if (text.length > 3900) text = `${text.slice(0, 3900)}…`;
+        if (commands.length > MAX_SHOWN) text += `\n\n…и ещё ${commands.length - MAX_SHOWN}.`;
+
+        return interaction.reply({ embeds: [embeds.info(text).setTitle(`Кастомные команды (${commands.length})`)] });
       }
     }
 
@@ -194,7 +200,11 @@ module.exports = {
       if (sub === 'list') {
         const alerts = await Alert.findAll({ where: { guildId: interaction.guild.id } });
         if (!alerts.length) return interaction.reply({ embeds: [embeds.info('Подписок пока нет.')] });
-        const lines = alerts.map((a) => `**#${a.id}** ${a.platform === 'youtube' ? '📺' : '🟣'} ${a.targetName || a.targetId} → <#${a.channelId}>`);
+
+        const MAX_SHOWN = 40;
+        const shown = alerts.slice(0, MAX_SHOWN);
+        const lines = shown.map((a) => `**#${a.id}** ${a.platform === 'youtube' ? '📺' : '🟣'} ${a.targetName || a.targetId} → <#${a.channelId}>`);
+        if (alerts.length > MAX_SHOWN) lines.push(`\n…и ещё ${alerts.length - MAX_SHOWN}.`);
         return interaction.reply({ embeds: [embeds.info(lines.join('\n')).setTitle(`Подписки (${alerts.length})`)] });
       }
     }

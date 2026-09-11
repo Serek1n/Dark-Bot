@@ -6,6 +6,23 @@ module.exports = {
   name: 'voiceStateUpdate',
   async execute(oldState, newState) {
     const guild = newState.guild || oldState.guild;
+
+    // Clean up an emptied temp channel regardless of whether temp-voice is still
+    // configured right now — otherwise disabling the feature leaves old channels stuck.
+    if (oldState.channelId) {
+      const tempChannel = await TempVoiceChannel.findOne({ where: { channelId: oldState.channelId } });
+      if (tempChannel) {
+        const channel = await guild.channels.fetch(oldState.channelId).catch(() => null);
+        if (channel && channel.members.size === 0) {
+          await channel.delete().catch(() => {});
+          await tempChannel.destroy();
+        } else if (!channel) {
+          // Channel was already removed some other way (manually deleted) — drop the stale record.
+          await tempChannel.destroy();
+        }
+      }
+    }
+
     const settings = await GuildSettings.findOne({ where: { guildId: guild.id } });
     if (!settings?.tempVoiceJoinChannelId) return;
 
@@ -25,18 +42,6 @@ module.exports = {
         await newState.setChannel(channel).catch(() => {});
       } catch (err) {
         logger.error('Failed to create temp voice channel:', err);
-      }
-    }
-
-    // User left a temp channel -> delete it if now empty
-    if (oldState.channelId) {
-      const tempChannel = await TempVoiceChannel.findOne({ where: { channelId: oldState.channelId } });
-      if (tempChannel) {
-        const channel = await guild.channels.fetch(oldState.channelId).catch(() => null);
-        if (channel && channel.members.size === 0) {
-          await channel.delete().catch(() => {});
-          await tempChannel.destroy();
-        }
       }
     }
   }
