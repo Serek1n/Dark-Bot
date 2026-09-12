@@ -1,6 +1,7 @@
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
+require('express-async-errors'); // patches Express 4 so rejected promises in route handlers reach the error middleware instead of crashing the process
 const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
 const passport = require('./passport');
@@ -40,10 +41,14 @@ app.get('/', (req, res) => res.render('login'));
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 
-app.use((req, res) => res.status(404).render('error', { message: 'Страница не найдена.' }));
+app.use((req, res, next) => res.status(404).render('error', { message: 'Страница не найдена.' }));
 app.use((err, req, res, next) => {
   logger.error('Web error:', err);
-  res.status(500).render('error', { message: 'Внутренняя ошибка сервера.' });
+  const isDiscordApiError = err.isAxiosError || err.response?.status;
+  const message = isDiscordApiError
+    ? 'Не удалось получить данные от Discord (сервис временно недоступен или истёк токен бота). Попробуйте обновить страницу через минуту.'
+    : 'Внутренняя ошибка сервера.';
+  res.status(500).render('error', { message });
 });
 
 async function main() {

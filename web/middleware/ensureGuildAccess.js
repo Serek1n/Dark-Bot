@@ -1,4 +1,5 @@
 const { getBotGuildIds } = require('../discordApi');
+const { asyncHandler } = require('../utils/asyncHandler');
 
 const MANAGE_GUILD = 0x20;
 const ADMINISTRATOR = 0x8;
@@ -32,4 +33,4 @@ async function ensureGuildAccess(req, res, next) {
   next();
 }
 
-module.exports = { ensureGuildAccess };
+module.exports = { ensureGuildAccess: asyncHandler(ensureGuildAccess) };
