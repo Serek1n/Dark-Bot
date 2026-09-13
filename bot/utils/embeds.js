@@ -1,10 +1,13 @@
 const { EmbedBuilder } = require('discord.js');
 
+// Matches the web dashboard's design tokens (see web/public/css/style.css)
+// so the bot's replies and the panel feel like one product.
 const COLORS = {
-  primary: 0x5865f2,
-  success: 0x57f287,
-  danger: 0xed4245,
-  warning: 0xfee75c
+  primary: 0xe3a857, // ember — brand accent
+  success: 0x5cb98a,
+  danger: 0xe5686c,
+  warning: 0xe3a857,
+  neutral: 0x2b2d31 // near-black, for low-emphasis / quiet responses
 };
 
 function baseEmbed(color = COLORS.primary) {
@@ -23,4 +26,11 @@ function info(description) {
   return baseEmbed(COLORS.primary).setDescription(description);
 }
 
-module.exports = { COLORS, baseEmbed, success, error, info };
+// Renders a compact unicode progress bar, e.g. ▰▰▰▰▱▱▱▱▱▱ — used for XP progress.
+function progressBar(current, max, length = 10) {
+  const ratio = max > 0 ? Math.max(0, Math.min(1, current / max)) : 0;
+  const filled = Math.round(ratio * length);
+  return '▰'.repeat(filled) + '▱'.repeat(length - filled);
+}
+
+module.exports = { COLORS, baseEmbed, success, error, info, progressBar };

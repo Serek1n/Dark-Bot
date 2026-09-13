@@ -31,13 +31,14 @@ module.exports = {
       for (let l = 0; l < profile.level; l++) xpIntoLevel -= xpForLevel(l);
 
       const embed = embeds
-        .info(
-          `Уровень: **${profile.level}**\n` +
-            `Опыт: **${xpIntoLevel} / ${needed}** (всего ${profile.xp})\n` +
-            `Баланс: **${profile.balance} ${settings.currencyName}**\n` +
-            `Сообщений: **${profile.messageCount}**`
+        .baseEmbed()
+        .setAuthor({ name: target.username, iconURL: target.displayAvatarURL() })
+        .setDescription(`\`${embeds.progressBar(xpIntoLevel, needed)}\`  ${xpIntoLevel}/${needed} XP`)
+        .addFields(
+          { name: 'Уровень', value: `${profile.level}`, inline: true },
+          { name: 'Баланс', value: `${profile.balance} ${settings.currencyName}`, inline: true },
+          { name: 'Сообщений', value: `${profile.messageCount}`, inline: true }
         )
-        .setTitle(`Профиль ${target.username}`)
         .setThumbnail(target.displayAvatarURL());
 
       return interaction.reply({ embeds: [embed] });
@@ -46,8 +47,12 @@ module.exports = {
     if (sub === 'top') {
       const top = await getLeaderboard(interaction.guild.id, 10);
       if (!top.length) return interaction.reply({ embeds: [embeds.info('Пока никто не заработал опыт.')] });
-      const lines = top.map((p, i) => `**${i + 1}.** <@${p.userId}> — уровень ${p.level} (${p.xp} XP)`);
-      return interaction.reply({ embeds: [embeds.info(lines.join('\n')).setTitle('🏆 Таблица лидеров')] });
+
+      const medals = ['🥇', '🥈', '🥉'];
+      const lines = top.map((p, i) => `${medals[i] || `**${i + 1}.**`}  <@${p.userId}>  —  уровень ${p.level} · ${p.xp} XP`);
+
+      const embed = embeds.baseEmbed().setTitle('Таблица лидеров').setDescription(lines.join('\n'));
+      return interaction.reply({ embeds: [embed] });
     }
   }
 };

@@ -36,7 +36,14 @@ module.exports = {
       profile.lastDailyAt = new Date();
       await profile.save();
 
-      return interaction.reply({ embeds: [embeds.success(`Вы получили **${DAILY_AMOUNT} ${settings.currencyName}**! Баланс: ${profile.balance}`)] });
+      const embed = embeds
+        .baseEmbed(embeds.COLORS.success)
+        .setDescription(`✅ Ежедневная награда получена`)
+        .addFields(
+          { name: 'Получено', value: `+${DAILY_AMOUNT} ${settings.currencyName}`, inline: true },
+          { name: 'Баланс', value: `${profile.balance} ${settings.currencyName}`, inline: true }
+        );
+      return interaction.reply({ embeds: [embed] });
     }
 
     if (sub === 'pay') {
@@ -58,7 +65,15 @@ module.exports = {
       await sender.save();
       await receiver.save();
 
-      return interaction.reply({ embeds: [embeds.success(`<@${interaction.user.id}> перевёл(а) **${amount} ${settings.currencyName}** пользователю <@${target.id}>`)] });
+      const embed = embeds
+        .baseEmbed(embeds.COLORS.success)
+        .setDescription(`✅ Перевод выполнен`)
+        .addFields(
+          { name: 'От', value: `<@${interaction.user.id}>`, inline: true },
+          { name: 'Кому', value: `<@${target.id}>`, inline: true },
+          { name: 'Сумма', value: `${amount} ${settings.currencyName}`, inline: true }
+        );
+      return interaction.reply({ embeds: [embed] });
     }
   }
 };

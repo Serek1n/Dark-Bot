@@ -7,6 +7,7 @@ const {
   entersState,
   StreamType
 } = require('@discordjs/voice');
+const { EmbedBuilder } = require('discord.js');
 const playdl = require('play-dl');
 const logger = require('../../utils/logger');
 
@@ -79,7 +80,18 @@ class GuildQueue {
       resource.volume?.setVolume(this.volume);
       this.player.play(resource);
       this.playing = next;
-      this.textChannel?.send(`▶️ Сейчас играет: **${next.title}** (заказал <@${next.requestedBy}>)`).catch(() => {});
+
+      const embed = new EmbedBuilder()
+        .setColor(0xe3a857)
+        .setAuthor({ name: 'Сейчас играет' })
+        .setTitle(next.title)
+        .setURL(next.url)
+        .addFields(
+          { name: 'Длительность', value: next.duration || '—', inline: true },
+          { name: 'Заказал', value: `<@${next.requestedBy}>`, inline: true }
+        );
+      if (next.thumbnail) embed.setThumbnail(next.thumbnail);
+      this.textChannel?.send({ embeds: [embed] }).catch(() => {});
     } catch (err) {
       logger.error('Failed to start track', next.url, err);
       this.textChannel?.send(`⚠️ Не удалось воспроизвести **${next.title}**, пропускаю.`).catch(() => {});

@@ -70,11 +70,16 @@ module.exports = {
     }
 
     if (sub === 'queue') {
-      const lines = [];
-      if (queue.playing) lines.push(`▶️ Сейчас играет: **${queue.playing.title}**`);
-      queue.tracks.forEach((t, i) => lines.push(`${i + 1}. ${t.title}`));
-      if (!lines.length) return interaction.reply({ embeds: [embeds.info('Очередь пуста.')] });
-      return interaction.reply({ embeds: [embeds.info(lines.join('\n')).setTitle('🎵 Очередь')] });
+      if (!queue.playing && !queue.tracks.length) return interaction.reply({ embeds: [embeds.info('Очередь пуста.')] });
+
+      const embed = embeds.baseEmbed().setTitle('Очередь');
+      if (queue.playing) embed.addFields({ name: 'Сейчас играет', value: queue.playing.title });
+      if (queue.tracks.length) {
+        const lines = queue.tracks.slice(0, 15).map((t, i) => `${i + 1}. ${t.title}`);
+        if (queue.tracks.length > 15) lines.push(`…и ещё ${queue.tracks.length - 15}.`);
+        embed.addFields({ name: 'Далее', value: lines.join('\n') });
+      }
+      return interaction.reply({ embeds: [embed] });
     }
 
     if (sub === 'volume') {
