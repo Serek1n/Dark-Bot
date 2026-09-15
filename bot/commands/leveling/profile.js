@@ -30,12 +30,16 @@ module.exports = {
       let xpIntoLevel = Number(profile.xp);
       for (let l = 0; l < profile.level; l++) xpIntoLevel -= xpForLevel(l);
 
+      // "# N" renders as a large heading in Discord's embed markdown — the closest
+      // thing to a big hero stat that the platform actually supports.
       const embed = embeds
         .baseEmbed()
         .setAuthor({ name: target.username, iconURL: target.displayAvatarURL() })
-        .setDescription(`\`${embeds.progressBar(xpIntoLevel, needed)}\`  ${xpIntoLevel}/${needed} XP`)
+        .setDescription(
+          `# ${profile.level}\nУровень\n\n` +
+            `\`${embeds.progressBar(xpIntoLevel, needed)}\`  ${xpIntoLevel}/${needed} XP`
+        )
         .addFields(
-          { name: 'Уровень', value: `${profile.level}`, inline: true },
           { name: 'Баланс', value: `${profile.balance} ${settings.currencyName}`, inline: true },
           { name: 'Сообщений', value: `${profile.messageCount}`, inline: true }
         )

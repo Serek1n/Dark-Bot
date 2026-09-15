@@ -38,7 +38,8 @@ module.exports = {
 
       const embed = embeds
         .baseEmbed(embeds.COLORS.success)
-        .setDescription(`✅ Ежедневная награда получена`)
+        .setTitle('✓ Награда получена')
+        .setDescription('Возвращайтесь через 24 часа')
         .addFields(
           { name: 'Получено', value: `+${DAILY_AMOUNT} ${settings.currencyName}`, inline: true },
           { name: 'Баланс', value: `${profile.balance} ${settings.currencyName}`, inline: true }
@@ -67,12 +68,9 @@ module.exports = {
 
       const embed = embeds
         .baseEmbed(embeds.COLORS.success)
-        .setDescription(`✅ Перевод выполнен`)
-        .addFields(
-          { name: 'От', value: `<@${interaction.user.id}>`, inline: true },
-          { name: 'Кому', value: `<@${target.id}>`, inline: true },
-          { name: 'Сумма', value: `${amount} ${settings.currencyName}`, inline: true }
-        );
+        .setTitle('✓ Перевод выполнен')
+        .setDescription(`<@${interaction.user.id}> → <@${target.id}>`)
+        .addFields({ name: 'Сумма', value: `${amount} ${settings.currencyName}`, inline: true });
       return interaction.reply({ embeds: [embed] });
     }
   }

@@ -12,6 +12,7 @@
   "license": "MIT",
   "dependencies": {
     "@discordjs/voice": "^0.19.2",
+    "@napi-rs/canvas": "^1.0.9",
     "axios": "^1.7.7",
     "connect-sqlite3": "^0.9.15",
     "discord.js": "^14.15.3",
