@@ -1,6 +1,8 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, AttachmentBuilder } = require('discord.js');
 const { getOrCreateProfile, getOrCreateSettings, xpForLevel, getLeaderboard } = require('../../modules/leveling');
+const { renderRankCard } = require('../../modules/rankCard');
 const embeds = require('../../utils/embeds');
+const logger = require('../../utils/logger');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -30,22 +32,38 @@ module.exports = {
       let xpIntoLevel = Number(profile.xp);
       for (let l = 0; l < profile.level; l++) xpIntoLevel -= xpForLevel(l);
 
-      // "# N" renders as a large heading in Discord's embed markdown — the closest
-      // thing to a big hero stat that the platform actually supports.
-      const embed = embeds
-        .baseEmbed()
-        .setAuthor({ name: target.username, iconURL: target.displayAvatarURL() })
-        .setDescription(
-          `# ${profile.level}\nУровень\n\n` +
-            `\`${embeds.progressBar(xpIntoLevel, needed)}\`  ${xpIntoLevel}/${needed} XP`
-        )
-        .addFields(
-          { name: 'Баланс', value: `${profile.balance} ${settings.currencyName}`, inline: true },
-          { name: 'Сообщений', value: `${profile.messageCount}`, inline: true }
-        )
-        .setThumbnail(target.displayAvatarURL());
+      await interaction.deferReply();
 
-      return interaction.reply({ embeds: [embed] });
+      try {
+        const png = await renderRankCard({
+          username: target.username,
+          avatarURL: target.displayAvatarURL({ extension: 'png', size: 256 }),
+          level: profile.level,
+          xpIntoLevel,
+          xpNeeded: needed,
+          balance: Number(profile.balance),
+          currencyName: settings.currencyName,
+          messageCount: Number(profile.messageCount)
+        });
+        const attachment = new AttachmentBuilder(png, { name: 'rank.png' });
+        return interaction.editReply({ files: [attachment] });
+      } catch (err) {
+        // Canvas/network hiccup — fall back to the plain-text embed instead of a dead command.
+        logger.error('Failed to render rank card, falling back to embed:', err);
+        const embed = embeds
+          .baseEmbed()
+          .setAuthor({ name: target.username, iconURL: target.displayAvatarURL() })
+          .setDescription(
+            `# ${profile.level}\nУровень\n\n` +
+              `\`${embeds.progressBar(xpIntoLevel, needed)}\`  ${xpIntoLevel}/${needed} XP`
+          )
+          .addFields(
+            { name: 'Баланс', value: `${profile.balance} ${settings.currencyName}`, inline: true },
+            { name: 'Сообщений', value: `${profile.messageCount}`, inline: true }
+          )
+          .setThumbnail(target.displayAvatarURL());
+        return interaction.editReply({ embeds: [embed] });
+      }
     }
 
     if (sub === 'top') {
