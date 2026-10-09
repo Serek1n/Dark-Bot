@@ -16,6 +16,7 @@ const logger = require('../../utils/logger');
  * @typedef {{ title: string, url: string, duration: string, requestedBy: string, thumbnail?: string, source: 'youtube'|'soundcloud'|'other' }} Track
  */
 
+const IDLE_TIMEOUT_MS = Number(process.env.VOICE_IDLE_MINUTES || 5) * 60 * 1000;
 const YTDLP_BIN = process.env.YTDLP_PATH || 'yt-dlp';
 
 /** Spawns yt-dlp and returns { proc, stream } with raw audio on stdout. */
@@ -49,6 +50,7 @@ class GuildQueue {
     this.connection = null;
     this.playing = null;
     this.currentProcess = null;
+    this.idleTimer = null;
     this._bindPlayerEvents();
   }
 
@@ -73,8 +75,39 @@ class GuildQueue {
       adapterCreator: this.voiceChannel.guild.voiceAdapterCreator,
       selfDeaf: true
     });
+    this.connection.on(VoiceConnectionStatus.Disconnected, async () => {
+      try {
+        await Promise.race([
+          entersState(this.connection, VoiceConnectionStatus.Signalling, 5000),
+          entersState(this.connection, VoiceConnectionStatus.Connecting, 5000)
+        ]);
+      } catch {
+        destroyQueue(this.guildId); // kicked or moved out: clean up
+      }
+    });
     this.connection.subscribe(this.player);
     await entersState(this.connection, VoiceConnectionStatus.Ready, 15000);
+  }
+
+  _clearIdleTimer() {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+  }
+
+  /** Leaves the voice channel after IDLE_TIMEOUT_MS without music (nothing playing, or paused). */
+  _startIdleTimer() {
+    this._clearIdleTimer();
+    this.idleTimer = setTimeout(() => {
+      this.idleTimer = null;
+      logger.info?.(`Idle for ${IDLE_TIMEOUT_MS / 60000} min, leaving voice in guild ${this.guildId}`);
+      this.textChannel
+        ?.send('👋 Никто не слушает уже 5 минут, выхожу из голосового канала.')
+        .catch(() => {});
+      destroyQueue(this.guildId);
+    }, IDLE_TIMEOUT_MS);
+    this.idleTimer.unref?.();
   }
 
   _killCurrentProcess() {
@@ -93,8 +126,10 @@ class GuildQueue {
     const next = this.tracks.shift();
     if (!next) {
       this.playing = null;
+      this._startIdleTimer();
       return;
     }
+    this._clearIdleTimer();
 
     try {
       let resource;
@@ -141,10 +176,12 @@ class GuildQueue {
 
   pause() {
     this.player.pause();
+    this._startIdleTimer();
   }
 
   resume() {
     this.player.unpause();
+    this._clearIdleTimer();
   }
 
   setVolume(v) {
@@ -155,10 +192,11 @@ class GuildQueue {
   }
 
   stopAndDestroy() {
+    this._clearIdleTimer();
     this.tracks = [];
     this.player.stop();
     this._killCurrentProcess();
-    this.connection?.destroy();
+    try { this.connection?.destroy(); } catch (_) { /* already destroyed */ }
   }
 }
 
@@ -181,8 +219,8 @@ function getOrCreateQueue(guildId, voiceChannel, textChannel) {
 function destroyQueue(guildId) {
   const q = queues.get(guildId);
   if (q) {
-    q.stopAndDestroy();
     queues.delete(guildId);
+    q.stopAndDestroy();
   }
 }
 

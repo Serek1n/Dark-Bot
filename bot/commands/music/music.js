@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { getQueue, getOrCreateQueue, resolveQuery } = require('../../modules/music/player');
+const { getQueue, getOrCreateQueue, destroyQueue, resolveQuery } = require('../../modules/music/player');
 const embeds = require('../../utils/embeds');
 
 module.exports = {
@@ -55,7 +55,7 @@ module.exports = {
     }
 
     if (sub === 'stop') {
-      queue.stopAndDestroy();
+      destroyQueue(interaction.guild.id);
       return interaction.reply({ embeds: [embeds.success('Воспроизведение остановлено, очередь очищена.')] });
     }
 
