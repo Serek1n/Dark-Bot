@@ -1,157 +1,290 @@
 <p align="center">
-  <img src="./assets/banner.png" alt="Dark — Discord-бот с веб-панелью" width="100%" />
+  <img src="./assets/banner.png" alt="Dark" width="100%" />
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Node.js-18%2B-e3a857?style=flat-square" alt="Node.js 18+" />
+  <img src="https://img.shields.io/badge/Node.js-20%2B-e3a857?style=flat-square" alt="Node.js 20+" />
   <img src="https://img.shields.io/badge/discord.js-v14-e3a857?style=flat-square" alt="discord.js v14" />
-  <img src="https://img.shields.io/badge/license-MIT-e3a857?style=flat-square" alt="MIT license" />
+  <img src="https://img.shields.io/badge/SQLite-Sequelize-e3a857?style=flat-square" alt="SQLite" />
+  <img src="https://img.shields.io/badge/license-MIT-e3a857?style=flat-square" alt="MIT" />
 </p>
 
-# Dark — Discord-бот с веб-панелью
+# Dark
 
-Многофункциональный Discord-бот **Dark**: уровни/экономика, модерация с автомодом,
-роли по реакциям, временные голосовые каналы, кастомные команды, автороль и приветствия,
-музыка (YouTube/SoundCloud/Spotify-ссылки) и оповещения о новых видео/стримах (YouTube/Twitch).
-Всё это управляется как слэш-командами в Discord, так и через веб-панель с входом через Discord OAuth2.
+Discord-бот с веб-панелью. Команд мало, возможностей много: всё спрятано в подкоманды,
+а то же самое можно настроить в браузере после входа через Discord.
 
-## Стек
+- **Профиль-карточка** — уровень, опыт, баланс одним изображением
+- **Экономика** — ежедневная награда, переводы
+- **Музыка** — YouTube, SoundCloud, ссылки Spotify (через поиск на YouTube)
+- **Модерация и автомодерация** — предупреждения, мут, бан, журнал, жалобы на сообщения
+- **Сервер** — роли по реакциям, автороль, приветствия, временные голосовые каналы, свои команды
+- **Оповещения** о видео на YouTube и стримах Twitch
+- **Веб-панель** — тёмная тема, вход через Discord, HTTPS
 
-- **Discord.js v14** (Node.js) — сам бот
-- **Express + EJS** — веб-панель (без сборки, серверный рендеринг)
-- **SQLite (через Sequelize)** — база данных, один файл, не требует отдельного сервера БД
-- **play-dl + @discordjs/voice** — музыка
-- **passport-discord** — OAuth2-вход в панель
+## Команды
 
-Бот и веб-панель — это два отдельных процесса (`bot/index.js` и `web/index.js`), которые
-читают и пишут в одну и ту же SQLite-базу. Поэтому изменения из панели сразу видны боту и наоборот.
+Всего 9 команд. Наберите `/`, и Discord покажет подкоманды.
 
-## 1. Создание приложения в Discord
+**Для участников**
 
-1. Зайдите на https://discord.com/developers/applications → **New Application**.
-2. Вкладка **Bot** → **Add Bot**. Скопируйте токен → это `DISCORD_TOKEN`.
-   Включите **Message Content Intent**, **Server Members Intent** — они обязательны.
-3. Вкладка **OAuth2 → General**: скопируйте **Client ID** (`DISCORD_CLIENT_ID`) и
-   **Client Secret** (`DISCORD_CLIENT_SECRET`).
-4. Там же в **Redirects** добавьте: `http://ВАШ_ДОМЕН_ИЛИ_IP:3000/auth/callback`
-   (или `http://localhost:3000/auth/callback` для локального теста).
-5. Чтобы пригласить бота на сервер, сформируйте ссылку в **OAuth2 → URL Generator**:
-   scopes `bot` + `applications.commands`, права — как минимум Manage Roles, Manage Channels,
-   Kick/Ban Members, Moderate Members, Manage Messages, Connect/Speak (для музыки).
+| Команда | Действие |
+|---|---|
+| `/profile view` · `top` | Карточка профиля и таблица лидеров |
+| `/economy daily` · `pay` | Награда раз в сутки и перевод монет |
+| `/music play` · `skip` · `stop` · `pause` · `resume` · `queue` · `volume` | Музыка в голосовом канале |
+| `/help` | Список команд |
+| Меню сообщения → **Пожаловаться на сообщение** | Жалоба модераторам |
 
-## 2. Установка на VPS
+**Для администрации** (нужны права в Discord)
 
-Требуется Node.js 18+ (лучше 20+).
+| Команда | Действие |
+|---|---|
+| `/moderation` | `warn` `unwarn` `warnings` `mute` `unmute` `kick` `ban` `unban` `clear` |
+| `/manage` | `command`, `reactionrole`, `tempvoice`, `alert` |
+| `/settings` | Каналы логов и жалоб, приветствие, автороль, префикс, название валюты |
+| `/automod` | Запрещённые слова, инвайты, антиспам |
+
+## Быстрый старт
+
+### 1. Приложение в Discord
+
+1. [Developer Portal](https://discord.com/developers/applications) → **New Application**.
+2. **Bot** → **Reset Token** → это `DISCORD_TOKEN`.
+3. В **Privileged Gateway Intents** включите **Server Members** и **Message Content**.
+   Без них бот не запустится (`Used disallowed intents`).
+4. **OAuth2** → скопируйте **Client ID** и **Client Secret**.
+5. **OAuth2 → Redirects** → добавьте `https://ВАШ_ДОМЕН:8843/auth/callback`.
+6. Пригласите бота (scopes `bot` и `applications.commands`):
+   ```
+   https://discord.com/oauth2/authorize?client_id=ВАШ_CLIENT_ID&scope=bot%20applications.commands&permissions=1099800079446
+   ```
+
+Роль бота должна стоять выше ролей, которыми он управляет.
+
+### 2. Сервер (Ubuntu)
 
 ```bash
-git clone <ваш-репозиторий-или-распакуйте-архив> dark-bot
+sudo apt update
+sudo apt install -y git ffmpeg python3 build-essential nginx certbot
+```
+
+Node.js 20 или новее:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
+yt-dlp (нужен для музыки):
+
+```bash
+sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+sudo chmod a+rx /usr/local/bin/yt-dlp
+```
+
+Проект:
+
+```bash
+cd /opt
+git clone git@github.com:ВАШ_АККАУНТ/ВАШ_РЕПОЗИТОРИЙ.git dark-bot
 cd dark-bot
 npm install
 cp .env.example .env
-nano .env   # заполните DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, SESSION_SECRET, WEB_BASE_URL
-```
-
-Заполните `.env` — как минимум:
-- `DISCORD_TOKEN`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`
-- `WEB_BASE_URL` — публичный адрес панели, например `http://ваш-ip:3000`
-- `SESSION_SECRET` — любая длинная случайная строка
-- `BOT_OWNER_IDS` — ваш Discord ID через запятую, если хотите иметь доступ ко всем серверам в панели
-
-Зарегистрируйте слэш-команды (при каждом изменении команд запускать заново):
-
-```bash
+nano .env
 npm run deploy-commands
 ```
 
-Запустите бота и панель. Проще всего через **pm2**, чтобы оба процесса рестартовали при падении и сервере:
+Запуск:
 
 ```bash
-npm install -g pm2
+sudo npm install -g pm2
 pm2 start ecosystem.config.js
 pm2 save
-pm2 startup   # настроит автозапуск pm2 при перезагрузке сервера
+pm2 startup
 ```
 
-Панель будет доступна на `http://ваш-ip:3000`. Для продакшена рекомендуется поставить перед ней
-nginx с HTTPS (Let's Encrypt) и проксировать на порт из `WEB_PORT`.
+### 3. Файл `.env`
 
-Логи: `pm2 logs dark-bot` / `pm2 logs dark-web`.
+```env
+DISCORD_TOKEN=
+DISCORD_CLIENT_ID=
+DISCORD_CLIENT_SECRET=
 
-## 2b. Альтернатива — через Docker
+# ID вашего сервера: команды появятся сразу.
+# Если пусто, команды станут глобальными (до часа).
+DEV_GUILD_ID=
+
+WEB_PORT=3000
+WEB_BASE_URL=https://ВАШ_ДОМЕН:8843
+SESSION_SECRET=      # openssl rand -hex 32
+BOT_OWNER_IDS=       # ваш Discord ID
+
+DATABASE_PATH=./data/dark.sqlite
+
+# необязательно
+YOUTUBE_API_KEY=
+TWITCH_CLIENT_ID=
+TWITCH_CLIENT_SECRET=
+ALERT_POLL_INTERVAL_MINUTES=5
+```
+
+- `WEB_PORT` — внутренний порт панели. Не ставьте туда 8843 или 8880: их занимает nginx.
+- `WEB_BASE_URL` должен начинаться с `https://`, иначе вход через Discord не сохранит сессию.
+- После правки `.env`: `pm2 restart all --update-env`.
+
+### 4. HTTPS на нестандартных портах
+
+Порты 80 и 443 не нужны: **8843** отдаёт HTTPS, **8880** перенаправляет на него.
+
+```
+Браузер → https:8843 → nginx → панель (localhost:3000)
+```
+
+<details>
+<summary>Сертификат Let's Encrypt через DNS (DuckDNS или другой домен)</summary>
 
 ```bash
-cp .env.example .env   # заполнить так же, как выше
-docker compose up -d --build
+sudo certbot certonly --manual --preferred-challenges dns -d ВАШ_ДОМЕН
 ```
 
-Один контейнер запускает и бота, и панель через pm2-runtime, база данных лежит в `./data`.
+Сертификат ляжет в `/etc/letsencrypt/live/ВАШ_ДОМЕН/`. Для DuckDNS TXT-запись ставится запросом
+`https://www.duckdns.org/update?domains=ИМЯ&token=ТОКЕН&txt=ЗНАЧЕНИЕ` — его можно вынести в
+`--manual-auth-hook` и `--manual-cleanup-hook`, тогда продление пройдёт без участия человека.
+Токен DuckDNS секретный: если он попал в чат или скриншот, перевыпустите его на сайте.
 
-## 3. Дополнительные интеграции (необязательно)
+</details>
 
-- **Оповещения YouTube**: получите ключ на https://console.cloud.google.com (YouTube Data API v3),
-  впишите в `YOUTUBE_API_KEY`.
-- **Оповещения Twitch**: создайте приложение на https://dev.twitch.tv/console,
-  впишите `TWITCH_CLIENT_ID` и `TWITCH_CLIENT_SECRET`.
+<details>
+<summary>Конфиг nginx</summary>
 
-Без этих ключей соответствующие подкоманды (`/manage alert youtube`, `/manage alert twitch`) просто ответят, что интеграция не настроена — остальной бот при этом работает нормально.
+Файл `/etc/nginx/conf.d/dark-bot.conf`:
 
-## Возможности
+```nginx
+server {
+    listen 8880;
+    server_name ВАШ_ДОМЕН;
+    return 301 https://$host:8843$request_uri;
+}
 
-Команд специально мало — вся функциональность спрятана в подкомандах (наберите `/` и Discord подскажет варианты).
+server {
+    listen 8843 ssl;
+    server_name ВАШ_ДОМЕН;
 
-**Для всех участников:**
+    ssl_certificate     /etc/letsencrypt/live/ВАШ_ДОМЕН/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ВАШ_ДОМЕН/privkey.pem;
 
-| Команда | Что делает |
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+```bash
+sudo nginx -t && sudo systemctl restart nginx
+sudo ufw allow 8880/tcp    # если включён ufw
+sudo ufw allow 8843/tcp
+```
+
+</details>
+
+Панель: **https://ВАШ_ДОМЕН:8843**
+
+## Обновление через GitHub
+
+Код попадает на сервер только через GitHub.
+
+1. В GitHub Desktop проверьте, что в списке изменений есть все файлы (в том числе `package.json`).
+2. **Commit to main**, затем отдельно **Push origin**.
+3. Убедитесь на github.com, что файлы обновились.
+4. На сервере:
+
+```bash
+cd /opt/dark-bot
+git pull
+npm install
+pm2 restart dark-bot dark-web
+```
+
+`npm run deploy-commands` нужен только если менялся набор команд или подкоманд.
+
+Если `git pull` отказывается из-за `package.json` или `package-lock.json`:
+
+```bash
+git checkout -- package.json
+rm -f package-lock.json
+git pull
+```
+
+Чтобы это не повторялось, добавьте `package-lock.json` в `.gitignore`.
+
+## Веб-панель
+
+Вход через Discord. Видны серверы, где у вас есть право управления.
+
+Разделы: обзор, уровни, лидерборд, модерация, автомодерация, приветствие и автороль,
+роли по реакциям, свои команды, временные голосовые, оповещения.
+
+Панель и бот используют одну базу SQLite, поэтому настройки применяются сразу, без перезапуска.
+
+## Оповещения YouTube и Twitch
+
+- YouTube: ключ YouTube Data API v3 из Google Cloud Console → `YOUTUBE_API_KEY`.
+- Twitch: приложение на dev.twitch.tv/console → `TWITCH_CLIENT_ID` и `TWITCH_CLIENT_SECRET`.
+
+Без ключей подкоманды `/manage alert` сообщат, что интеграция не настроена. Остальной бот работает.
+
+## Если что-то не работает
+
+| Симптом | Что делать |
 |---|---|
-| `/profile view [пользователь]` | Уровень, опыт, баланс, число сообщений |
-| `/profile top` | Таблица лидеров сервера по опыту |
-| `/economy daily` | Забрать ежедневную награду |
-| `/economy pay <пользователь> <сумма>` | Перевести валюту другому участнику |
-| `/music play/skip/stop/pause/resume/queue/volume` | Управление музыкой в голосовом канале |
-| `/help` | Список всех команд с подкомандами |
-| Контекстное меню "Пожаловаться на сообщение" | Отправить жалобу модераторам |
+| Бот не в сети, в логе `Used disallowed intents` | Включить Server Members и Message Content в Developer Portal, затем `pm2 restart dark-bot` |
+| Команд нет в списке | `npm run deploy-commands`, перезапустить Discord (Ctrl+R), проверить scope `applications.commands` у приглашения |
+| Команды задвоились | Остались глобальные и серверные регистрации. Оставьте один способ: задайте `DEV_GUILD_ID`, очистите глобальные и снова `deploy-commands` |
+| Изменений нет на сервере | Закоммичено → Push origin → видно на github.com → `git pull` → `pm2 restart` |
+| `Cannot find module …` или `X.init is not a function` | `pm2 stop all && rm -rf node_modules package-lock.json && npm install && pm2 restart all` |
+| Музыка: «Не удалось воспроизвести» | Проверить `yt-dlp --version`, `ffmpeg -version`; в `package.json` должен быть `@discordjs/opus`; обновить `sudo yt-dlp -U`; смотреть `pm2 logs dark-bot --lines 60` |
+| Панель не открывается | `sudo nginx -t`; `WEB_PORT` должен быть 3000; порты: `sudo ss -tlnp \| grep -E '8843\|8880\|3000'` |
+| `redirect_uri` при входе | Redirect в Developer Portal должен точно совпадать с `WEB_BASE_URL` + `/auth/callback` |
 
-**Для администрации** (требуют соответствующих прав Discord):
+## Ограничения
 
-| Команда | Что делает |
-|---|---|
-| `/moderation warn/unwarn/warnings/mute/unmute/kick/ban/unban/clear` | Вся модерация в одной команде |
-| `/manage command add/remove/list` | Кастомные текстовые команды |
-| `/manage reactionrole add/remove` | Роли по реакциям на сообщение |
-| `/manage tempvoice setup/disable` | Временные голосовые каналы |
-| `/manage alert youtube/twitch/remove/list` | Оповещения о новых видео/стримах |
-| `/settings logchannel/reportchannel/levelupchannel/welcome/autorole/prefix/currency` | Общие настройки сервера |
-| `/automod toggle/addword/removeword/listwords/invites/antispam` | Автомодерация |
+- Spotify и Яндекс.Музыка напрямую не играют: по ссылке Spotify бот берёт название трека и ищет звук на YouTube.
+- Оповещения работают опросом раз в `ALERT_POLL_INTERVAL_MINUTES` минут.
+- Опыт начисляется только за текстовые сообщения.
 
-Все те же настройки (кроме музыки) можно менять и через веб-панель — оба способа пишут в одну базу данных, изменения применяются мгновенно.
+## Проверка перед выпуском
 
-## Важные ограничения
+В папке `test_harness/` лежат тесты на имитации Discord (без реального токена):
 
-- **Музыка**: полноценное воспроизведение из Spotify/Яндекс.Музыки как аудиопотока напрямую
-  технически невозможно без нарушения условий их API — вместо этого Spotify-ссылки резолвятся
-  в метаданные трека, а сам звук ищется и стримится с YouTube. YouTube, SoundCloud и прямые
-  ссылки на аудио работают "напрямую".
-- **Оповещения**: реализованы через периодический опрос (polling) публичных API YouTube/Twitch
-  раз в несколько минут, а не через мгновенные webhooks — этого достаточно для большинства серверов,
-  но не мгновенно секунда-в-секунду.
-- Начисление опыта происходит только за текстовые сообщения (как большинство подобных ботов);
-  войс-активность не учитывается, но легко добавляется в `bot/modules/leveling.js`.
-
-## Структура проекта
-
-```
-dark-bot/
-  bot/            — сам Discord-бот (discord.js)
-    commands/     — слэш-команды по категориям
-    events/       — обработчики событий Discord
-    modules/      — бизнес-логика (уровни, automod, музыка, оповещения)
-    utils/        — общие хелперы (эмбеды, права, логи, журнал модерации)
-  db/             — модели Sequelize + инициализация SQLite
-  web/            — Express-панель (EJS-шаблоны, OAuth2, роуты)
-  ecosystem.config.js — конфиг PM2 для запуска обоих процессов
-  docker-compose.yml / Dockerfile — опциональный запуск в контейнере
+```bash
+node test_harness/run.js           # команды
+node test_harness/run_events.js    # события
 ```
 
-Дальнейшее развитие: добавляйте новые слэш-команды в `bot/commands/<категория>/`,
-новые страницы панели — в `web/views/dashboard/` + маршрут в `web/routes/dashboard.js`.
-Оба процесса используют общую базу `db/`, поэтому новые поля достаточно добавить в модель — Sequelize создаст колонку автоматически при следующем запуске (`sequelize.sync()`).
+## Структура
+
+```
+assets/             баннер и логотип
+bot/
+  commands/         слэш-команды по категориям
+  events/           события Discord
+  modules/          уровни, automod, rankCard, музыка, оповещения
+  utils/            эмбеды, права, журнал модерации
+  assets/fonts/     шрифты для карточки профиля
+db/                 модели Sequelize
+web/                панель: routes, views (EJS), public
+ecosystem.config.js
+Dockerfile, docker-compose.yml
+```
+
+## Лицензия
+
+MIT
