@@ -7,8 +7,8 @@ const {
   entersState,
   StreamType
 } = require('@discordjs/voice');
-const { EmbedBuilder } = require('discord.js');
 const { spawn } = require('child_process');
+const { EmbedBuilder } = require('discord.js');
 const playdl = require('play-dl');
 const logger = require('../../utils/logger');
 
@@ -16,21 +16,25 @@ const logger = require('../../utils/logger');
  * @typedef {{ title: string, url: string, duration: string, requestedBy: string, thumbnail?: string, source: 'youtube'|'soundcloud'|'other' }} Track
  */
 
-// Spawns yt-dlp to stream audio directly to stdout. play-dl's own stream()
-// extraction for YouTube broke against current YouTube responses (an
-// unmaintained-library issue, not something fixable on our end), so YouTube
-// audio goes through yt-dlp instead — it's actively maintained and keeps up
-// with YouTube's changes far faster. play-dl is still used for search and
-// metadata (title/duration/thumbnail), which never broke.
+const YTDLP_BIN = process.env.YTDLP_PATH || 'yt-dlp';
+
+/** Spawns yt-dlp and returns { proc, stream } with raw audio on stdout. */
 function spawnYtDlpAudio(url) {
   const proc = spawn(
-    'yt-dlp',
+    YTDLP_BIN,
     ['-f', 'bestaudio', '-o', '-', '--quiet', '--no-warnings', '--no-playlist', url],
     { stdio: ['ignore', 'pipe', 'pipe'] }
   );
-  proc.stderr.on('data', () => {}); // yt-dlp writes progress/info to stderr; nothing we need to surface
-  proc.on('error', (err) => logger.error('yt-dlp process error:', err));
-  return proc;
+  let stderr = '';
+  proc.stderr.on('data', (d) => {
+    stderr += d.toString();
+    if (stderr.length > 2000) stderr = stderr.slice(-2000);
+  });
+  proc.on('error', (err) => logger.error('yt-dlp spawn error', err));
+  proc.on('close', (code) => {
+    if (code && code !== 0 && code !== null) logger.warn?.(`yt-dlp exited ${code}: ${stderr.trim()}`);
+  });
+  return { proc, stream: proc.stdout };
 }
 
 class GuildQueue {
@@ -44,29 +48,22 @@ class GuildQueue {
     this.player = createAudioPlayer();
     this.connection = null;
     this.playing = null;
-    this.currentProcess = null; // the yt-dlp child process backing the current track, if any
+    this.currentProcess = null;
     this._bindPlayerEvents();
   }
 
   _bindPlayerEvents() {
     this.player.on(AudioPlayerStatus.Idle, () => {
-      this.playing = null;
       this._killCurrentProcess();
+      this.playing = null;
       this.playNext().catch((err) => logger.error('playNext error', err));
     });
     this.player.on('error', (err) => {
       logger.error('AudioPlayer error', err);
-      this.playing = null;
       this._killCurrentProcess();
+      this.playing = null;
       this.playNext().catch((e) => logger.error('playNext error', e));
     });
-  }
-
-  _killCurrentProcess() {
-    if (this.currentProcess && !this.currentProcess.killed) {
-      this.currentProcess.kill('SIGKILL');
-    }
-    this.currentProcess = null;
   }
 
   async connect() {
@@ -78,6 +75,13 @@ class GuildQueue {
     });
     this.connection.subscribe(this.player);
     await entersState(this.connection, VoiceConnectionStatus.Ready, 15000);
+  }
+
+  _killCurrentProcess() {
+    if (this.currentProcess) {
+      try { this.currentProcess.kill('SIGKILL'); } catch (_) { /* already gone */ }
+      this.currentProcess = null;
+    }
   }
 
   enqueue(track) {
@@ -95,15 +99,19 @@ class GuildQueue {
     try {
       let resource;
       if (next.source === 'youtube') {
-        const proc = spawnYtDlpAudio(next.url);
+        const { proc, stream } = spawnYtDlpAudio(next.url);
         this.currentProcess = proc;
-        resource = createAudioResource(proc.stdout, { inputType: StreamType.Arbitrary, inlineVolume: true });
+        resource = createAudioResource(stream, {
+          inputType: StreamType.Arbitrary,
+          inlineVolume: true
+        });
       } else {
-        // SoundCloud and other direct-link sources still work fine through play-dl.
         const stream = await playdl.stream(next.url);
-        resource = createAudioResource(stream.stream, { inputType: stream.type || StreamType.Arbitrary, inlineVolume: true });
+        resource = createAudioResource(stream.stream, {
+          inputType: stream.type || StreamType.Arbitrary,
+          inlineVolume: true
+        });
       }
-
       resource.volume?.setVolume(this.volume);
       this.player.play(resource);
       this.playing = next;
@@ -120,15 +128,14 @@ class GuildQueue {
       if (next.thumbnail) embed.setThumbnail(next.thumbnail);
       this.textChannel?.send({ embeds: [embed] }).catch(() => {});
     } catch (err) {
+      this._killCurrentProcess();
       logger.error('Failed to start track', next.url, err);
       this.textChannel?.send(`⚠️ Не удалось воспроизвести **${next.title}**, пропускаю.`).catch(() => {});
-      this._killCurrentProcess();
       this.playNext();
     }
   }
 
   skip() {
-    this._killCurrentProcess();
     this.player.stop(); // triggers Idle -> playNext
   }
 
@@ -149,8 +156,8 @@ class GuildQueue {
 
   stopAndDestroy() {
     this.tracks = [];
-    this._killCurrentProcess();
     this.player.stop();
+    this._killCurrentProcess();
     this.connection?.destroy();
   }
 }
@@ -181,8 +188,8 @@ function destroyQueue(guildId) {
 
 /**
  * Resolves a search query or URL (YouTube, SoundCloud, Spotify link) into one or more Tracks.
- * Metadata resolution still goes through play-dl, which works fine — only the
- * actual YouTube audio extraction (in playNext above) had broken.
+ * Spotify links are resolved by searching YouTube for the same title/artist, since Spotify's
+ * API does not provide direct audio streams.
  */
 async function resolveQuery(query, requestedBy) {
   const type = await playdl.validate(query).catch(() => false);
