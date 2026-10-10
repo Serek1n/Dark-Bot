@@ -21,7 +21,14 @@
         </div>
         <div>
           <label>Текст приветствия — доступны {user} и {server}</label>
-          <textarea name="welcomeMessage"><%= settings.welcomeMessage %></textarea>
+          <textarea name="welcomeMessage" id="welcomeMessage" maxlength="1800"><%= settings.welcomeMessage %></textarea>
+        </div>
+        <div>
+          <label>Как это увидят в Discord</label>
+          <div class="preview">
+            <div class="pv-avatar"><svg width="22" height="22" viewBox="0 0 56 56" aria-hidden="true"><mask id="pv-moon"><rect width="56" height="56" fill="#fff"/><circle cx="36" cy="20" r="15" fill="#000"/></mask><circle cx="27" cy="29" r="19" fill="#e3a857" mask="url(#pv-moon)"/></svg></div>
+            <div><div class="pv-name">Dark<em>БОТ</em></div><div id="welcomePreview"></div></div>
+          </div>
         </div>
         <div>
           <label>Роль, выдаваемая автоматически при входе</label>
@@ -36,5 +43,20 @@
       </form>
     </div>
   </div>
+  <script>
+    (function () {
+      var input = document.getElementById('welcomeMessage');
+      var out = document.getElementById('welcomePreview');
+      var server = <%- JSON.stringify(guild.name).replace(/</g, '\\u003c') %>;
+      function esc(t) { return t.replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+      function render() {
+        out.innerHTML = esc(input.value)
+          .replace(/\{user\}/g, '<span class="mention">@Новый участник</span>')
+          .replace(/\{server\}/g, esc(server));
+      }
+      input.addEventListener('input', render);
+      render();
+    })();
+  </script>
 </body>
 </html>

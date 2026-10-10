@@ -18,15 +18,22 @@ function makeChannel(id, overrides = {}) {
 }
 
 function makeMember(id, overrides = {}) {
+  const position = overrides.rolePosition ?? 1;
+  delete overrides.rolePosition;
   return {
     id,
+    guild: { ownerId: 'owner_id' },
     displayName: 'TestMember',
     permissions: { has: () => true },
     moderatable: true,
     kickable: true,
     bannable: true,
     voice: { channel: null },
-    roles: { add: async () => {}, remove: async () => {} },
+    roles: {
+      add: async () => {},
+      remove: async () => {},
+      highest: { position, comparePositionTo(other) { return position - other.position; } }
+    },
     timeout: async () => {},
     kick: async () => {},
     ...overrides
@@ -83,7 +90,7 @@ function validatePayload(payload) {
 function makeInteraction({ subcommand, subcommandGroup = null, options = {}, guild = null, user = null, member = null, channel = null } = {}) {
   const g = guild || makeGuild();
   const u = user || makeUser('user1');
-  const m = member || makeMember('user1');
+  const m = member || makeMember('user1', { rolePosition: 10 });
   const c = channel || makeChannel('chan1');
 
   const replies = [];

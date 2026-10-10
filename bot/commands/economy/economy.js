@@ -1,6 +1,7 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { getOrCreateProfile, getOrCreateSettings } = require('../../modules/leveling');
 const embeds = require('../../utils/embeds');
+const { withLock } = require('../../utils/lock');
 
 const DAILY_AMOUNT = 100;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -22,27 +23,36 @@ module.exports = {
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'daily') {
-      // Sequential — see comment in /profile for why Promise.all is avoided here.
-      const profile = await getOrCreateProfile(interaction.guild.id, interaction.user.id);
-      const settings = await getOrCreateSettings(interaction.guild.id);
+      const guildId = interaction.guild.id;
+      const userId = interaction.user.id;
+      // Serialised per user so a double-click can't claim the reward twice.
+      const result = await withLock(`daily:${guildId}:${userId}`, async () => {
+        const profile = await getOrCreateProfile(guildId, userId);
+        const settings = await getOrCreateSettings(guildId);
+        if (profile.lastDailyAt && Date.now() - new Date(profile.lastDailyAt).getTime() < DAY_MS) {
+          const remaining = DAY_MS - (Date.now() - new Date(profile.lastDailyAt).getTime());
+          return { wait: remaining };
+        }
+        profile.balance = Number(profile.balance) + DAILY_AMOUNT;
+        profile.lastDailyAt = new Date();
+        await profile.save();
+        return { balance: profile.balance, currency: settings.currencyName };
+      });
 
-      if (profile.lastDailyAt && Date.now() - new Date(profile.lastDailyAt).getTime() < DAY_MS) {
-        const remaining = DAY_MS - (Date.now() - new Date(profile.lastDailyAt).getTime());
-        const hours = Math.ceil(remaining / (60 * 60 * 1000));
-        return interaction.reply({ embeds: [embeds.error(`Вы уже забирали награду сегодня. Попробуйте через ~${hours} ч.`)], ephemeral: true });
+      if (result.wait) {
+        const h = Math.floor(result.wait / 3600000);
+        const m = Math.ceil((result.wait % 3600000) / 60000);
+        const left = h > 0 ? `${h} ч ${m} мин` : `${m} мин`;
+        return interaction.reply({ embeds: [embeds.error(`Награда уже получена. Следующая через ${left}.`)], flags: MessageFlags.Ephemeral });
       }
-
-      profile.balance = Number(profile.balance) + DAILY_AMOUNT;
-      profile.lastDailyAt = new Date();
-      await profile.save();
 
       const embed = embeds
         .baseEmbed(embeds.COLORS.success)
         .setTitle('✓ Награда получена')
         .setDescription('Возвращайтесь через 24 часа')
         .addFields(
-          { name: 'Получено', value: `+${DAILY_AMOUNT} ${settings.currencyName}`, inline: true },
-          { name: 'Баланс', value: `${profile.balance} ${settings.currencyName}`, inline: true }
+          { name: 'Получено', value: `+${DAILY_AMOUNT} ${result.currency}`, inline: true },
+          { name: 'Баланс', value: `${result.balance} ${result.currency}`, inline: true }
         );
       return interaction.reply({ embeds: [embed] });
     }
@@ -51,20 +61,23 @@ module.exports = {
       const target = interaction.options.getUser('пользователь');
       const amount = interaction.options.getInteger('сумма');
 
-      if (target.id === interaction.user.id) return interaction.reply({ embeds: [embeds.error('Нельзя перевести самому себе.')], ephemeral: true });
-      if (target.bot) return interaction.reply({ embeds: [embeds.error('Нельзя перевести боту.')], ephemeral: true });
+      if (target.id === interaction.user.id) return interaction.reply({ embeds: [embeds.error('Нельзя перевести самому себе.')], flags: MessageFlags.Ephemeral });
+      if (target.bot) return interaction.reply({ embeds: [embeds.error('Нельзя перевести боту.')], flags: MessageFlags.Ephemeral });
 
-      // Sequential — see comment in /profile for why Promise.all is avoided here.
-      const sender = await getOrCreateProfile(interaction.guild.id, interaction.user.id);
-      const receiver = await getOrCreateProfile(interaction.guild.id, target.id);
-      const settings = await getOrCreateSettings(interaction.guild.id);
-
-      if (Number(sender.balance) < amount) return interaction.reply({ embeds: [embeds.error('Недостаточно средств.')], ephemeral: true });
-
-      sender.balance = Number(sender.balance) - amount;
-      receiver.balance = Number(receiver.balance) + amount;
-      await sender.save();
-      await receiver.save();
+      const guildId = interaction.guild.id;
+      const settings = await getOrCreateSettings(guildId);
+      // One transfer at a time per server: the balance check and both writes must not interleave.
+      const ok = await withLock(`pay:${guildId}`, async () => {
+        const sender = await getOrCreateProfile(guildId, interaction.user.id);
+        const receiver = await getOrCreateProfile(guildId, target.id);
+        if (Number(sender.balance) < amount) return false;
+        sender.balance = Number(sender.balance) - amount;
+        receiver.balance = Number(receiver.balance) + amount;
+        await sender.save();
+        await receiver.save();
+        return true;
+      });
+      if (!ok) return interaction.reply({ embeds: [embeds.error('Недостаточно средств.')], flags: MessageFlags.Ephemeral });
 
       const embed = embeds
         .baseEmbed(embeds.COLORS.success)

@@ -1,4 +1,5 @@
 process.env.DATABASE_PATH = './data/test_harness.sqlite';
+require('fs').mkdirSync('./data',{recursive:true});['','-shm','-wal'].forEach((x)=>require('fs').rmSync(process.env.DATABASE_PATH+x,{force:true}));
 const { makeInteraction, makeUser, makeMember, makeChannel } = require('./mock');
 
 async function main() {
@@ -67,6 +68,19 @@ async function main() {
   // ===== profile =====
   await run('profile view', () => profileCmd.execute(makeInteraction({ subcommand: 'view' })));
   await run('profile top', () => profileCmd.execute(makeInteraction({ subcommand: 'top' })));
+  await run('profile view -> PNG card with server rank', async () => {
+    const i = makeInteraction({ subcommand: 'view' });
+    await profileCmd.execute(i);
+    const last = i._replies[i._replies.length - 1];
+    if (!last.files?.length) throw new Error('rank card should be sent as an image attachment, got fallback embed');
+  });
+  await run('profile top -> PNG leaderboard', async () => {
+    const i = makeInteraction({ subcommand: 'top' });
+    i.client.users.fetch = async (id) => ({ id, username: `user_${id}`, globalName: null, displayAvatarURL: () => '' });
+    await profileCmd.execute(i);
+    const last = i._replies[i._replies.length - 1];
+    if (!last.files?.length) throw new Error('leaderboard should be sent as an image attachment');
+  });
 
   // ===== moderation =====
   await run('moderation warn', () => moderationCmd.execute(makeInteraction({ subcommand: 'warn', options: { 'пользователь': makeUser('user2'), 'причина': 'test' } })));

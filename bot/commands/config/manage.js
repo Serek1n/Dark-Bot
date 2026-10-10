@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = require('discord.js');
 const { CustomCommand, ReactionRole, Alert } = require('../../../db');
 const { getOrCreateSettings } = require('../../modules/leveling');
 const embeds = require('../../utils/embeds');
@@ -133,7 +133,7 @@ module.exports = {
         const emoji = emojiMatch ? emojiMatch[1] : emojiInput;
 
         const message = await interaction.channel.messages.fetch(messageId).catch(() => null);
-        if (!message) return interaction.reply({ embeds: [embeds.error('Сообщение не найдено в этом канале.')], ephemeral: true });
+        if (!message) return interaction.reply({ embeds: [embeds.error('Сообщение не найдено в этом канале.')], flags: MessageFlags.Ephemeral });
 
         await ReactionRole.upsert({ guildId: interaction.guild.id, channelId: interaction.channel.id, messageId, emoji, roleId: role.id });
         await message.react(emojiInput).catch(() => {});
@@ -147,7 +147,7 @@ module.exports = {
         const deleted = await ReactionRole.destroy({ where: { messageId, emoji } });
         return interaction.reply({
           embeds: [deleted ? embeds.success('Привязка удалена.') : embeds.error('Привязка не найдена.')],
-          ephemeral: true
+          flags: MessageFlags.Ephemeral
         });
       }
     }
@@ -178,14 +178,17 @@ module.exports = {
     if (group === 'alert') {
       if (sub === 'youtube' || sub === 'twitch') {
         if (sub === 'youtube' && !process.env.YOUTUBE_API_KEY) {
-          return interaction.reply({ embeds: [embeds.error('YOUTUBE_API_KEY не настроен на сервере — оповещения YouTube недоступны.')], ephemeral: true });
+          return interaction.reply({ embeds: [embeds.error('YOUTUBE_API_KEY не настроен на сервере — оповещения YouTube недоступны.')], flags: MessageFlags.Ephemeral });
         }
         if (sub === 'twitch' && (!process.env.TWITCH_CLIENT_ID || !process.env.TWITCH_CLIENT_SECRET)) {
-          return interaction.reply({ embeds: [embeds.error('TWITCH_CLIENT_ID/SECRET не настроены на сервере — оповещения Twitch недоступны.')], ephemeral: true });
+          return interaction.reply({ embeds: [embeds.error('TWITCH_CLIENT_ID/SECRET не настроены на сервере — оповещения Twitch недоступны.')], flags: MessageFlags.Ephemeral });
         }
 
         const channel = interaction.options.getChannel('куда_постить');
-        const targetId = sub === 'youtube' ? interaction.options.getString('id_канала') : interaction.options.getString('логин').toLowerCase();
+        const targetId = sub === 'youtube' ? interaction.options.getString('id_канала').trim() : interaction.options.getString('логин').trim().toLowerCase();
+        if (sub === 'youtube' && !/^UC[\w-]{20,}$/.test(targetId)) {
+          return interaction.reply({ embeds: [embeds.error('ID канала YouTube должен начинаться с `UC` (например, `UCxxxxxxxxxxxxxxxxxxxxxx`). Его можно найти на странице канала → «Поделиться» → «Скопировать ID канала».')], flags: MessageFlags.Ephemeral });
+        }
 
         await Alert.upsert({ guildId: interaction.guild.id, channelId: channel.id, platform: sub, targetId });
         return interaction.reply({ embeds: [embeds.success(`Подписка на ${sub === 'youtube' ? 'YouTube' : 'Twitch'}-канал добавлена, уведомления будут приходить в ${channel}.`)] });
@@ -194,7 +197,7 @@ module.exports = {
       if (sub === 'remove') {
         const id = interaction.options.getInteger('id');
         const deleted = await Alert.destroy({ where: { id, guildId: interaction.guild.id } });
-        return interaction.reply({ embeds: [deleted ? embeds.success('Подписка удалена.') : embeds.error('Подписка с таким ID не найдена.')], ephemeral: true });
+        return interaction.reply({ embeds: [deleted ? embeds.success('Подписка удалена.') : embeds.error('Подписка с таким ID не найдена.')], flags: MessageFlags.Ephemeral });
       }
 
       if (sub === 'list') {

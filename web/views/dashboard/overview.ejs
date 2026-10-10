@@ -11,9 +11,37 @@
       </div>
 
       <div class="stat-row">
-        <div class="stat-box"><div class="value"><%= guild.approximate_member_count || '—' %></div><div class="label">Участников на сервере</div></div>
-        <div class="stat-box"><div class="value"><%= memberCount %></div><div class="label">В системе уровней</div></div>
-        <div class="stat-box"><div class="value"><%= warningCount %></div><div class="label">Всего предупреждений</div></div>
+        <div class="stat-box"><div class="value"><%= guild.approximate_member_count ? guild.approximate_member_count.toLocaleString('ru-RU').replace(/\s/g, '\u202f') : '—' %></div><div class="label">Участников на сервере</div></div>
+        <div class="stat-box"><div class="value"><%= Number(memberCount).toLocaleString('ru-RU') %></div><div class="label">В системе уровней</div></div>
+        <div class="stat-box"><div class="value"><%= Number(warningCount).toLocaleString('ru-RU') %></div><div class="label">Предупреждений</div></div>
+        <div class="stat-box"><div class="value"><%= Number(reactionRoleCount).toLocaleString('ru-RU') %></div><div class="label">Ролей по реакциям</div></div>
+        <div class="stat-box"><div class="value"><%= Number(customCommandCount).toLocaleString('ru-RU') %></div><div class="label">Своих команд</div></div>
+        <div class="stat-box"><div class="value"><%= Number(alertCount).toLocaleString('ru-RU') %></div><div class="label">Оповещений</div></div>
+      </div>
+
+      <%
+        const features = [
+          { name: 'Уровни и экономика', on: settings.levelingEnabled, href: 'leveling' },
+          { name: 'Автомодерация', on: settings.automodEnabled, href: 'automod' },
+          { name: 'Журнал модерации', on: !!settings.modLogChannelId, href: 'moderation' },
+          { name: 'Приветствие', on: !!settings.welcomeChannelId, href: 'welcome' },
+          { name: 'Автороль', on: !!settings.autoRoleId, href: 'welcome' },
+          { name: 'Временные голосовые', on: !!settings.tempVoiceJoinChannelId, href: 'temp-voice' }
+        ];
+      %>
+      <div class="card">
+        <h2>
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M6.8 10.2L9 12.4L13.3 7.8"/></svg>
+          Что включено
+        </h2>
+        <div class="status-grid">
+          <% features.forEach(f => { %>
+            <a class="status-item <%= f.on ? 'on' : '' %>" href="/dashboard/<%= guild.id %>/<%= f.href %>">
+              <span class="status-dot"></span>
+              <span><div class="st-name"><%= f.name %></div><div class="st-state"><%= f.on ? 'Включено' : 'Выключено' %></div></span>
+            </a>
+          <% }) %>
+        </div>
       </div>
 
       <div class="card">

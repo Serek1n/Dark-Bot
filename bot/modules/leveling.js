@@ -1,4 +1,5 @@
 const { MemberProfile, GuildSettings } = require('../../db');
+const { withLock } = require('../utils/lock');
 
 // XP needed to go from level N to N+1. Classic MEE6-style curve.
 function xpForLevel(level) {
@@ -32,7 +33,11 @@ async function getOrCreateProfile(guildId, userId) {
 /**
  * Award XP for an eligible message. Returns { leveledUp, newLevel, profile } or null if on cooldown/disabled.
  */
-async function grantMessageXp(guildId, userId) {
+function grantMessageXp(guildId, userId) {
+  return withLock(`xp:${guildId}:${userId}`, () => grantMessageXpUnlocked(guildId, userId));
+}
+
+async function grantMessageXpUnlocked(guildId, userId) {
   const settings = await getOrCreateSettings(guildId);
   if (!settings.levelingEnabled) return null;
 

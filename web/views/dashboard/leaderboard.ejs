@@ -13,20 +13,23 @@
         <% if (!top.length) { %>
           <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg>Пока никто не заработал опыт.</p>
         <% } else { %>
-          <table>
-            <thead><tr><th>#</th><th>Пользователь</th><th>Уровень</th><th>Опыт</th><th>Баланс</th></tr></thead>
-            <tbody>
-              <% top.forEach((p, i) => { %>
-                <tr>
-                  <td class="mono">#<%= i + 1 %></td>
-                  <td><code><%= p.userId %></code></td>
-                  <td class="mono"><%= p.level %></td>
-                  <td class="mono"><%= p.xp %></td>
-                  <td class="mono"><%= p.balance %></td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
+          <%
+            const need = (l) => 5 * l * l + 50 * l + 100;
+            const into = (p) => { let x = Number(p.xp); for (let l = 0; l < p.level; l++) x -= need(l); return Math.max(0, x); };
+          %>
+          <div class="lb-list">
+            <% top.forEach((p, i) => { const u = users[p.userId] || { name: p.userId, avatar: '' }; const cur = into(p); const nx = need(p.level); %>
+              <div class="lb-row <%= i < 3 ? 'top-' + (i + 1) : '' %>">
+                <div class="lb-rank"><%= i + 1 %></div>
+                <div class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span class="nm"><%= u.name %></span></div>
+                <div class="lb-xp">
+                  <div class="bar"><i style="width: <%= Math.min(100, Math.round(cur / nx * 100)) %>%"></i></div>
+                  <div class="num"><%= cur %> / <%= nx %> XP</div>
+                </div>
+                <div class="lb-level"><b><%= p.level %></b><small>уровень</small></div>
+              </div>
+            <% }) %>
+          </div>
         <% } %>
       </div>
     </div>

@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, AttachmentBuilder } = require('discord.js');
+const { MemberProfile } = require('../../../db');
+const { Op } = require('sequelize');
 const { getOrCreateProfile, getOrCreateSettings, xpForLevel, getLeaderboard } = require('../../modules/leveling');
-const { renderRankCard } = require('../../modules/rankCard');
+const { renderRankCard, renderLeaderboard } = require('../../modules/rankCard');
 const embeds = require('../../utils/embeds');
 const logger = require('../../utils/logger');
 
@@ -35,8 +37,12 @@ module.exports = {
       await interaction.deferReply();
 
       try {
+        const rank = (await MemberProfile.count({ where: { guildId: interaction.guild.id, xp: { [Op.gt]: profile.xp } } })) + 1;
+        const totalMembers = await MemberProfile.count({ where: { guildId: interaction.guild.id } });
         const png = await renderRankCard({
-          username: target.username,
+          rank,
+          totalMembers,
+          username: target.globalName || target.username,
           avatarURL: target.displayAvatarURL({ extension: 'png', size: 256 }),
           level: profile.level,
           xpIntoLevel,
@@ -70,11 +76,28 @@ module.exports = {
       const top = await getLeaderboard(interaction.guild.id, 10);
       if (!top.length) return interaction.reply({ embeds: [embeds.info('Пока никто не заработал опыт.')] });
 
-      const medals = ['🥇', '🥈', '🥉'];
-      const lines = top.map((p, i) => `${medals[i] || `**${i + 1}.**`}  <@${p.userId}>  —  уровень ${p.level} · ${p.xp} XP`);
-
-      const embed = embeds.baseEmbed().setTitle('Таблица лидеров').setDescription(lines.join('\n'));
-      return interaction.reply({ embeds: [embed] });
+      await interaction.deferReply();
+      try {
+        const rows = await Promise.all(
+          top.map(async (p, i) => {
+            const user = await interaction.client.users.fetch(p.userId).catch(() => null);
+            return {
+              rank: i + 1,
+              name: user ? user.globalName || user.username : `Участник ${String(p.userId).slice(-4)}`,
+              avatarURL: user ? user.displayAvatarURL({ extension: 'png', size: 64 }) : null,
+              level: p.level,
+              xp: Number(p.xp)
+            };
+          })
+        );
+        const png = await renderLeaderboard({ title: interaction.guild.name, rows });
+        return interaction.editReply({ files: [new AttachmentBuilder(png, { name: 'top.png' })] });
+      } catch (err) {
+        logger.error('Failed to render leaderboard, falling back to embed:', err);
+        const medals = ['🥇', '🥈', '🥉'];
+        const lines = top.map((p, i) => `${medals[i] || `**${i + 1}.**`}  <@${p.userId}>  —  уровень ${p.level} · ${p.xp} XP`);
+        return interaction.editReply({ embeds: [embeds.baseEmbed().setTitle('Таблица лидеров').setDescription(lines.join('\n'))] });
+      }
     }
   }
 };

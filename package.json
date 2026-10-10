@@ -7,7 +7,8 @@
     "start": "node bot/index.js",
     "web": "node web/index.js",
     "dev": "concurrently \"node bot/index.js\" \"node web/index.js\"",
-    "deploy-commands": "node bot/deploy-commands.js"
+    "deploy-commands": "node bot/deploy-commands.js",
+    "test": "rm -f data/test_*.sqlite* && node test_harness/run.js && node test_harness/run_events.js && node test_harness/run_logic.js && node test_harness/stress.js && node test_harness/stress3.js"
   },
   "license": "MIT",
   "dependencies": {

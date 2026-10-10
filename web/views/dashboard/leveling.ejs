@@ -28,7 +28,8 @@
 
         <div>
           <label>Кулдаун между начислениями опыта (сек)</label>
-          <input type="number" name="xpCooldownSeconds" value="<%= settings.xpCooldownSeconds %>" min="0" />
+          <input type="number" name="xpCooldownSeconds" value="<%= settings.xpCooldownSeconds %>" min="0" max="3600" />
+          <div class="hint">Опыт начисляется не чаще, чем раз в это время. 60 секунд защищает от накрутки сообщениями.</div>
         </div>
 
         <div>

@@ -1,7 +1,7 @@
 const express = require('express');
 const { ensureAuth } = require('../middleware/ensureAuth');
 const { ensureGuildAccess } = require('../middleware/ensureGuildAccess');
-const { getBotGuildIds, getGuildChannels, getGuildRoles, getGuild } = require('../discordApi');
+const { getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers } = require('../discordApi');
 const {
   GuildSettings,
   MemberProfile,
@@ -13,6 +13,26 @@ const {
 } = require('../../db');
 
 const router = express.Router();
+
+function clampInt(value, min, max, fallback) {
+  const n = Math.trunc(Number(value));
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
+function parseWords(json) {
+  try {
+    const arr = JSON.parse(json || '[]');
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+// Discord IDs from forms: accept only real snowflakes (or empty = "not set").
+const snowflake = (v) => (/^\d{15,25}$/.test(String(v || '').trim()) ? String(v).trim() : null);
+
+const saved = (guildId, page, flag = 'saved') => `/dashboard/${guildId}/${page}?${flag}=1`;
 router.use(ensureAuth);
 
 const MANAGE_GUILD = 0x20;
@@ -68,20 +88,23 @@ router.get('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
 router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   settings.levelingEnabled = req.body.levelingEnabled === 'on';
-  settings.xpPerMessageMin = Number(req.body.xpPerMessageMin) || settings.xpPerMessageMin;
-  settings.xpPerMessageMax = Number(req.body.xpPerMessageMax) || settings.xpPerMessageMax;
-  settings.xpCooldownSeconds = Number(req.body.xpCooldownSeconds) || settings.xpCooldownSeconds;
-  settings.levelUpChannelId = req.body.levelUpChannelId || null;
-  settings.currencyName = req.body.currencyName || settings.currencyName;
+  const min = clampInt(req.body.xpPerMessageMin, 1, 1000, settings.xpPerMessageMin);
+  const max = clampInt(req.body.xpPerMessageMax, 1, 1000, settings.xpPerMessageMax);
+  settings.xpPerMessageMin = Math.min(min, max);
+  settings.xpPerMessageMax = Math.max(min, max);
+  settings.xpCooldownSeconds = clampInt(req.body.xpCooldownSeconds, 0, 3600, settings.xpCooldownSeconds);
+  settings.levelUpChannelId = snowflake(req.body.levelUpChannelId);
+  settings.currencyName = (req.body.currencyName || '').trim().slice(0, 24) || settings.currencyName;
   await settings.save();
-  res.redirect(`/dashboard/${req.params.guildId}/leveling`);
+  res.redirect(saved(req.params.guildId, 'leveling'));
 });
 
 // ---- Leaderboard (read-only) ----
 router.get('/:guildId/leaderboard', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
   const top = await MemberProfile.findAll({ where: { guildId: req.params.guildId }, order: [['xp', 'DESC']], limit: 50 });
-  res.render('dashboard/leaderboard', { guild, top, active: 'leaderboard' });
+  const users = await getUsers(top.map((p) => p.userId));
+  res.render('dashboard/leaderboard', { guild, top, users, active: 'leaderboard' });
 });
 
 // ---- Moderation: log channel, report channel, mod log + warnings viewer ----
@@ -90,22 +113,23 @@ router.get('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   const channels = await getGuildChannels(req.params.guildId);
   const logs = await ModLog.findAll({ where: { guildId: req.params.guildId }, order: [['createdAt', 'DESC']], limit: 50 });
-  res.render('dashboard/moderation', { guild, settings, channels, logs, active: 'moderation' });
+  const users = await getUsers(logs.flatMap((l) => [l.userId, l.moderatorId]));
+  res.render('dashboard/moderation', { guild, settings, channels, logs, users, active: 'moderation' });
 });
 
 router.post('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
-  settings.modLogChannelId = req.body.modLogChannelId || null;
-  settings.reportChannelId = req.body.reportChannelId || null;
+  settings.modLogChannelId = snowflake(req.body.modLogChannelId);
+  settings.reportChannelId = snowflake(req.body.reportChannelId);
   await settings.save();
-  res.redirect(`/dashboard/${req.params.guildId}/moderation`);
+  res.redirect(saved(req.params.guildId, 'moderation'));
 });
 
 // ---- Automod ----
 router.get('/:guildId/automod', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
   const settings = await getSettings(req.params.guildId);
-  const bannedWords = JSON.parse(settings.automodBannedWords || '[]');
+  const bannedWords = parseWords(settings.automodBannedWords);
   res.render('dashboard/automod', { guild, settings, bannedWords, active: 'automod' });
 });
 
@@ -114,15 +138,19 @@ router.post('/:guildId/automod', ensureGuildAccess, async (req, res) => {
   settings.automodEnabled = req.body.automodEnabled === 'on';
   settings.automodBlockInvites = req.body.automodBlockInvites === 'on';
   settings.automodAntiSpam = req.body.automodAntiSpam === 'on';
-  settings.automodSpamMessages = Number(req.body.automodSpamMessages) || settings.automodSpamMessages;
-  settings.automodSpamSeconds = Number(req.body.automodSpamSeconds) || settings.automodSpamSeconds;
-  const words = (req.body.bannedWords || '')
-    .split('\n')
-    .map((w) => w.trim().toLowerCase())
-    .filter(Boolean);
+  settings.automodSpamMessages = clampInt(req.body.automodSpamMessages, 2, 30, settings.automodSpamMessages);
+  settings.automodSpamSeconds = clampInt(req.body.automodSpamSeconds, 2, 60, settings.automodSpamSeconds);
+  const words = [
+    ...new Set(
+      (req.body.bannedWords || '')
+        .split(/\r?\n/)
+        .map((w) => w.trim().toLowerCase().slice(0, 64))
+        .filter(Boolean)
+    )
+  ].slice(0, 500);
   settings.automodBannedWords = JSON.stringify(words);
   await settings.save();
-  res.redirect(`/dashboard/${req.params.guildId}/automod`);
+  res.redirect(saved(req.params.guildId, 'automod'));
 });
 
 // ---- Welcome & autorole ----
@@ -136,11 +164,11 @@ router.get('/:guildId/welcome', ensureGuildAccess, async (req, res) => {
 
 router.post('/:guildId/welcome', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
-  settings.welcomeChannelId = req.body.welcomeChannelId || null;
-  settings.welcomeMessage = req.body.welcomeMessage || settings.welcomeMessage;
-  settings.autoRoleId = req.body.autoRoleId || null;
+  settings.welcomeChannelId = snowflake(req.body.welcomeChannelId);
+  settings.welcomeMessage = (req.body.welcomeMessage || '').trim().slice(0, 1800) || settings.welcomeMessage;
+  settings.autoRoleId = snowflake(req.body.autoRoleId);
   await settings.save();
-  res.redirect(`/dashboard/${req.params.guildId}/welcome`);
+  res.redirect(saved(req.params.guildId, 'welcome'));
 });
 
 // ---- Reaction roles ----
@@ -154,7 +182,7 @@ router.get('/:guildId/reaction-roles', ensureGuildAccess, async (req, res) => {
 
 router.post('/:guildId/reaction-roles/delete/:id', ensureGuildAccess, async (req, res) => {
   await ReactionRole.destroy({ where: { id: req.params.id, guildId: req.params.guildId } });
-  res.redirect(`/dashboard/${req.params.guildId}/reaction-roles`);
+  res.redirect(saved(req.params.guildId, 'reaction-roles', 'deleted'));
 });
 
 // ---- Custom commands ----
@@ -165,17 +193,20 @@ router.get('/:guildId/custom-commands', ensureGuildAccess, async (req, res) => {
 });
 
 router.post('/:guildId/custom-commands', ensureGuildAccess, async (req, res) => {
-  const trigger = (req.body.trigger || '').trim().toLowerCase();
-  const response = (req.body.response || '').trim();
-  if (trigger && response) {
-    await CustomCommand.upsert({ guildId: req.params.guildId, trigger, response, createdBy: req.user.id });
-  }
-  res.redirect(`/dashboard/${req.params.guildId}/custom-commands`);
+  const settings = await getSettings(req.params.guildId);
+  // Triggers are a single word; strip the prefix if the admin typed it ("!rules" -> "rules").
+  let trigger = (req.body.trigger || '').trim().toLowerCase().split(/\s+/)[0] || '';
+  if (settings.prefix && trigger.startsWith(settings.prefix.toLowerCase())) trigger = trigger.slice(settings.prefix.length);
+  trigger = trigger.slice(0, 32);
+  const response = (req.body.response || '').trim().slice(0, 2000);
+  if (!trigger || !response) return res.redirect(saved(req.params.guildId, 'custom-commands', 'invalid'));
+  await CustomCommand.upsert({ guildId: req.params.guildId, trigger, response, createdBy: req.user.id });
+  res.redirect(saved(req.params.guildId, 'custom-commands'));
 });
 
 router.post('/:guildId/custom-commands/delete/:id', ensureGuildAccess, async (req, res) => {
   await CustomCommand.destroy({ where: { id: req.params.id, guildId: req.params.guildId } });
-  res.redirect(`/dashboard/${req.params.guildId}/custom-commands`);
+  res.redirect(saved(req.params.guildId, 'custom-commands', 'deleted'));
 });
 
 // ---- Temp voice ----
@@ -188,11 +219,11 @@ router.get('/:guildId/temp-voice', ensureGuildAccess, async (req, res) => {
 
 router.post('/:guildId/temp-voice', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
-  settings.tempVoiceJoinChannelId = req.body.tempVoiceJoinChannelId || null;
-  settings.tempVoiceCategoryId = req.body.tempVoiceCategoryId || null;
-  settings.tempVoiceNameTemplate = req.body.tempVoiceNameTemplate || settings.tempVoiceNameTemplate;
+  settings.tempVoiceJoinChannelId = snowflake(req.body.tempVoiceJoinChannelId);
+  settings.tempVoiceCategoryId = snowflake(req.body.tempVoiceCategoryId);
+  settings.tempVoiceNameTemplate = (req.body.tempVoiceNameTemplate || '').trim().slice(0, 90) || settings.tempVoiceNameTemplate;
   await settings.save();
-  res.redirect(`/dashboard/${req.params.guildId}/temp-voice`);
+  res.redirect(saved(req.params.guildId, 'temp-voice'));
 });
 
 // ---- Alerts (YouTube / Twitch) ----
@@ -205,21 +236,28 @@ router.get('/:guildId/alerts', ensureGuildAccess, async (req, res) => {
 
 router.post('/:guildId/alerts', ensureGuildAccess, async (req, res) => {
   const { platform, targetId, channelId, message } = req.body;
-  if (platform && targetId && channelId) {
-    await Alert.upsert({
-      guildId: req.params.guildId,
-      platform,
-      targetId: targetId.trim().toLowerCase(),
-      channelId,
-      message: message || undefined
-    });
+  // YouTube channel IDs are case-sensitive; Twitch logins are not.
+  const rawTarget = (targetId || '').trim().slice(0, 100);
+  const target = platform === 'twitch' ? rawTarget.toLowerCase() : rawTarget;
+  if (platform === 'youtube' && !/^UC[\w-]{20,}$/.test(target)) {
+    return res.redirect(saved(req.params.guildId, 'alerts', 'invalid'));
   }
-  res.redirect(`/dashboard/${req.params.guildId}/alerts`);
+  if (!['youtube', 'twitch'].includes(platform) || !target || !snowflake(channelId)) {
+    return res.redirect(saved(req.params.guildId, 'alerts', 'invalid'));
+  }
+  await Alert.upsert({
+    guildId: req.params.guildId,
+    platform,
+    targetId: target,
+    channelId: snowflake(channelId),
+    message: (message || '').trim().slice(0, 1000) || undefined
+  });
+  res.redirect(saved(req.params.guildId, 'alerts'));
 });
 
 router.post('/:guildId/alerts/delete/:id', ensureGuildAccess, async (req, res) => {
   await Alert.destroy({ where: { id: req.params.id, guildId: req.params.guildId } });
-  res.redirect(`/dashboard/${req.params.guildId}/alerts`);
+  res.redirect(saved(req.params.guildId, 'alerts', 'deleted'));
 });
 
 module.exports = router;

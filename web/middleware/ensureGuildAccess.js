@@ -14,7 +14,15 @@ async function ensureGuildAccess(req, res, next) {
   const { guildId } = req.params;
   const ownerIds = (process.env.BOT_OWNER_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
 
+  if (!/^\d{15,25}$/.test(guildId || '')) {
+    return res.status(404).render('error', { message: 'Страница не найдена.' });
+  }
+
   if (ownerIds.includes(req.user.id)) {
+    const present = await getBotGuildIds();
+    if (!present.has(guildId)) {
+      return res.status(404).render('error', { message: 'Бот не добавлен на этот сервер.' });
+    }
     req.guildAccess = { manageable: true, viaOwnerOverride: true };
     return next();
   }

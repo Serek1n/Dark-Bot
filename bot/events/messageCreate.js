@@ -60,7 +60,9 @@ module.exports = {
       if (trigger) {
         const custom = await CustomCommand.findOne({ where: { guildId: message.guild.id, trigger } });
         if (custom) {
-          message.channel.send(custom.response).catch(() => {});
+          message.channel
+            .send({ content: custom.response, allowedMentions: { parse: ['users', 'roles'] } })
+            .catch(() => {});
         }
       }
     }

@@ -16,9 +16,9 @@ module.exports = {
       const channel = await member.guild.channels.fetch(settings.welcomeChannelId).catch(() => null);
       if (channel) {
         const text = settings.welcomeMessage
-          .replace('{user}', `<@${member.id}>`)
-          .replace('{server}', member.guild.name);
-        channel.send(text).catch(() => {});
+          .replaceAll('{user}', `<@${member.id}>`)
+          .replaceAll('{server}', member.guild.name);
+        channel.send({ content: text, allowedMentions: { users: [member.id] } }).catch(() => {});
       }
     }
   }

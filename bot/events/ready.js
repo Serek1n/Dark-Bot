@@ -1,8 +1,8 @@
-const { ActivityType } = require('discord.js');
+const { ActivityType, Events } = require('discord.js');
 const logger = require('../utils/logger');
 
 module.exports = {
-  name: 'ready',
+  name: Events.ClientReady,
   once: true,
   async execute(client) {
     logger.info(`Bot logged in as ${client.user.tag} (${client.guilds.cache.size} серверов)`);

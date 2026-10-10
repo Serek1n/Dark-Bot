@@ -1,13 +1,13 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { Warning } = require('../../../db');
 const { recordAndAnnounce } = require('../../utils/modlog');
 const embeds = require('../../utils/embeds');
-const { memberHasPermission } = require('../../utils/permissions');
+const { memberHasPermission, hierarchyError } = require('../../utils/permissions');
 
 function denyPermission(interaction, permName) {
   return interaction.reply({
     embeds: [embeds.error(`Для этого действия нужно право **${permName}**.`)],
-    ephemeral: true
+    flags: MessageFlags.Ephemeral
   });
 }
 
@@ -88,6 +88,8 @@ module.exports = {
     if (sub === 'warn') {
       const target = interaction.options.getUser('пользователь');
       const reason = interaction.options.getString('причина') || 'Без причины';
+      if (target.id === interaction.user.id) return interaction.reply({ embeds: [embeds.error('Нельзя выдать предупреждение самому себе.')], flags: MessageFlags.Ephemeral });
+      if (target.bot) return interaction.reply({ embeds: [embeds.error('Ботам предупреждения не выдаются.')], flags: MessageFlags.Ephemeral });
       await Warning.create({ guildId: interaction.guild.id, userId: target.id, moderatorId: interaction.user.id, reason });
       await recordAndAnnounce(interaction.guild, { userId: target.id, moderatorId: interaction.user.id, action: 'warn', reason });
       await interaction.reply({ embeds: [embeds.success(`<@${target.id}> получил(а) предупреждение: ${reason}`)] });
@@ -98,7 +100,7 @@ module.exports = {
     if (sub === 'unwarn') {
       const id = interaction.options.getInteger('номер');
       const warning = await Warning.findOne({ where: { id, guildId: interaction.guild.id } });
-      if (!warning) return interaction.reply({ embeds: [embeds.error('Предупреждение с таким номером не найдено.')], ephemeral: true });
+      if (!warning) return interaction.reply({ embeds: [embeds.error('Предупреждение с таким номером не найдено.')], flags: MessageFlags.Ephemeral });
       await warning.destroy();
       await recordAndAnnounce(interaction.guild, { userId: warning.userId, moderatorId: interaction.user.id, action: 'unwarn', reason: `Снято предупреждение #${id}` });
       return interaction.reply({ embeds: [embeds.success(`Предупреждение #${id} снято.`)] });
@@ -127,8 +129,10 @@ module.exports = {
       const minutes = interaction.options.getInteger('минуты');
       const reason = interaction.options.getString('причина') || 'Без причины';
       const member = await interaction.guild.members.fetch(target.id).catch(() => null);
-      if (!member) return interaction.reply({ embeds: [embeds.error('Участник не найден.')], ephemeral: true });
-      if (!member.moderatable) return interaction.reply({ embeds: [embeds.error('Не могу замутить этого участника (роль выше моей).')], ephemeral: true });
+      if (!member) return interaction.reply({ embeds: [embeds.error('Участник не найден.')], flags: MessageFlags.Ephemeral });
+      const hErr = hierarchyError(interaction.member, member);
+      if (hErr) return interaction.reply({ embeds: [embeds.error(hErr)], flags: MessageFlags.Ephemeral });
+      if (!member.moderatable) return interaction.reply({ embeds: [embeds.error('Не могу замутить этого участника (его роль выше моей).')], flags: MessageFlags.Ephemeral });
       await member.timeout(minutes * 60 * 1000, reason);
       await recordAndAnnounce(interaction.guild, { userId: target.id, moderatorId: interaction.user.id, action: 'mute', reason: `${reason} (${minutes} мин)` });
       return interaction.reply({ embeds: [embeds.success(`<@${target.id}> замучен(а) на ${minutes} мин: ${reason}`)] });
@@ -137,7 +141,7 @@ module.exports = {
     if (sub === 'unmute') {
       const target = interaction.options.getUser('пользователь');
       const member = await interaction.guild.members.fetch(target.id).catch(() => null);
-      if (!member) return interaction.reply({ embeds: [embeds.error('Участник не найден.')], ephemeral: true });
+      if (!member) return interaction.reply({ embeds: [embeds.error('Участник не найден.')], flags: MessageFlags.Ephemeral });
       await member.timeout(null);
       await recordAndAnnounce(interaction.guild, { userId: target.id, moderatorId: interaction.user.id, action: 'unmute' });
       return interaction.reply({ embeds: [embeds.success(`<@${target.id}> размучен(а).`)] });
@@ -147,8 +151,10 @@ module.exports = {
       const target = interaction.options.getUser('пользователь');
       const reason = interaction.options.getString('причина') || 'Без причины';
       const member = await interaction.guild.members.fetch(target.id).catch(() => null);
-      if (!member) return interaction.reply({ embeds: [embeds.error('Участник не найден.')], ephemeral: true });
-      if (!member.kickable) return interaction.reply({ embeds: [embeds.error('Не могу кикнуть этого участника.')], ephemeral: true });
+      if (!member) return interaction.reply({ embeds: [embeds.error('Участник не найден.')], flags: MessageFlags.Ephemeral });
+      const hErr = hierarchyError(interaction.member, member);
+      if (hErr) return interaction.reply({ embeds: [embeds.error(hErr)], flags: MessageFlags.Ephemeral });
+      if (!member.kickable) return interaction.reply({ embeds: [embeds.error('Не могу кикнуть этого участника.')], flags: MessageFlags.Ephemeral });
       await member.kick(reason);
       await recordAndAnnounce(interaction.guild, { userId: target.id, moderatorId: interaction.user.id, action: 'kick', reason });
       return interaction.reply({ embeds: [embeds.success(`<@${target.id}> кикнут(а): ${reason}`)] });
@@ -159,18 +165,22 @@ module.exports = {
       const reason = interaction.options.getString('причина') || 'Без причины';
       const deleteDays = interaction.options.getInteger('дней_удалить') || 0;
       const member = await interaction.guild.members.fetch(target.id).catch(() => null);
-      if (member && !member.bannable) return interaction.reply({ embeds: [embeds.error('Не могу забанить этого участника.')], ephemeral: true });
+      if (target.id === interaction.user.id) return interaction.reply({ embeds: [embeds.error('Нельзя забанить самого себя.')], flags: MessageFlags.Ephemeral });
+      const hErr = hierarchyError(interaction.member, member);
+      if (hErr) return interaction.reply({ embeds: [embeds.error(hErr)], flags: MessageFlags.Ephemeral });
+      if (member && !member.bannable) return interaction.reply({ embeds: [embeds.error('Не могу забанить этого участника.')], flags: MessageFlags.Ephemeral });
       await interaction.guild.members.ban(target.id, { reason, deleteMessageSeconds: deleteDays * 86400 });
       await recordAndAnnounce(interaction.guild, { userId: target.id, moderatorId: interaction.user.id, action: 'ban', reason });
       return interaction.reply({ embeds: [embeds.success(`<@${target.id}> забанен(а): ${reason}`)] });
     }
 
     if (sub === 'unban') {
-      const userId = interaction.options.getString('id');
+      const userId = interaction.options.getString('id').trim();
+      if (!/^\d{15,25}$/.test(userId)) return interaction.reply({ embeds: [embeds.error('ID должен состоять только из цифр (15–25 знаков).')], flags: MessageFlags.Ephemeral });
       try {
         await interaction.guild.members.unban(userId);
       } catch {
-        return interaction.reply({ embeds: [embeds.error('Не удалось разбанить: пользователь не найден в бан-листе.')], ephemeral: true });
+        return interaction.reply({ embeds: [embeds.error('Не удалось разбанить: пользователь не найден в бан-листе.')], flags: MessageFlags.Ephemeral });
       }
       await recordAndAnnounce(interaction.guild, { userId, moderatorId: interaction.user.id, action: 'unban' });
       return interaction.reply({ embeds: [embeds.success(`Пользователь <@${userId}> разбанен.`)] });
@@ -178,15 +188,16 @@ module.exports = {
 
     if (sub === 'clear') {
       const amount = interaction.options.getInteger('количество');
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const deleted = await interaction.channel.bulkDelete(amount, true).catch(() => null);
-      if (!deleted) return interaction.reply({ embeds: [embeds.error('Не удалось удалить сообщения (возможно, они старше 14 дней).')], ephemeral: true });
+      if (!deleted) return interaction.editReply({ embeds: [embeds.error('Не удалось удалить сообщения (возможно, они старше 14 дней или у бота нет права «Управлять сообщениями»).')] });
       await recordAndAnnounce(interaction.guild, {
         userId: interaction.user.id,
         moderatorId: interaction.user.id,
         action: 'clear',
         reason: `Удалено ${deleted.size} сообщений в #${interaction.channel.name}`
       });
-      return interaction.reply({ embeds: [embeds.success(`Удалено ${deleted.size} сообщений.`)], ephemeral: true });
+      return interaction.editReply({ embeds: [embeds.success(`Удалено ${deleted.size} сообщений.`)] });
     }
   }
 };

@@ -1,4 +1,5 @@
 process.env.DATABASE_PATH = './data/test_stress2.sqlite';
+require('fs').mkdirSync('./data',{recursive:true});['','-shm','-wal'].forEach((x)=>require('fs').rmSync(process.env.DATABASE_PATH+x,{force:true}));
 const { makeInteraction, makeUser } = require('./mock');
 
 async function main() {

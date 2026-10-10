@@ -38,7 +38,8 @@
 
         <div>
           <label>Запрещённые слова (по одному на строку)</label>
-          <textarea name="bannedWords"><%= bannedWords.join('\n') %></textarea>
+          <textarea name="bannedWords" rows="6"><%= bannedWords.join('\n') %></textarea>
+          <div class="hint">Слово ловится с начала слова: «слово» поймает и «словом», но не «пословица». Модераторы с правом управлять сообщениями не проверяются.</div>
         </div>
 
         <button class="btn" type="submit">Сохранить</button>

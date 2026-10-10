@@ -22,13 +22,14 @@ async function recordAndAnnounce(guild, { userId, moderatorId, action, reason })
     automod: '🤖 Автомодерация'
   };
 
+  const shownReason = String(reason || 'Без причины').slice(0, 1000);
   const embed = embeds
     .baseEmbed()
     .setTitle(labels[action] || action)
     .addFields(
       { name: 'Участник', value: `<@${userId}>`, inline: true },
       { name: 'Модератор', value: `<@${moderatorId}>`, inline: true },
-      { name: 'Причина', value: reason || 'Без причины' }
+      { name: 'Причина', value: shownReason }
     );
 
   channel.send({ embeds: [embed] }).catch(() => {});

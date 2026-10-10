@@ -1,3 +1,4 @@
+const { MessageFlags } = require('discord.js');
 const embeds = require('../utils/embeds');
 const logger = require('../utils/logger');
 
@@ -12,7 +13,7 @@ module.exports = {
         await command.execute(interaction);
       } catch (err) {
         logger.error(`Command "${interaction.commandName}" failed:`, err);
-        const payload = { embeds: [embeds.error('Произошла ошибка при выполнении команды.')], ephemeral: true };
+        const payload = { embeds: [embeds.error('Произошла ошибка при выполнении команды.')], flags: MessageFlags.Ephemeral };
         if (interaction.replied || interaction.deferred) {
           await interaction.followUp(payload).catch(() => {});
         } else {

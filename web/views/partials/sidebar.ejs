@@ -1,4 +1,8 @@
 <aside class="sidebar">
+  <a href="/dashboard" class="brand" aria-label="Dark — все серверы">
+    <svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><mask id="brand-moon"><rect width="56" height="56" fill="#fff"/><circle cx="36" cy="20" r="15" fill="#000"/></mask><circle cx="27" cy="29" r="19" fill="#e3a857" mask="url(#brand-moon)"/></svg>
+    <span>Dark</span>
+  </a>
   <div class="sidebar-guild">
     <img src="<%= guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png' %>" alt="" class="guild-icon" />
     <span><%= guild.name %></span>
@@ -54,5 +58,44 @@
       </a>
     </div>
   </nav>
-  <a href="/dashboard" class="back-link">← Все серверы</a>
+  <div class="sidebar-footer">
+    <a href="/dashboard" class="back-link">← Все серверы</a>
+    <% if (typeof user !== 'undefined' && user) { %>
+      <div class="sidebar-user">
+        <img src="<%= user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : 'https://cdn.discordapp.com/embed/avatars/0.png' %>" alt="" />
+        <span class="su-name" title="<%= user.global_name || user.username %>"><%= user.global_name || user.username %></span>
+        <form method="post" action="/auth/logout">
+          <button type="submit" class="su-logout" aria-label="Выйти из панели" title="Выйти">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5H5.5C4.7 3.5 4 4.2 4 5V15C4 15.8 4.7 16.5 5.5 16.5H8"/><path d="M12.5 6.5L16 10L12.5 13.5M16 10H8.5"/></svg>
+          </button>
+        </form>
+      </div>
+    <% } %>
+  </div>
 </aside>
+
+<script>
+  (function () {
+    var params = new URLSearchParams(location.search);
+    var kinds = {
+      saved: ['Изменения сохранены', false],
+      deleted: ['Удалено', false],
+      invalid: ['Не удалось сохранить: проверьте заполнение полей', true]
+    };
+    for (var key in kinds) {
+      if (!params.has(key)) continue;
+      var t = document.createElement('div');
+      t.className = 'toast' + (kinds[key][1] ? ' error' : '');
+      t.setAttribute('role', 'status');
+      t.innerHTML = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="' +
+        (kinds[key][1] ? 'M10 6V11M10 14H10.01' : 'M4.5 10.5L8.2 14L15.5 6') + '"/></svg><span></span>';
+      t.lastChild.textContent = kinds[key][0];
+      document.body.appendChild(t);
+      setTimeout(function () { t.remove(); }, 3600);
+      params.delete(key);
+      var q = params.toString();
+      history.replaceState(null, '', location.pathname + (q ? '?' + q : ''));
+      break;
+    }
+  })();
+</script>

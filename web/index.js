@@ -15,8 +15,33 @@ app.set('trust proxy', 1); // needed behind nginx so secure cookies and req.prot
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
+app.disable('x-powered-by');
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '7d' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+
+// Basic hardening headers. The panel loads only its own assets plus Discord's CDN for avatars.
+app.use((req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'same-origin',
+    'Content-Security-Policy':
+      "default-src 'self'; img-src 'self' https://cdn.discordapp.com data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; form-action 'self'"
+  });
+  next();
+});
+
+// CSRF guard: state-changing requests must come from this site (browsers always send Origin on
+// cross-site POSTs; same-origin form posts send either Origin or a same-host Referer).
+app.use((req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+  const source = req.get('origin') || req.get('referer');
+  if (!source) return next();
+  try {
+    if (new URL(source).host === req.get('host')) return next();
+  } catch (_) { /* fall through */ }
+  return res.status(403).render('error', { message: 'Запрос отклонён: он отправлен с другого сайта.' });
+});
 
 const isHttps = (process.env.WEB_BASE_URL || '').startsWith('https://');
 
@@ -26,7 +51,7 @@ app.use(
     secret: process.env.SESSION_SECRET || 'change-me',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 7 * 24 * 60 * 60 * 1000, secure: isHttps }
+    cookie: { maxAge: 3 * 24 * 60 * 60 * 1000, secure: isHttps, httpOnly: true, sameSite: 'lax' }
   })
 );
 app.use(passport.initialize());
@@ -34,6 +59,7 @@ app.use(passport.session());
 
 app.use((req, res, next) => {
   res.locals.user = req.user || null;
+  res.locals.baseUrl = process.env.WEB_BASE_URL || '';
   next();
 });
 
@@ -50,6 +76,10 @@ app.use((err, req, res, next) => {
     : 'Внутренняя ошибка сервера.';
   res.status(500).render('error', { message });
 });
+
+if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'change-me') {
+  logger.warn('SESSION_SECRET не задан — сессии небезопасны. Укажите длинную случайную строку в .env.');
+}
 
 async function main() {
   await init();

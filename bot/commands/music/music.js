@@ -1,6 +1,7 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { getQueue, getOrCreateQueue, destroyQueue, resolveQuery } = require('../../modules/music/player');
 const embeds = require('../../utils/embeds');
+const logger = require('../../utils/logger');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -30,14 +31,33 @@ module.exports = {
     if (sub === 'play') {
       const query = interaction.options.getString('запрос');
       const voiceChannel = interaction.member.voice?.channel;
-      if (!voiceChannel) return interaction.reply({ embeds: [embeds.error('Зайдите в голосовой канал, чтобы включить музыку.')], ephemeral: true });
+      if (!voiceChannel) return interaction.reply({ embeds: [embeds.error('Зайдите в голосовой канал, чтобы включить музыку.')], flags: MessageFlags.Ephemeral });
+
+      const existing = getQueue(interaction.guild.id);
+      if (existing && existing.voiceChannel.id !== voiceChannel.id) {
+        return interaction.reply({
+          embeds: [embeds.error(`Бот уже играет в канале **${existing.voiceChannel.name}**. Зайдите туда или остановите музыку (/music stop).`)],
+          flags: MessageFlags.Ephemeral
+        });
+      }
 
       await interaction.deferReply();
-      const tracks = await resolveQuery(query, interaction.user.id).catch(() => []);
+      const tracks = await resolveQuery(query, interaction.user.id).catch((err) => {
+        logger.error('resolveQuery failed', err);
+        return [];
+      });
       if (!tracks.length) return interaction.editReply({ embeds: [embeds.error('Ничего не найдено по запросу.')] });
 
       const queue = getOrCreateQueue(interaction.guild.id, voiceChannel, interaction.channel);
-      if (!queue.connection) await queue.connect();
+      if (!queue.connection) {
+        try {
+          await queue.connect();
+        } catch (err) {
+          logger.error('Voice connect failed', err);
+          destroyQueue(interaction.guild.id);
+          return interaction.editReply({ embeds: [embeds.error('Не удалось подключиться к голосовому каналу. Проверьте права бота «Подключаться» и «Говорить».')] });
+        }
+      }
       tracks.forEach((t) => queue.enqueue(t));
       if (!queue.playing) queue.playNext();
 
@@ -47,7 +67,12 @@ module.exports = {
     }
 
     const queue = getQueue(interaction.guild.id);
-    if (!queue) return interaction.reply({ embeds: [embeds.error('Сейчас ничего не играет.')], ephemeral: true });
+    if (!queue) return interaction.reply({ embeds: [embeds.error('Сейчас ничего не играет.')], flags: MessageFlags.Ephemeral });
+
+    const userChannelId = interaction.member.voice?.channelId;
+    if (userChannelId !== queue.voiceChannel.id && sub !== 'queue') {
+      return interaction.reply({ embeds: [embeds.error('Управлять музыкой можно, находясь в одном голосовом канале с ботом.')], flags: MessageFlags.Ephemeral });
+    }
 
     if (sub === 'skip') {
       queue.skip();

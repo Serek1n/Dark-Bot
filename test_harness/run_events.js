@@ -1,4 +1,5 @@
 process.env.DATABASE_PATH = './data/test_events.sqlite';
+require('fs').mkdirSync('./data',{recursive:true});['','-shm','-wal'].forEach((x)=>require('fs').rmSync(process.env.DATABASE_PATH+x,{force:true}));
 const {
   makeRole, makeChannel, makeGuild, makeMember, makeUser, makeMessage, makeReaction, makeVoiceState
 } = require('./mock_events');
@@ -71,7 +72,7 @@ async function main() {
     const channel = makeChannel('c1');
     const msg = makeMessage({ guild, content: '!rules', channel });
     await messageCreate.execute(msg);
-    if (!channel._sent.includes('Правила тут')) throw new Error('custom command response was not sent');
+    if (!channel._sent.some((s) => (s?.content ?? s) === 'Правила тут')) throw new Error('custom command response was not sent');
   });
 
   // ===== guildMemberAdd =====
@@ -97,7 +98,8 @@ async function main() {
     await GuildSettings.create({ guildId: 'guild_welcome', welcomeChannelId: 'wc1', welcomeMessage: 'Привет {user} на {server}!' });
     const member = makeMember('m1', guild);
     await guildMemberAdd.execute(member);
-    const sentText = welcomeChan._sent[0];
+    const sentRaw = welcomeChan._sent[0];
+    const sentText = typeof sentRaw === 'string' ? sentRaw : sentRaw?.content;
     if (!sentText || !sentText.includes('<@m1>') || !sentText.includes('Cool Server')) {
       throw new Error('welcome message placeholders not replaced correctly: ' + sentText);
     }

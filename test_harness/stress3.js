@@ -1,6 +1,7 @@
 // Regression test: embed overflow when a guild accumulates many custom
 // commands or many alert subscriptions (found and fixed on 2026-09-11).
 process.env.DATABASE_PATH = './data/test_stress3.sqlite';
+require('fs').mkdirSync('./data',{recursive:true});['','-shm','-wal'].forEach((x)=>require('fs').rmSync(process.env.DATABASE_PATH+x,{force:true}));
 const { makeInteraction } = require('./mock');
 
 async function main() {

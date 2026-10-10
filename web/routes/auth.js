@@ -11,8 +11,13 @@ router.get(
   (req, res) => res.redirect('/dashboard')
 );
 
-router.get('/logout', (req, res) => {
-  req.logout(() => res.redirect('/'));
-});
+function logout(req, res, next) {
+  req.logout((err) => {
+    if (err) return next(err);
+    req.session.destroy(() => res.redirect('/'));
+  });
+}
+router.post('/logout', logout);
+router.get('/logout', logout); // kept so old bookmarks keep working
 
 module.exports = router;

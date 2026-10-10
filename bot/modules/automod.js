@@ -2,8 +2,16 @@ const { ModLog } = require('../../db');
 
 const INVITE_REGEX = /(discord\.gg|discord(app)?\.com\/invite)\/[a-zA-Z0-9-]+/i;
 
-// guildId -> userId -> array of timestamps (ms) of recent messages
+// guildId:userId -> array of timestamps (ms) of recent messages
 const recentMessages = new Map();
+
+// Drop stale entries so the map doesn't grow forever on busy servers.
+setInterval(() => {
+  const cutoff = Date.now() - 5 * 60 * 1000;
+  for (const [key, arr] of recentMessages) {
+    if (!arr.length || arr[arr.length - 1] < cutoff) recentMessages.delete(key);
+  }
+}, 5 * 60 * 1000).unref();
 
 function checkSpam(settings, guildId, userId) {
   if (!settings.automodAntiSpam) return false;
@@ -18,6 +26,23 @@ function checkSpam(settings, guildId, userId) {
   return arr.length > settings.automodSpamMessages;
 }
 
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// A banned word matches when it STARTS a word, so "ass" no longer deletes "class" or "assistant"
+// in the middle of a word, while inflected forms ("слово" -> "словом") are still caught.
+const wordRegexCache = new Map();
+function wordRegex(word) {
+  let re = wordRegexCache.get(word);
+  if (!re) {
+    re = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegex(word)}`, 'iu');
+    wordRegexCache.set(word, re);
+    if (wordRegexCache.size > 2000) wordRegexCache.clear();
+  }
+  return re;
+}
+
 function checkBannedWords(settings, content) {
   let banned = [];
   try {
@@ -25,8 +50,7 @@ function checkBannedWords(settings, content) {
   } catch {
     banned = [];
   }
-  const lower = content.toLowerCase();
-  return banned.some((word) => word && lower.includes(word.toLowerCase()));
+  return banned.some((word) => word && wordRegex(word.trim()).test(content));
 }
 
 function checkInvite(settings, content) {

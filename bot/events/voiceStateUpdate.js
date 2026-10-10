@@ -5,6 +5,9 @@ const logger = require('../utils/logger');
 module.exports = {
   name: 'voiceStateUpdate',
   async execute(oldState, newState) {
+    // Mute / deafen / camera toggles are not channel changes — skip them (saves DB hits and
+    // stops a user sitting in the "join to create" channel from spawning duplicate rooms).
+    if (oldState.channelId === newState.channelId) return;
     const guild = newState.guild || oldState.guild;
 
     // Clean up an emptied temp channel regardless of whether temp-voice is still
@@ -29,7 +32,7 @@ module.exports = {
     // User joined the "join to create" channel -> spawn a new temp channel and move them into it
     if (newState.channelId === settings.tempVoiceJoinChannelId) {
       try {
-        const name = settings.tempVoiceNameTemplate.replace('{user}', newState.member.displayName);
+        const name = settings.tempVoiceNameTemplate.replaceAll('{user}', newState.member.displayName).slice(0, 100) || 'Комната';
         const channel = await guild.channels.create({
           name,
           type: ChannelType.GuildVoice,

@@ -38,20 +38,21 @@
         <% if (!logs.length) { %>
           <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg>Действий пока нет.</p>
         <% } else { %>
-          <table>
+          <div class="table-scroll"><table>
             <thead><tr><th>Действие</th><th>Участник</th><th>Модератор</th><th>Причина</th><th>Дата</th></tr></thead>
             <tbody>
               <% logs.forEach(l => { %>
                 <tr>
                   <td><span class="badge badge-<%= l.action %>"><%= l.action %></span></td>
-                  <td><code><%= l.userId %></code></td>
-                  <td><code><%= l.moderatorId %></code></td>
+                  <% const tu = users[l.userId] || { name: l.userId, avatar: '' }; const mu = users[l.moderatorId] || { name: l.moderatorId, avatar: '' }; %>
+                  <td><span class="person"><img src="<%= tu.avatar %>" alt="" loading="lazy" /><span><%= tu.name %></span></span></td>
+                  <td><span class="person"><img src="<%= mu.avatar %>" alt="" loading="lazy" /><span><%= mu.name %></span></span></td>
                   <td><%= l.reason %></td>
                   <td><%= new Date(l.createdAt).toLocaleString('ru-RU') %></td>
                 </tr>
               <% }) %>
             </tbody>
-          </table>
+          </table></div>
         <% } %>
       </div>
     </div>

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { getOrCreateSettings } = require('../../modules/leveling');
 const embeds = require('../../utils/embeds');
 
@@ -60,7 +60,7 @@ module.exports = {
       }
       settings.automodBannedWords = JSON.stringify(words);
       await settings.save();
-      return interaction.reply({ embeds: [embeds.success(`Список обновлён (${words.length} слов).`)], ephemeral: true });
+      return interaction.reply({ embeds: [embeds.success(`Список обновлён (${words.length} слов).`)], flags: MessageFlags.Ephemeral });
     }
 
     if (sub === 'listwords') {
@@ -69,7 +69,7 @@ module.exports = {
       if (text.length > 3900) text = `${text.slice(0, 3900)}…`;
       return interaction.reply({
         embeds: [embeds.info(text)],
-        ephemeral: true
+        flags: MessageFlags.Ephemeral
       });
     }
 
