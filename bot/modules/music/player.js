@@ -8,7 +8,7 @@ const {
   StreamType
 } = require('@discordjs/voice');
 const { spawn } = require('child_process');
-const { EmbedBuilder } = require('discord.js');
+const { renderPanel, renderEnded } = require('./panelView');
 const playdl = require('play-dl');
 const logger = require('../../utils/logger');
 
@@ -51,6 +51,8 @@ class GuildQueue {
     this.playing = null;
     this.currentProcess = null;
     this.idleTimer = null;
+    this.paused = false;
+    this.panelMessage = null; // the message that currently carries the control buttons
     this._bindPlayerEvents();
   }
 
@@ -89,6 +91,44 @@ class GuildQueue {
     await entersState(this.connection, VoiceConnectionStatus.Ready, 15000);
   }
 
+  renderPanel() {
+    return renderPanel({ playing: this.playing, tracks: this.tracks, volume: this.volume, paused: this.paused });
+  }
+
+  /** Re-draws the buttons message in place (queue changed, volume changed...). */
+  refreshPanel() {
+    if (!this.panelMessage || !this.playing) return;
+    this.panelMessage.edit(this.renderPanel()).catch(() => {});
+  }
+
+  /**
+   * Retires the current panel message: buttons removed, optional closing note.
+   * Used when a new panel replaces it, or when the session ends.
+   */
+  retirePanel(text) {
+    const msg = this.panelMessage;
+    this.panelMessage = null;
+    if (!msg) return;
+    const payload = text ? renderEnded(text) : { components: [] };
+    msg.edit(payload).catch(() => {});
+  }
+
+  /**
+   * Shows the panel for the track that just started. The first track of a /music play reuses the
+   * command's own reply (so the buttons sit right under the command); later tracks post a new
+   * message at the bottom of the chat and retire the old one.
+   */
+  async _showPanel(interaction) {
+    const payload = this.renderPanel();
+    if (interaction) {
+      this.retirePanel();
+      this.panelMessage = await interaction.editReply(payload).catch(() => null);
+      return;
+    }
+    this.retirePanel();
+    if (this.textChannel) this.panelMessage = await this.textChannel.send(payload).catch(() => null);
+  }
+
   _clearIdleTimer() {
     if (this.idleTimer) {
       clearTimeout(this.idleTimer);
@@ -105,7 +145,7 @@ class GuildQueue {
       this.textChannel
         ?.send('👋 Никто не слушает уже 5 минут, выхожу из голосового канала.')
         .catch(() => {});
-      destroyQueue(this.guildId);
+      destroyQueue(this.guildId, 'Бот вышел из голосового канала: музыки не было 5 минут.');
     }, IDLE_TIMEOUT_MS);
     this.idleTimer.unref?.();
   }
@@ -121,11 +161,13 @@ class GuildQueue {
     this.tracks.push(track);
   }
 
-  async playNext() {
+  async playNext(interaction = null) {
     if (this.player.state.status !== AudioPlayerStatus.Idle && this.playing) return;
     const next = this.tracks.shift();
     if (!next) {
       this.playing = null;
+      this.paused = false;
+      this.retirePanel('Очередь закончилась. Добавьте трек через `/music play`.');
       this._startIdleTimer();
       return;
     }
@@ -151,36 +193,29 @@ class GuildQueue {
       this.player.play(resource);
       this.playing = next;
 
-      const embed = new EmbedBuilder()
-        .setColor(0xe3a857)
-        .setAuthor({ name: 'Сейчас играет' })
-        .setTitle(next.title)
-        .setURL(next.url)
-        .addFields(
-          { name: 'Длительность', value: next.duration || '—', inline: true },
-          { name: 'Заказал', value: `<@${next.requestedBy}>`, inline: true }
-        );
-      if (next.thumbnail) embed.setThumbnail(next.thumbnail);
-      this.textChannel?.send({ embeds: [embed] }).catch(() => {});
+      this.paused = false;
+      await this._showPanel(interaction);
     } catch (err) {
       this._killCurrentProcess();
       logger.error('Failed to start track', next.url, err);
       this.textChannel?.send(`⚠️ Не удалось воспроизвести **${next.title}**, пропускаю.`).catch(() => {});
-      this.playNext();
+      this.playNext(interaction);
     }
   }
 
   skip() {
-    this.player.stop(); // triggers Idle -> playNext
+    this.player.stop(true); // triggers Idle -> playNext
   }
 
   pause() {
     this.player.pause();
+    this.paused = true;
     this._startIdleTimer();
   }
 
   resume() {
     this.player.unpause();
+    this.paused = false;
     this._clearIdleTimer();
   }
 
@@ -191,8 +226,9 @@ class GuildQueue {
     }
   }
 
-  stopAndDestroy() {
+  stopAndDestroy(note = 'Воспроизведение остановлено.') {
     this._clearIdleTimer();
+    this.retirePanel(note);
     this.tracks = [];
     this.player.stop();
     this._killCurrentProcess();
@@ -216,11 +252,11 @@ function getOrCreateQueue(guildId, voiceChannel, textChannel) {
   return q;
 }
 
-function destroyQueue(guildId) {
+function destroyQueue(guildId, note) {
   const q = queues.get(guildId);
   if (q) {
     queues.delete(guildId);
-    q.stopAndDestroy();
+    q.stopAndDestroy(note);
   }
 }
 

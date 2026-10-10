@@ -13,17 +13,8 @@ module.exports = {
         .setDescription('Включить трек (YouTube/SoundCloud/Spotify-ссылка или поиск)')
         .addStringOption((opt) => opt.setName('запрос').setDescription('Ссылка или название трека').setRequired(true))
     )
-    .addSubcommand((sub) => sub.setName('skip').setDescription('Пропустить текущий трек'))
-    .addSubcommand((sub) => sub.setName('stop').setDescription('Остановить и очистить очередь'))
-    .addSubcommand((sub) => sub.setName('pause').setDescription('Поставить на паузу'))
-    .addSubcommand((sub) => sub.setName('resume').setDescription('Снять с паузы'))
-    .addSubcommand((sub) => sub.setName('queue').setDescription('Показать очередь треков'))
-    .addSubcommand((sub) =>
-      sub
-        .setName('volume')
-        .setDescription('Установить громкость')
-        .addIntegerOption((opt) => opt.setName('процент').setDescription('0-150').setRequired(true).setMinValue(0).setMaxValue(150))
-    ),
+    .addSubcommand((sub) => sub.setName('panel').setDescription('Показать панель управления с кнопками заново'))
+    .addSubcommand((sub) => sub.setName('queue').setDescription('Показать очередь треков')),
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
@@ -36,7 +27,7 @@ module.exports = {
       const existing = getQueue(interaction.guild.id);
       if (existing && existing.voiceChannel.id !== voiceChannel.id) {
         return interaction.reply({
-          embeds: [embeds.error(`Бот уже играет в канале **${existing.voiceChannel.name}**. Зайдите туда или остановите музыку (/music stop).`)],
+          embeds: [embeds.error(`Бот уже играет в канале **${existing.voiceChannel.name}**. Зайдите туда или остановите музыку кнопкой ⏹ на панели.`)],
           flags: MessageFlags.Ephemeral
         });
       }
@@ -58,9 +49,19 @@ module.exports = {
           return interaction.editReply({ embeds: [embeds.error('Не удалось подключиться к голосовому каналу. Проверьте права бота «Подключаться» и «Говорить».')] });
         }
       }
+      const wasPlaying = Boolean(queue.playing);
       tracks.forEach((t) => queue.enqueue(t));
-      if (!queue.playing) queue.playNext();
 
+      if (!wasPlaying) {
+        // First track: the control panel (with buttons) becomes this command's reply.
+        await queue.playNext(interaction);
+        if (!queue.playing) {
+          return interaction.editReply({ embeds: [embeds.error('Не удалось воспроизвести трек. Попробуйте другой запрос или ссылку.')] }).catch(() => {});
+        }
+        return;
+      }
+
+      queue.refreshPanel();
       return interaction.editReply({
         embeds: [embeds.success(tracks.length > 1 ? `Добавлено ${tracks.length} треков в очередь.` : `Добавлено в очередь: **${tracks[0].title}**`)]
       });
@@ -69,29 +70,16 @@ module.exports = {
     const queue = getQueue(interaction.guild.id);
     if (!queue) return interaction.reply({ embeds: [embeds.error('Сейчас ничего не играет.')], flags: MessageFlags.Ephemeral });
 
-    const userChannelId = interaction.member.voice?.channelId;
-    if (userChannelId !== queue.voiceChannel.id && sub !== 'queue') {
-      return interaction.reply({ embeds: [embeds.error('Управлять музыкой можно, находясь в одном голосовом канале с ботом.')], flags: MessageFlags.Ephemeral });
-    }
-
-    if (sub === 'skip') {
-      queue.skip();
-      return interaction.reply({ embeds: [embeds.success('Трек пропущен.')] });
-    }
-
-    if (sub === 'stop') {
-      destroyQueue(interaction.guild.id);
-      return interaction.reply({ embeds: [embeds.success('Воспроизведение остановлено, очередь очищена.')] });
-    }
-
-    if (sub === 'pause') {
-      queue.pause();
-      return interaction.reply({ embeds: [embeds.success('Пауза.')] });
-    }
-
-    if (sub === 'resume') {
-      queue.resume();
-      return interaction.reply({ embeds: [embeds.success('Продолжаю воспроизведение.')] });
+    if (sub === 'panel') {
+      const userChannelId = interaction.member.voice?.channelId;
+      if (userChannelId !== queue.voiceChannel.id) {
+        return interaction.reply({ embeds: [embeds.error('Зайдите в голосовой канал с ботом, чтобы управлять музыкой.')], flags: MessageFlags.Ephemeral });
+      }
+      if (!queue.playing) return interaction.reply({ embeds: [embeds.info('Сейчас ничего не играет.')], flags: MessageFlags.Ephemeral });
+      await interaction.deferReply();
+      queue.retirePanel();
+      queue.panelMessage = await interaction.editReply(queue.renderPanel()).catch(() => null);
+      return;
     }
 
     if (sub === 'queue') {
@@ -105,12 +93,6 @@ module.exports = {
         embed.addFields({ name: 'Далее', value: lines.join('\n') });
       }
       return interaction.reply({ embeds: [embed] });
-    }
-
-    if (sub === 'volume') {
-      const percent = interaction.options.getInteger('процент');
-      queue.setVolume(percent / 100);
-      return interaction.reply({ embeds: [embeds.success(`Громкость: ${percent}%`)] });
     }
   }
 };

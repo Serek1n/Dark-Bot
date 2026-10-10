@@ -1,6 +1,7 @@
 const { MessageFlags } = require('discord.js');
 const embeds = require('../utils/embeds');
 const logger = require('../utils/logger');
+const { isMusicButton, handleMusicButton } = require('../modules/music/panel');
 
 module.exports = {
   name: 'interactionCreate',
@@ -19,6 +20,18 @@ module.exports = {
         } else {
           await interaction.reply(payload).catch(() => {});
         }
+      }
+      return;
+    }
+
+    if (isMusicButton(interaction)) {
+      try {
+        await handleMusicButton(interaction);
+      } catch (err) {
+        logger.error('Music button failed:', err);
+        const payload = { embeds: [embeds.error('Не получилось выполнить действие.')], flags: MessageFlags.Ephemeral };
+        if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
+        else await interaction.reply(payload).catch(() => {});
       }
       return;
     }
