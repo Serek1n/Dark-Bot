@@ -17,6 +17,22 @@ app.set('trust proxy', 1); // needed behind nginx so secure cookies and req.prot
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.disable('x-powered-by');
+
+// Cache-busting for CSS: the stylesheet URL carries the file's modification time, so a browser
+// that cached an old version (static files are cached for a week) fetches the new one right
+// after an update instead of showing a half-styled page.
+const fs = require('fs');
+function assetVersion() {
+  let newest = 0;
+  for (const f of ['css/style.css', 'css/fonts.css']) {
+    try {
+      newest = Math.max(newest, fs.statSync(path.join(__dirname, 'public', f)).mtimeMs);
+    } catch (_) { /* missing file: ignore */ }
+  }
+  return Math.floor(newest).toString(36);
+}
+app.locals.assetV = assetVersion();
+
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '7d' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
