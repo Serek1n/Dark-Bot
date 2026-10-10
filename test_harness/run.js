@@ -82,6 +82,30 @@ async function main() {
     if (!last.files?.length) throw new Error('leaderboard should be sent as an image attachment');
   });
 
+  // help adapts to the asker's role: members < moderators < admins
+  await run('help: member sees only member sections', async () => {
+    const m = makeMember('plain', { rolePosition: 1 });
+    m.permissions = { has: () => false };
+    const i = makeInteraction({ member: m });
+    await helpCmd.execute(i);
+    const n = i._replies[0].embeds.length;
+    if (n !== 4) throw new Error(`member should see 4 embeds, got ${n}`);
+  });
+  await run('help: moderator also sees moderation', async () => {
+    const m = makeMember('mod', { rolePosition: 5 });
+    m.permissions = { has: (f) => f === require('discord.js').PermissionsBitField.Flags.ModerateMembers };
+    const i = makeInteraction({ member: m });
+    await helpCmd.execute(i);
+    const n = i._replies[0].embeds.length;
+    if (n !== 5) throw new Error(`moderator should see 5 embeds, got ${n}`);
+  });
+  await run('help: admin sees everything', async () => {
+    const i = makeInteraction({});
+    await helpCmd.execute(i);
+    const n = i._replies[0].embeds.length;
+    if (n !== 6) throw new Error(`admin should see 6 embeds, got ${n}`);
+  });
+
   // ===== moderation =====
   await run('moderation warn', () => moderationCmd.execute(makeInteraction({ subcommand: 'warn', options: { 'пользователь': makeUser('user2'), 'причина': 'test' } })));
   await run('moderation warnings', () => moderationCmd.execute(makeInteraction({ subcommand: 'warnings', options: { 'пользователь': makeUser('user2') } })));
