@@ -662,3 +662,47 @@ td { vertical-align: middle; word-break: break-word; }
   transition: color 0.15s, background 0.15s;
 }
 .su-logout:hover { color: var(--danger); background: var(--danger-tint); }
+
+
+/* ============================================================
+   Public legal pages (/terms, /privacy)
+   ============================================================ */
+
+.legal {
+  position: relative;
+  z-index: 1;
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 28px 24px 96px;
+}
+.legal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 18px;
+  margin-bottom: 40px;
+  border-bottom: 1px solid var(--hairline);
+}
+.legal-top .brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-size: 1.15rem; font-weight: 600; }
+.legal-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.legal-nav a { padding: 6px 12px; border-radius: 6px; color: var(--fog); font-size: 13.5px; }
+.legal-nav a:hover { color: var(--paper); }
+.legal-nav a.active { color: var(--ember); background: var(--ember-tint); }
+.legal h1 { font-size: clamp(1.45rem, 6.2vw, 2rem); margin: 0 0 6px; overflow-wrap: anywhere; }
+.legal-meta { color: var(--fog-dim); font-size: 13px; margin: 0 0 28px; }
+.legal h2 { font-size: 1.15rem; margin: 34px 0 10px; color: var(--paper); }
+.legal p, .legal li { color: #c9c6bf; font-size: 15px; line-height: 1.75; }
+.legal p { margin: 0 0 12px; max-width: 68ch; }
+.legal ul { margin: 0 0 14px; padding-left: 22px; max-width: 68ch; }
+.legal li { margin-bottom: 6px; }
+.legal li::marker { color: var(--ember); }
+.legal strong { color: var(--paper); font-weight: 600; }
+.legal p a, .legal li a { color: var(--ember); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(227,168,87,0.4); }
+.legal p a:hover, .legal li a:hover { text-decoration-color: var(--ember); }
+
+.legal-links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px !important; font-size: 13px !important; }
+.legal-links a { color: var(--fog); }
+.legal-links a:hover { color: var(--ember); }
+.legal-links span { color: var(--fog-dim); }

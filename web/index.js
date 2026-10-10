@@ -8,6 +8,7 @@ const passport = require('./passport');
 const { init } = require('../db');
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
+const legalRoutes = require('./routes/legal');
 const logger = require('../bot/utils/logger');
 
 const app = express();
@@ -64,6 +65,7 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => res.render('login'));
+app.use('/', legalRoutes); // public pages: /terms and /privacy (required by Discord for the app profile)
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 
