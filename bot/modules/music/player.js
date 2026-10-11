@@ -71,24 +71,46 @@ class GuildQueue {
   }
 
   async connect() {
-    this.connection = joinVoiceChannel({
-      channelId: this.voiceChannel.id,
-      guildId: this.guildId,
-      adapterCreator: this.voiceChannel.guild.voiceAdapterCreator,
-      selfDeaf: true
-    });
-    this.connection.on(VoiceConnectionStatus.Disconnected, async () => {
+    // Joining a voice channel sometimes hangs in "signalling"; a fresh attempt usually works.
+    // Every state change is logged so a stuck connection can be diagnosed from `pm2 logs`.
+    const attempts = 2;
+    let lastError;
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      const conn = joinVoiceChannel({
+        channelId: this.voiceChannel.id,
+        guildId: this.guildId,
+        adapterCreator: this.voiceChannel.guild.voiceAdapterCreator,
+        selfDeaf: true
+      });
+      this.connection = conn;
+      conn.on('stateChange', (oldS, newS) => {
+        const code = newS.closeCode ? ` closeCode=${newS.closeCode}` : '';
+        logger.info(`Voice[${this.guildId}] ${oldS.status} -> ${newS.status}${code}`);
+      });
+      conn.on('error', (err) => logger.error(`Voice[${this.guildId}] error: ${err.message}`));
+      conn.on(VoiceConnectionStatus.Disconnected, async () => {
+        if (this.connection !== conn) return; // an older attempt that was replaced
+        try {
+          await Promise.race([
+            entersState(conn, VoiceConnectionStatus.Signalling, 5000),
+            entersState(conn, VoiceConnectionStatus.Connecting, 5000)
+          ]);
+        } catch {
+          destroyQueue(this.guildId); // kicked or moved out: clean up
+        }
+      });
+      conn.subscribe(this.player);
       try {
-        await Promise.race([
-          entersState(this.connection, VoiceConnectionStatus.Signalling, 5000),
-          entersState(this.connection, VoiceConnectionStatus.Connecting, 5000)
-        ]);
-      } catch {
-        destroyQueue(this.guildId); // kicked or moved out: clean up
+        await entersState(conn, VoiceConnectionStatus.Ready, 12000);
+        return;
+      } catch (err) {
+        lastError = err;
+        logger.warn(`Voice[${this.guildId}] attempt ${attempt}/${attempts} did not become ready (stuck in "${conn.state.status}")`);
+        this.connection = null;
+        try { conn.destroy(); } catch { /* already destroyed */ }
       }
-    });
-    this.connection.subscribe(this.player);
-    await entersState(this.connection, VoiceConnectionStatus.Ready, 15000);
+    }
+    throw lastError;
   }
 
   renderPanel() {
