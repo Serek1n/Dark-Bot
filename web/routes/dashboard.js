@@ -112,6 +112,44 @@ router.post('/:guildId/leveling/import', ensureGuildAccess, express.json({ limit
   }
 });
 
+// Export all members' levels (JSON in the same shape the import reads, or CSV for spreadsheets).
+router.get('/:guildId/leveling/export', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const { totalXpForLevel } = require('../../bot/modules/leveling');
+  const profiles = await MemberProfile.findAll({ where: { guildId }, order: [['xp', 'DESC']] });
+  const rows = profiles.map((p) => ({
+    userId: p.userId,
+    level: p.level,
+    xp: Number(p.xp),
+    progress: Math.max(0, Number(p.xp) - totalXpForLevel(p.level)),
+    messages: Number(p.messageCount),
+    voiceSeconds: Number(p.voiceSeconds || 0),
+    balance: Number(p.balance)
+  }));
+
+  if (req.query.format === 'csv') {
+    const lines = ['user_id,level,xp,messages,voice_seconds,balance', ...rows.map((r) => [r.userId, r.level, r.xp, r.messages, r.voiceSeconds, r.balance].join(','))];
+    res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="levels-${guildId}.csv"` });
+    return res.send('\ufeff' + lines.join('\n'));
+  }
+
+  const data = rows.map((r) => ({
+    _id: r.userId,
+    activities: {
+      levels: [
+        {
+          guild_id: guildId,
+          experience: { total: r.xp, current: r.progress, level: r.level },
+          activity: { total_messages: r.messages, total_voice_time: r.voiceSeconds }
+        }
+      ],
+      wallets: [{ guild_id: guildId, currencies: [{ id: 'DEFAULT', amount: r.balance }] }]
+    }
+  }));
+  res.set({ 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': `attachment; filename="levels-${guildId}.json"` });
+  res.send(JSON.stringify(data, null, 2));
+});
+
 router.get('/:guildId/leaderboard', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
   const top = await MemberProfile.findAll({ where: { guildId: req.params.guildId }, order: [['xp', 'DESC']], limit: 50 });

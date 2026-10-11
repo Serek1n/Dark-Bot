@@ -57,6 +57,13 @@
       </form>
 
       <div class="card">
+        <h2>Экспорт уровней</h2>
+        <p>Скачайте уровни, сообщения, время в голосовых и баланс всех участников, например перед переходом на другого бота. JSON можно импортировать обратно сюда, CSV открывается в Excel и Google Таблицах. В файле только ID участников и цифры, без имён и почт.</p>
+        <a class="btn" href="/dashboard/<%= guild.id %>/leveling/export">Скачать JSON</a>
+        <a class="btn" href="/dashboard/<%= guild.id %>/leveling/export?format=csv">Скачать CSV</a>
+      </div>
+
+      <div class="card">
         <h2>Импорт уровней</h2>
         <p>Перенос уровней, сообщений, времени в голосовых и баланса из экспорта другого бота (Lacuna, файл <code>.json</code>). Уровень участника сохраняется, существующие значения не уменьшаются.</p>
         <input type="file" id="importFile" accept=".json,application/json" />
