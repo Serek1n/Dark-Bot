@@ -35,7 +35,8 @@ Object.values(models).forEach((model) => {
 
 // sync() never alters existing tables, so columns added in later versions are added here.
 async function addMissingColumns() {
-  const additions = [{ table: 'member_profiles', column: 'voiceSeconds', ddl: 'BIGINT DEFAULT 0' }];
+  const additions = [{ table: 'member_profiles', column: 'voiceSeconds', ddl: 'BIGINT DEFAULT 0' },
+    { table: 'guild_settings', column: 'voiceXpPerMinute', ddl: 'INTEGER DEFAULT 10' }];
   for (const { table, column, ddl } of additions) {
     const [cols] = await sequelize.query(`PRAGMA table_info(${table});`);
     if (cols.some((c) => c.name === column)) continue;

@@ -65,6 +65,19 @@ async function grantMessageXpUnlocked(guildId, userId) {
   };
 }
 
+/** Award a fixed amount of XP (used for time spent in voice). Same result shape as grantMessageXp. */
+function grantVoiceXp(guildId, userId, amount) {
+  return withLock(`xp:${guildId}:${userId}`, async () => {
+    const profile = await getOrCreateProfile(guildId, userId);
+    const previousLevel = profile.level;
+    profile.xp = Number(profile.xp) + amount;
+    profile.balance = Number(profile.balance) + Math.ceil(amount / 2);
+    profile.level = levelFromXp(profile.xp);
+    await profile.save();
+    return { leveledUp: profile.level > previousLevel, newLevel: profile.level, gained: amount, profile };
+  });
+}
+
 async function getLeaderboard(guildId, limit = 10) {
   return MemberProfile.findAll({
     where: { guildId },
@@ -79,5 +92,6 @@ module.exports = {
   getOrCreateSettings,
   getOrCreateProfile,
   grantMessageXp,
+  grantVoiceXp,
   getLeaderboard
 };

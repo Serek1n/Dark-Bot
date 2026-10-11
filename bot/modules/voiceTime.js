@@ -1,9 +1,13 @@
 const { MemberProfile } = require('../../db');
 const logger = require('../utils/logger');
+const { GuildSettings } = require('../../db');
+const { grantVoiceXp } = require('./leveling');
+const { announceLevelUp } = require('../utils/levelUp');
 
 // userId+guildId -> timestamp (ms) when the current counting window started.
 const sessions = new Map();
 const FLUSH_MS = 5 * 60 * 1000;
+const XP_TICK_MS = 60 * 1000;
 const key = (guildId, userId) => `${guildId}:${userId}`;
 
 async function addSeconds(guildId, userId, seconds) {
@@ -47,6 +51,39 @@ function seedFromGuilds(client) {
   }
   const timer = setInterval(() => flushAll().catch((err) => logger.error('voice flush failed', err)), FLUSH_MS);
   timer.unref?.();
+  const xpTimer = setInterval(() => xpTick(client).catch((err) => logger.error('voice xp tick failed', err)), XP_TICK_MS);
+  xpTimer.unref?.();
+}
+
+/**
+ * Once a minute: everyone sitting in a voice channel gets XP. Not counted: bots, the AFK channel,
+ * deafened members and anyone alone in the channel (so nobody can farm XP by sitting alone).
+ */
+async function xpTick(client) {
+  for (const guild of client.guilds.cache.values()) {
+    const settings = await GuildSettings.findOne({ where: { guildId: guild.id } });
+    if (!settings || !settings.levelingEnabled || !(settings.voiceXpPerMinute > 0)) continue;
+    const announceChannel = settings.levelUpChannelId ? guild.channels.cache.get(settings.levelUpChannelId) : null;
+
+    for (const channel of guild.channels.cache.values()) {
+      if (!channel.isVoiceBased?.() || channel.id === guild.afkChannelId) continue;
+      const humans = [...channel.members.values()].filter((m) => !m.user.bot);
+      if (humans.length < 2) continue;
+      for (const member of humans) {
+        if (member.voice?.deaf) continue;
+        const result = await grantVoiceXp(guild.id, member.id, settings.voiceXpPerMinute).catch(() => null);
+        if (result?.leveledUp) {
+          await announceLevelUp({
+            guild,
+            user: member.user,
+            displayName: member.displayName,
+            level: result.newLevel,
+            channel: announceChannel
+          });
+        }
+      }
+    }
+  }
 }
 
 /** Saves time of everyone currently in voice and restarts their windows (so a restart loses < 5 min). */
@@ -75,4 +112,4 @@ function formatDuration(totalSeconds) {
   return `${m} мин`;
 }
 
-module.exports = { trackVoiceState, seedFromGuilds, flushAll, pendingSeconds, formatDuration, sessions };
+module.exports = { xpTick, trackVoiceState, seedFromGuilds, flushAll, pendingSeconds, formatDuration, sessions };

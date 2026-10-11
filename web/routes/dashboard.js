@@ -93,6 +93,7 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   settings.xpPerMessageMin = Math.min(min, max);
   settings.xpPerMessageMax = Math.max(min, max);
   settings.xpCooldownSeconds = clampInt(req.body.xpCooldownSeconds, 0, 3600, settings.xpCooldownSeconds);
+  settings.voiceXpPerMinute = clampInt(req.body.voiceXpPerMinute, 0, 500, settings.voiceXpPerMinute);
   settings.levelUpChannelId = snowflake(req.body.levelUpChannelId);
   settings.currencyName = (req.body.currencyName || '').trim().slice(0, 24) || settings.currencyName;
   await settings.save();

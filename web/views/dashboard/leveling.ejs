@@ -33,6 +33,12 @@
         </div>
 
         <div>
+          <label>Опыт за голосовой канал (за минуту, 0 — выключено)</label>
+          <input type="number" name="voiceXpPerMinute" value="<%= settings.voiceXpPerMinute %>" min="0" max="500" />
+          <div class="hint">Начисляется тем, кто сидит в голосовом канале не один и не заглушил звук. Канал AFK не считается.</div>
+        </div>
+
+        <div>
           <label>Канал для объявлений о новом уровне (пусто — в том же канале)</label>
           <select name="levelUpChannelId">
             <option value="">— не выбрано —</option>

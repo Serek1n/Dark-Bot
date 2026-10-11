@@ -23,6 +23,8 @@ module.exports = (sequelize) => {
       xpPerMessageMin: { type: DataTypes.INTEGER, defaultValue: 10 },
       xpPerMessageMax: { type: DataTypes.INTEGER, defaultValue: 20 },
       xpCooldownSeconds: { type: DataTypes.INTEGER, defaultValue: 60 },
+      voiceXpPerMinute: { type: DataTypes.INTEGER, defaultValue: 10 }, // 0 = no XP for voice
+
       currencyName: { type: DataTypes.STRING, defaultValue: 'монеты' },
 
       // Automod
