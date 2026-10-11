@@ -3,6 +3,7 @@ const { grantMessageXp, getOrCreateSettings } = require('../modules/leveling');
 const { evaluateMessage, logModAction } = require('../modules/automod');
 const embeds = require('../utils/embeds');
 const { announceLevelUp } = require('../utils/levelUp');
+const { applyLevelRoles } = require('../modules/levelRoles');
 const logger = require('../utils/logger');
 
 module.exports = {
@@ -43,6 +44,7 @@ module.exports = {
     // Leveling
     try {
       const result = await grantMessageXp(message.guild.id, message.author.id);
+      if (result && message.member) await applyLevelRoles(message.member, result.newLevel, settings.levelRolesReplace);
       if (result?.leveledUp) {
         const target = settings.levelUpChannelId
           ? await message.guild.channels.fetch(settings.levelUpChannelId).catch(() => null)

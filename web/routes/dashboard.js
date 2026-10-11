@@ -8,6 +8,7 @@ const {
   Warning,
   ModLog,
   CustomCommand,
+  LevelRole,
   ReactionRole,
   Alert
 } = require('../../db');
@@ -224,6 +225,82 @@ router.post('/:guildId/welcome', ensureGuildAccess, async (req, res) => {
   settings.autoRoleId = snowflake(req.body.autoRoleId);
   await settings.save();
   res.redirect(saved(req.params.guildId, 'welcome'));
+});
+
+// ---- Level roles ----
+const syncStatus = new Map(); // guildId -> { running, done, total, error }
+
+router.get('/:guildId/level-roles', ensureGuildAccess, async (req, res) => {
+  const guild = await getGuild(req.params.guildId);
+  const settings = await getSettings(req.params.guildId);
+  const roles = await getGuildRoles(req.params.guildId);
+  const levelRoles = await LevelRole.findAll({ where: { guildId: req.params.guildId }, order: [['level', 'ASC']] });
+  res.render('dashboard/level-roles', { guild, settings, roles, levelRoles, sync: syncStatus.get(req.params.guildId) || null, active: 'level-roles' });
+});
+
+router.post('/:guildId/level-roles', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const level = clampInt(req.body.level, 1, 500, 0);
+  const roleId = snowflake(req.body.roleId);
+  const roles = await getGuildRoles(guildId);
+  if (!level || !roleId || !roles.some((r) => r.id === roleId)) return res.redirect(saved(guildId, 'level-roles', 'invalid'));
+  await LevelRole.upsert({ guildId, level, roleId });
+  res.redirect(saved(guildId, 'level-roles'));
+});
+
+router.post('/:guildId/level-roles/mode', ensureGuildAccess, async (req, res) => {
+  const settings = await getSettings(req.params.guildId);
+  settings.levelRolesReplace = req.body.levelRolesReplace === 'on';
+  await settings.save();
+  res.redirect(saved(req.params.guildId, 'level-roles'));
+});
+
+router.post('/:guildId/level-roles/delete/:id', ensureGuildAccess, async (req, res) => {
+  await LevelRole.destroy({ where: { id: req.params.id, guildId: req.params.guildId } });
+  res.redirect(saved(req.params.guildId, 'level-roles', 'deleted'));
+});
+
+// Gives roles to everyone who already has the level (e.g. after importing levels). Runs in the background.
+router.post('/:guildId/level-roles/sync', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  if (syncStatus.get(guildId)?.running) return res.redirect(saved(guildId, 'level-roles', 'running'));
+  const settings = await getSettings(guildId);
+  const status = { running: true, done: 0, total: 0, error: null };
+  syncStatus.set(guildId, status);
+  res.redirect(saved(guildId, 'level-roles', 'started'));
+
+  (async () => {
+    const { computeRoleChanges } = require('../../bot/modules/levelRoles');
+    const levelRoles = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId }));
+    if (!levelRoles.length) return;
+    const profiles = await MemberProfile.findAll({ where: { guildId } });
+    const levels = new Map(profiles.map((p) => [p.userId, p.level]));
+
+    // All server members with their roles (paged by 1000).
+    const members = [];
+    let after = '0';
+    for (;;) {
+      const { data } = await botApi.get(`/guilds/${guildId}/members`, { params: { limit: 1000, after } });
+      members.push(...data);
+      if (data.length < 1000) break;
+      after = data[data.length - 1].user.id;
+    }
+    const targets = members.filter((m) => levels.has(m.user.id) && !m.user.bot);
+    status.total = targets.length;
+    const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+    for (const m of targets) {
+      const { add, remove } = computeRoleChanges(levelRoles, levels.get(m.user.id), m.roles, settings.levelRolesReplace);
+      try {
+        for (const id of add) { await botApi.put(`/guilds/${guildId}/members/${m.user.id}/roles/${id}`, null, { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Роль за уровень') } }); await pause(300); }
+        for (const id of remove) { await botApi.delete(`/guilds/${guildId}/members/${m.user.id}/roles/${id}`); await pause(300); }
+      } catch (err) {
+        status.failed = (status.failed || 0) + 1; // e.g. role is above the bot's role
+      }
+      status.done++;
+    }
+  })()
+    .catch((err) => { status.error = err.message; })
+    .finally(() => { status.running = false; });
 });
 
 // ---- Reaction roles ----

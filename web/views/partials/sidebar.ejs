@@ -40,6 +40,10 @@
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17V4.5C5 3.7 5.7 3 6.5 3H12L15 6V17"/><path d="M5 17H15M12 17V3M12 10.2H12.3"/></svg>
         Приветствие
       </a>
+      <a href="/dashboard/<%= guild.id %>/level-roles" class="<%= active === 'level-roles' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 16.5V12M8 16.5V8.5M12.5 16.5V5M17 16.5V2.5"/></svg>
+        Роли за уровни
+      </a>
       <a href="/dashboard/<%= guild.id %>/reaction-roles" class="<%= active === 'reaction-roles' ? 'active' : '' %>">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.2"/><path d="M7.3 12C7.9 13 8.9 13.6 10 13.6C11.1 13.6 12.1 13 12.7 12"/><path d="M7.5 8H7.51M12.5 8H12.51" stroke-width="2.2"/></svg>
         Роли по реакциям
@@ -81,6 +85,8 @@
       saved: ['Изменения сохранены', false],
       deleted: ['Удалено', false],
       invalid: ['Не удалось сохранить: проверьте заполнение полей', true],
+      started: ['Выдача ролей запущена', false],
+      running: ['Выдача ролей уже идёт', true],
       nomessage: ['Сообщение не найдено в выбранном канале', true]
     };
     for (var key in kinds) {

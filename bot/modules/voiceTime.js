@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const { GuildSettings } = require('../../db');
 const { grantVoiceXp } = require('./leveling');
 const { announceLevelUp } = require('../utils/levelUp');
+const { applyLevelRoles } = require('./levelRoles');
 
 // userId+guildId -> timestamp (ms) when the current counting window started.
 const sessions = new Map();
@@ -72,6 +73,7 @@ async function xpTick(client) {
       for (const member of humans) {
         if (member.voice?.deaf) continue;
         const result = await grantVoiceXp(guild.id, member.id, settings.voiceXpPerMinute).catch(() => null);
+        if (result) await applyLevelRoles(member, result.newLevel, settings.levelRolesReplace);
         if (result?.leveledUp) {
           await announceLevelUp({
             guild,

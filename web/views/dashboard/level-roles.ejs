@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Роли за уровни' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <div class="page-header">
+        <h1>Роли за уровни</h1>
+        <p class="page-intro">Участник получает роль, когда достигает нужного уровня: за сообщения или за время в голосовых.</p>
+      </div>
+
+      <form method="post" class="card">
+        <h2>Новая награда</h2>
+        <div>
+          <label>Уровень</label>
+          <input type="number" name="level" min="1" max="500" placeholder="10" required />
+        </div>
+        <div>
+          <label>Роль</label>
+          <select name="roleId" required>
+            <% roles.forEach(r => { %>
+              <option value="<%= r.id %>">@<%= r.name %></option>
+            <% }) %>
+          </select>
+          <div class="hint">Роль бота должна стоять в списке ролей выше выдаваемой, иначе Discord не даст её выдать.</div>
+        </div>
+        <button class="btn" type="submit">Добавить</button>
+      </form>
+
+      <div class="card">
+        <% if (!levelRoles.length) { %>
+          <p class="empty-state">Наград пока нет.</p>
+        <% } else { %>
+          <table>
+            <thead><tr><th>Уровень</th><th>Роль</th><th></th></tr></thead>
+            <tbody>
+              <% levelRoles.forEach(lr => {
+                const role = roles.find(r => r.id === lr.roleId);
+              %>
+                <tr>
+                  <td><%= lr.level %></td>
+                  <td>@<%= role ? role.name : lr.roleId + ' (роль удалена)' %></td>
+                  <td>
+                    <form method="post" action="/dashboard/<%= guild.id %>/level-roles/delete/<%= lr.id %>">
+                      <button class="btn btn-danger" type="submit">Удалить</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+
+      <form method="post" action="/dashboard/<%= guild.id %>/level-roles/mode" class="card">
+        <h2>Режим</h2>
+        <div class="checkbox-row">
+          <input type="checkbox" id="levelRolesReplace" name="levelRolesReplace" <%= settings.levelRolesReplace ? 'checked' : '' %> />
+          <label for="levelRolesReplace">Оставлять только самую высокую роль (предыдущие снимаются)</label>
+        </div>
+        <div class="hint">Выключено: участник сохраняет все полученные роли.</div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+
+      <form method="post" action="/dashboard/<%= guild.id %>/level-roles/sync" class="card">
+        <h2>Выдать роли сейчас</h2>
+        <p>Роли выдаются сами при росте уровня. Эта кнопка нужна, чтобы выдать роли всем, у кого уровень уже достигнут, например после импорта уровней. Занимает минуту-две на каждые 100 участников.</p>
+        <button class="btn" type="submit">Выдать роли всем</button>
+        <% if (sync) { %>
+          <div class="hint">
+            <% if (sync.running) { %>Идёт выдача: <%= sync.done %> из <%= sync.total %> (обновите страницу).
+            <% } else if (sync.error) { %>Ошибка: <%= sync.error %>
+            <% } else { %>Готово: обработано <%= sync.done %><% if (sync.failed) { %>, не удалось: <%= sync.failed %> (проверьте, что роль бота выше выдаваемых)<% } %>.
+            <% } %>
+          </div>
+        <% } %>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
