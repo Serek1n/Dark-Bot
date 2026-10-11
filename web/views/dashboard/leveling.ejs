@@ -89,12 +89,24 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ users: users })
-              }).then(function (r) { return r.json(); }).then(function (data) {
-                status.textContent = data.ok
-                  ? 'Готово: импортировано ' + data.imported + ', пропущено ' + data.skipped + '.'
-                  : 'Ошибка: ' + data.error;
+              }).then(function (r) {
+                return r.text().then(function (body) {
+                  var data = null;
+                  try { data = JSON.parse(body); } catch (e) {}
+                  if (data && data.ok) {
+                    status.textContent = 'Готово: импортировано ' + data.imported + ', пропущено ' + data.skipped + '.';
+                  } else if (data) {
+                    status.textContent = 'Ошибка: ' + data.error;
+                  } else if (r.status === 413) {
+                    status.textContent = 'Файл слишком большой для nginx (увеличьте client_max_body_size, см. README).';
+                  } else if (r.redirected || r.status === 401 || r.status === 403) {
+                    status.textContent = 'Сессия истекла или нет прав (HTTP ' + r.status + '). Обновите страницу и войдите заново.';
+                  } else {
+                    status.textContent = 'Сервер ответил HTTP ' + r.status + '. Проверьте pm2 logs dark-web.';
+                  }
+                });
               });
-            }).catch(function () { status.textContent = 'Не удалось выполнить импорт.'; })
+            }).catch(function (e) { status.textContent = 'Не удалось связаться с сервером: ' + (e && e.message ? e.message : e); })
               .then(function () { btn.disabled = false; });
           });
         })();

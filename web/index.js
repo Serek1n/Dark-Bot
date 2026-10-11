@@ -55,7 +55,13 @@ app.use((req, res, next) => {
   const source = req.get('origin') || req.get('referer');
   if (!source) return next();
   try {
-    if (new URL(source).host === req.get('host')) return next();
+    const from = new URL(source);
+    if (from.host === req.get('host')) return next();
+    // Behind nginx with "proxy_set_header Host $host" the port is stripped from Host,
+    // so also accept the same hostname and the site's own configured address.
+    const ownHost = (() => { try { return new URL(process.env.WEB_BASE_URL).host; } catch (_) { return null; } })();
+    if (ownHost && from.host === ownHost) return next();
+    if (from.hostname === String(req.get('host') || '').split(':')[0]) return next();
   } catch (_) { /* fall through */ }
   return res.status(403).render('error', { message: 'Запрос отклонён: он отправлен с другого сайта.' });
 });

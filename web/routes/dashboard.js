@@ -111,6 +111,11 @@ router.post('/:guildId/leveling/import', ensureGuildAccess, express.json({ limit
     res.status(400).json({ ok: false, error: err.message || 'Ошибка импорта' });
   }
 });
+// Body-parser problems (too large, bad JSON) answer in JSON too, so the page can show them.
+router.use('/:guildId/leveling/import', (err, req, res, next) => {
+  if (!err) return next();
+  res.status(err.status || 400).json({ ok: false, error: err.type === 'entity.too.large' ? 'Файл слишком большой' : 'Не удалось прочитать файл' });
+});
 
 // Export all members' levels (JSON in the same shape the import reads, or CSV for spreadsheets).
 router.get('/:guildId/leveling/export', ensureGuildAccess, async (req, res) => {
