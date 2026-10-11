@@ -278,11 +278,87 @@ function destroyQueue(guildId, note) {
  * Spotify links are resolved by searching YouTube for the same title/artist, since Spotify's
  * API does not provide direct audio streams.
  */
+// ---- fast metadata lookup -------------------------------------------------------------
+// play-dl scrapes YouTube itself and is often slow or broken on servers; yt-dlp (already needed for
+// playback and kept up to date) answers a search in a second or two. play-dl stays as a fallback.
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label}: нет ответа за ${Math.round(ms / 1000)} с`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+function ytDlpJson(args, timeoutMs = 20000) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(YTDLP_BIN, [...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    let err = '';
+    const timer = setTimeout(() => {
+      proc.kill('SIGKILL');
+      reject(new Error('yt-dlp: нет ответа за ' + Math.round(timeoutMs / 1000) + ' с'));
+    }, timeoutMs);
+    proc.stdout.on('data', (d) => { out += d; });
+    proc.stderr.on('data', (d) => { err = (err + d).slice(-1000); });
+    proc.on('error', (e) => { clearTimeout(timer); reject(e); });
+    proc.on('close', (code) => {
+      clearTimeout(timer);
+      if (code !== 0) return reject(new Error(`yt-dlp exited ${code}: ${err.trim()}`));
+      try { resolve(JSON.parse(out)); } catch (e) { reject(new Error('yt-dlp: непонятный ответ')); }
+    });
+  });
+}
+
+function formatSeconds(sec) {
+  const s = Math.max(0, Math.round(Number(sec) || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const r = String(s % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${r}` : `${m}:${r}`;
+}
+
+function trackFromYtDlp(e, requestedBy) {
+  const id = e.id;
+  return {
+    title: e.title,
+    url: e.webpage_url || (e.url && e.url.startsWith('http') ? e.url : `https://www.youtube.com/watch?v=${id}`),
+    duration: e.duration_string || formatSeconds(e.duration),
+    thumbnail: e.thumbnail || e.thumbnails?.[e.thumbnails.length - 1]?.url,
+    requestedBy,
+    source: 'youtube'
+  };
+}
+
+async function ytDlpSearch(query, requestedBy) {
+  const j = await ytDlpJson(['--skip-download', '--flat-playlist', '--dump-single-json', '--no-warnings', `ytsearch1:${query}`], 15000);
+  const e = j.entries && j.entries[0];
+  return e ? [trackFromYtDlp(e, requestedBy)] : [];
+}
+
+async function ytDlpVideo(url, requestedBy) {
+  const j = await ytDlpJson(['--skip-download', '--no-playlist', '--dump-json', '--no-warnings', url], 20000);
+  return [trackFromYtDlp(j, requestedBy)];
+}
+
 async function resolveQuery(query, requestedBy) {
-  const type = await playdl.validate(query).catch(() => false);
+  const started = Date.now();
+  try {
+    return await resolveQueryInner(query, requestedBy);
+  } finally {
+    logger.info(`Music: resolved "${String(query).slice(0, 60)}" in ${Date.now() - started} ms`);
+  }
+}
+
+async function resolveQueryInner(query, requestedBy) {
+  const type = await withTimeout(playdl.validate(query), 5000, 'validate').catch(() => false);
 
   if (type === 'yt_video') {
-    const info = await playdl.video_basic_info(query);
+    const fast = await ytDlpVideo(query, requestedBy).catch((err) => {
+      logger.warn?.(`yt-dlp video lookup failed, using play-dl: ${err.message}`);
+      return null;
+    });
+    if (fast) return fast;
+    const info = await withTimeout(playdl.video_basic_info(query), 15000, 'play-dl video');
     const d = info.video_details;
     return [
       {
@@ -297,8 +373,8 @@ async function resolveQuery(query, requestedBy) {
   }
 
   if (type === 'yt_playlist') {
-    const playlist = await playdl.playlist_info(query, { incomplete: true });
-    const videos = await playlist.all_videos();
+    const playlist = await withTimeout(playdl.playlist_info(query, { incomplete: true }), 15000, 'playlist');
+    const videos = await withTimeout(playlist.all_videos(), 30000, 'playlist');
     return videos.map((d) => ({
       title: d.title,
       url: d.url,
@@ -310,7 +386,7 @@ async function resolveQuery(query, requestedBy) {
   }
 
   if (type === 'so_track') {
-    const d = await playdl.soundcloud(query);
+    const d = await withTimeout(playdl.soundcloud(query), 15000, 'soundcloud');
     return [
       {
         title: d.name,
@@ -325,12 +401,17 @@ async function resolveQuery(query, requestedBy) {
 
   if (type && type.startsWith('sp_')) {
     // Spotify: resolve metadata, then search YouTube for a matching track
-    const sp = await playdl.spotify(query);
-    const items = sp.type === 'track' ? [sp] : await sp.all_tracks();
+    const sp = await withTimeout(playdl.spotify(query), 15000, 'spotify');
+    const items = sp.type === 'track' ? [sp] : await withTimeout(sp.all_tracks(), 30000, 'spotify');
     const tracks = [];
     for (const item of items) {
       const searchQuery = `${item.name} ${item.artists?.map((a) => a.name).join(' ') || ''}`;
-      const results = await playdl.search(searchQuery, { source: { youtube: 'video' }, limit: 1 });
+      const found = await ytDlpSearch(searchQuery, requestedBy).catch(() => null);
+      if (found && found[0]) {
+        tracks.push({ ...found[0], title: `${item.name} — ${item.artists?.[0]?.name || ''}`.trim() });
+        continue;
+      }
+      const results = await withTimeout(playdl.search(searchQuery, { source: { youtube: 'video' }, limit: 1 }), 15000, 'search');
       if (results[0]) {
         tracks.push({
           title: `${item.name} — ${item.artists?.[0]?.name || ''}`.trim(),
@@ -346,7 +427,12 @@ async function resolveQuery(query, requestedBy) {
   }
 
   // Fallback: treat as a plain-text search query on YouTube
-  const results = await playdl.search(query, { source: { youtube: 'video' }, limit: 1 });
+  const fast = await ytDlpSearch(query, requestedBy).catch((err) => {
+    logger.warn?.(`yt-dlp search failed, using play-dl: ${err.message}`);
+    return null;
+  });
+  if (fast && fast.length) return fast;
+  const results = await withTimeout(playdl.search(query, { source: { youtube: 'video' }, limit: 1 }), 15000, 'search');
   if (!results[0]) return [];
   return [
     {
