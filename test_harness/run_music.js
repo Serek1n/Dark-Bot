@@ -49,8 +49,10 @@ const vc = { id: 'vc1', name: 'Music', guild: { voiceAdapterCreator: () => {} } 
 async function main() {
   await run('panel: playing state has 5 control buttons', () => {
     const p = renderPanel({ playing: track(1), tracks: [track(2), track(3)], volume: 0.5, paused: false });
-    assert.strictEqual(p.components.length, 1);
-    const ids = p.components[0].components.map((c) => c.data.custom_id);
+    // Discord limits: max 5 rows, max 5 buttons per row (a 6th button makes the whole message fail).
+    assert.ok(p.components.length <= 5);
+    p.components.forEach((row) => assert.ok(row.components.length <= 5, 'too many buttons in a row'));
+    const ids = p.components.flatMap((r) => r.components).map((c) => c.data.custom_id);
     assert.deepStrictEqual(ids, ['music:toggle', 'music:skip', 'music:queue', 'music:stop', 'music:voldown', 'music:volup']);
     assert.ok(p.embeds[0].data.fields.some((f) => f.name === 'Далее'));
   });
@@ -91,7 +93,7 @@ async function main() {
     q.enqueue(track(2));
     await q.playNext();
     assert.strictEqual(text.sent.length, 1);
-    assert.strictEqual(text.sent[0].payload.components.length, 1);
+    assert.strictEqual(text.sent[0].payload.components.length, 2);
     assert.strictEqual(q.panelMessage.id, 'm1');
   });
 
@@ -102,7 +104,7 @@ async function main() {
     q2.enqueue(track(9));
     await q2.playNext(interaction);
     assert.strictEqual(q2.panelMessage.id, 'reply1');
-    assert.strictEqual(reply.payload.components.length, 1);
+    assert.strictEqual(reply.payload.components.length, 2);
     player.destroyQueue('g2');
   });
 

@@ -144,7 +144,14 @@ class GuildQueue {
     const payload = this.renderPanel();
     if (interaction) {
       this.retirePanel();
-      this.panelMessage = await interaction.editReply(payload).catch(() => null);
+      this.panelMessage = await interaction.editReply(payload).catch((err) => {
+        logger.error('Could not show the music panel:', err);
+        return null;
+      });
+      if (!this.panelMessage) {
+        // Never leave "Dark is thinking…" hanging: say at least what is playing.
+        await interaction.editReply({ content: `▶ Играет: **${this.playing?.title || 'трек'}**`, embeds: [], components: [] }).catch(() => {});
+      }
       return;
     }
     const previous = this.panelMessage;

@@ -45,15 +45,18 @@ function renderPanel(state) {
     embed.addFields({ name: 'Далее', value: lines.join('\n') });
   }
 
+  // Discord allows at most 5 buttons per row, so volume goes to a second row.
   const row = new ActionRowBuilder().addComponents(
     button('toggle', state.paused ? '▶️' : '⏸️', state.paused ? 'Играть' : 'Пауза', ButtonStyle.Primary),
     button('skip', '⏭️', 'Дальше'),
     button('queue', '📜', 'Очередь'),
-    button('stop', '⏹️', 'Стоп', ButtonStyle.Danger),
-    button('voldown', '🔉', null),
-    button('volup', '🔊', null)
+    button('stop', '⏹️', 'Стоп', ButtonStyle.Danger)
   );
-  return { embeds: [embed], components: [row] };
+  const volumeRow = new ActionRowBuilder().addComponents(
+    button('voldown', '🔉', 'Тише'),
+    button('volup', '🔊', 'Громче')
+  );
+  return { embeds: [embed], components: [row, volumeRow] };
 }
 
 /** Panel text for a finished session (buttons removed). */
