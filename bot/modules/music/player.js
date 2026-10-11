@@ -52,6 +52,9 @@ class GuildQueue {
     this.currentProcess = null;
     this.idleTimer = null;
     this.paused = false;
+    /** Tracks that already played (most recent last), for the "previous" button. */
+    this.history = [];
+    this._skipHistory = false;
     this.panelMessage = null; // the message that currently carries the control buttons
     this._bindPlayerEvents();
   }
@@ -59,6 +62,13 @@ class GuildQueue {
   _bindPlayerEvents() {
     this.player.on(AudioPlayerStatus.Idle, () => {
       this._killCurrentProcess();
+      // Remember what just played, so the "previous" button can bring it back
+      // (not when it was re-queued by "previous" itself).
+      if (this.playing && !this._skipHistory) {
+        this.history.push(this.playing);
+        if (this.history.length > 25) this.history.shift();
+      }
+      this._skipHistory = false;
       this.playing = null;
       this.playNext().catch((err) => logger.error('playNext error', err));
     });
@@ -114,7 +124,7 @@ class GuildQueue {
   }
 
   renderPanel() {
-    return renderPanel({ playing: this.playing, tracks: this.tracks, volume: this.volume, paused: this.paused });
+    return renderPanel({ playing: this.playing, tracks: this.tracks, volume: this.volume, paused: this.paused, canBack: this.history.length > 0 });
   }
 
   /** Re-draws the buttons message in place (queue changed, volume changed...). */
@@ -214,7 +224,6 @@ class GuildQueue {
       return;
     }
     this._clearIdleTimer();
-
     try {
       let resource;
       if (next.source === 'youtube') {
@@ -243,6 +252,17 @@ class GuildQueue {
       this.textChannel?.send(`⚠️ Не удалось воспроизвести **${next.title}**, пропускаю.`).catch(() => {});
       this.playNext(interaction);
     }
+  }
+
+  /** Plays the previous track again (the current one is queued right after it). Returns false if there is none. */
+  back() {
+    const prev = this.history.pop();
+    if (!prev) return false;
+    if (this.playing) this.tracks.unshift(this.playing);
+    this.tracks.unshift(prev);
+    this._skipHistory = true; // the current track was put back in the queue, not "finished"
+    this.player.stop(true);
+    return true;
   }
 
   skip() {

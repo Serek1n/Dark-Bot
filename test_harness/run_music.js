@@ -53,12 +53,12 @@ async function main() {
     assert.ok(p.components.length <= 5);
     p.components.forEach((row) => assert.ok(row.components.length <= 5, 'too many buttons in a row'));
     const ids = p.components.flatMap((r) => r.components).map((c) => c.data.custom_id);
-    assert.deepStrictEqual(ids, ['music:toggle', 'music:skip', 'music:queue', 'music:stop', 'music:voldown', 'music:volup']);
+    assert.deepStrictEqual(ids, ['music:prev', 'music:toggle', 'music:skip', 'music:queue', 'music:stop', 'music:voldown', 'music:volup']);
     assert.ok(p.embeds[0].data.fields.some((f) => f.name === 'Далее'));
   });
   await run('panel: paused state offers "play"', () => {
     const p = renderPanel({ playing: track(1), tracks: [], volume: 0.5, paused: true });
-    assert.strictEqual(p.components[0].components[0].data.label, 'Играть');
+    assert.strictEqual(p.components[0].components[1].data.emoji.name, '▶️');
     assert.ok(p.embeds[0].data.author.name.includes('Пауза'));
   });
   await run('panel: finished queue has no buttons', () => {
@@ -126,11 +126,11 @@ async function main() {
     const i1 = btn('music:toggle', { messageId: 'm1' });
     await handleMusicButton(i1);
     assert.strictEqual(q.paused, true);
-    assert.strictEqual(i1.calls[0][1].components[0].components[0].data.label, 'Играть');
+    assert.strictEqual(i1.calls[0][1].components[0].components[1].data.emoji.name, '▶️');
     const i2 = btn('music:toggle', { messageId: 'm1' });
     await handleMusicButton(i2);
     assert.strictEqual(q.paused, false);
-    assert.strictEqual(i2.calls[0][1].components[0].components[0].data.label, 'Пауза');
+    assert.strictEqual(i2.calls[0][1].components[0].components[1].data.emoji.name, '⏸️');
   });
 
 
@@ -143,6 +143,26 @@ async function main() {
     assert.ok(q.playing && q.playing.title === 'Track 2', 'next track should be playing');
     assert.strictEqual(text.sent.length, 2, 'a new panel message should be posted');
     assert.deepStrictEqual(oldPanel.edits[0], { components: [] }, 'old panel loses its buttons');
+  });
+
+  await run('button: previous brings back the track that played before', async () => {
+    // after the skip above: Track 2 is playing and Track 1 is in the history
+    assert.ok(q.history.length >= 1);
+    const panel = q.panelMessage;
+    const i = btn('music:prev', { messageId: panel.id });
+    await handleMusicButton(i);
+    await new Promise((r) => setTimeout(r, 300));
+    assert.strictEqual(q.playing.title, 'Track 1', 'previous track plays again');
+    assert.strictEqual(q.tracks[0] && q.tracks[0].title, 'Track 2', 'the track we left is queued right after it');
+  });
+
+  await run('button: previous with no history answers with a hint', async () => {
+    const saved = q.history;
+    q.history = [];
+    const i = btn('music:prev', { messageId: q.panelMessage.id });
+    await handleMusicButton(i);
+    assert.strictEqual(i.calls[0][0], 'reply');
+    q.history = saved;
   });
 
   await run('button: volume steps by 10% and is clamped to 0..150%', async () => {

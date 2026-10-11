@@ -17,7 +17,7 @@ function button(action, emoji, label, style = ButtonStyle.Secondary, disabled = 
 
 /**
  * Message payload for the player panel: the "now playing" embed plus control buttons.
- * @param {{ playing: any, tracks: any[], volume: number, paused: boolean }} state
+ * @param {{ playing: any, tracks: any[], volume: number, paused: boolean, canBack?: boolean }} state
  */
 function renderPanel(state) {
   const track = state.playing;
@@ -45,17 +45,15 @@ function renderPanel(state) {
     embed.addFields({ name: 'Далее', value: lines.join('\n') });
   }
 
-  // Discord allows at most 5 buttons per row, so volume goes to a second row.
+  // Icon-only buttons. Discord allows at most 5 buttons per row, so volume goes to a second row.
   const row = new ActionRowBuilder().addComponents(
-    button('toggle', state.paused ? '▶️' : '⏸️', state.paused ? 'Играть' : 'Пауза', ButtonStyle.Primary),
-    button('skip', '⏭️', 'Дальше'),
-    button('queue', '📜', 'Очередь'),
-    button('stop', '⏹️', 'Стоп', ButtonStyle.Danger)
+    button('prev', '⏮️', null, ButtonStyle.Secondary, !state.canBack),
+    button('toggle', state.paused ? '▶️' : '⏸️', null, ButtonStyle.Primary),
+    button('skip', '⏭️', null),
+    button('queue', '📜', null),
+    button('stop', '⏹️', null, ButtonStyle.Danger)
   );
-  const volumeRow = new ActionRowBuilder().addComponents(
-    button('voldown', '🔉', 'Тише'),
-    button('volup', '🔊', 'Громче')
-  );
+  const volumeRow = new ActionRowBuilder().addComponents(button('voldown', '🔉', null), button('volup', '🔊', null));
   return { embeds: [embed], components: [row, volumeRow] };
 }
 

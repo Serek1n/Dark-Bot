@@ -41,10 +41,14 @@ async function handleMusicButton(interaction) {
     return interaction.update(queue.renderPanel());
   }
 
-  if (action === 'skip') {
+  if (action === 'skip' || action === 'prev') {
     const before = queue.playing;
+    if (action === 'prev' && !queue.history.length) {
+      return interaction.reply(ephemeral('Предыдущих треков нет.'));
+    }
     await interaction.deferUpdate();
-    queue.skip(); // the next track posts a fresh panel and retires this one
+    if (action === 'prev') queue.back();
+    else queue.skip(); // the next track posts a fresh panel and retires this one
     // Make sure the clicked panel always ends up showing the new track, even when the bot
     // cannot edit/post messages by itself (editing through this interaction needs no channel rights).
     for (let i = 0; i < 40 && queue.playing === before; i++) await new Promise((r) => setTimeout(r, 250));
