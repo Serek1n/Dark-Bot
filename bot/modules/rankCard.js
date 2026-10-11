@@ -271,9 +271,15 @@ async function renderLeaderboard(data) {
   ctx.fillStyle = COLORS.fog;
   ctx.font = '15px CardSans';
   ctx.fillText(truncateToWidth(ctx, data.title || '', 600), 90, 76);
+  if (data.pages > 1) {
+    ctx.textAlign = 'right';
+    ctx.font = '16px CardMonoBold';
+    ctx.fillText(`стр. ${data.page} / ${data.pages}`, W - 52, 60);
+    ctx.textAlign = 'left';
+  }
 
   const medal = [COLORS.ember, COLORS.silver, COLORS.bronze];
-  const maxXp = Math.max(1, ...rows.map((r) => Number(r.xp) || 0));
+  const maxXp = Math.max(1, Number(data.maxXp) || 0, ...rows.map((r) => Number(r.xp) || 0));
 
   const avatars = await Promise.all(
     rows.map(async (r) => {

@@ -2,6 +2,7 @@ const { MessageFlags } = require('discord.js');
 const embeds = require('../utils/embeds');
 const logger = require('../utils/logger');
 const { isMusicButton, handleMusicButton } = require('../modules/music/panel');
+const { isTopButton, handleTopButton } = require('../modules/leaderboardPage');
 
 module.exports = {
   name: 'interactionCreate',
@@ -20,6 +21,15 @@ module.exports = {
         } else {
           await interaction.reply(payload).catch(() => {});
         }
+      }
+      return;
+    }
+
+    if (isTopButton(interaction)) {
+      try {
+        await handleTopButton(interaction);
+      } catch (err) {
+        logger.error('Leaderboard button failed:', err);
       }
       return;
     }
