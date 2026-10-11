@@ -7,13 +7,17 @@ async function main() {
   const commands = [...loadCommands().values()].map((c) => c.data.toJSON());
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
-  const route = process.env.DEV_GUILD_ID
-    ? Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.DEV_GUILD_ID)
-    : Routes.applicationCommands(process.env.DISCORD_CLIENT_ID);
+  // Commands are registered globally so every server where the bot is gets the same set.
+  // Any guild-scoped copies (older setups registered via DEV_GUILD_ID) are cleared so
+  // commands are not listed twice.
+  logger.info(`Registering ${commands.length} slash commands globally...`);
+  await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), { body: commands });
 
-  logger.info(`Registering ${commands.length} slash commands ${process.env.DEV_GUILD_ID ? '(guild-scoped, instant)' : '(global, may take up to 1h to propagate)'}...`);
-  await rest.put(route, { body: commands });
-  logger.info('Done.');
+  if (process.env.DEV_GUILD_ID) {
+    await rest.put(Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.DEV_GUILD_ID), { body: [] });
+    logger.info('Cleared guild-scoped duplicates for DEV_GUILD_ID.');
+  }
+  logger.info('Done. Discord may need a minute (and Ctrl+R in the client) to refresh the list.');
 }
 
 main().catch((err) => {

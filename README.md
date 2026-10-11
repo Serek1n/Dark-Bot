@@ -111,8 +111,7 @@ DISCORD_TOKEN=
 DISCORD_CLIENT_ID=
 DISCORD_CLIENT_SECRET=
 
-# ID вашего сервера: команды появятся сразу.
-# Если пусто, команды станут глобальными (до часа).
+# ID вашего сервера: deploy-commands очистит на нём старые серверные копии команд.
 DEV_GUILD_ID=
 
 WEB_PORT=3000
@@ -247,7 +246,7 @@ git pull
 |---|---|
 | Бот не в сети, в логе `Used disallowed intents` | Включить Server Members и Message Content в Developer Portal, затем `pm2 restart dark-bot` |
 | Команд нет в списке | `npm run deploy-commands`, перезапустить Discord (Ctrl+R), проверить scope `applications.commands` у приглашения |
-| Команды задвоились | Остались глобальные и серверные регистрации. Оставьте один способ: задайте `DEV_GUILD_ID`, очистите глобальные и снова `deploy-commands` |
+| Команды задвоились или остались старые | `npm run deploy-commands`: он регистрирует команды глобально и чистит серверные копии. Затем Ctrl+R в Discord |
 | Изменений нет на сервере | Закоммичено → Push origin → видно на github.com → `git pull` → `pm2 restart` |
 | `Cannot find module …` или `X.init is not a function` | `pm2 stop all && rm -rf node_modules package-lock.json && npm install && pm2 restart all` |
 | Музыка: «Не удалось воспроизвести» | Проверить `yt-dlp --version`, `ffmpeg -version`; в `package.json` должен быть `@discordjs/opus`; обновить `sudo yt-dlp -U`; смотреть `pm2 logs dark-bot --lines 60` |
