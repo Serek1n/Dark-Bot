@@ -101,6 +101,17 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
 });
 
 // ---- Leaderboard (read-only) ----
+// Import levels from another bot's export (JSON is read in the browser and sent here).
+router.post('/:guildId/leveling/import', ensureGuildAccess, express.json({ limit: '25mb' }), async (req, res) => {
+  try {
+    const { importLacuna } = require('../../bot/modules/importLevels');
+    const result = await importLacuna(req.params.guildId, req.body && req.body.users);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err.message || 'Ошибка импорта' });
+  }
+});
+
 router.get('/:guildId/leaderboard', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
   const top = await MemberProfile.findAll({ where: { guildId: req.params.guildId }, order: [['xp', 'DESC']], limit: 50 });

@@ -6,6 +6,13 @@ function xpForLevel(level) {
   return 5 * level * level + 50 * level + 100;
 }
 
+/** Total XP at which `level` begins. */
+function totalXpForLevel(level) {
+  let total = 0;
+  for (let i = 0; i < level; i++) total += xpForLevel(i);
+  return total;
+}
+
 function levelFromXp(xp) {
   let level = 0;
   let remaining = xp;
@@ -88,6 +95,7 @@ async function getLeaderboard(guildId, limit = 10) {
 
 module.exports = {
   xpForLevel,
+  totalXpForLevel,
   levelFromXp,
   getOrCreateSettings,
   getOrCreateProfile,
