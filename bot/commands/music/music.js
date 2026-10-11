@@ -22,7 +22,13 @@ module.exports = {
       const voiceChannel = interaction.member.voice?.channel;
       if (!voiceChannel) return interaction.reply({ embeds: [embeds.error('Зайдите в голосовой канал, чтобы включить музыку.')], flags: MessageFlags.Ephemeral });
 
-      const existing = getQueue(interaction.guild.id);
+      let existing = getQueue(interaction.guild.id);
+      // The bot was kicked/moved out of voice but the queue is still stored: drop the stale session.
+      const me = interaction.guild.members?.me;
+      if (existing && me?.voice && !me.voice.channelId) {
+        destroyQueue(interaction.guild.id);
+        existing = null;
+      }
       if (existing && existing.voiceChannel.id !== voiceChannel.id) {
         return interaction.reply({
           embeds: [embeds.error(`Бот уже играет в канале **${existing.voiceChannel.name}**. Зайдите туда или остановите музыку кнопкой ⏹ на панели.`)],
