@@ -50,7 +50,7 @@ async function main() {
     const p = renderPanel({ playing: track(1), tracks: [track(2), track(3)], volume: 0.5, paused: false });
     assert.strictEqual(p.components.length, 1);
     const ids = p.components[0].components.map((c) => c.data.custom_id);
-    assert.deepStrictEqual(ids, ['music:toggle', 'music:skip', 'music:stop', 'music:voldown', 'music:volup']);
+    assert.deepStrictEqual(ids, ['music:toggle', 'music:skip', 'music:queue', 'music:stop']);
     assert.ok(p.embeds[0].data.fields.some((f) => f.name === 'Далее'));
   });
   await run('panel: paused state offers "play"', () => {
@@ -130,17 +130,6 @@ async function main() {
     assert.strictEqual(i2.calls[0][1].components[0].components[0].data.label, 'Пауза');
   });
 
-  await run('button: volume steps by 10% and is clamped to 0..150%', async () => {
-    q.volume = 0.5;
-    await handleMusicButton(btn('music:volup', { messageId: 'm1' }));
-    assert.strictEqual(q.volume, 0.6);
-    q.volume = 1.45;
-    await handleMusicButton(btn('music:volup', { messageId: 'm1' }));
-    assert.strictEqual(q.volume, 1.5);
-    q.volume = 0.05;
-    await handleMusicButton(btn('music:voldown', { messageId: 'm1' }));
-    assert.strictEqual(q.volume, 0);
-  });
 
   await run('button: skip starts the next track on a fresh panel and retires the old one', async () => {
     const oldPanel = q.panelMessage;

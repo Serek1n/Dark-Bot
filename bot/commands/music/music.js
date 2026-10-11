@@ -12,9 +12,7 @@ module.exports = {
         .setName('play')
         .setDescription('Включить трек (YouTube/SoundCloud/Spotify-ссылка или поиск)')
         .addStringOption((opt) => opt.setName('запрос').setDescription('Ссылка или название трека').setRequired(true))
-    )
-    .addSubcommand((sub) => sub.setName('panel').setDescription('Показать панель управления с кнопками заново'))
-    .addSubcommand((sub) => sub.setName('queue').setDescription('Показать очередь треков')),
+    ),
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
@@ -65,34 +63,6 @@ module.exports = {
       return interaction.editReply({
         embeds: [embeds.success(tracks.length > 1 ? `Добавлено ${tracks.length} треков в очередь.` : `Добавлено в очередь: **${tracks[0].title}**`)]
       });
-    }
-
-    const queue = getQueue(interaction.guild.id);
-    if (!queue) return interaction.reply({ embeds: [embeds.error('Сейчас ничего не играет.')], flags: MessageFlags.Ephemeral });
-
-    if (sub === 'panel') {
-      const userChannelId = interaction.member.voice?.channelId;
-      if (userChannelId !== queue.voiceChannel.id) {
-        return interaction.reply({ embeds: [embeds.error('Зайдите в голосовой канал с ботом, чтобы управлять музыкой.')], flags: MessageFlags.Ephemeral });
-      }
-      if (!queue.playing) return interaction.reply({ embeds: [embeds.info('Сейчас ничего не играет.')], flags: MessageFlags.Ephemeral });
-      await interaction.deferReply();
-      queue.retirePanel();
-      queue.panelMessage = await interaction.editReply(queue.renderPanel()).catch(() => null);
-      return;
-    }
-
-    if (sub === 'queue') {
-      if (!queue.playing && !queue.tracks.length) return interaction.reply({ embeds: [embeds.info('Очередь пуста.')] });
-
-      const embed = embeds.baseEmbed().setTitle('Очередь');
-      if (queue.playing) embed.addFields({ name: 'Сейчас играет', value: queue.playing.title });
-      if (queue.tracks.length) {
-        const lines = queue.tracks.slice(0, 15).map((t, i) => `${i + 1}. ${t.title}`);
-        if (queue.tracks.length > 15) lines.push(`…и ещё ${queue.tracks.length - 15}.`);
-        embed.addFields({ name: 'Далее', value: lines.join('\n') });
-      }
-      return interaction.reply({ embeds: [embed] });
     }
   }
 };

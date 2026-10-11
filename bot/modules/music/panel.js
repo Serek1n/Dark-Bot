@@ -3,8 +3,6 @@ const { getQueue, destroyQueue } = require('./player');
 const { PREFIX } = require('./panelView');
 const embeds = require('../../utils/embeds');
 
-const VOLUME_STEP = 0.1;
-const VOLUME_MAX = 1.5;
 
 function ephemeral(text) {
   return { embeds: [embeds.error(text)], flags: MessageFlags.Ephemeral };
@@ -45,16 +43,22 @@ async function handleMusicButton(interaction) {
     return interaction.deferUpdate();
   }
 
+  if (action === 'queue') {
+    const embed = embeds.baseEmbed().setTitle('Очередь');
+    if (queue.playing) embed.addFields({ name: 'Сейчас играет', value: queue.playing.title.slice(0, 1000) });
+    if (queue.tracks.length) {
+      const lines = queue.tracks.slice(0, 15).map((t, i) => `${i + 1}. ${t.title.slice(0, 80)}`);
+      if (queue.tracks.length > 15) lines.push(`…и ещё ${queue.tracks.length - 15}.`);
+      embed.addFields({ name: 'Далее', value: lines.join('\n') });
+    } else {
+      embed.setDescription('Дальше в очереди ничего нет. Добавьте трек через `/music play`.');
+    }
+    return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+  }
+
   if (action === 'stop') {
     destroyQueue(interaction.guildId); // retires the panel with a "stopped" note
     return interaction.deferUpdate();
-  }
-
-  if (action === 'voldown' || action === 'volup') {
-    const delta = action === 'volup' ? VOLUME_STEP : -VOLUME_STEP;
-    const next = Math.max(0, Math.min(VOLUME_MAX, Math.round((queue.volume + delta) * 100) / 100));
-    queue.setVolume(next);
-    return interaction.update(queue.renderPanel());
   }
 
   return interaction.reply(ephemeral('Неизвестная кнопка.'));

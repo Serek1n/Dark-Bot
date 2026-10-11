@@ -9,12 +9,6 @@ function button(action, emoji, label, style = ButtonStyle.Secondary, disabled = 
   return b;
 }
 
-function volumeBar(volume) {
-  const pct = Math.round(volume * 100);
-  const filled = Math.max(0, Math.min(10, Math.round(Math.min(volume, 1) * 10)));
-  return `${'▰'.repeat(filled)}${'▱'.repeat(10 - filled)} ${pct}%`;
-}
-
 /**
  * Message payload for the player panel: the "now playing" embed plus control buttons.
  * @param {{ playing: any, tracks: any[], volume: number, paused: boolean }} state
@@ -34,8 +28,7 @@ function renderPanel(state) {
     .setURL(track.url)
     .addFields(
       { name: 'Длительность', value: track.duration || '—', inline: true },
-      { name: 'Заказал', value: `<@${track.requestedBy}>`, inline: true },
-      { name: 'Громкость', value: `\`${volumeBar(state.volume)}\``, inline: true }
+      { name: 'Заказал', value: `<@${track.requestedBy}>`, inline: true }
     );
   if (track.thumbnail) embed.setThumbnail(track.thumbnail);
 
@@ -48,9 +41,8 @@ function renderPanel(state) {
   const row = new ActionRowBuilder().addComponents(
     button('toggle', state.paused ? '▶️' : '⏸️', state.paused ? 'Играть' : 'Пауза', ButtonStyle.Primary),
     button('skip', '⏭️', 'Дальше'),
-    button('stop', '⏹️', 'Стоп', ButtonStyle.Danger),
-    button('voldown', '🔉', null),
-    button('volup', '🔊', null)
+    button('queue', '📜', 'Очередь'),
+    button('stop', '⏹️', 'Стоп', ButtonStyle.Danger)
   );
   return { embeds: [embed], components: [row] };
 }

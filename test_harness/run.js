@@ -119,8 +119,6 @@ async function main() {
 
   // ===== music (play requires voice channel; test both no-voice-channel and no-active-queue paths) =====
   await run('music play (not in voice)', () => musicCmd.execute(makeInteraction({ subcommand: 'play', options: { 'запрос': 'test song' }, member: makeMember('user1', { voice: { channel: null } }) })));
-  await run('music panel (no queue)', () => musicCmd.execute(makeInteraction({ subcommand: 'panel' })));
-  await run('music queue (no queue)', () => musicCmd.execute(makeInteraction({ subcommand: 'queue' })));
 
   // ===== help =====
   const fakeClient = { commands: new Map([
