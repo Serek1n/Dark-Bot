@@ -125,8 +125,21 @@ class GuildQueue {
       this.panelMessage = await interaction.editReply(payload).catch(() => null);
       return;
     }
-    this.retirePanel();
-    if (this.textChannel) this.panelMessage = await this.textChannel.send(payload).catch(() => null);
+    const previous = this.panelMessage;
+    let fresh = null;
+    if (this.textChannel) {
+      fresh = await this.textChannel.send(payload).catch((err) => {
+        logger.warn?.(`Could not post the music panel (missing Send Messages / Embed Links?): ${err.message}`);
+        return null;
+      });
+    }
+    if (fresh) {
+      this.retirePanel();
+      this.panelMessage = fresh;
+    } else if (previous) {
+      // Posting a new message failed: keep the buttons by updating the old panel in place.
+      this.panelMessage = (await previous.edit(payload).catch(() => null)) || previous;
+    }
   }
 
   _clearIdleTimer() {
