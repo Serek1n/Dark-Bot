@@ -9,9 +9,34 @@
         <h1>Роли по реакциям</h1>
         <p class="page-intro">Участник получает роль, поставив реакцию на сообщение — и теряет её, убрав реакцию.</p>
       </div>
-      <div class="card">
-        <p>Чтобы добавить новую привязку, используйте команду <code>/manage reactionrole add</code> прямо в Discord — боту нужно поставить реакцию на существующее сообщение, что проще сделать из чата. Здесь можно посмотреть текущие привязки и удалить ненужные.</p>
-      </div>
+      <form method="post" class="card">
+        <h2>Новая привязка</h2>
+        <div>
+          <label>Канал с сообщением</label>
+          <select name="channelId" required>
+            <% channels.filter(c => c.type === 0 || c.type === 5).forEach(c => { %>
+              <option value="<%= c.id %>">#<%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label>ID сообщения</label>
+          <input type="text" name="messageId" inputmode="numeric" placeholder="Правый клик по сообщению → Копировать ID" required />
+        </div>
+        <div>
+          <label>Эмодзи</label>
+          <input type="text" name="emoji" placeholder="😀 или &lt;:имя:123456789&gt;" required />
+        </div>
+        <div>
+          <label>Роль</label>
+          <select name="roleId" required>
+            <% roles.forEach(r => { %>
+              <option value="<%= r.id %>">@<%= r.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <button class="btn" type="submit">Добавить</button>
+      </form>
       <div class="card">
         <% if (!reactionRoles.length) { %>
           <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg>Привязок пока нет.</p>

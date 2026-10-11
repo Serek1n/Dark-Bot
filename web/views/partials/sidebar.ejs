@@ -80,7 +80,8 @@
     var kinds = {
       saved: ['Изменения сохранены', false],
       deleted: ['Удалено', false],
-      invalid: ['Не удалось сохранить: проверьте заполнение полей', true]
+      invalid: ['Не удалось сохранить: проверьте заполнение полей', true],
+      nomessage: ['Сообщение не найдено в выбранном канале', true]
     };
     for (var key in kinds) {
       if (!params.has(key)) continue;

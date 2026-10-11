@@ -77,4 +77,4 @@ async function getUsers(ids) {
   return out;
 }
 
-module.exports = { getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers };
+module.exports = { getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers, botApi };

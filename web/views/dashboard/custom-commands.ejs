@@ -10,6 +10,15 @@
         <p class="page-intro">Простые текстовые команды по префиксу — участник пишет триггер, бот отвечает заданным текстом.</p>
       </div>
 
+      <form method="post" action="/dashboard/<%= guild.id %>/custom-commands/prefix" class="card">
+        <h2>Префикс</h2>
+        <div>
+          <label>Символ перед командой (до 3 знаков)</label>
+          <input type="text" name="prefix" value="<%= settings.prefix %>" maxlength="3" required />
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+
       <form method="post" class="card">
         <h2>Новая команда</h2>
         <div>

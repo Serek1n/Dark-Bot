@@ -1,7 +1,7 @@
 const express = require('express');
 const { ensureAuth } = require('../middleware/ensureAuth');
 const { ensureGuildAccess } = require('../middleware/ensureGuildAccess');
-const { getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers } = require('../discordApi');
+const { getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers, botApi } = require('../discordApi');
 const {
   GuildSettings,
   MemberProfile,
@@ -177,7 +177,33 @@ router.get('/:guildId/reaction-roles', ensureGuildAccess, async (req, res) => {
   const channels = await getGuildChannels(req.params.guildId);
   const roles = await getGuildRoles(req.params.guildId);
   const reactionRoles = await ReactionRole.findAll({ where: { guildId: req.params.guildId } });
-  res.render('dashboard/reaction-roles', { guild, channels, roles, reactionRoles, active: 'reaction-roles' });
+  res.render('dashboard/reaction-roles', { guild, channels, roles, reactionRoles, flag: req.query, active: 'reaction-roles' });
+});
+
+router.post('/:guildId/reaction-roles', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const channelId = snowflake(req.body.channelId);
+  const messageId = snowflake(req.body.messageId);
+  const roleId = snowflake(req.body.roleId);
+  const raw = (req.body.emoji || '').trim();
+  const custom = raw.match(/^<a?:(\w+):(\d+)>$/);
+  const emoji = custom ? custom[2] : raw;
+  if (!channelId || !messageId || !roleId || !emoji || emoji.length > 64) {
+    return res.redirect(saved(guildId, 'reaction-roles', 'invalid'));
+  }
+  // The message must exist in that channel of this server, otherwise the link would never fire.
+  const channels = await getGuildChannels(guildId);
+  if (!channels.some((c) => c.id === channelId)) return res.redirect(saved(guildId, 'reaction-roles', 'invalid'));
+  const roles = await getGuildRoles(guildId);
+  if (!roles.some((r) => r.id === roleId)) return res.redirect(saved(guildId, 'reaction-roles', 'invalid'));
+  const found = await botApi.get(`/channels/${channelId}/messages/${messageId}`).then(() => true).catch(() => false);
+  if (!found) return res.redirect(saved(guildId, 'reaction-roles', 'nomessage'));
+
+  await ReactionRole.upsert({ guildId, channelId, messageId, emoji, roleId });
+  // Put the reaction under the message so people can click it (best effort).
+  const reactionPath = custom ? `${custom[1]}:${custom[2]}` : encodeURIComponent(emoji);
+  await botApi.put(`/channels/${channelId}/messages/${messageId}/reactions/${reactionPath}/@me`).catch(() => {});
+  res.redirect(saved(guildId, 'reaction-roles'));
 });
 
 router.post('/:guildId/reaction-roles/delete/:id', ensureGuildAccess, async (req, res) => {
@@ -189,7 +215,17 @@ router.post('/:guildId/reaction-roles/delete/:id', ensureGuildAccess, async (req
 router.get('/:guildId/custom-commands', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
   const commands = await CustomCommand.findAll({ where: { guildId: req.params.guildId } });
-  res.render('dashboard/custom-commands', { guild, commands, active: 'custom-commands' });
+  const settings = await getSettings(req.params.guildId);
+  res.render('dashboard/custom-commands', { guild, commands, settings, active: 'custom-commands' });
+});
+
+router.post('/:guildId/custom-commands/prefix', ensureGuildAccess, async (req, res) => {
+  const settings = await getSettings(req.params.guildId);
+  const prefix = (req.body.prefix || '').trim().slice(0, 3);
+  if (!prefix || /\s/.test(prefix)) return res.redirect(saved(req.params.guildId, 'custom-commands', 'invalid'));
+  settings.prefix = prefix;
+  await settings.save();
+  res.redirect(saved(req.params.guildId, 'custom-commands'));
 });
 
 router.post('/:guildId/custom-commands', ensureGuildAccess, async (req, res) => {

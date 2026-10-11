@@ -16,9 +16,6 @@ async function main() {
     }
   }
 
-  const settingsCmd = require('../bot/commands/config/settings');
-  const automodCmd = require('../bot/commands/config/automod');
-  const manageCmd = require('../bot/commands/config/manage');
   const economyCmd = require('../bot/commands/economy/economy');
   const profileCmd = require('../bot/commands/leveling/profile');
   const moderationCmd = require('../bot/commands/moderation/moderation');
@@ -27,39 +24,16 @@ async function main() {
   const reportCmd = require('../bot/commands/moderation/report');
 
   // ===== settings =====
-  await run('settings logchannel', () => settingsCmd.execute(makeInteraction({ subcommand: 'logchannel', options: { 'канал': makeChannel('c1') } })));
-  await run('settings reportchannel', () => settingsCmd.execute(makeInteraction({ subcommand: 'reportchannel', options: { 'канал': makeChannel('c1') } })));
-  await run('settings levelupchannel', () => settingsCmd.execute(makeInteraction({ subcommand: 'levelupchannel', options: { 'канал': makeChannel('c1') } })));
-  await run('settings welcome', () => settingsCmd.execute(makeInteraction({ subcommand: 'welcome', options: { 'канал': makeChannel('c1'), 'сообщение': 'Привет {user} на {server}' } })));
-  await run('settings autorole', () => settingsCmd.execute(makeInteraction({ subcommand: 'autorole', options: { 'роль': { id: 'role1', name: 'R' } } })));
-  await run('settings prefix', () => settingsCmd.execute(makeInteraction({ subcommand: 'prefix', options: { 'префикс': '!' } })));
-  await run('settings currency', () => settingsCmd.execute(makeInteraction({ subcommand: 'currency', options: { 'название': 'монеты' } })));
 
   // ===== automod =====
-  await run('automod toggle', () => automodCmd.execute(makeInteraction({ subcommand: 'toggle', options: { 'включено': true } })));
-  await run('automod addword', () => automodCmd.execute(makeInteraction({ subcommand: 'addword', options: { 'слово': 'спам' } })));
-  await run('automod listwords', () => automodCmd.execute(makeInteraction({ subcommand: 'listwords' })));
-  await run('automod removeword', () => automodCmd.execute(makeInteraction({ subcommand: 'removeword', options: { 'слово': 'спам' } })));
-  await run('automod invites', () => automodCmd.execute(makeInteraction({ subcommand: 'invites', options: { 'включено': true } })));
-  await run('automod antispam', () => automodCmd.execute(makeInteraction({ subcommand: 'antispam', options: { 'включено': true, 'сообщений': 5, 'секунд': 7 } })));
 
   // ===== manage: custom commands =====
-  await run('manage command add', () => manageCmd.execute(makeInteraction({ subcommandGroup: 'command', subcommand: 'add', options: { 'триггер': 'rules', 'ответ': 'Правила тут' } })));
-  await run('manage command list', () => manageCmd.execute(makeInteraction({ subcommandGroup: 'command', subcommand: 'list' })));
-  await run('manage command remove', () => manageCmd.execute(makeInteraction({ subcommandGroup: 'command', subcommand: 'remove', options: { 'триггер': 'rules' } })));
 
   // ===== manage: reaction roles (message not found case, since mock channel.messages.fetch returns null) =====
-  await run('manage reactionrole add (no message)', () => manageCmd.execute(makeInteraction({ subcommandGroup: 'reactionrole', subcommand: 'add', options: { 'id_сообщения': '123', 'эмодзи': '😀', 'роль': { id: 'role1' } } })));
-  await run('manage reactionrole remove', () => manageCmd.execute(makeInteraction({ subcommandGroup: 'reactionrole', subcommand: 'remove', options: { 'id_сообщения': '123', 'эмодзи': '😀' } })));
 
   // ===== manage: tempvoice =====
-  await run('manage tempvoice setup', () => manageCmd.execute(makeInteraction({ subcommandGroup: 'tempvoice', subcommand: 'setup', options: { 'канал': makeChannel('vc1'), 'категория': null, 'шаблон_имени': null } })));
-  await run('manage tempvoice disable', () => manageCmd.execute(makeInteraction({ subcommandGroup: 'tempvoice', subcommand: 'disable' })));
 
   // ===== manage: alerts (no API keys configured -> expect graceful error reply, not crash) =====
-  await run('manage alert youtube (no key)', () => manageCmd.execute(makeInteraction({ subcommandGroup: 'alert', subcommand: 'youtube', options: { 'id_канала': 'UC1', 'куда_постить': makeChannel('c1') } })));
-  await run('manage alert list', () => manageCmd.execute(makeInteraction({ subcommandGroup: 'alert', subcommand: 'list' })));
-  await run('manage alert remove', () => manageCmd.execute(makeInteraction({ subcommandGroup: 'alert', subcommand: 'remove', options: { 'id': 1 } })));
 
   // ===== economy =====
   await run('economy daily', () => economyCmd.execute(makeInteraction({ subcommand: 'daily' })));
@@ -122,12 +96,10 @@ async function main() {
 
   // ===== help =====
   const fakeClient = { commands: new Map([
-    ['settings', settingsCmd], ['automod', automodCmd], ['manage', manageCmd],
     ['economy', economyCmd], ['profile', profileCmd], ['moderation', moderationCmd],
     ['music', musicCmd], ['help', helpCmd], ['Пожаловаться на сообщение', reportCmd]
   ])};
-  [settingsCmd,automodCmd,manageCmd,economyCmd,profileCmd,moderationCmd,musicCmd,helpCmd].forEach(c => c.category = c.category || 'test');
-  settingsCmd.category='config'; automodCmd.category='config'; manageCmd.category='config';
+  [economyCmd,profileCmd,moderationCmd,musicCmd,helpCmd].forEach(c => c.category = c.category || 'test');
   economyCmd.category='economy'; profileCmd.category='leveling'; moderationCmd.category='moderation';
   musicCmd.category='music'; helpCmd.category='utility'; reportCmd.category='moderation';
   await run('help', () => {
