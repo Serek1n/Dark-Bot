@@ -40,6 +40,7 @@ function btn(customId, { guildId = 'g1', channelId = 'vc1', messageId = null } =
     isButton: () => true,
     update: async (p) => { calls.push(['update', p]); },
     deferUpdate: async () => { calls.push(['deferUpdate']); },
+    editReply: async (p) => { calls.push(['editReply', p]); },
     reply: async (p) => { calls.push(['reply', p]); }
   };
 }
