@@ -1,6 +1,7 @@
 const { ChannelType } = require('discord.js');
 const { GuildSettings, TempVoiceChannel } = require('../../db');
 const logger = require('../utils/logger');
+const { getQueue, destroyQueue } = require('../modules/music/player');
 
 module.exports = {
   name: 'voiceStateUpdate',
@@ -9,6 +10,21 @@ module.exports = {
     // stops a user sitting in the "join to create" channel from spawning duplicate rooms).
     if (oldState.channelId === newState.channelId) return;
     const guild = newState.guild || oldState.guild;
+
+    // Music cleanup: the bot itself was moved/kicked out of its channel, or the last
+    // listener left it. Without this the old queue lingers and blocks /music play
+    // (for example after a temp room is deleted and a new one with the same name is made).
+    const musicQueue = getQueue(guild.id);
+    if (musicQueue) {
+      const botId = guild.client.user?.id;
+      const botLeft = newState.id === botId && newState.channelId !== musicQueue.voiceChannel.id;
+      let aloneNow = false;
+      if (oldState.channelId === musicQueue.voiceChannel.id && newState.id !== botId) {
+        const ch = guild.channels.cache.get(musicQueue.voiceChannel.id);
+        aloneNow = !ch || ![...ch.members.values()].some((m) => !m.user.bot);
+      }
+      if (botLeft || aloneNow) destroyQueue(guild.id, 'Все ушли из голосового канала, музыка остановлена.');
+    }
 
     // Clean up an emptied temp channel regardless of whether temp-voice is still
     // configured right now — otherwise disabling the feature leaves old channels stuck.

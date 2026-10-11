@@ -25,7 +25,7 @@ module.exports = {
       let existing = getQueue(interaction.guild.id);
       // The bot was kicked/moved out of voice but the queue is still stored: drop the stale session.
       const me = interaction.guild.members?.me;
-      if (existing && me?.voice && !me.voice.channelId) {
+      if (existing && ((me?.voice && me.voice.channelId !== existing.voiceChannel.id) || !interaction.guild.channels.cache.has(existing.voiceChannel.id))) {
         destroyQueue(interaction.guild.id);
         existing = null;
       }
