@@ -43,11 +43,17 @@ module.exports = {
     try {
       const result = await grantMessageXp(message.guild.id, message.author.id);
       if (result?.leveledUp) {
-        const text = `🎉 <@${message.author.id}>, новый уровень: **${result.newLevel}**!`;
+        const embed = embeds
+          .baseEmbed()
+          .setTimestamp(null)
+          .setAuthor({ name: message.member?.displayName || message.author.username, iconURL: message.author.displayAvatarURL?.() })
+          .setTitle('Поздравляю с повышением уровня! ✨')
+          .setDescription(`Твой уровень повышен до ${result.newLevel}-го!`)
+          .setFooter({ text: message.guild.name, iconURL: message.guild.iconURL?.() || undefined });
         const target = settings.levelUpChannelId
           ? await message.guild.channels.fetch(settings.levelUpChannelId).catch(() => null)
           : message.channel;
-        (target || message.channel).send(text).catch(() => {});
+        (target || message.channel).send({ embeds: [embed] }).catch(() => {});
       }
     } catch (err) {
       logger.error('Leveling error:', err);

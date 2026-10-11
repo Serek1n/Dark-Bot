@@ -3,6 +3,12 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('
 const EMBER = 0xe3a857;
 const PREFIX = 'music';
 
+function volumeBar(volume) {
+  const pct = Math.round(volume * 100);
+  const filled = Math.max(0, Math.min(10, Math.round(Math.min(volume, 1) * 10)));
+  return `${'▰'.repeat(filled)}${'▱'.repeat(10 - filled)} ${pct}%`;
+}
+
 function button(action, emoji, label, style = ButtonStyle.Secondary, disabled = false) {
   const b = new ButtonBuilder().setCustomId(`${PREFIX}:${action}`).setEmoji(emoji).setStyle(style).setDisabled(disabled);
   if (label) b.setLabel(label);
@@ -28,7 +34,8 @@ function renderPanel(state) {
     .setURL(track.url)
     .addFields(
       { name: 'Длительность', value: track.duration || '—', inline: true },
-      { name: 'Заказал', value: `<@${track.requestedBy}>`, inline: true }
+      { name: 'Заказал', value: `<@${track.requestedBy}>`, inline: true },
+      { name: 'Громкость', value: `\`${volumeBar(state.volume)}\``, inline: true }
     );
   if (track.thumbnail) embed.setThumbnail(track.thumbnail);
 
@@ -42,7 +49,9 @@ function renderPanel(state) {
     button('toggle', state.paused ? '▶️' : '⏸️', state.paused ? 'Играть' : 'Пауза', ButtonStyle.Primary),
     button('skip', '⏭️', 'Дальше'),
     button('queue', '📜', 'Очередь'),
-    button('stop', '⏹️', 'Стоп', ButtonStyle.Danger)
+    button('stop', '⏹️', 'Стоп', ButtonStyle.Danger),
+    button('voldown', '🔉', null),
+    button('volup', '🔊', null)
   );
   return { embeds: [embed], components: [row] };
 }

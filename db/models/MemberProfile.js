@@ -12,7 +12,8 @@ module.exports = (sequelize) => {
       balance: { type: DataTypes.BIGINT, defaultValue: 0 },
       lastXpAt: { type: DataTypes.DATE, allowNull: true },
       lastDailyAt: { type: DataTypes.DATE, allowNull: true },
-      messageCount: { type: DataTypes.BIGINT, defaultValue: 0 }
+      messageCount: { type: DataTypes.BIGINT, defaultValue: 0 },
+      voiceSeconds: { type: DataTypes.BIGINT, defaultValue: 0 }
     },
     {
       sequelize,

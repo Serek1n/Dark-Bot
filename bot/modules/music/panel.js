@@ -4,6 +4,9 @@ const { PREFIX } = require('./panelView');
 const embeds = require('../../utils/embeds');
 
 
+const VOLUME_STEP = 0.1;
+const VOLUME_MAX = 1.5;
+
 function ephemeral(text) {
   return { embeds: [embeds.error(text)], flags: MessageFlags.Ephemeral };
 }
@@ -65,6 +68,13 @@ async function handleMusicButton(interaction) {
   if (action === 'stop') {
     destroyQueue(interaction.guildId); // retires the panel with a "stopped" note
     return interaction.deferUpdate();
+  }
+
+  if (action === 'voldown' || action === 'volup') {
+    const delta = action === 'volup' ? VOLUME_STEP : -VOLUME_STEP;
+    const next = Math.max(0, Math.min(VOLUME_MAX, Math.round((queue.volume + delta) * 100) / 100));
+    queue.setVolume(next);
+    return interaction.update(queue.renderPanel());
   }
 
   return interaction.reply(ephemeral('Неизвестная кнопка.'));

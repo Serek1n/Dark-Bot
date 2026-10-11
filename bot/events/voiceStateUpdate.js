@@ -2,6 +2,7 @@ const { ChannelType } = require('discord.js');
 const { GuildSettings, TempVoiceChannel } = require('../../db');
 const logger = require('../utils/logger');
 const { getQueue, destroyQueue } = require('../modules/music/player');
+const { trackVoiceState } = require('../modules/voiceTime');
 
 module.exports = {
   name: 'voiceStateUpdate',
@@ -9,6 +10,7 @@ module.exports = {
     // Mute / deafen / camera toggles are not channel changes — skip them (saves DB hits and
     // stops a user sitting in the "join to create" channel from spawning duplicate rooms).
     if (oldState.channelId === newState.channelId) return;
+    await trackVoiceState(oldState, newState).catch((err) => logger.error('Voice time error:', err));
     const guild = newState.guild || oldState.guild;
 
     // Music cleanup: the bot itself was moved/kicked out of its channel, or the last

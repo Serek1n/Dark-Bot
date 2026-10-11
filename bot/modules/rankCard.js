@@ -141,6 +141,16 @@ function paintBackground(ctx, W, H, glowX, glowY) {
  *   balance: number, currencyName: string, messageCount: number, rank?: number, totalMembers?: number }} data
  * @returns {Promise<Buffer>}
  */
+function formatVoice(totalSeconds) {
+  const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d) return `${d} д ${h} ч`;
+  if (h) return `${h} ч ${m} мин`;
+  return `${m} мин`;
+}
+
 async function renderRankCard(data) {
   ensureFonts();
   const W = 900;
@@ -231,7 +241,8 @@ async function renderRankCard(data) {
     ctx.fillText(label, x, statsY + 20);
   };
   stat(left, `${fmt(data.balance)} ${truncateToWidth(ctx, data.currencyName, 90)}`, 'баланс');
-  stat(left + 250, fmt(data.messageCount), 'сообщений');
+  stat(left + 200, fmt(data.messageCount), 'сообщений');
+  stat(left + 350, formatVoice(data.voiceSeconds), 'в голосовых');
 
   return canvas.encode('png');
 }

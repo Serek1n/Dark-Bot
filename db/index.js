@@ -33,6 +33,19 @@ Object.values(models).forEach((model) => {
   if (typeof model.associate === 'function') model.associate(models);
 });
 
+// sync() never alters existing tables, so columns added in later versions are added here.
+async function addMissingColumns() {
+  const additions = [{ table: 'member_profiles', column: 'voiceSeconds', ddl: 'BIGINT DEFAULT 0' }];
+  for (const { table, column, ddl } of additions) {
+    const [cols] = await sequelize.query(`PRAGMA table_info(${table});`);
+    if (cols.some((c) => c.name === column)) continue;
+    // The bot and the web panel start at the same time: ignore "duplicate column" from the loser.
+    await sequelize.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl};`).catch((err) => {
+      if (!/duplicate column/i.test(String(err.message))) throw err;
+    });
+  }
+}
+
 async function init() {
   // SQLite locks the whole file for writes in its default journal mode. Two
   // findOrCreate calls firing together (e.g. via Promise.all when a brand-new
@@ -43,6 +56,7 @@ async function init() {
   await sequelize.query('PRAGMA journal_mode = WAL;');
   await sequelize.query('PRAGMA busy_timeout = 5000;');
   await sequelize.sync(); // creates tables if they don't exist
+  await addMissingColumns();
 }
 
 module.exports = { sequelize, init, ...models };

@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 const { getOrCreateProfile, getOrCreateSettings, xpForLevel, getLeaderboard } = require('../../modules/leveling');
 const { renderRankCard, renderLeaderboard } = require('../../modules/rankCard');
 const embeds = require('../../utils/embeds');
+const { pendingSeconds, formatDuration } = require('../../modules/voiceTime');
 const logger = require('../../utils/logger');
 
 module.exports = {
@@ -49,7 +50,8 @@ module.exports = {
           xpNeeded: needed,
           balance: Number(profile.balance),
           currencyName: settings.currencyName,
-          messageCount: Number(profile.messageCount)
+          messageCount: Number(profile.messageCount),
+          voiceSeconds: Number(profile.voiceSeconds || 0) + pendingSeconds(interaction.guild.id, target.id)
         });
         const attachment = new AttachmentBuilder(png, { name: 'rank.png' });
         return interaction.editReply({ files: [attachment] });
@@ -65,7 +67,8 @@ module.exports = {
           )
           .addFields(
             { name: 'Баланс', value: `${profile.balance} ${settings.currencyName}`, inline: true },
-            { name: 'Сообщений', value: `${profile.messageCount}`, inline: true }
+            { name: 'Сообщений', value: `${profile.messageCount}`, inline: true },
+            { name: 'В голосовых', value: formatDuration(Number(profile.voiceSeconds || 0) + pendingSeconds(interaction.guild.id, target.id)), inline: true }
           )
           .setThumbnail(target.displayAvatarURL());
         return interaction.editReply({ embeds: [embed] });
