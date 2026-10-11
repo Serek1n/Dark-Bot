@@ -8,19 +8,21 @@ const PAGE_SIZE = 10;
 const PREFIX = 'top';
 
 function navRow(page, pages, userId) {
-  const btn = (target, label, disabled) =>
-    new ButtonBuilder().setCustomId(`${PREFIX}:${target}:${userId}`).setLabel(label).setStyle(ButtonStyle.Secondary).setDisabled(disabled);
+  // Discord requires every custom_id in a message to be unique, so the action name is part of it
+  // (otherwise "first" and "previous" both point to page 0 on the second page, and the edit is rejected).
+  const btn = (action, target, label, disabled) =>
+    new ButtonBuilder().setCustomId(`${PREFIX}:${action}:${Math.max(0, target)}:${userId}`).setLabel(label).setStyle(ButtonStyle.Secondary).setDisabled(disabled);
   const indicator = new ButtonBuilder()
-    .setCustomId(`${PREFIX}:noop:${userId}`)
+    .setCustomId(`${PREFIX}:noop:0:${userId}`)
     .setLabel(`${page + 1} / ${pages}`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(true);
   return new ActionRowBuilder().addComponents(
-    btn(0, '⏮', page === 0),
-    btn(page - 1, '◀', page === 0),
+    btn('first', 0, '⏮', page === 0),
+    btn('prev', page - 1, '◀', page === 0),
     indicator,
-    btn(page + 1, '▶', page >= pages - 1),
-    btn(pages - 1, '⏭', page >= pages - 1)
+    btn('next', Math.min(page + 1, pages - 1), '▶', page >= pages - 1),
+    btn('last', pages - 1, '⏭', page >= pages - 1)
   );
 }
 
@@ -74,15 +76,15 @@ function isTopButton(interaction) {
 }
 
 async function handleTopButton(interaction) {
-  const [, target, ownerId] = String(interaction.customId).split(':');
-  if (target === 'noop') return interaction.deferUpdate();
+  const [, action, target, ownerId] = String(interaction.customId).split(':');
+  if (action === 'noop') return interaction.deferUpdate();
   if (ownerId && interaction.user.id !== ownerId) {
     return interaction.reply({ embeds: [embeds.info('Это таблица другого участника. Откройте свою: `/profile top`.')], flags: MessageFlags.Ephemeral });
   }
   await interaction.deferUpdate();
   const payload = await buildTopPage(interaction.client, interaction.guild, target, interaction.user.id);
   if (!payload) return;
-  await interaction.editReply({ ...payload, attachments: [] });
+  await interaction.editReply({ ...payload, attachments: [] }).catch((err) => logger.error('Leaderboard page update failed:', err));
 }
 
 module.exports = { buildTopPage, isTopButton, handleTopButton, PAGE_SIZE };
