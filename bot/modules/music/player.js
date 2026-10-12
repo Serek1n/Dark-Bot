@@ -146,7 +146,7 @@ class GuildQueue {
   }
 
   /**
-   * Shows the panel for the track that just started. The first track of a /music play reuses the
+   * Shows the panel for the track that just started. The first track of a /play reuses the
    * command's own reply (so the buttons sit right under the command); later tracks post a new
    * message at the bottom of the chat and retire the old one.
    */
@@ -219,7 +219,7 @@ class GuildQueue {
     if (!next) {
       this.playing = null;
       this.paused = false;
-      this.retirePanel('Очередь закончилась. Добавьте трек через `/music play`.');
+      this.retirePanel('Очередь закончилась. Добавьте трек через `/play`.');
       this._startIdleTimer();
       return;
     }

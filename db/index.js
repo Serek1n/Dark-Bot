@@ -34,11 +34,28 @@ Object.values(models).forEach((model) => {
 });
 
 // sync() never alters existing tables, so columns added in later versions are added here.
+const COLUMN_ADDITIONS = [
+  { table: 'member_profiles', column: 'voiceSeconds', ddl: 'BIGINT DEFAULT 0' },
+  { table: 'member_profiles', column: 'chatXp', ddl: 'BIGINT DEFAULT 0' },
+  { table: 'member_profiles', column: 'chatLevel', ddl: 'INTEGER DEFAULT 0' },
+  { table: 'member_profiles', column: 'voiceXp', ddl: 'BIGINT DEFAULT 0' },
+  { table: 'member_profiles', column: 'voiceLevel', ddl: 'INTEGER DEFAULT 0' },
+  { table: 'member_profiles', column: 'crystals', ddl: 'BIGINT DEFAULT 0' },
+  { table: 'level_roles', column: 'track', ddl: "VARCHAR(255) NOT NULL DEFAULT 'total'" },
+  { table: 'guild_settings', column: 'voiceXpPerMinute', ddl: 'INTEGER DEFAULT 10' },
+  { table: 'guild_settings', column: 'voiceMinMembers', ddl: 'INTEGER DEFAULT 2' },
+  { table: 'guild_settings', column: 'levelRolesReplace', ddl: 'TINYINT(1) DEFAULT 0' },
+  { table: 'guild_settings', column: 'chatEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
+  { table: 'guild_settings', column: 'voiceEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
+  { table: 'guild_settings', column: 'crystalName', ddl: "VARCHAR(255) DEFAULT 'кристаллы'" },
+  { table: 'guild_settings', column: 'chatCoinsPerMessage', ddl: 'INTEGER DEFAULT 5' },
+  { table: 'guild_settings', column: 'voiceCoinsPerMinute', ddl: 'INTEGER DEFAULT 5' },
+  { table: 'guild_settings', column: 'dailyCoins', ddl: 'INTEGER DEFAULT 100' },
+  { table: 'guild_settings', column: 'crystalsPerLevel', ddl: 'INTEGER DEFAULT 1' }
+];
+
 async function addMissingColumns() {
-  const additions = [{ table: 'member_profiles', column: 'voiceSeconds', ddl: 'BIGINT DEFAULT 0' },
-    { table: 'guild_settings', column: 'voiceXpPerMinute', ddl: 'INTEGER DEFAULT 10' },
-    { table: 'guild_settings', column: 'levelRolesReplace', ddl: 'TINYINT(1) DEFAULT 0' }];
-  for (const { table, column, ddl } of additions) {
+  for (const { table, column, ddl } of COLUMN_ADDITIONS) {
     const [cols] = await sequelize.query(`PRAGMA table_info(${table});`);
     if (cols.some((c) => c.name === column)) continue;
     // The bot and the web panel start at the same time: ignore "duplicate column" from the loser.
@@ -46,6 +63,22 @@ async function addMissingColumns() {
       if (!/duplicate column/i.test(String(err.message))) throw err;
     });
   }
+}
+
+// Levels used to be a single track. Everything earned so far is counted as "chat" progress
+// (it cannot be split afterwards); the total stays equal to chat + voice.
+async function migrateTracks() {
+  await sequelize.query('UPDATE member_profiles SET chatXp = xp, chatLevel = level WHERE chatXp = 0 AND voiceXp = 0 AND xp > 0;');
+
+  // Level roles are unique per (guild, track, level) now, no longer per (guild, level).
+  const [indexes] = await sequelize.query('PRAGMA index_list(level_roles);');
+  for (const idx of indexes) {
+    if (!idx.unique || idx.origin !== 'c') continue;
+    const [info] = await sequelize.query(`PRAGMA index_info("${idx.name}");`);
+    const columns = info.map((c) => c.name).sort().join(',');
+    if (columns === 'guildId,level') await sequelize.query(`DROP INDEX IF EXISTS "${idx.name}";`);
+  }
+  await sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS level_roles_guild_track_level ON level_roles (guildId, track, level);');
 }
 
 async function init() {
@@ -59,6 +92,7 @@ async function init() {
   await sequelize.query('PRAGMA busy_timeout = 5000;');
   await sequelize.sync(); // creates tables if they don't exist
   await addMissingColumns();
+  await migrateTracks();
 }
 
 module.exports = { sequelize, init, ...models };

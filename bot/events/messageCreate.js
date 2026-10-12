@@ -44,7 +44,7 @@ module.exports = {
     // Leveling
     try {
       const result = await grantMessageXp(message.guild.id, message.author.id);
-      if (result && message.member) await applyLevelRoles(message.member, result.newLevel, settings.levelRolesReplace);
+      if (result && message.member) await applyLevelRoles(message.member, result.levels, settings.levelRolesReplace);
       if (result?.leveledUp) {
         const target = settings.levelUpChannelId
           ? await message.guild.channels.fetch(settings.levelUpChannelId).catch(() => null)
@@ -54,7 +54,9 @@ module.exports = {
           user: message.author,
           displayName: message.member?.displayName,
           level: result.newLevel,
-          channel: target || message.channel
+          channel: target || message.channel,
+          crystals: result.crystals,
+          crystalName: settings.crystalName
         });
       }
     } catch (err) {

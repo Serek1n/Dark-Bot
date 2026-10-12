@@ -9,6 +9,28 @@ const { pendingSeconds, formatDuration } = require('../../modules/voiceTime');
 const logger = require('../../utils/logger');
 
 module.exports = {
+  // Registered as flat commands /profile and /top (the grouped `data` below is kept for tests only).
+  variants: [
+    {
+      sub: 'view',
+      data: new SlashCommandBuilder()
+        .setName('profile')
+        .setDescription('Карточка профиля: уровень, место и баланс')
+        .addUserOption((opt) => opt.setName('user').setDescription('Чей профиль показать'))
+    },
+    {
+      sub: 'top',
+      data: new SlashCommandBuilder()
+        .setName('top')
+        .setDescription('Таблица лидеров сервера')
+        .addStringOption((opt) =>
+          opt
+            .setName('rating')
+            .setDescription('По какому опыту (по умолчанию — общий)')
+            .addChoices({ name: 'Общий', value: 'total' }, { name: 'Голос', value: 'voice' })
+        )
+    }
+  ],
   data: new SlashCommandBuilder()
     .setName('profile')
     .setDescription('Уровень, опыт и баланс участника')
@@ -16,15 +38,25 @@ module.exports = {
       sub
         .setName('view')
         .setDescription('Показать профиль участника')
-        .addUserOption((opt) => opt.setName('пользователь').setDescription('Чей профиль показать'))
+        .addUserOption((opt) => opt.setName('user').setDescription('Чей профиль показать'))
     )
-    .addSubcommand((sub) => sub.setName('top').setDescription('Таблица лидеров сервера по опыту')),
+    .addSubcommand((sub) =>
+      sub
+        .setName('top')
+        .setDescription('Таблица лидеров сервера')
+        .addStringOption((opt) =>
+          opt
+            .setName('rating')
+            .setDescription('По какому опыту (по умолчанию — общий)')
+            .addChoices({ name: 'Общий', value: 'total' }, { name: 'Голос', value: 'voice' })
+        )
+    ),
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'view') {
-      const target = interaction.options.getUser('пользователь') || interaction.user;
+      const target = interaction.options.getUser('user') || interaction.user;
       // Sequential, not Promise.all: SQLite locks the whole file for writes, and
       // running two potential first-time inserts concurrently can race into a
       // SQLITE_BUSY error. These are both fast local queries, so there's no real
@@ -51,6 +83,10 @@ module.exports = {
           xpNeeded: needed,
           balance: Number(profile.balance),
           currencyName: settings.currencyName,
+          crystals: Number(profile.crystals || 0),
+          crystalName: settings.crystalName,
+          chatXp: Number(profile.chatXp || 0),
+          voiceXp: Number(profile.voiceXp || 0),
           messageCount: Number(profile.messageCount),
           voiceSeconds: Number(profile.voiceSeconds || 0) + pendingSeconds(interaction.guild.id, target.id)
         });
@@ -67,7 +103,8 @@ module.exports = {
               `\`${embeds.progressBar(xpIntoLevel, needed)}\`  ${xpIntoLevel}/${needed} XP`
           )
           .addFields(
-            { name: 'Баланс', value: `${profile.balance} ${settings.currencyName}`, inline: true },
+            { name: 'Баланс', value: `${profile.balance} ${settings.currencyName} · ${profile.crystals || 0} ${settings.crystalName}`, inline: true },
+            { name: 'XP за чат / голос', value: `${profile.chatXp || 0} / ${profile.voiceXp || 0}`, inline: true },
             { name: 'Сообщений', value: `${profile.messageCount}`, inline: true },
             { name: 'В голосовых', value: formatDuration(Number(profile.voiceSeconds || 0) + pendingSeconds(interaction.guild.id, target.id)), inline: true }
           )
@@ -78,7 +115,7 @@ module.exports = {
 
     if (sub === 'top') {
       await interaction.deferReply();
-      const payload = await buildTopPage(interaction.client, interaction.guild, 0, interaction.user.id);
+      const payload = await buildTopPage(interaction.client, interaction.guild, 0, interaction.user.id, interaction.options.getString('rating') || 'total');
       if (!payload) return interaction.editReply({ embeds: [embeds.info('Пока никто не заработал опыт.')] });
       return interaction.editReply(payload);
     }

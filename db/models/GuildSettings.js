@@ -19,14 +19,23 @@ module.exports = (sequelize) => {
       autoRoleId: { type: DataTypes.STRING, allowNull: true },
 
       // Leveling
-      levelingEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      levelingEnabled: { type: DataTypes.BOOLEAN, defaultValue: true }, // master switch for levels + economy income
+      chatEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      voiceEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       xpPerMessageMin: { type: DataTypes.INTEGER, defaultValue: 10 },
       xpPerMessageMax: { type: DataTypes.INTEGER, defaultValue: 20 },
       xpCooldownSeconds: { type: DataTypes.INTEGER, defaultValue: 60 },
       levelRolesReplace: { type: DataTypes.BOOLEAN, defaultValue: false }, // true = keep only the highest level role
       voiceXpPerMinute: { type: DataTypes.INTEGER, defaultValue: 10 }, // 0 = no XP for voice
+      voiceMinMembers: { type: DataTypes.INTEGER, defaultValue: 2 }, // people needed in a channel for voice income (1 = also alone)
 
+      // Economy: coins (currencyName) and crystals
       currencyName: { type: DataTypes.STRING, defaultValue: 'монеты' },
+      crystalName: { type: DataTypes.STRING, defaultValue: 'кристаллы' },
+      chatCoinsPerMessage: { type: DataTypes.INTEGER, defaultValue: 5 },
+      voiceCoinsPerMinute: { type: DataTypes.INTEGER, defaultValue: 5 },
+      dailyCoins: { type: DataTypes.INTEGER, defaultValue: 100 },
+      crystalsPerLevel: { type: DataTypes.INTEGER, defaultValue: 1 }, // crystals for every new (single, total) level,
 
       // Automod
       automodEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },

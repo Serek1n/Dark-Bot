@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Экономика' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <div class="page-header">
+        <h1>Экономика</h1>
+        <p class="page-intro">Две валюты с разными источниками. Сколько выдавать за чат и голос, настраивается на странице «Уровни».</p>
+      </div>
+      <form method="post">
+        <div class="card">
+          <h2><%= settings.currencyName %></h2>
+          <p>Основная валюта. Приходит за сообщения и время в голосовом канале, а также за ежедневную награду. Участники могут переводить её друг другу: <code>/pay</code>.</p>
+          <div class="two-col">
+            <div>
+              <label>Название</label>
+              <input type="text" name="currencyName" value="<%= settings.currencyName %>" maxlength="24" />
+            </div>
+            <div>
+              <label>Ежедневная награда (<code>/daily</code>)</label>
+              <input type="number" name="dailyCoins" value="<%= settings.dailyCoins %>" min="0" max="1000000" />
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h2><%= settings.crystalName %></h2>
+          <p>Редкая валюта. Выдаётся только за новые уровни (сколько за каждый, задаётся на странице «Уровни»).</p>
+          <div>
+            <label>Название</label>
+            <input type="text" name="crystalName" value="<%= settings.crystalName %>" maxlength="24" />
+          </div>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

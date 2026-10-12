@@ -7,38 +7,80 @@
     <div class="content">
       <div class="page-header">
         <h1>Система уровней</h1>
-        <p class="page-intro">Как начисляется опыт за сообщения и валюта, которую получают участники.</p>
+        <p class="page-intro">Один общий уровень растёт от сообщений и от времени в голосовых каналах. Для каждого источника свои настройки.</p>
       </div>
-      <form method="post" class="card">
-        <div class="checkbox-row">
-          <input type="checkbox" id="levelingEnabled" name="levelingEnabled" <%= settings.levelingEnabled ? 'checked' : '' %> />
-          <label for="levelingEnabled" style="margin:0;">Включить систему уровней и экономику</label>
-        </div>
-
-        <div class="two-col">
-          <div>
-            <label>Мин. опыта за сообщение</label>
-            <input type="number" name="xpPerMessageMin" value="<%= settings.xpPerMessageMin %>" min="1" />
+      <form method="post">
+        <div class="card">
+          <div class="checkbox-row">
+            <input type="checkbox" id="levelingEnabled" name="levelingEnabled" <%= settings.levelingEnabled ? 'checked' : '' %> />
+            <label for="levelingEnabled" style="margin:0;">Включить систему уровней</label>
           </div>
-          <div>
-            <label>Макс. опыта за сообщение</label>
-            <input type="number" name="xpPerMessageMax" value="<%= settings.xpPerMessageMax %>" min="1" />
+          <div class="hint">Уровень один: его опыт складывается из сообщений и времени в голосе. Источники настраиваются отдельно, а голосовой опыт ещё и ведёт свой рейтинг. Валюты настраиваются на странице «Экономика».</div>
+        </div>
+
+        <div class="card">
+          <h2>Чат</h2>
+          <div class="checkbox-row">
+            <input type="checkbox" id="chatEnabled" name="chatEnabled" <%= settings.chatEnabled ? 'checked' : '' %> />
+            <label for="chatEnabled" style="margin:0;">Начислять за сообщения</label>
           </div>
+          <div class="two-col">
+            <div>
+              <label>Мин. опыта за сообщение</label>
+              <input type="number" name="xpPerMessageMin" value="<%= settings.xpPerMessageMin %>" min="1" />
+            </div>
+            <div>
+              <label>Макс. опыта за сообщение</label>
+              <input type="number" name="xpPerMessageMax" value="<%= settings.xpPerMessageMax %>" min="1" />
+            </div>
+          </div>
+          <div class="two-col">
+            <div>
+              <label>Кулдаун между начислениями (сек)</label>
+              <input type="number" name="xpCooldownSeconds" value="<%= settings.xpCooldownSeconds %>" min="0" max="3600" />
+            </div>
+            <div>
+              <label><%= settings.currencyName %> за сообщение</label>
+              <input type="number" name="chatCoinsPerMessage" value="<%= settings.chatCoinsPerMessage %>" min="0" max="10000" />
+            </div>
+          </div>
+          <div class="hint">Начисление идёт не чаще, чем раз в кулдаун: 60 секунд защищает от накрутки сообщениями.</div>
         </div>
 
-        <div>
-          <label>Кулдаун между начислениями опыта (сек)</label>
-          <input type="number" name="xpCooldownSeconds" value="<%= settings.xpCooldownSeconds %>" min="0" max="3600" />
-          <div class="hint">Опыт начисляется не чаще, чем раз в это время. 60 секунд защищает от накрутки сообщениями.</div>
+        <div class="card">
+          <h2>Голос</h2>
+          <div class="checkbox-row">
+            <input type="checkbox" id="voiceEnabled" name="voiceEnabled" <%= settings.voiceEnabled ? 'checked' : '' %> />
+            <label for="voiceEnabled" style="margin:0;">Начислять за время в голосовых каналах</label>
+          </div>
+          <div class="two-col">
+            <div>
+              <label>Опыт за минуту</label>
+              <input type="number" name="voiceXpPerMinute" value="<%= settings.voiceXpPerMinute %>" min="0" max="500" />
+            </div>
+            <div>
+              <label><%= settings.currencyName %> за минуту</label>
+              <input type="number" name="voiceCoinsPerMinute" value="<%= settings.voiceCoinsPerMinute %>" min="0" max="10000" />
+            </div>
+          </div>
+          <div class="two-col">
+            <div>
+              <label>Минимум людей в канале</label>
+              <input type="number" name="voiceMinMembers" value="<%= settings.voiceMinMembers %>" min="1" max="10" />
+            </div>
+            <div></div>
+          </div>
+          <div class="hint">Не считаются: боты, канал AFK и те, кто заглушил звук. «1» разрешает копить и в одиночестве, «2» (по умолчанию) защищает от накрутки.</div>
         </div>
 
-        <div>
-          <label>Опыт за голосовой канал (за минуту, 0 — выключено)</label>
-          <input type="number" name="voiceXpPerMinute" value="<%= settings.voiceXpPerMinute %>" min="0" max="500" />
-          <div class="hint">Начисляется тем, кто сидит в голосовом канале не один и не заглушил звук. Канал AFK не считается.</div>
+        <div class="card">
+          <h2>Награда за уровень</h2>
+          <label><%= settings.crystalName %> за каждый новый уровень</label>
+          <input type="number" name="crystalsPerLevel" value="<%= settings.crystalsPerLevel %>" min="0" max="10000" />
         </div>
 
-        <div>
+        <div class="card">
+          <h2>Объявления</h2>
           <label>Канал для объявлений о новом уровне (пусто — в том же канале)</label>
           <select name="levelUpChannelId">
             <option value="">— не выбрано —</option>
@@ -48,24 +90,19 @@
           </select>
         </div>
 
-        <div>
-          <label>Название валюты</label>
-          <input type="text" name="currencyName" value="<%= settings.currencyName %>" />
-        </div>
-
         <button class="btn" type="submit">Сохранить</button>
       </form>
 
       <div class="card">
         <h2>Экспорт уровней</h2>
-        <p>Скачайте уровни, сообщения, время в голосовых и баланс всех участников, например перед переходом на другого бота. JSON можно импортировать обратно сюда, CSV открывается в Excel и Google Таблицах. В файле только ID участников и цифры, без имён и почт.</p>
+        <p>Скачайте опыт, уровни, сообщения, время в голосовых и обе валюты всех участников, например перед переходом на другого бота. JSON можно импортировать обратно сюда, CSV открывается в Excel и Google Таблицах. В файле только ID участников и цифры, без имён и почт.</p>
         <a class="btn" href="/dashboard/<%= guild.id %>/leveling/export">Скачать JSON</a>
         <a class="btn" href="/dashboard/<%= guild.id %>/leveling/export?format=csv">Скачать CSV</a>
       </div>
 
       <div class="card">
         <h2>Импорт уровней</h2>
-        <p>Перенос уровней, сообщений, времени в голосовых и баланса из экспорта другого бота (Lacuna, файл <code>.json</code>). Уровень участника сохраняется, существующие значения не уменьшаются.</p>
+        <p>Перенос из экспорта Lacuna или из экспорта этого бота (файл <code>.json</code>). Чужой опыт нельзя разделить на чат и голос, он считается чатовым. Экспорт Dark восстанавливает опыт чата и голоса отдельно и кристаллы. Существующие значения не уменьшаются.</p>
         <input type="file" id="importFile" accept=".json,application/json" />
         <button class="btn" type="button" id="importBtn">Импортировать</button>
         <div class="hint" id="importStatus"></div>

@@ -12,7 +12,7 @@ async function main() {
 
   const moderationCmd = require('../bot/commands/moderation/moderation');
   try {
-    await moderationCmd.execute(makeInteraction({ subcommand: 'warnings', options: { 'пользователь': makeUser('user2') } }));
+    await moderationCmd.execute(makeInteraction({ subcommand: 'warnings', options: { 'user': makeUser('user2') } }));
     console.log('OK');
   } catch (err) {
     console.log('ПОЛНАЯ ОШИБКА:');

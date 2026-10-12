@@ -7,7 +7,12 @@
     <div class="content">
       <div class="page-header">
         <h1>Таблица лидеров</h1>
-        <p class="page-intro">Топ участников сервера по количеству накопленного опыта.</p>
+        <p class="page-intro">Топ участников сервера: по общему опыту или по времени в голосовых каналах.</p>
+      </div>
+      <div class="tabs" style="display:flex;gap:8px;margin-bottom:14px;">
+        <% [['total','Общий'],['voice','Голос']].forEach(t => { %>
+          <a class="btn <%= track === t[0] ? '' : 'btn-secondary' %>" href="/dashboard/<%= guild.id %>/leaderboard?track=<%= t[0] %>"><%= t[1] %></a>
+        <% }) %>
       </div>
       <div class="card">
         <% if (!top.length) { %>
@@ -15,7 +20,7 @@
         <% } else { %>
           <%
             const need = (l) => 5 * l * l + 50 * l + 100;
-            const into = (p) => { let x = Number(p.xp); for (let l = 0; l < p.level; l++) x -= need(l); return Math.max(0, x); };
+            const into = (p) => { let x = Number(p[xpField]); for (let l = 0; l < p.level; l++) x -= need(l); return Math.max(0, x); };
           %>
           <div class="lb-list">
             <% top.forEach((p, i) => { const u = users[p.userId] || { name: p.userId, avatar: '' }; const cur = into(p); const nx = need(p.level); %>

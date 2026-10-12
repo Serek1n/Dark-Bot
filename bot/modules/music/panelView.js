@@ -24,7 +24,7 @@ function renderPanel(state) {
   const embed = new EmbedBuilder().setColor(EMBER);
 
   if (!track) {
-    embed.setDescription('Очередь закончилась. Добавьте трек через `/music play`.');
+    embed.setDescription('Очередь закончилась. Добавьте трек через `/play`.');
     return { embeds: [embed], components: [] };
   }
 

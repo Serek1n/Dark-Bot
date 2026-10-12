@@ -143,25 +143,22 @@ function paintBackground(ctx, W, H, glowX, glowY) {
  */
 function formatVoice(totalSeconds) {
   const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-  const d = Math.floor(s / 86400);
-  const h = Math.floor((s % 86400) / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (d) return `${d} д ${h} ч`;
-  if (h) return `${h} ч ${m} мин`;
-  return `${m} мин`;
+  const h = Math.floor(s / 3600);
+  if (h) return `${fmt(h)} ч`; // total hours, no days
+  return `${Math.floor(s / 60)} мин`;
 }
 
 async function renderRankCard(data) {
   ensureFonts();
   const W = 900;
-  const H = 300;
+  const H = 360;
   const { canvas, ctx } = makeCanvas(W, H);
 
-  paintBackground(ctx, W, H, 150, 150);
+  paintBackground(ctx, W, H, 150, 170);
   drawCrescent(ctx, W - 38, 38, 14, COLORS.ember, 0.55);
 
   const cx = 150;
-  const cy = 150;
+  const cy = 170;
   const R = 88;
   await drawAvatar(ctx, data.avatarURL, data.username, cx, cy, R);
   ctx.lineWidth = 5;
@@ -223,26 +220,31 @@ async function renderRankCard(data) {
   ctx.fillText(`${fmt(data.xpIntoLevel)} / ${fmt(data.xpNeeded)} XP`, right, barY - 10);
   ctx.textAlign = 'left';
 
-  // Stats row
-  const statsY = 262;
+  // Stats: two rows of three. Row 1 = wallet and messages, row 2 = the two level directions.
   ctx.strokeStyle = COLORS.hairline;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(left, statsY - 24);
-  ctx.lineTo(right, statsY - 24);
+  ctx.moveTo(left, 238);
+  ctx.lineTo(right, 238);
   ctx.stroke();
 
-  const stat = (x, value, label) => {
+  const colW = Math.floor(barW / 3);
+  const stat = (col, row, value, label) => {
+    const x = left + col * colW;
+    const y = 270 + row * 56;
     ctx.fillStyle = COLORS.paper;
     ctx.font = '22px CardMonoBold';
-    ctx.fillText(value, x, statsY);
+    ctx.fillText(truncateToWidth(ctx, value, colW - 14), x, y);
     ctx.fillStyle = COLORS.fog;
     ctx.font = '13px CardSans';
-    ctx.fillText(label, x, statsY + 20);
+    ctx.fillText(truncateToWidth(ctx, label, colW - 14), x, y + 20);
   };
-  stat(left, `${fmt(data.balance)} ${truncateToWidth(ctx, data.currencyName, 90)}`, 'баланс');
-  stat(left + 200, fmt(data.messageCount), 'сообщений');
-  stat(left + 350, formatVoice(data.voiceSeconds), 'в голосовых');
+  stat(0, 0, fmt(data.balance), data.currencyName || 'монеты');
+  stat(1, 0, fmt(data.crystals || 0), data.crystalName || 'кристаллы');
+  stat(2, 0, fmt(data.messageCount), 'сообщений');
+  stat(0, 1, formatVoice(data.voiceSeconds), 'в голосовых');
+  stat(1, 1, fmt(data.chatXp ?? 0), 'XP за чат');
+  stat(2, 1, fmt(data.voiceXp ?? 0), 'XP за голос');
 
   return canvas.encode('png');
 }
@@ -267,7 +269,7 @@ async function renderLeaderboard(data) {
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = COLORS.paper;
   ctx.font = '30px CardSansBold';
-  ctx.fillText('Таблица лидеров', 90, 52);
+  ctx.fillText(data.heading || 'Таблица лидеров', 90, 52);
   ctx.fillStyle = COLORS.fog;
   ctx.font = '15px CardSans';
   ctx.fillText(truncateToWidth(ctx, data.title || '', 600), 90, 76);
@@ -361,7 +363,7 @@ async function renderLeaderboard(data) {
     ctx.textAlign = 'right';
     ctx.fillStyle = COLORS.ember;
     ctx.font = '24px CardMonoBold';
-    ctx.fillText(`ур. ${r.level}`, W - 52, mid - 2);
+    ctx.fillText(r.sub || `ур. ${r.level}`, W - 52, mid - 2);
     ctx.fillStyle = COLORS.fog;
     ctx.font = '14px CardMonoBold';
     ctx.fillText(`${fmt(r.xp)} XP`, W - 52, mid + 18);

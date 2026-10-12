@@ -4,6 +4,16 @@ const embeds = require('../../utils/embeds');
 const logger = require('../../utils/logger');
 
 module.exports = {
+  // Registered as the flat command /play (the grouped `data` below is kept for tests only).
+  variants: [
+    {
+      sub: 'play',
+      data: new SlashCommandBuilder()
+        .setName('play')
+        .setDescription('Включить музыку: название трека или ссылка (YouTube, SoundCloud, Spotify)')
+        .addStringOption((opt) => opt.setName('query').setDescription('Название или ссылка').setRequired(true))
+    }
+  ],
   data: new SlashCommandBuilder()
     .setName('music')
     .setDescription('Управление музыкой в голосовом канале')
@@ -11,14 +21,14 @@ module.exports = {
       sub
         .setName('play')
         .setDescription('Включить трек (YouTube/SoundCloud/Spotify-ссылка или поиск)')
-        .addStringOption((opt) => opt.setName('запрос').setDescription('Ссылка или название трека').setRequired(true))
+        .addStringOption((opt) => opt.setName('query').setDescription('Ссылка или название трека').setRequired(true))
     ),
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'play') {
-      const query = interaction.options.getString('запрос');
+      const query = interaction.options.getString('query');
       const voiceChannel = interaction.member.voice?.channel;
       if (!voiceChannel) return interaction.reply({ embeds: [embeds.error('Зайдите в голосовой канал, чтобы включить музыку.')], flags: MessageFlags.Ephemeral });
 

@@ -3,24 +3,63 @@ const { getOrCreateProfile, getOrCreateSettings } = require('../../modules/level
 const embeds = require('../../utils/embeds');
 const { withLock } = require('../../utils/lock');
 
-const DAILY_AMOUNT = 100;
+const cap = (t) => { const x = String(t || ''); return x.charAt(0).toUpperCase() + x.slice(1); };
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 module.exports = {
+  // Registered as flat commands /balance, /daily and /pay (the grouped `data` below is kept for tests only).
+  variants: [
+    { sub: 'balance', data: new SlashCommandBuilder().setName('balance').setDescription('Показать ваш баланс: монеты и кристаллы') },
+    { sub: 'daily', data: new SlashCommandBuilder().setName('daily').setDescription('Забрать ежедневную награду') },
+    {
+      sub: 'pay',
+      data: new SlashCommandBuilder()
+        .setName('pay')
+        .setDescription('Перевести монеты или кристаллы другому участнику')
+        .addUserOption((opt) => opt.setName('user').setDescription('Кому перевести').setRequired(true))
+        .addIntegerOption((opt) => opt.setName('amount').setDescription('Сколько перевести').setRequired(true).setMinValue(1))
+        .addStringOption((opt) =>
+          opt
+            .setName('currency')
+            .setDescription('Что переводить (по умолчанию — монеты)')
+            .addChoices({ name: 'Монеты', value: 'coins' }, { name: 'Кристаллы', value: 'crystals' })
+        )
+    }
+  ],
   data: new SlashCommandBuilder()
     .setName('economy')
-    .setDescription('Ежедневная награда и переводы валюты')
+    .setDescription('Ежедневная награда, баланс и переводы валют')
+    .addSubcommand((sub) => sub.setName('balance').setDescription('Показать баланс обеих валют'))
     .addSubcommand((sub) => sub.setName('daily').setDescription('Забрать ежедневную награду'))
     .addSubcommand((sub) =>
       sub
         .setName('pay')
         .setDescription('Перевести валюту другому участнику')
-        .addUserOption((opt) => opt.setName('пользователь').setDescription('Кому перевести').setRequired(true))
-        .addIntegerOption((opt) => opt.setName('сумма').setDescription('Сколько перевести').setRequired(true).setMinValue(1))
+        .addUserOption((opt) => opt.setName('user').setDescription('Кому перевести').setRequired(true))
+        .addIntegerOption((opt) => opt.setName('amount').setDescription('Сколько перевести').setRequired(true).setMinValue(1))
+        .addStringOption((opt) =>
+          opt
+            .setName('currency')
+            .setDescription('Что переводить (по умолчанию — монеты)')
+            .addChoices({ name: 'Монеты', value: 'coins' }, { name: 'Кристаллы', value: 'crystals' })
+        )
     ),
 
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
+
+    if (sub === 'balance') {
+      const profile = await getOrCreateProfile(interaction.guild.id, interaction.user.id);
+      const settings = await getOrCreateSettings(interaction.guild.id);
+      const embed = embeds
+        .baseEmbed()
+        .setTitle('Баланс')
+        .addFields(
+          { name: cap(settings.currencyName), value: `${profile.balance}`, inline: true },
+          { name: cap(settings.crystalName), value: `${profile.crystals}`, inline: true }
+        );
+      return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    }
 
     if (sub === 'daily') {
       const guildId = interaction.guild.id;
@@ -33,10 +72,11 @@ module.exports = {
           const remaining = DAY_MS - (Date.now() - new Date(profile.lastDailyAt).getTime());
           return { wait: remaining };
         }
-        profile.balance = Number(profile.balance) + DAILY_AMOUNT;
+        const amount = Math.max(0, Number(settings.dailyCoins) || 0);
+        profile.balance = Number(profile.balance) + amount;
         profile.lastDailyAt = new Date();
         await profile.save();
-        return { balance: profile.balance, currency: settings.currencyName };
+        return { balance: profile.balance, currency: settings.currencyName, amount };
       });
 
       if (result.wait) {
@@ -51,28 +91,31 @@ module.exports = {
         .setTitle('✓ Награда получена')
         .setDescription('Возвращайтесь через 24 часа')
         .addFields(
-          { name: 'Получено', value: `+${DAILY_AMOUNT} ${result.currency}`, inline: true },
+          { name: 'Получено', value: `+${result.amount} ${result.currency}`, inline: true },
           { name: 'Баланс', value: `${result.balance} ${result.currency}`, inline: true }
         );
       return interaction.reply({ embeds: [embed] });
     }
 
     if (sub === 'pay') {
-      const target = interaction.options.getUser('пользователь');
-      const amount = interaction.options.getInteger('сумма');
+      const target = interaction.options.getUser('user');
+      const amount = interaction.options.getInteger('amount');
 
       if (target.id === interaction.user.id) return interaction.reply({ embeds: [embeds.error('Нельзя перевести самому себе.')], flags: MessageFlags.Ephemeral });
       if (target.bot) return interaction.reply({ embeds: [embeds.error('Нельзя перевести боту.')], flags: MessageFlags.Ephemeral });
 
       const guildId = interaction.guild.id;
       const settings = await getOrCreateSettings(guildId);
+      const crystals = interaction.options.getString('currency') === 'crystals';
+      const field = crystals ? 'crystals' : 'balance';
+      const currency = crystals ? settings.crystalName : settings.currencyName;
       // One transfer at a time per server: the balance check and both writes must not interleave.
       const ok = await withLock(`pay:${guildId}`, async () => {
         const sender = await getOrCreateProfile(guildId, interaction.user.id);
         const receiver = await getOrCreateProfile(guildId, target.id);
-        if (Number(sender.balance) < amount) return false;
-        sender.balance = Number(sender.balance) - amount;
-        receiver.balance = Number(receiver.balance) + amount;
+        if (Number(sender[field]) < amount) return false;
+        sender[field] = Number(sender[field]) - amount;
+        receiver[field] = Number(receiver[field]) + amount;
         await sender.save();
         await receiver.save();
         return true;
@@ -83,7 +126,7 @@ module.exports = {
         .baseEmbed(embeds.COLORS.success)
         .setTitle('✓ Перевод выполнен')
         .setDescription(`<@${interaction.user.id}> → <@${target.id}>`)
-        .addFields({ name: 'Сумма', value: `${amount} ${settings.currencyName}`, inline: true });
+        .addFields({ name: 'Сумма', value: `${amount} ${currency}`, inline: true });
       return interaction.reply({ embeds: [embed] });
     }
   }

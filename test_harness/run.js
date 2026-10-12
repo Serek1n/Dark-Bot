@@ -37,7 +37,7 @@ async function main() {
 
   // ===== economy =====
   await run('economy daily', () => economyCmd.execute(makeInteraction({ subcommand: 'daily' })));
-  await run('economy pay', () => economyCmd.execute(makeInteraction({ subcommand: 'pay', options: { 'пользователь': makeUser('user2'), 'сумма': 10 } })));
+  await run('economy pay', () => economyCmd.execute(makeInteraction({ subcommand: 'pay', options: { 'user': makeUser('user2'), 'amount': 10 } })));
 
   // ===== profile =====
   await run('profile view', () => profileCmd.execute(makeInteraction({ subcommand: 'view' })));
@@ -81,23 +81,23 @@ async function main() {
   });
 
   // ===== moderation =====
-  await run('moderation warn', () => moderationCmd.execute(makeInteraction({ subcommand: 'warn', options: { 'пользователь': makeUser('user2'), 'причина': 'test' } })));
-  await run('moderation warnings', () => moderationCmd.execute(makeInteraction({ subcommand: 'warnings', options: { 'пользователь': makeUser('user2') } })));
-  await run('moderation unwarn (none exists)', () => moderationCmd.execute(makeInteraction({ subcommand: 'unwarn', options: { 'номер': 999 } })));
-  await run('moderation mute', () => moderationCmd.execute(makeInteraction({ subcommand: 'mute', options: { 'пользователь': makeUser('user2'), 'минуты': 10, 'причина': 'test' } })));
-  await run('moderation unmute', () => moderationCmd.execute(makeInteraction({ subcommand: 'unmute', options: { 'пользователь': makeUser('user2') } })));
-  await run('moderation kick', () => moderationCmd.execute(makeInteraction({ subcommand: 'kick', options: { 'пользователь': makeUser('user2'), 'причина': 'test' } })));
-  await run('moderation ban', () => moderationCmd.execute(makeInteraction({ subcommand: 'ban', options: { 'пользователь': makeUser('user2'), 'причина': 'test', 'дней_удалить': 0 } })));
+  await run('moderation warn', () => moderationCmd.execute(makeInteraction({ subcommand: 'warn', options: { 'user': makeUser('user2'), 'reason': 'test' } })));
+  await run('moderation warnings', () => moderationCmd.execute(makeInteraction({ subcommand: 'warnings', options: { 'user': makeUser('user2') } })));
+  await run('moderation unwarn (none exists)', () => moderationCmd.execute(makeInteraction({ subcommand: 'unwarn', options: { 'number': 999 } })));
+  await run('moderation mute', () => moderationCmd.execute(makeInteraction({ subcommand: 'mute', options: { 'user': makeUser('user2'), 'minutes': 10, 'reason': 'test' } })));
+  await run('moderation unmute', () => moderationCmd.execute(makeInteraction({ subcommand: 'unmute', options: { 'user': makeUser('user2') } })));
+  await run('moderation kick', () => moderationCmd.execute(makeInteraction({ subcommand: 'kick', options: { 'user': makeUser('user2'), 'reason': 'test' } })));
+  await run('moderation ban', () => moderationCmd.execute(makeInteraction({ subcommand: 'ban', options: { 'user': makeUser('user2'), 'reason': 'test', 'delete_days': 0 } })));
   await run('moderation unban', () => moderationCmd.execute(makeInteraction({ subcommand: 'unban', options: { 'id': '123456' }, guild: undefined })));
-  await run('moderation clear', () => moderationCmd.execute(makeInteraction({ subcommand: 'clear', options: { 'количество': 10 } })));
+  await run('moderation clear', () => moderationCmd.execute(makeInteraction({ subcommand: 'clear', options: { 'count': 10 } })));
 
   // ===== music (play requires voice channel; test both no-voice-channel and no-active-queue paths) =====
-  await run('music play (not in voice)', () => musicCmd.execute(makeInteraction({ subcommand: 'play', options: { 'запрос': 'test song' }, member: makeMember('user1', { voice: { channel: null } }) })));
+  await run('music play (not in voice)', () => musicCmd.execute(makeInteraction({ subcommand: 'play', options: { 'query': 'test song' }, member: makeMember('user1', { voice: { channel: null } }) })));
 
   // ===== help =====
   const fakeClient = { commands: new Map([
     ['economy', economyCmd], ['profile', profileCmd], ['moderation', moderationCmd],
-    ['music', musicCmd], ['help', helpCmd], ['Пожаловаться на сообщение', reportCmd]
+    ['music', musicCmd], ['help', helpCmd], ['Report message', reportCmd]
   ])};
   [economyCmd,profileCmd,moderationCmd,musicCmd,helpCmd].forEach(c => c.category = c.category || 'test');
   economyCmd.category='economy'; profileCmd.category='leveling'; moderationCmd.category='moderation';

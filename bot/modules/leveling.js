@@ -37,8 +37,42 @@ async function getOrCreateProfile(guildId, userId) {
   return profile;
 }
 
+const TRACKS = ['chat', 'voice'];
+
 /**
- * Award XP for an eligible message. Returns { leveledUp, newLevel, profile } or null if on cooldown/disabled.
+ * ONE level for everyone: `xp` / `level` are the total of chat XP and voice XP. The two sources
+ * are also stored separately (chatXp / voiceXp) so they can have their own settings and a voice
+ * leaderboard. Currencies: coins come from activity, crystals are paid for every new level.
+ */
+function levelsOf(profile) {
+  return { total: profile.level };
+}
+
+/** Adds XP and income to a profile object (not saved). Returns what happened. */
+function applyGain(profile, track, xp, coins, settings) {
+  const previousLevel = profile.level;
+  profile[`${track}Xp`] = Number(profile[`${track}Xp`] || 0) + xp;
+  profile.xp = Number(profile.xp || 0) + xp;
+  profile.level = levelFromXp(profile.xp);
+  profile.balance = Number(profile.balance || 0) + coins;
+
+  const crystals = Math.max(0, profile.level - previousLevel) * Math.max(0, Number(settings.crystalsPerLevel) || 0);
+  profile.crystals = Number(profile.crystals || 0) + crystals;
+
+  return {
+    leveledUp: profile.level > previousLevel,
+    newLevel: profile.level,
+    levels: levelsOf(profile),
+    gained: xp,
+    coins,
+    crystals,
+    profile
+  };
+}
+
+/**
+ * Award XP for an eligible message (chat direction). Returns the result of applyGain,
+ * or null if on cooldown / the direction is switched off.
  */
 function grantMessageXp(guildId, userId) {
   return withLock(`xp:${guildId}:${userId}`, () => grantMessageXpUnlocked(guildId, userId));
@@ -46,7 +80,7 @@ function grantMessageXp(guildId, userId) {
 
 async function grantMessageXpUnlocked(guildId, userId) {
   const settings = await getOrCreateSettings(guildId);
-  if (!settings.levelingEnabled) return null;
+  if (!settings.levelingEnabled || !settings.chatEnabled) return null;
 
   const profile = await getOrCreateProfile(guildId, userId);
   const now = Date.now();
@@ -56,39 +90,33 @@ async function grantMessageXpUnlocked(guildId, userId) {
   }
 
   const gained = randomInt(settings.xpPerMessageMin, settings.xpPerMessageMax);
-  const previousLevel = profile.level;
-  profile.xp = Number(profile.xp) + gained;
-  profile.balance = Number(profile.balance) + Math.ceil(gained / 2);
-  profile.level = levelFromXp(profile.xp);
+  const result = applyGain(profile, 'chat', gained, Math.max(0, Number(settings.chatCoinsPerMessage) || 0), settings);
   profile.lastXpAt = new Date();
   profile.messageCount = Number(profile.messageCount) + 1;
   await profile.save();
-
-  return {
-    leveledUp: profile.level > previousLevel,
-    newLevel: profile.level,
-    gained,
-    profile
-  };
+  return result;
 }
 
-/** Award a fixed amount of XP (used for time spent in voice). Same result shape as grantMessageXp. */
+/**
+ * Award voice XP and coins for one minute in a voice channel (voice direction).
+ * `amount` is the XP for that minute; coins come from the server settings.
+ */
 function grantVoiceXp(guildId, userId, amount) {
   return withLock(`xp:${guildId}:${userId}`, async () => {
+    const settings = await getOrCreateSettings(guildId);
     const profile = await getOrCreateProfile(guildId, userId);
-    const previousLevel = profile.level;
-    profile.xp = Number(profile.xp) + amount;
-    profile.balance = Number(profile.balance) + Math.ceil(amount / 2);
-    profile.level = levelFromXp(profile.xp);
+    const result = applyGain(profile, 'voice', Math.max(0, Number(amount) || 0), Math.max(0, Number(settings.voiceCoinsPerMinute) || 0), settings);
     await profile.save();
-    return { leveledUp: profile.level > previousLevel, newLevel: profile.level, gained: amount, profile };
+    return result;
   });
 }
 
-async function getLeaderboard(guildId, limit = 10) {
+const TRACK_FIELDS = { total: 'xp', chat: 'chatXp', voice: 'voiceXp' };
+
+async function getLeaderboard(guildId, limit = 10, track = 'total') {
   return MemberProfile.findAll({
     where: { guildId },
-    order: [['xp', 'DESC']],
+    order: [[TRACK_FIELDS[track] || 'xp', 'DESC']],
     limit
   });
 }
@@ -101,5 +129,9 @@ module.exports = {
   getOrCreateProfile,
   grantMessageXp,
   grantVoiceXp,
-  getLeaderboard
+  getLeaderboard,
+  applyGain,
+  levelsOf,
+  TRACKS,
+  TRACK_FIELDS
 };

@@ -31,7 +31,7 @@ async function main() {
 
   await test('pay: simultaneous transfers cannot overdraw', async () => {
     const ints = Array.from({ length: 4 }, () =>
-      makeInteraction({ subcommand: 'pay', options: { 'пользователь': makeUser('user2'), 'сумма': 60 } }));
+      makeInteraction({ subcommand: 'pay', options: { 'user': makeUser('user2'), 'amount': 60 } }));
     await Promise.all(ints.map((i) => economy.execute(i)));
     const ok = ints.filter((i) => text(i).includes('Перевод выполнен')).length;
     assert(ok === 1, `${ok} transfers succeeded with balance 100 / amount 60`);
@@ -49,19 +49,19 @@ async function main() {
   await test('mute: cannot act on member with equal/higher role', async () => {
     const guild = require('./mock').makeGuild();
     guild.members.fetch = async (id) => makeMember(id, { rolePosition: 10 });
-    const i = makeInteraction({ guild, subcommand: 'mute', options: { 'пользователь': makeUser('user2'), 'минуты': 5 } });
+    const i = makeInteraction({ guild, subcommand: 'mute', options: { 'user': makeUser('user2'), 'minutes': 5 } });
     await moderation.execute(i);
     assert(text(i).includes('не ниже вашей'), text(i));
   });
 
   await test('ban: cannot ban yourself', async () => {
-    const i = makeInteraction({ subcommand: 'ban', options: { 'пользователь': makeUser('user1') } });
+    const i = makeInteraction({ subcommand: 'ban', options: { 'user': makeUser('user1') } });
     await moderation.execute(i);
     assert(text(i).includes('самого себя'), text(i));
   });
 
   await test('kick: lower-role member is allowed', async () => {
-    const i = makeInteraction({ subcommand: 'kick', options: { 'пользователь': makeUser('user2') } });
+    const i = makeInteraction({ subcommand: 'kick', options: { 'user': makeUser('user2') } });
     await moderation.execute(i);
     assert(text(i).includes('кикнут'), text(i));
   });

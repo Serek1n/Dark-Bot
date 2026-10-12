@@ -64,7 +64,7 @@ async function handleMusicButton(interaction) {
       if (queue.tracks.length > 15) lines.push(`…и ещё ${queue.tracks.length - 15}.`);
       embed.addFields({ name: 'Далее', value: lines.join('\n') });
     } else {
-      embed.setDescription('Дальше в очереди ничего нет. Добавьте трек через `/music play`.');
+      embed.setDescription('Дальше в очереди ничего нет. Добавьте трек через `/play`.');
     }
     return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   }

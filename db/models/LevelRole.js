@@ -7,14 +7,12 @@ module.exports = (sequelize) => {
     {
       guildId: { type: DataTypes.STRING, allowNull: false },
       level: { type: DataTypes.INTEGER, allowNull: false },
-      roleId: { type: DataTypes.STRING, allowNull: false }
+      roleId: { type: DataTypes.STRING, allowNull: false },
+      track: { type: DataTypes.STRING, allowNull: false, defaultValue: 'total' } // total | chat | voice
     },
-    {
-      sequelize,
-      modelName: 'LevelRole',
-      tableName: 'level_roles',
-      indexes: [{ unique: true, fields: ['guildId', 'level'] }]
-    }
+    // The unique index (guildId, track, level) is created in db/index.js: older databases
+    // have an index without `track` that has to be replaced first.
+    { sequelize, modelName: 'LevelRole', tableName: 'level_roles' }
   );
 
   return LevelRole;

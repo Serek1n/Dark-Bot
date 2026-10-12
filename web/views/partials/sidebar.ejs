@@ -18,6 +18,10 @@
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V11M9.5 17V7M16 17V3"/></svg>
         Уровни
       </a>
+      <a href="/dashboard/<%= guild.id %>/economy" class="<%= active === 'economy' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M12.4 7.6C12 6.9 11.1 6.5 10 6.5C8.6 6.5 7.6 7.2 7.6 8.2C7.6 10.3 12.4 9.2 12.4 11.8C12.4 12.8 11.4 13.5 10 13.5C8.8 13.5 7.9 13.1 7.5 12.3M10 5V6.5M10 13.5V15"/></svg>
+        Экономика
+      </a>
       <a href="/dashboard/<%= guild.id %>/leaderboard" class="<%= active === 'leaderboard' ? 'active' : '' %>">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4H14V9C14 11.2 12.2 13 10 13C7.8 13 6 11.2 6 9V4Z"/><path d="M6 5H3.5C3.5 7 4.5 8 6 8"/><path d="M14 5H16.5C16.5 7 15.5 8 14 8"/><path d="M10 13V16M7 17H13"/></svg>
         Лидерборд

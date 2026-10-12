@@ -1,4 +1,5 @@
 const express = require('express');
+const { Op } = require('sequelize');
 const { ensureAuth } = require('../middleware/ensureAuth');
 const { ensureGuildAccess } = require('../middleware/ensureGuildAccess');
 const { getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers, botApi } = require('../discordApi');
@@ -89,16 +90,40 @@ router.get('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
 router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   settings.levelingEnabled = req.body.levelingEnabled === 'on';
+  // Chat direction
+  settings.chatEnabled = req.body.chatEnabled === 'on';
   const min = clampInt(req.body.xpPerMessageMin, 1, 1000, settings.xpPerMessageMin);
   const max = clampInt(req.body.xpPerMessageMax, 1, 1000, settings.xpPerMessageMax);
   settings.xpPerMessageMin = Math.min(min, max);
   settings.xpPerMessageMax = Math.max(min, max);
   settings.xpCooldownSeconds = clampInt(req.body.xpCooldownSeconds, 0, 3600, settings.xpCooldownSeconds);
+  settings.chatCoinsPerMessage = clampInt(req.body.chatCoinsPerMessage, 0, 10000, settings.chatCoinsPerMessage);
+  // Voice direction
+  settings.voiceEnabled = req.body.voiceEnabled === 'on';
   settings.voiceXpPerMinute = clampInt(req.body.voiceXpPerMinute, 0, 500, settings.voiceXpPerMinute);
+  settings.voiceCoinsPerMinute = clampInt(req.body.voiceCoinsPerMinute, 0, 10000, settings.voiceCoinsPerMinute);
+  settings.voiceMinMembers = clampInt(req.body.voiceMinMembers, 1, 10, settings.voiceMinMembers);
+  settings.crystalsPerLevel = clampInt(req.body.crystalsPerLevel, 0, 10000, settings.crystalsPerLevel);
   settings.levelUpChannelId = snowflake(req.body.levelUpChannelId);
-  settings.currencyName = (req.body.currencyName || '').trim().slice(0, 24) || settings.currencyName;
   await settings.save();
   res.redirect(saved(req.params.guildId, 'leveling'));
+});
+
+// ---- Economy: currencies ----
+router.get('/:guildId/economy', ensureGuildAccess, async (req, res) => {
+  const guild = await getGuild(req.params.guildId);
+  const settings = await getSettings(req.params.guildId);
+  res.render('dashboard/economy', { guild, settings, active: 'economy' });
+});
+
+router.post('/:guildId/economy', ensureGuildAccess, async (req, res) => {
+  const settings = await getSettings(req.params.guildId);
+  const name = (v, fallback) => String(v || '').trim().slice(0, 24) || fallback;
+  settings.currencyName = name(req.body.currencyName, settings.currencyName);
+  settings.crystalName = name(req.body.crystalName, settings.crystalName);
+  settings.dailyCoins = clampInt(req.body.dailyCoins, 0, 1000000, settings.dailyCoins);
+  await settings.save();
+  res.redirect(saved(req.params.guildId, 'economy'));
 });
 
 // ---- Leaderboard (read-only) ----
@@ -130,11 +155,14 @@ router.get('/:guildId/leveling/export', ensureGuildAccess, async (req, res) => {
     progress: Math.max(0, Number(p.xp) - totalXpForLevel(p.level)),
     messages: Number(p.messageCount),
     voiceSeconds: Number(p.voiceSeconds || 0),
-    balance: Number(p.balance)
+    balance: Number(p.balance),
+    chatXp: Number(p.chatXp || 0),
+    voiceXp: Number(p.voiceXp || 0),
+    crystals: Number(p.crystals || 0)
   }));
 
   if (req.query.format === 'csv') {
-    const lines = ['user_id,level,xp,messages,voice_seconds,balance', ...rows.map((r) => [r.userId, r.level, r.xp, r.messages, r.voiceSeconds, r.balance].join(','))];
+    const lines = ['user_id,level,xp,chat_xp,voice_xp,messages,voice_seconds,coins,crystals', ...rows.map((r) => [r.userId, r.level, r.xp, r.chatXp, r.voiceXp, r.messages, r.voiceSeconds, r.balance, r.crystals].join(','))];
     res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="levels-${guildId}.csv"` });
     return res.send('\ufeff' + lines.join('\n'));
   }
@@ -150,7 +178,9 @@ router.get('/:guildId/leveling/export', ensureGuildAccess, async (req, res) => {
         }
       ],
       wallets: [{ guild_id: guildId, currencies: [{ id: 'DEFAULT', amount: r.balance }] }]
-    }
+    },
+    // Extra data of this bot: both level directions and the second currency.
+    dark: { chatXp: r.chatXp, voiceXp: r.voiceXp, crystals: r.crystals }
   }));
   res.set({ 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': `attachment; filename="levels-${guildId}.json"` });
   res.send(JSON.stringify(data, null, 2));
@@ -158,9 +188,13 @@ router.get('/:guildId/leveling/export', ensureGuildAccess, async (req, res) => {
 
 router.get('/:guildId/leaderboard', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
-  const top = await MemberProfile.findAll({ where: { guildId: req.params.guildId }, order: [['xp', 'DESC']], limit: 50 });
+  const tracks = { total: ['xp', 'level'], voice: ['voiceXp', 'level'] };
+  const track = tracks[req.query.track] ? req.query.track : 'total';
+  const [xpField, levelField] = tracks[track];
+  const where = track === 'total' ? { guildId: req.params.guildId } : { guildId: req.params.guildId, [xpField]: { [Op.gt]: 0 } };
+  const top = await MemberProfile.findAll({ where, order: [[xpField, 'DESC']], limit: 50 });
   const users = await getUsers(top.map((p) => p.userId));
-  res.render('dashboard/leaderboard', { guild, top, users, active: 'leaderboard' });
+  res.render('dashboard/leaderboard', { guild, top, users, track, xpField, levelField, active: 'leaderboard' });
 });
 
 // ---- Moderation: log channel, report channel, mod log + warnings viewer ----
@@ -234,7 +268,7 @@ router.get('/:guildId/level-roles', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
   const settings = await getSettings(req.params.guildId);
   const roles = await getGuildRoles(req.params.guildId);
-  const levelRoles = await LevelRole.findAll({ where: { guildId: req.params.guildId }, order: [['level', 'ASC']] });
+  const levelRoles = await LevelRole.findAll({ where: { guildId: req.params.guildId, track: 'total' }, order: [['level', 'ASC']] });
   res.render('dashboard/level-roles', { guild, settings, roles, levelRoles, sync: syncStatus.get(req.params.guildId) || null, active: 'level-roles' });
 });
 
@@ -244,7 +278,11 @@ router.post('/:guildId/level-roles', ensureGuildAccess, async (req, res) => {
   const roleId = snowflake(req.body.roleId);
   const roles = await getGuildRoles(guildId);
   if (!level || !roleId || !roles.some((r) => r.id === roleId)) return res.redirect(saved(guildId, 'level-roles', 'invalid'));
-  await LevelRole.upsert({ guildId, level, roleId });
+  const track = 'total';
+  // One role per (direction, level): saving the same pair again replaces the role.
+  const existing = await LevelRole.findOne({ where: { guildId, level, track } });
+  if (existing) await existing.update({ roleId });
+  else await LevelRole.create({ guildId, level, roleId, track });
   res.redirect(saved(guildId, 'level-roles'));
 });
 
@@ -270,11 +308,11 @@ router.post('/:guildId/level-roles/sync', ensureGuildAccess, async (req, res) =>
   res.redirect(saved(guildId, 'level-roles', 'started'));
 
   (async () => {
-    const { computeRoleChanges } = require('../../bot/modules/levelRoles');
-    const levelRoles = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId }));
+    const { computeTrackRoleChanges } = require('../../bot/modules/levelRoles');
+    const levelRoles = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId, track: r.track }));
     if (!levelRoles.length) return;
     const profiles = await MemberProfile.findAll({ where: { guildId } });
-    const levels = new Map(profiles.map((p) => [p.userId, p.level]));
+    const levels = new Map(profiles.map((p) => [p.userId, { total: p.level }]));
 
     // All server members with their roles (paged by 1000).
     const members = [];
@@ -289,7 +327,7 @@ router.post('/:guildId/level-roles/sync', ensureGuildAccess, async (req, res) =>
     status.total = targets.length;
     const pause = (ms) => new Promise((r) => setTimeout(r, ms));
     for (const m of targets) {
-      const { add, remove } = computeRoleChanges(levelRoles, levels.get(m.user.id), m.roles, settings.levelRolesReplace);
+      const { add, remove } = computeTrackRoleChanges(levelRoles, levels.get(m.user.id), m.roles, settings.levelRolesReplace);
       try {
         for (const id of add) { await botApi.put(`/guilds/${guildId}/members/${m.user.id}/roles/${id}`, null, { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Роль за уровень') } }); await pause(300); }
         for (const id of remove) { await botApi.delete(`/guilds/${guildId}/members/${m.user.id}/roles/${id}`); await pause(300); }

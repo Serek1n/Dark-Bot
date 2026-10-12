@@ -13,56 +13,56 @@ function denyPermission(interaction, permName) {
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('moderation')
+    .setName('mod')
     .setDescription('Команды модерации сервера')
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .addSubcommand((sub) =>
       sub
         .setName('warn')
         .setDescription('Выдать предупреждение участнику')
-        .addUserOption((opt) => opt.setName('пользователь').setDescription('Кому выдать предупреждение').setRequired(true))
-        .addStringOption((opt) => opt.setName('причина').setDescription('Причина'))
+        .addUserOption((opt) => opt.setName('user').setDescription('Кому выдать предупреждение').setRequired(true))
+        .addStringOption((opt) => opt.setName('reason').setDescription('Причина'))
     )
     .addSubcommand((sub) =>
       sub
         .setName('unwarn')
-        .setDescription('Снять предупреждение по номеру (см. /moderation warnings)')
-        .addIntegerOption((opt) => opt.setName('номер').setDescription('ID предупреждения').setRequired(true))
+        .setDescription('Снять предупреждение по номеру (см. /mod warnings)')
+        .addIntegerOption((opt) => opt.setName('number').setDescription('ID предупреждения').setRequired(true))
     )
     .addSubcommand((sub) =>
       sub
         .setName('warnings')
         .setDescription('Показать предупреждения участника')
-        .addUserOption((opt) => opt.setName('пользователь').setDescription('Кого проверить').setRequired(true))
+        .addUserOption((opt) => opt.setName('user').setDescription('Кого проверить').setRequired(true))
     )
     .addSubcommand((sub) =>
       sub
         .setName('mute')
         .setDescription('Замутить участника (timeout)')
-        .addUserOption((opt) => opt.setName('пользователь').setDescription('Кого замутить').setRequired(true))
-        .addIntegerOption((opt) => opt.setName('минуты').setDescription('На сколько минут').setRequired(true).setMinValue(1).setMaxValue(40320))
-        .addStringOption((opt) => opt.setName('причина').setDescription('Причина'))
+        .addUserOption((opt) => opt.setName('user').setDescription('Кого замутить').setRequired(true))
+        .addIntegerOption((opt) => opt.setName('minutes').setDescription('На сколько минут').setRequired(true).setMinValue(1).setMaxValue(40320))
+        .addStringOption((opt) => opt.setName('reason').setDescription('Причина'))
     )
     .addSubcommand((sub) =>
       sub
         .setName('unmute')
         .setDescription('Снять мут с участника')
-        .addUserOption((opt) => opt.setName('пользователь').setDescription('Кого размутить').setRequired(true))
+        .addUserOption((opt) => opt.setName('user').setDescription('Кого размутить').setRequired(true))
     )
     .addSubcommand((sub) =>
       sub
         .setName('kick')
         .setDescription('Кикнуть участника')
-        .addUserOption((opt) => opt.setName('пользователь').setDescription('Кого кикнуть').setRequired(true))
-        .addStringOption((opt) => opt.setName('причина').setDescription('Причина'))
+        .addUserOption((opt) => opt.setName('user').setDescription('Кого кикнуть').setRequired(true))
+        .addStringOption((opt) => opt.setName('reason').setDescription('Причина'))
     )
     .addSubcommand((sub) =>
       sub
         .setName('ban')
         .setDescription('Забанить участника')
-        .addUserOption((opt) => opt.setName('пользователь').setDescription('Кого забанить').setRequired(true))
-        .addStringOption((opt) => opt.setName('причина').setDescription('Причина'))
-        .addIntegerOption((opt) => opt.setName('дней_удалить').setDescription('Удалить сообщения за N дней (0-7)').setMinValue(0).setMaxValue(7))
+        .addUserOption((opt) => opt.setName('user').setDescription('Кого забанить').setRequired(true))
+        .addStringOption((opt) => opt.setName('reason').setDescription('Причина'))
+        .addIntegerOption((opt) => opt.setName('delete_days').setDescription('Удалить сообщения за N дней (0-7)').setMinValue(0).setMaxValue(7))
     )
     .addSubcommand((sub) =>
       sub
@@ -74,7 +74,7 @@ module.exports = {
       sub
         .setName('clear')
         .setDescription('Удалить последние сообщения в канале')
-        .addIntegerOption((opt) => opt.setName('количество').setDescription('Сколько сообщений удалить (1-100)').setRequired(true).setMinValue(1).setMaxValue(100))
+        .addIntegerOption((opt) => opt.setName('count').setDescription('Сколько сообщений удалить (1-100)').setRequired(true).setMinValue(1).setMaxValue(100))
     ),
 
   async execute(interaction) {
@@ -86,8 +86,8 @@ module.exports = {
     if (sub === 'clear' && !memberHasPermission(interaction.member, 'ManageMessages')) return denyPermission(interaction, 'Manage Messages');
 
     if (sub === 'warn') {
-      const target = interaction.options.getUser('пользователь');
-      const reason = interaction.options.getString('причина') || 'Без причины';
+      const target = interaction.options.getUser('user');
+      const reason = interaction.options.getString('reason') || 'Без причины';
       if (target.id === interaction.user.id) return interaction.reply({ embeds: [embeds.error('Нельзя выдать предупреждение самому себе.')], flags: MessageFlags.Ephemeral });
       if (target.bot) return interaction.reply({ embeds: [embeds.error('Ботам предупреждения не выдаются.')], flags: MessageFlags.Ephemeral });
       await Warning.create({ guildId: interaction.guild.id, userId: target.id, moderatorId: interaction.user.id, reason });
@@ -98,7 +98,7 @@ module.exports = {
     }
 
     if (sub === 'unwarn') {
-      const id = interaction.options.getInteger('номер');
+      const id = interaction.options.getInteger('number');
       const warning = await Warning.findOne({ where: { id, guildId: interaction.guild.id } });
       if (!warning) return interaction.reply({ embeds: [embeds.error('Предупреждение с таким номером не найдено.')], flags: MessageFlags.Ephemeral });
       await warning.destroy();
@@ -107,7 +107,7 @@ module.exports = {
     }
 
     if (sub === 'warnings') {
-      const target = interaction.options.getUser('пользователь');
+      const target = interaction.options.getUser('user');
       const warnings = await Warning.findAll({ where: { guildId: interaction.guild.id, userId: target.id }, order: [['createdAt', 'DESC']] });
       if (!warnings.length) return interaction.reply({ embeds: [embeds.info(`У <@${target.id}> нет предупреждений.`)] });
 
@@ -125,9 +125,9 @@ module.exports = {
     }
 
     if (sub === 'mute') {
-      const target = interaction.options.getUser('пользователь');
-      const minutes = interaction.options.getInteger('минуты');
-      const reason = interaction.options.getString('причина') || 'Без причины';
+      const target = interaction.options.getUser('user');
+      const minutes = interaction.options.getInteger('minutes');
+      const reason = interaction.options.getString('reason') || 'Без причины';
       const member = await interaction.guild.members.fetch(target.id).catch(() => null);
       if (!member) return interaction.reply({ embeds: [embeds.error('Участник не найден.')], flags: MessageFlags.Ephemeral });
       const hErr = hierarchyError(interaction.member, member);
@@ -139,7 +139,7 @@ module.exports = {
     }
 
     if (sub === 'unmute') {
-      const target = interaction.options.getUser('пользователь');
+      const target = interaction.options.getUser('user');
       const member = await interaction.guild.members.fetch(target.id).catch(() => null);
       if (!member) return interaction.reply({ embeds: [embeds.error('Участник не найден.')], flags: MessageFlags.Ephemeral });
       await member.timeout(null);
@@ -148,8 +148,8 @@ module.exports = {
     }
 
     if (sub === 'kick') {
-      const target = interaction.options.getUser('пользователь');
-      const reason = interaction.options.getString('причина') || 'Без причины';
+      const target = interaction.options.getUser('user');
+      const reason = interaction.options.getString('reason') || 'Без причины';
       const member = await interaction.guild.members.fetch(target.id).catch(() => null);
       if (!member) return interaction.reply({ embeds: [embeds.error('Участник не найден.')], flags: MessageFlags.Ephemeral });
       const hErr = hierarchyError(interaction.member, member);
@@ -161,9 +161,9 @@ module.exports = {
     }
 
     if (sub === 'ban') {
-      const target = interaction.options.getUser('пользователь');
-      const reason = interaction.options.getString('причина') || 'Без причины';
-      const deleteDays = interaction.options.getInteger('дней_удалить') || 0;
+      const target = interaction.options.getUser('user');
+      const reason = interaction.options.getString('reason') || 'Без причины';
+      const deleteDays = interaction.options.getInteger('delete_days') || 0;
       const member = await interaction.guild.members.fetch(target.id).catch(() => null);
       if (target.id === interaction.user.id) return interaction.reply({ embeds: [embeds.error('Нельзя забанить самого себя.')], flags: MessageFlags.Ephemeral });
       const hErr = hierarchyError(interaction.member, member);
@@ -187,7 +187,7 @@ module.exports = {
     }
 
     if (sub === 'clear') {
-      const amount = interaction.options.getInteger('количество');
+      const amount = interaction.options.getInteger('count');
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const deleted = await interaction.channel.bulkDelete(amount, true).catch(() => null);
       if (!deleted) return interaction.editReply({ embeds: [embeds.error('Не удалось удалить сообщения (возможно, они старше 14 дней или у бота нет права «Управлять сообщениями»).')] });

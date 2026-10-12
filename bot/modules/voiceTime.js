@@ -57,30 +57,36 @@ function seedFromGuilds(client) {
 }
 
 /**
- * Once a minute: everyone sitting in a voice channel gets XP. Not counted: bots, the AFK channel,
- * deafened members and anyone alone in the channel (so nobody can farm XP by sitting alone).
+ * Once a minute: everyone sitting in a voice channel gets voice XP and coins. Not counted: bots,
+ * the AFK channel, deafened members and channels with fewer people than "voiceMinMembers"
+ * (default 2, so nobody farms by sitting alone).
  */
 async function xpTick(client) {
   for (const guild of client.guilds.cache.values()) {
     const settings = await GuildSettings.findOne({ where: { guildId: guild.id } });
-    if (!settings || !settings.levelingEnabled || !(settings.voiceXpPerMinute > 0)) continue;
+    if (!settings || !settings.levelingEnabled || !settings.voiceEnabled) continue;
+    const xpPerMinute = Math.max(0, Number(settings.voiceXpPerMinute) || 0);
+    if (!(xpPerMinute > 0) && !(Number(settings.voiceCoinsPerMinute) > 0)) continue;
+    const minMembers = Math.max(1, Number(settings.voiceMinMembers) || 2);
     const announceChannel = settings.levelUpChannelId ? guild.channels.cache.get(settings.levelUpChannelId) : null;
 
     for (const channel of guild.channels.cache.values()) {
       if (!channel.isVoiceBased?.() || channel.id === guild.afkChannelId) continue;
       const humans = [...channel.members.values()].filter((m) => !m.user.bot);
-      if (humans.length < 2) continue;
+      if (humans.length < minMembers) continue;
       for (const member of humans) {
         if (member.voice?.deaf) continue;
-        const result = await grantVoiceXp(guild.id, member.id, settings.voiceXpPerMinute).catch(() => null);
-        if (result) await applyLevelRoles(member, result.newLevel, settings.levelRolesReplace);
+        const result = await grantVoiceXp(guild.id, member.id, xpPerMinute).catch(() => null);
+        if (result) await applyLevelRoles(member, result.levels, settings.levelRolesReplace);
         if (result?.leveledUp) {
           await announceLevelUp({
             guild,
             user: member.user,
             displayName: member.displayName,
             level: result.newLevel,
-            channel: announceChannel
+            channel: announceChannel,
+            crystals: result.crystals,
+            crystalName: settings.crystalName
           });
         }
       }
@@ -106,12 +112,9 @@ function pendingSeconds(guildId, userId) {
 
 function formatDuration(totalSeconds) {
   const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-  const d = Math.floor(s / 86400);
-  const h = Math.floor((s % 86400) / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (d) return `${d} д ${h} ч`;
-  if (h) return `${h} ч ${m} мин`;
-  return `${m} мин`;
+  const h = Math.floor(s / 3600);
+  if (h) return `${h} ч`; // total hours, no days
+  return `${Math.floor(s / 60)} мин`;
 }
 
 module.exports = { xpTick, trackVoiceState, seedFromGuilds, flushAll, pendingSeconds, formatDuration, sessions };

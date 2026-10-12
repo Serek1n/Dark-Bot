@@ -28,7 +28,17 @@ async function importLacuna(guildId, users) {
     const voice = Math.max(0, Math.trunc(Number(row.activity?.total_voice_time) || 0));
 
     const [profile] = await MemberProfile.findOrCreate({ where: { guildId, userId } });
-    profile.xp = Math.max(Number(profile.xp), xp);
+    const dark = user.dark && typeof user.dark === 'object' ? user.dark : null;
+    if (dark) {
+      // Export of this bot: both directions are restored exactly (never lowered).
+      profile.chatXp = Math.max(Number(profile.chatXp), Math.max(0, Math.round(Number(dark.chatXp) || 0)));
+      profile.voiceXp = Math.max(Number(profile.voiceXp), Math.max(0, Math.round(Number(dark.voiceXp) || 0)));
+      profile.crystals = Math.max(Number(profile.crystals), Math.max(0, Math.round(Number(dark.crystals) || 0)));
+    } else if (xp > Number(profile.xp)) {
+      // Other bots keep one XP number: it cannot be split, so it counts as chat progress.
+      profile.chatXp = Number(profile.chatXp) + (xp - Number(profile.xp));
+    }
+    profile.xp = Number(profile.chatXp) + Number(profile.voiceXp);
     profile.level = levelFromXp(profile.xp);
     profile.balance = Math.max(Number(profile.balance), money);
     profile.messageCount = Math.max(Number(profile.messageCount), messages);
