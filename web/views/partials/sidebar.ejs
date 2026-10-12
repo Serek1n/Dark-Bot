@@ -91,7 +91,9 @@
       invalid: ['Не удалось сохранить: проверьте заполнение полей', true],
       started: ['Выдача ролей запущена', false],
       running: ['Выдача ролей уже идёт', true],
-      nomessage: ['Сообщение не найдено в выбранном канале', true]
+      nomessage: ['Сообщение не найдено в выбранном канале', true],
+      granted: ['Баланс участника обновлён', false],
+      baduser: ['Укажите корректный ID участника', true]
     };
     for (var key in kinds) {
       if (!params.has(key)) continue;
@@ -108,5 +110,30 @@
       history.replaceState(null, '', location.pathname + (q ? '?' + q : ''));
       break;
     }
+  })();
+</script>
+
+<div class="save-bar" id="saveBar" role="status" aria-live="polite">
+  <span class="sb-text">Есть несохранённые изменения</span>
+  <button type="button" class="btn btn-secondary" id="sbReset">Отменить</button>
+  <button type="button" class="btn" id="sbSave">Сохранить</button>
+</div>
+<script>
+  // Shows a "save" bar once any settings form is edited, and warns before leaving with unsaved changes.
+  (function () {
+    var bar = document.getElementById('saveBar');
+    var forms = Array.prototype.filter.call(document.querySelectorAll('.content form[method=post]'), function (f) {
+      return f.querySelector('input:not([type=hidden]):not([type=file]), select, textarea') && !f.hasAttribute('data-no-guard');
+    });
+    var dirty = null, submitting = false;
+    function mark(f) { dirty = f; bar.classList.add('show'); }
+    forms.forEach(function (f) {
+      f.addEventListener('input', function () { mark(f); });
+      f.addEventListener('change', function () { mark(f); });
+      f.addEventListener('submit', function () { submitting = true; });
+    });
+    document.getElementById('sbSave').addEventListener('click', function () { if (dirty) { submitting = true; dirty.requestSubmit ? dirty.requestSubmit() : dirty.submit(); } });
+    document.getElementById('sbReset').addEventListener('click', function () { submitting = true; location.reload(); });
+    window.addEventListener('beforeunload', function (e) { if (dirty && !submitting) { e.preventDefault(); e.returnValue = ''; } });
   })();
 </script>

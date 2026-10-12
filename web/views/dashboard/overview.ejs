@@ -7,7 +7,7 @@
     <div class="content">
       <div class="page-header">
         <h1>Обзор</h1>
-        <p class="page-intro">Общее состояние сервера. Всё, что здесь настраивается, работает и через слэш-команды в Discord — панель и бот делят одну базу данных.</p>
+        <p class="page-intro">Состояние сервера и быстрые переходы. Всё, что касается настроек бота, делается здесь, в панели.</p>
       </div>
 
       <div class="stat-row">
@@ -73,13 +73,54 @@
         </div>
       </div>
 
-      <div class="card">
+      <%
+        const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация' };
+        const ago = (d) => { const m = Math.max(0, Math.round((Date.now() - new Date(d).getTime()) / 60000)); if (m < 1) return 'только что'; if (m < 60) return m + ' мин назад'; const h = Math.round(m / 60); if (h < 24) return h + ' ч назад'; return Math.round(h / 24) + ' дн назад'; };
+      %>
+      <div class="grid-2">
+        <div class="card">
+          <h2>Топ по опыту</h2>
+          <% if (!topMembers.length) { %>
+            <p class="empty-state">Пока никто не заработал опыт.</p>
+          <% } else { %>
+            <div class="mini-list">
+              <% topMembers.forEach((p, i) => { const u = users[p.userId] || { name: p.userId, avatar: '' }; %>
+                <div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="val">ур. <%= p.level %></span></div>
+              <% }) %>
+            </div>
+            <a class="card-link" href="/dashboard/<%= guild.id %>/leaderboard">Весь лидерборд →</a>
+          <% } %>
+        </div>
+        <div class="card">
+          <h2>Последние действия модераторов</h2>
+          <% if (!recentLogs.length) { %>
+            <p class="empty-state">Действий пока нет.</p>
+          <% } else { %>
+            <div class="mini-list">
+              <% recentLogs.forEach(l => { const u = users[l.userId] || { name: l.userId, avatar: '' }; %>
+                <div class="mini-row"><span class="badge badge-<%= l.action %>"><%= actionRu[l.action] || l.action %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="when"><%= ago(l.createdAt) %></span></div>
+              <% }) %>
+            </div>
+            <a class="card-link" href="/dashboard/<%= guild.id %>/moderation">Весь журнал →</a>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px;">
         <h2>
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="15" height="12" rx="1.5"/><path d="M5.5 8L8 10L5.5 12M10.5 12.5H14.5"/></svg>
-          Слэш-команды и панель
+          Команды бота
         </h2>
-        <p>Все параметры бота можно настроить как здесь, так и слэш-командами прямо в Discord (например <code>/settings</code>, <code>/automod</code>, <code>/manage</code>). Изменения применяются мгновенно — оба способа пишут в одну и ту же базу данных.</p>
-        <p>Текущий префикс кастомных команд: <code><%= settings.prefix %></code></p>
+        <p style="margin-top:0">Настройки сервера делаются только здесь, в панели. В Discord остались команды для участников и модераторов:</p>
+        <div class="cmd-grid">
+          <div><code>/profile</code><br>Карточка: уровень, место, баланс</div>
+          <div><code>/top</code><br>Лидеры: общий и по голосу</div>
+          <div><code>/play</code><br>Музыка, управление кнопками</div>
+          <div><code>/daily</code> <code>/balance</code> <code>/pay</code><br>Награда, баланс и переводы</div>
+          <div><code>/mod</code><br>Предупреждения, мут, кик, бан, очистка</div>
+          <div><code>/help</code><br>Подсказка по ролям</div>
+        </div>
+        <p>Префикс своих текстовых команд: <code><%= settings.prefix %></code></p>
       </div>
     </div>
   </div>

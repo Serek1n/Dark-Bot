@@ -20,7 +20,7 @@
           </select>
         </div>
         <div>
-          <label>Текст приветствия — доступны {user} и {server}</label>
+          <label>Текст приветствия — доступны {user} и {server}, поддерживается **жирный** текст</label>
           <textarea name="welcomeMessage" id="welcomeMessage" maxlength="1800"><%= settings.welcomeMessage %></textarea>
         </div>
         <div>
@@ -52,7 +52,10 @@
       function render() {
         out.innerHTML = esc(input.value)
           .replace(/\{user\}/g, '<span class="mention">@Новый участник</span>')
-          .replace(/\{server\}/g, esc(server));
+          .replace(/\{server\}/g, esc(server))
+          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+          .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+          .replace(/\n/g, '<br>');
       }
       input.addEventListener('input', render);
       render();

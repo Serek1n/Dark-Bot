@@ -14,6 +14,12 @@
           <a class="btn <%= track === t[0] ? '' : 'btn-secondary' %>" href="/dashboard/<%= guild.id %>/leaderboard?track=<%= t[0] %>"><%= t[1] %></a>
         <% }) %>
       </div>
+      <% if (top.length) { %>
+        <div class="toolbar">
+          <input type="text" class="search" id="lbSearch" placeholder="Найти участника по имени" autocomplete="off" />
+          <span class="count" id="lbCount"><%= top.length %> из топ-50</span>
+        </div>
+      <% } %>
       <div class="card">
         <% if (!top.length) { %>
           <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg>Пока никто не заработал опыт.</p>
@@ -24,7 +30,7 @@
           %>
           <div class="lb-list">
             <% top.forEach((p, i) => { const u = users[p.userId] || { name: p.userId, avatar: '' }; const voice = track === 'voice'; const cur = voice ? Number(p.voiceSeconds) : into(p); const nx = voice ? Math.max(1, Number(top[0].voiceSeconds)) : need(p.level); %>
-              <div class="lb-row <%= i < 3 ? 'top-' + (i + 1) : '' %>">
+              <div class="lb-row <%= i < 3 ? 'top-' + (i + 1) : '' %>" data-name="<%= u.name.toLowerCase() %>">
                 <div class="lb-rank"><%= i + 1 %></div>
                 <div class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span class="nm"><%= u.name %></span></div>
                 <div class="lb-xp">
@@ -39,5 +45,18 @@
       </div>
     </div>
   </div>
+  <script>
+    (function () {
+      var input = document.getElementById('lbSearch');
+      if (!input) return;
+      var rows = document.querySelectorAll('.lb-row');
+      var count = document.getElementById('lbCount');
+      input.addEventListener('input', function () {
+        var q = input.value.trim().toLowerCase(), shown = 0;
+        rows.forEach(function (r) { var ok = !q || r.getAttribute('data-name').indexOf(q) !== -1; r.style.display = ok ? '' : 'none'; if (ok) shown++; });
+        count.textContent = q ? 'Найдено: ' + shown : rows.length + ' из топ-50';
+      });
+    })();
+  </script>
 </body>
 </html>

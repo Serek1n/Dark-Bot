@@ -9,6 +9,12 @@
         <h1>Экономика</h1>
         <p class="page-intro">Две валюты с разными источниками. Сколько выдавать за чат и голос, настраивается на странице «Уровни».</p>
       </div>
+      <% const n = (v) => Number(v).toLocaleString('ru-RU'); %>
+      <div class="stat-row">
+        <div class="stat-box"><div class="value"><%= n(stats.coinsTotal) %></div><div class="label"><%= settings.currencyName %> в обороте</div></div>
+        <div class="stat-box"><div class="value"><%= n(stats.crystalsTotal) %></div><div class="label"><%= settings.crystalName %> в обороте</div></div>
+        <div class="stat-box"><div class="value"><%= n(stats.holders) %></div><div class="label">Участников с деньгами</div></div>
+      </div>
       <form method="post">
         <div class="card">
           <h2><%= settings.currencyName %></h2>
@@ -34,6 +40,40 @@
         </div>
         <button class="btn" type="submit">Сохранить</button>
       </form>
+
+      <div class="grid-2" style="margin-top:18px;">
+        <form method="post" action="/dashboard/<%= guild.id %>/economy/grant" class="card" data-no-guard>
+          <h2>Выдать или забрать</h2>
+          <div>
+            <label>ID участника</label>
+            <input type="text" name="userId" inputmode="numeric" placeholder="Например, 123456789012345678" required pattern="[0-9]{15,25}" />
+            <div class="hint">Включите режим разработчика в Discord, правый клик по участнику → «Копировать ID».</div>
+          </div>
+          <div class="two-col">
+            <div>
+              <label>Что</label>
+              <select name="currency"><option value="coins"><%= settings.currencyName %></option><option value="crystals"><%= settings.crystalName %></option></select>
+            </div>
+            <div>
+              <label>Сколько (минус — забрать)</label>
+              <input type="number" name="amount" value="100" required />
+            </div>
+          </div>
+          <button class="btn" type="submit">Применить</button>
+        </form>
+        <div class="card">
+          <h2>Самые богатые</h2>
+          <% if (!richest.length || !Number(richest[0].balance)) { %>
+            <p class="empty-state">Пока ни у кого нет денег.</p>
+          <% } else { %>
+            <div class="mini-list">
+              <% richest.forEach((p, i) => { const u = users[p.userId] || { name: p.userId, avatar: '' }; %>
+                <div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="val"><%= n(p.balance) %> · <%= n(p.crystals) %> кр.</span></div>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+      </div>
     </div>
   </div>
 </body>

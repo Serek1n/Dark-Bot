@@ -227,7 +227,7 @@ async function main() {
   const guildObj = { id: '1', name: 'Test', icon: null };
   const settings = await L.getOrCreateSettings('g1');
   const channels = [{ id: '123456789012345678', name: 'chat', type: 0 }];
-  const render = (f, data) => ejs.renderFile(path.join(root, f + '.ejs'), { guild: guildObj, settings, channels, roles: [{ id: '1', name: 'r' }], levelRoles: [{ id: 1, level: 5, roleId: '1', track: 'total' }], sync: null, top: [], users: {}, track: 'voice', xpField: 'voiceXp', levelField: 'level', ...data });
+  const render = (f, data) => ejs.renderFile(path.join(root, f + '.ejs'), { guild: guildObj, settings, channels, roles: [{ id: '1', name: 'r' }], levelRoles: [{ id: 1, level: 5, roleId: '1', track: 'total' }], sync: null, top: [], users: {}, stats: { coinsTotal: 0, crystalsTotal: 0, holders: 0 }, richest: [], track: 'voice', xpField: 'voiceXp', levelField: 'level', ...data });
   await test('web: leveling page has separate Chat and Voice sections', async () => {
     const h = await render('leveling', { active: 'leveling' });
     for (const n of ['chatEnabled', 'xpPerMessageMin', 'chatCoinsPerMessage', 'crystalsPerLevel', 'voiceEnabled', 'voiceXpPerMinute', 'voiceCoinsPerMinute', 'voiceMinMembers']) assert(h.includes(`name="${n}"`), 'missing ' + n);

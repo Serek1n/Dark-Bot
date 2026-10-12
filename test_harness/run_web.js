@@ -81,6 +81,42 @@ const express = require('express');
     assert(h.includes('n100000000000000009'), 'member missing');
   });
 
+  await test('overview shows the real commands and no stale ones; top and recent actions render', async () => {
+    await db.ModLog.create({ guildId: '777000000000000001', userId: '100000000000000009', moderatorId: '100000000000000008', action: 'ban', reason: 'x' });
+    const h = await (await fetch(base + '')).text();
+    assert(h.includes('/profile') && h.includes('/daily') && h.includes('/mod'), 'commands');
+    assert(!h.includes('/settings') && !h.includes('/manage'), 'stale commands still mentioned');
+    assert(h.includes('Топ по опыту') && h.includes('Бан'), 'top / recent actions');
+  });
+  await test('moderation: Russian action names and the action filter', async () => {
+    await db.ModLog.create({ guildId: '777000000000000001', userId: '100000000000000009', moderatorId: '100000000000000008', action: 'warn', reason: null });
+    const all = await (await fetch(base + '/moderation')).text();
+    assert(all.includes('Бан') && all.includes('Предупреждение') && !all.includes('>ban<'), 'labels');
+    const only = await (await fetch(base + '/moderation?action=ban')).text();
+    assert(only.includes('Бан') && !only.includes('badge badge-warn'), 'filter');
+    const junk = await fetch(base + '/moderation?action=%27%3Cscript%3E');
+    assert(junk.status === 200, 'junk filter must be ignored');
+  });
+  await test('economy: totals render; grant adds, takes away, never below zero; bad ID rejected', async () => {
+    const id = '100000000000000077';
+    let r = await post('/economy/grant', { userId: id, currency: 'coins', amount: '500' });
+    assert(r.status === 302 && r.headers.get('location').includes('granted'), 'grant');
+    await post('/economy/grant', { userId: id, currency: 'crystals', amount: '7' });
+    let p = await db.MemberProfile.findOne({ where: { userId: id } });
+    assert(Number(p.balance) === 500 && Number(p.crystals) === 7, `${p.balance}/${p.crystals}`);
+    await post('/economy/grant', { userId: id, currency: 'coins', amount: '-9999' });
+    p = await db.MemberProfile.findOne({ where: { userId: id } });
+    assert(Number(p.balance) === 0, 'must floor at zero: ' + p.balance);
+    r = await post('/economy/grant', { userId: 'abc', currency: 'coins', amount: '5' });
+    assert(r.headers.get('location').includes('baduser'), 'bad id');
+    const page = await (await fetch(base + '/economy')).text();
+    assert(page.includes('в обороте') && page.includes('Самые богатые'), 'stats');
+  });
+  await test('every page ships the unsaved-changes bar and a search box on the leaderboard', async () => {
+    for (const p of ['/leveling', '/economy', '/welcome']) assert((await (await fetch(base + p)).text()).includes('id="saveBar"'), p);
+    assert((await (await fetch(base + '/leaderboard')).text()).includes('id="lbSearch"'), 'search');
+  });
+
   server.close();
   results.forEach((r) => console.log(r.ok ? '✅' : '❌', r.l, r.ok ? '' : '\n   ' + r.e));
   console.log(`\nИтого: ${results.filter((r) => r.ok).length}/${results.length} прошли успешно`);

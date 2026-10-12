@@ -67,9 +67,15 @@ router.get('/:guildId', ensureGuildAccess, async (req, res) => {
   const reactionRoleCount = await ReactionRole.count({ where: { guildId: req.params.guildId } });
   const customCommandCount = await CustomCommand.count({ where: { guildId: req.params.guildId } });
   const alertCount = await Alert.count({ where: { guildId: req.params.guildId } });
+  const topMembers = await MemberProfile.findAll({ where: { guildId: req.params.guildId }, order: [['xp', 'DESC']], limit: 5 });
+  const recentLogs = await ModLog.findAll({ where: { guildId: req.params.guildId }, order: [['createdAt', 'DESC']], limit: 5 });
+  const users = await getUsers([...topMembers.map((p) => p.userId), ...recentLogs.flatMap((l) => [l.userId, l.moderatorId])]);
   res.render('dashboard/overview', {
     guild,
     settings,
+    topMembers,
+    recentLogs,
+    users,
     memberCount,
     warningCount,
     reactionRoleCount,
@@ -113,7 +119,28 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
 router.get('/:guildId/economy', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
   const settings = await getSettings(req.params.guildId);
-  res.render('dashboard/economy', { guild, settings, active: 'economy' });
+  const where = { guildId: req.params.guildId };
+  const [coinsTotal, crystalsTotal, holders] = await Promise.all([
+    MemberProfile.sum('balance', { where }),
+    MemberProfile.sum('crystals', { where }),
+    MemberProfile.count({ where: { guildId: req.params.guildId, balance: { [Op.gt]: 0 } } })
+  ]);
+  const richest = await MemberProfile.findAll({ where, order: [['balance', 'DESC']], limit: 5 });
+  const users = await getUsers(richest.map((p) => p.userId));
+  res.render('dashboard/economy', { guild, settings, stats: { coinsTotal: coinsTotal || 0, crystalsTotal: crystalsTotal || 0, holders }, richest, users, active: 'economy' });
+});
+
+// Manual correction of a member's wallet (add or take away); never goes below zero.
+router.post('/:guildId/economy/grant', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const userId = snowflake(req.body.userId);
+  if (!userId) return res.redirect(saved(guildId, 'economy', 'baduser'));
+  const field = req.body.currency === 'crystals' ? 'crystals' : 'balance';
+  const amount = clampInt(req.body.amount, -1000000000, 1000000000, 0);
+  const [profile] = await MemberProfile.findOrCreate({ where: { guildId, userId } });
+  profile[field] = Math.max(0, Number(profile[field] || 0) + amount);
+  await profile.save();
+  res.redirect(saved(guildId, 'economy', 'granted'));
 });
 
 router.post('/:guildId/economy', ensureGuildAccess, async (req, res) => {
@@ -202,9 +229,12 @@ router.get('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
   const settings = await getSettings(req.params.guildId);
   const channels = await getGuildChannels(req.params.guildId);
-  const logs = await ModLog.findAll({ where: { guildId: req.params.guildId }, order: [['createdAt', 'DESC']], limit: 50 });
+  const actions = ['warn', 'unwarn', 'mute', 'unmute', 'kick', 'ban', 'unban', 'clear', 'automod'];
+  const action = actions.includes(req.query.action) ? req.query.action : '';
+  const where = action ? { guildId: req.params.guildId, action } : { guildId: req.params.guildId };
+  const logs = await ModLog.findAll({ where, order: [['createdAt', 'DESC']], limit: 50 });
   const users = await getUsers(logs.flatMap((l) => [l.userId, l.moderatorId]));
-  res.render('dashboard/moderation', { guild, settings, channels, logs, users, active: 'moderation' });
+  res.render('dashboard/moderation', { guild, settings, channels, logs, users, action, active: 'moderation' });
 });
 
 router.post('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
