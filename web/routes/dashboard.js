@@ -188,7 +188,7 @@ router.get('/:guildId/leveling/export', ensureGuildAccess, async (req, res) => {
 
 router.get('/:guildId/leaderboard', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
-  const tracks = { total: ['xp', 'level'], voice: ['voiceXp', 'level'] };
+  const tracks = { total: ['xp', 'level'], voice: ['voiceSeconds', 'level'] };
   const track = tracks[req.query.track] ? req.query.track : 'total';
   const [xpField, levelField] = tracks[track];
   const where = track === 'total' ? { guildId: req.params.guildId } : { guildId: req.params.guildId, [xpField]: { [Op.gt]: 0 } };

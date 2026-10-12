@@ -173,6 +173,8 @@ async function main() {
 
   const client = { users: { fetch: async (id) => ({ id, username: 'u' + id, globalName: null, displayAvatarURL: () => 'http://127.0.0.1:9/x.png' }) } };
   const guild = { id: 'g1', name: 'G1' };
+  await MemberProfile.update({ voiceSeconds: 7200 }, { where: { guildId: 'g1', userId: 'a' } });
+  await MemberProfile.update({ voiceSeconds: 3600 }, { where: { guildId: 'g1', userId: 'b' } });
   await test('top: Total / Voice and the buttons have unique ids', async () => {
     for (const cat of ['total', 'voice']) {
       const page = await buildTopPage(client, guild, 0, 'u1', cat);
@@ -183,6 +185,21 @@ async function main() {
       assert(ids.every((x) => x.split(':').length === 5), `${cat}: id shape ${ids}`);
     }
     fs.writeFileSync('/tmp/top_voice.png', (await buildTopPage(client, guild, 0, 'u1', 'voice')).files[0].attachment);
+  });
+
+  await test('top (voice): ranks by hours in voice (profile time), not by voice XP', async () => {
+    await db.MemberProfile.bulkCreate([
+      { guildId: 'g6', userId: 'hrs_low', xp: 5000, level: 10, voiceSeconds: 3600 * 2, voiceXp: 0 },
+      { guildId: 'g6', userId: 'hrs_high', xp: 100, level: 1, voiceSeconds: 3600 * 404, voiceXp: 0 },
+      { guildId: 'g6', userId: 'hrs_none', xp: 9000, level: 12, voiceSeconds: 0, voiceXp: 0 }
+    ]);
+    const seen = [];
+    const spy = { users: { fetch: async (id) => { seen.push(id); return { id, username: id, globalName: null, displayAvatarURL: () => null }; } } };
+    const page = await buildTopPage(spy, { id: 'g6', name: 'G6' }, 0, 'u1', 'voice');
+    assert(page && seen.join() === 'hrs_high,hrs_low', 'order/filter: ' + seen.join());
+    const total = [];
+    await buildTopPage({ users: { fetch: async (id) => { total.push(id); return { id, username: id, displayAvatarURL: () => null }; } } }, { id: 'g6', name: 'G6' }, 0, 'u1', 'total');
+    assert(total[0] === 'hrs_none', 'total board still ranks by XP: ' + total.join());
   });
 
   await test('top: category button re-renders on the chosen direction (page 0)', async () => {

@@ -8,7 +8,7 @@ const logger = require('../utils/logger');
 
 const PAGE_SIZE = 10;
 const PREFIX = 'top';
-const CATS = { total: { field: 'xp', label: 'Общий', heading: 'Таблица лидеров' }, voice: { field: 'voiceXp', label: 'Голос', heading: 'Лидеры голоса' } };
+const CATS = { total: { field: 'xp', label: 'Общий', heading: 'Таблица лидеров' }, voice: { field: 'voiceSeconds', label: 'Голос', heading: 'Лидеры голоса' } };
 const catOf = (c) => (CATS[c] ? c : 'total');
 
 function navRow(page, pages, userId, cat) {
@@ -70,7 +70,9 @@ async function buildTopPage(client, guild, requestedPage, userId, category = 'to
           avatarURL: user ? user.displayAvatarURL({ extension: 'png', size: 64 }) : null,
           level: p.level,
           xp: Number(p[c.field]),
-          sub: cat === 'voice' ? formatDuration(p.voiceSeconds) : null
+          // The voice board ranks by hours spent in voice (the same number as on the profile card).
+          sub: cat === 'voice' ? formatDuration(p.voiceSeconds) : null,
+          small: cat === 'voice' ? `ур. ${p.level}` : null
         };
       })
     );
@@ -81,7 +83,7 @@ async function buildTopPage(client, guild, requestedPage, userId, category = 'to
     const medals = ['🥇', '🥈', '🥉'];
     const lines = profiles.map((p, i) => {
       const rank = page * PAGE_SIZE + i + 1;
-      return `${medals[rank - 1] || `**${rank}.**`}  <@${p.userId}>  —  уровень ${p.level} · ${p[c.field]} XP`;
+      return `${medals[rank - 1] || `**${rank}.**`}  <@${p.userId}>  —  уровень ${p.level} · ${cat === 'voice' ? formatDuration(p.voiceSeconds) : p.xp + ' XP'}`;
     });
     return {
       files: [],

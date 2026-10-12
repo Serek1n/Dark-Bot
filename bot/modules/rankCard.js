@@ -366,7 +366,7 @@ async function renderLeaderboard(data) {
     ctx.fillText(r.sub || `ур. ${r.level}`, W - 52, mid - 2);
     ctx.fillStyle = COLORS.fog;
     ctx.font = '14px CardMonoBold';
-    ctx.fillText(`${fmt(r.xp)} XP`, W - 52, mid + 18);
+    ctx.fillText(r.small || `${fmt(r.xp)} XP`, W - 52, mid + 18);
     ctx.textAlign = 'left';
   }
 
