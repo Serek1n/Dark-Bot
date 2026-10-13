@@ -374,8 +374,27 @@ function trackFromYtDlp(e, requestedBy) {
     duration: e.duration_string || formatSeconds(e.duration),
     thumbnail: e.thumbnail || e.thumbnails?.[e.thumbnails.length - 1]?.url,
     requestedBy,
-    source: 'youtube'
+    source: /soundcloud\.com/i.test(e.webpage_url || e.url || '') ? 'soundcloud' : 'youtube'
   };
+}
+
+const isSoundCloudUrl = (q) => /^https?:\/\/(www\.|m\.|on\.)?soundcloud\.com\//i.test(String(q).trim()) || /^https?:\/\/snd\.sc\//i.test(String(q).trim());
+
+/** SoundCloud through yt-dlp: a single track, a set/playlist (up to 50), or a search. */
+async function ytDlpSoundCloud(query, requestedBy) {
+  const j = await ytDlpJson(['--skip-download', '--flat-playlist', '--playlist-end', '50', '--dump-single-json', '--no-warnings', query], 30000);
+  const entries = j.entries ? j.entries.filter(Boolean) : [j];
+  return entries.map((e) => {
+    const t = trackFromYtDlp({ ...e, webpage_url: e.webpage_url || e.url }, requestedBy);
+    return { ...t, source: 'soundcloud', thumbnail: t.thumbnail || j.thumbnail };
+  }).filter((t) => t.url && t.title);
+}
+
+async function ytDlpSoundCloudSearch(query, requestedBy) {
+  const j = await ytDlpJson(['--skip-download', '--flat-playlist', '--dump-single-json', '--no-warnings', `scsearch1:${query}`], 20000);
+  const e = j.entries && j.entries[0];
+  if (!e) return [];
+  return [{ ...trackFromYtDlp({ ...e, webpage_url: e.url || e.webpage_url }, requestedBy), source: 'soundcloud' }];
 }
 
 async function ytDlpSearch(query, requestedBy) {
@@ -399,6 +418,27 @@ async function resolveQuery(query, requestedBy) {
 }
 
 async function resolveQueryInner(query, requestedBy) {
+  query = String(query).trim();
+
+  // SoundCloud: link, or an explicit "sc: название" search.
+  const scPrefix = /^(sc|soundcloud)\s*:\s*(.+)$/i.exec(query);
+  if (scPrefix) {
+    const found = await ytDlpSoundCloudSearch(scPrefix[2].trim(), requestedBy);
+    if (!found.length) throw new Error('В SoundCloud ничего не найдено.');
+    return found;
+  }
+  if (isSoundCloudUrl(query)) {
+    try {
+      const found = await ytDlpSoundCloud(query, requestedBy);
+      if (found.length) return found;
+    } catch (err) {
+      logger.warn?.(`yt-dlp soundcloud failed, using play-dl: ${err.message}`);
+    }
+    const d = await withTimeout(playdl.soundcloud(query), 15000, 'soundcloud');
+    const sec = d.durationInSec || 0;
+    return [{ title: d.name, url: d.url, duration: `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, thumbnail: d.thumbnail, requestedBy, source: 'soundcloud' }];
+  }
+
   const type = await withTimeout(playdl.validate(query), 5000, 'validate').catch(() => false);
 
   if (type === 'yt_video') {
@@ -481,8 +521,8 @@ async function resolveQueryInner(query, requestedBy) {
     return null;
   });
   if (fast && fast.length) return fast;
-  const results = await withTimeout(playdl.search(query, { source: { youtube: 'video' }, limit: 1 }), 15000, 'search');
-  if (!results[0]) return [];
+  const results = await withTimeout(playdl.search(query, { source: { youtube: 'video' }, limit: 1 }), 15000, 'search').catch(() => []);
+  if (!results[0]) return ytDlpSoundCloudSearch(query, requestedBy).catch(() => []);
   return [
     {
       title: results[0].title,

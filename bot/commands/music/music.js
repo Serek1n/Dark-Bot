@@ -11,7 +11,7 @@ module.exports = {
       data: new SlashCommandBuilder()
         .setName('play')
         .setDescription('Включить музыку: название трека или ссылка (YouTube, SoundCloud, Spotify)')
-        .addStringOption((opt) => opt.setName('query').setDescription('Название или ссылка').setRequired(true))
+        .addStringOption((opt) => opt.setName('query').setDescription('Название или ссылка. Для поиска в SoundCloud: sc: название').setRequired(true))
     }
   ],
   data: new SlashCommandBuilder()
