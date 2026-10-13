@@ -58,6 +58,26 @@ function fmt(n) {
     .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
+// Avatars are downloaded for every /profile and /top. Keep decoded images for a few minutes (and share
+// a download that is already in flight); a slow or dead CDN gives up after 4 s instead of hanging the
+// command, and a failure is remembered briefly so the same broken link is not retried at once.
+const AVATAR_TTL_MS = 10 * 60 * 1000;
+const AVATAR_FAIL_TTL_MS = 30 * 1000;
+const avatarCache = new Map(); // url -> { promise, expires }
+function loadAvatar(url) {
+  const hit = avatarCache.get(url);
+  if (hit && hit.expires > Date.now()) return hit.promise;
+  let timer;
+  const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('avatar timeout')), 4000); });
+  const entry = { expires: Date.now() + AVATAR_TTL_MS };
+  entry.promise = Promise.race([loadImage(url), timeout])
+    .finally(() => clearTimeout(timer))
+    .catch((err) => { entry.expires = Date.now() + AVATAR_FAIL_TTL_MS; throw err; });
+  if (avatarCache.size >= 300) avatarCache.delete(avatarCache.keys().next().value);
+  avatarCache.set(url, entry);
+  return entry.promise;
+}
+
 function makeCanvas(w, h) {
   const canvas = createCanvas(w * SCALE, h * SCALE);
   const ctx = canvas.getContext('2d');
@@ -69,7 +89,7 @@ function makeCanvas(w, h) {
 async function drawAvatar(ctx, url, name, cx, cy, radius) {
   try {
     if (!url) throw new Error('no avatar');
-    const img = await loadImage(url);
+    const img = await loadAvatar(url);
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -286,7 +306,7 @@ async function renderLeaderboard(data) {
   const avatars = await Promise.all(
     rows.map(async (r) => {
       try {
-        return r.avatarURL ? await loadImage(r.avatarURL) : null;
+        return r.avatarURL ? await loadAvatar(r.avatarURL) : null;
       } catch {
         return null;
       }

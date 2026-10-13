@@ -4,6 +4,8 @@ const logger = require('../utils/logger');
 const { isMusicButton, handleMusicButton } = require('../modules/music/panel');
 const { isTopButton, handleTopButton } = require('../modules/leaderboardPage');
 const { isShopComponent, handleShopComponent } = require('../modules/shop');
+const { featureForCommand, isEnabled } = require('../utils/features');
+const { getOrCreateSettings } = require('../modules/leveling');
 
 module.exports = {
   name: 'interactionCreate',
@@ -13,6 +15,11 @@ module.exports = {
       if (!command) return;
 
       try {
+        // Features an admin switched off in the panel answer with a short note instead of running.
+        const feature = interaction.guildId ? featureForCommand(interaction.commandName) : null;
+        if (feature && !isEnabled(await getOrCreateSettings(interaction.guildId), feature.key)) {
+          return await interaction.reply({ embeds: [embeds.info(`Функция «${feature.title}» отключена администрацией сервера.`)], flags: MessageFlags.Ephemeral });
+        }
         await command.execute(interaction);
       } catch (err) {
         logger.error(`Command "${interaction.commandName}" failed:`, err);

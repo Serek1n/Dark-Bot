@@ -117,7 +117,7 @@ const express = require('express');
     assert((await (await fetch(base + '/leaderboard')).text()).includes('id="lbSearch"'), 'search');
   });
 
-  await test('shop: create, edit, validate, delete, refund', async () => {
+  await test('shop: create, edit, validate, delete', async () => {
     const G = '777000000000000001';
     let r = await post('/shop/items', { name: 'VIP', price: '500', currency: 'crystals', type: 'role', roleId: '223456789012345678', stock: '3', minLevel: '2', enabled: 'on' });
     assert(r.status === 302 && !r.headers.get('location').includes('invalid'), 'create ' + r.headers.get('location'));
@@ -132,16 +132,6 @@ const express = require('express');
     assert(it.name === 'VIP+' && it.price === 1 && it.stock === null && it.type === 'item' && it.enabled === false && it.deliveryMessage === 'key-1', 'edit ' + JSON.stringify(it.toJSON()));
     const page = await (await fetch(base + '/shop')).text();
     assert(page.includes('VIP+') && page.includes('Новый товар'), 'page lists item');
-    // refund
-    const [p] = await db.MemberProfile.findOrCreate({ where: { guildId: G, userId: '5' } });
-    await p.update({ balance: 0 });
-    const pur = await db.Purchase.create({ guildId: G, userId: '5', itemId: it.id, itemName: 'VIP+', itemType: 'item', price: 40, currency: 'coins', status: 'pending' });
-    await it.update({ stock: 1 });
-    await post(`/shop/purchases/${pur.id}/refund`, {});
-    await p.reload(); await it.reload(); await pur.reload();
-    assert(p.balance === 40 && it.stock === 2 && pur.status === 'refunded', 'refund');
-    await post(`/shop/purchases/${pur.id}/refund`, {});
-    await p.reload(); assert(p.balance === 40, 'double refund must not pay twice');
     r = await post('/shop/items/' + it.id + '/delete', {});
     assert(!(await db.ShopItem.findByPk(it.id)), 'deleted');
   });

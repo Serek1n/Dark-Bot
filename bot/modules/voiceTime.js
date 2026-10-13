@@ -1,7 +1,6 @@
-const { MemberProfile } = require('../../db');
+const { sequelize } = require('../../db');
 const logger = require('../utils/logger');
-const { GuildSettings } = require('../../db');
-const { grantVoiceXp } = require('./leveling');
+const { grantVoiceXpBatch, getOrCreateSettings } = require('./leveling');
 const { announceLevelUp } = require('../utils/levelUp');
 const { applyLevelRoles } = require('./levelRoles');
 
@@ -11,12 +10,25 @@ const FLUSH_MS = 5 * 60 * 1000;
 const XP_TICK_MS = 60 * 1000;
 const key = (guildId, userId) => `${guildId}:${userId}`;
 
-async function addSeconds(guildId, userId, seconds) {
-  if (seconds <= 0) return;
-  const [profile] = await MemberProfile.findOrCreate({ where: { guildId, userId } });
-  profile.voiceSeconds = Number(profile.voiceSeconds || 0) + seconds;
-  await profile.save();
+/**
+ * Adds seconds to many members in ONE transaction with plain SQL increments (atomic, no
+ * read-modify-write). entries: [[guildId, userId, seconds], ...]. Members without a profile get one.
+ */
+async function addSecondsBatch(entries) {
+  const rows = entries.filter(([, , sec]) => sec > 0);
+  const now = new Date();
+  // One multi-row statement per 200 members: insert, or add to the existing total (atomic).
+  for (let i = 0; i < rows.length; i += 200) {
+    const group = rows.slice(i, i + 200);
+    await sequelize.query(
+      `INSERT INTO member_profiles (guildId, userId, voiceSeconds, createdAt, updatedAt) VALUES ${group.map(() => '(?, ?, ?, ?, ?)').join(',')}
+       ON CONFLICT (guildId, userId) DO UPDATE SET voiceSeconds = COALESCE(member_profiles.voiceSeconds, 0) + excluded.voiceSeconds, updatedAt = excluded.updatedAt`,
+      { replacements: group.flatMap(([guildId, userId, seconds]) => [guildId, userId, seconds, now, now]) }
+    );
+  }
 }
+
+const addSeconds = (guildId, userId, seconds) => addSecondsBatch([[guildId, userId, seconds]]);
 
 function startSession(guildId, userId) {
   if (!sessions.has(key(guildId, userId))) sessions.set(key(guildId, userId), Date.now());
@@ -63,22 +75,35 @@ function seedFromGuilds(client) {
  */
 async function xpTick(client) {
   for (const guild of client.guilds.cache.values()) {
-    const settings = await GuildSettings.findOne({ where: { guildId: guild.id } });
+    const settings = await getOrCreateSettings(guild.id);
     if (!settings || !settings.levelingEnabled || !settings.voiceEnabled) continue;
     const xpPerMinute = Math.max(0, Number(settings.voiceXpPerMinute) || 0);
     if (!(xpPerMinute > 0) && !(Number(settings.voiceCoinsPerMinute) > 0)) continue;
     const minMembers = Math.max(1, Number(settings.voiceMinMembers) || 2);
     const announceChannel = settings.levelUpChannelId ? guild.channels.cache.get(settings.levelUpChannelId) : null;
 
+    // Everyone who earns this minute, across all voice channels of the server.
+    const earners = [];
     for (const channel of guild.channels.cache.values()) {
       if (!channel.isVoiceBased?.() || channel.id === guild.afkChannelId) continue;
       const humans = [...channel.members.values()].filter((m) => !m.user.bot);
       if (humans.length < minMembers) continue;
-      for (const member of humans) {
-        if (member.voice?.deaf) continue;
-        const result = await grantVoiceXp(guild.id, member.id, xpPerMinute).catch(() => null);
-        if (result) await applyLevelRoles(member, result.levels, settings.levelRolesReplace);
-        if (result?.leveledUp) {
+      for (const member of humans) if (!member.voice?.deaf) earners.push(member);
+    }
+    if (!earners.length) continue;
+
+    // 200 members at a time: one database round trip for each group instead of one per member.
+    for (let i = 0; i < earners.length; i += 200) {
+      const group = earners.slice(i, i + 200);
+      const results = await grantVoiceXpBatch(guild.id, group.map((m) => m.id), xpPerMinute).catch((err) => {
+        logger.error('voice xp batch failed', err);
+        return new Map();
+      });
+      for (const member of group) {
+        const result = results.get(member.id);
+        if (!result) continue;
+        await applyLevelRoles(member, result.levels, settings.levelRolesReplace);
+        if (result.leveledUp) {
           await announceLevelUp({
             guild,
             user: member.user,
@@ -97,11 +122,13 @@ async function xpTick(client) {
 /** Saves time of everyone currently in voice and restarts their windows (so a restart loses < 5 min). */
 async function flushAll() {
   const now = Date.now();
+  const entries = [];
   for (const [k, started] of [...sessions]) {
     const [guildId, userId] = k.split(':');
     sessions.set(k, now);
-    await addSeconds(guildId, userId, Math.floor((now - started) / 1000));
+    entries.push([guildId, userId, Math.floor((now - started) / 1000)]);
   }
+  await addSecondsBatch(entries);
 }
 
 /** Live (unsaved) seconds of a currently connected member, to show up-to-date numbers. */

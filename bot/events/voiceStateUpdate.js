@@ -45,7 +45,7 @@ module.exports = {
     }
 
     const settings = await GuildSettings.findOne({ where: { guildId: guild.id } });
-    if (!settings?.tempVoiceJoinChannelId) return;
+    if (!settings?.tempVoiceJoinChannelId || !settings.tempVoiceEnabled) return;
 
     // User joined the "join to create" channel -> spawn a new temp channel and move them into it
     if (newState.channelId === settings.tempVoiceJoinChannelId) {

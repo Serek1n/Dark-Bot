@@ -1,6 +1,7 @@
 const axios = require('axios');
 const cron = require('node-cron');
 const { Alert } = require('../../../db');
+const { getOrCreateSettings } = require('../leveling');
 const logger = require('../../utils/logger');
 
 let twitchToken = null;
@@ -102,6 +103,8 @@ async function pollAll(client) {
   const alerts = await Alert.findAll();
   for (const alert of alerts) {
     try {
+      // Switched off in the panel: skip (nothing is marked as seen, so it catches up when turned back on).
+      if (!(await getOrCreateSettings(alert.guildId)).alertsEnabled) continue;
       if (alert.platform === 'youtube') await checkYouTube(alert, client);
       else if (alert.platform === 'twitch') await checkTwitch(alert, client);
     } catch (err) {

@@ -14,4 +14,11 @@ function withLock(key, fn) {
   return run;
 }
 
-module.exports = { withLock };
+/** Holds several keys at once. Keys are taken in sorted order, so two callers can never deadlock. */
+function withLocks(keys, fn) {
+  const sorted = [...new Set(keys)].sort();
+  const take = (i) => (i >= sorted.length ? fn() : withLock(sorted[i], () => take(i + 1)));
+  return take(0);
+}
+
+module.exports = { withLock, withLocks };

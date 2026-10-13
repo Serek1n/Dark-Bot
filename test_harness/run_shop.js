@@ -1,4 +1,4 @@
-// Shop: purchases, limits, roles, refunds, daily streak.
+// Shop: purchases, limits, roles, daily streak.
 process.env.DATABASE_PATH = './data/test_shop.sqlite';
 const fs = require('fs');
 fs.mkdirSync('./data', { recursive: true });

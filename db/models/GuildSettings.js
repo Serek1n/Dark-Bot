@@ -45,6 +45,16 @@ module.exports = (sequelize) => {
       shopEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       shopLogChannelId: { type: DataTypes.STRING, allowNull: true }, // purchases are announced here (optional)
 
+      // Feature switches (web panel, page "Функции"); leveling/shop/automod have their own flags above and below
+      economyEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      musicEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      welcomeEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      reactionRolesEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      customCommandsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      tempVoiceEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      alertsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      reportEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+
       // Automod
       automodEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
       automodBannedWords: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON array

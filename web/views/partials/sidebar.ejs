@@ -14,6 +14,10 @@
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="6" rx="1.2"/><rect x="11" y="3" width="6" height="6" rx="1.2"/><rect x="3" y="11" width="6" height="6" rx="1.2"/><rect x="11" y="11" width="6" height="6" rx="1.2"/></svg>
         Обзор
       </a>
+      <a href="/dashboard/<%= guild.id %>/features" class="<%= active === 'features' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6H11M15 6H17M3 14H5M9 14H17"/><circle cx="13" cy="6" r="2"/><circle cx="7" cy="14" r="2"/></svg>
+        Функции
+      </a>
       <a href="/dashboard/<%= guild.id %>/leveling" class="<%= active === 'leveling' ? 'active' : '' %>">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V11M9.5 17V7M16 17V3"/></svg>
         Уровни
@@ -97,7 +101,6 @@
       running: ['Выдача ролей уже идёт', true],
       nomessage: ['Сообщение не найдено в выбранном канале', true],
       granted: ['Баланс участника обновлён', false],
-      refunded: ['Покупка возвращена', false],
       baduser: ['Укажите корректный ID участника', true]
     };
     for (var key in kinds) {

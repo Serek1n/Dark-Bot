@@ -57,6 +57,7 @@ const COLUMN_ADDITIONS = [
   { table: 'member_profiles', column: 'dailyStreak', ddl: 'INTEGER DEFAULT 0' },
   { table: 'guild_settings', column: 'dailyStreakBonus', ddl: 'INTEGER DEFAULT 10' },
   { table: 'guild_settings', column: 'dailyStreakMax', ddl: 'INTEGER DEFAULT 7' },
+  ...['economyEnabled', 'musicEnabled', 'welcomeEnabled', 'reactionRolesEnabled', 'customCommandsEnabled', 'tempVoiceEnabled', 'alertsEnabled', 'reportEnabled'].map((column) => ({ table: 'guild_settings', column, ddl: 'TINYINT(1) DEFAULT 1' })),
   { table: 'guild_settings', column: 'shopEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
   { table: 'guild_settings', column: 'shopLogChannelId', ddl: 'VARCHAR(255)' }
 ];
@@ -88,6 +89,24 @@ async function migrateTracks() {
   await sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS level_roles_guild_track_level ON level_roles (guildId, track, level);');
 }
 
+// Indexes for what the panel and /top sort and count by, and for per-member lookups.
+const INDEXES = [
+  ['member_profiles_guild_xp', 'member_profiles', 'guildId, xp'],
+  ['member_profiles_guild_voice', 'member_profiles', 'guildId, voiceSeconds'],
+  ['member_profiles_guild_balance', 'member_profiles', 'guildId, balance'],
+  ['mod_logs_guild_created', 'mod_logs', 'guildId, createdAt'],
+  ['mod_logs_guild_user', 'mod_logs', 'guildId, userId'],
+  ['warnings_guild_user', 'warnings', 'guildId, userId'],
+  ['level_roles_guild', 'level_roles', 'guildId']
+];
+
+async function ensureIndexes() {
+  for (const [name, table, cols] of INDEXES) {
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS ${name} ON ${table} (${cols});`).catch(() => {});
+  }
+  await sequelize.query('PRAGMA optimize;').catch(() => {});
+}
+
 async function init() {
   // SQLite locks the whole file for writes in its default journal mode. Two
   // findOrCreate calls firing together (e.g. via Promise.all when a brand-new
@@ -97,9 +116,16 @@ async function init() {
   // remaining lock contention retry for up to 5s instead of failing instantly.
   await sequelize.query('PRAGMA journal_mode = WAL;');
   await sequelize.query('PRAGMA busy_timeout = 5000;');
+  // In WAL mode NORMAL is safe against crashes of the program (only a power cut can lose the last
+  // moments) and avoids an fsync on every write; the rest keeps hot data in memory.
+  await sequelize.query('PRAGMA synchronous = NORMAL;');
+  await sequelize.query('PRAGMA cache_size = -32000;'); // ~32 MB page cache
+  await sequelize.query('PRAGMA temp_store = MEMORY;');
+  await sequelize.query('PRAGMA mmap_size = 134217728;');
   await sequelize.sync(); // creates tables if they don't exist
   await addMissingColumns();
   await migrateTracks();
+  await ensureIndexes();
 }
 
 module.exports = { sequelize, init, ...models };

@@ -21,12 +21,15 @@
 
       <%
         const features = [
-          { name: 'Уровни и экономика', on: settings.levelingEnabled, href: 'leveling' },
+          { name: 'Уровни', on: settings.levelingEnabled, href: 'leveling' },
+          { name: 'Экономика', on: settings.economyEnabled, href: 'economy' },
+          { name: 'Магазин', on: settings.shopEnabled, href: 'shop' },
+          { name: 'Музыка', on: settings.musicEnabled, href: 'features' },
           { name: 'Автомодерация', on: settings.automodEnabled, href: 'automod' },
           { name: 'Журнал модерации', on: !!settings.modLogChannelId, href: 'moderation' },
-          { name: 'Приветствие', on: !!settings.welcomeChannelId, href: 'welcome' },
-          { name: 'Автороль', on: !!settings.autoRoleId, href: 'welcome' },
-          { name: 'Временные голосовые', on: !!settings.tempVoiceJoinChannelId, href: 'temp-voice' }
+          { name: 'Приветствие', on: settings.welcomeEnabled && !!settings.welcomeChannelId, href: 'welcome' },
+          { name: 'Автороль', on: settings.welcomeEnabled && !!settings.autoRoleId, href: 'welcome' },
+          { name: 'Временные голосовые', on: settings.tempVoiceEnabled && !!settings.tempVoiceJoinChannelId, href: 'temp-voice' }
         ];
       %>
       <div class="card">

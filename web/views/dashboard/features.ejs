@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Функции' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <div class="page-header">
+        <h1>Функции</h1>
+        <p class="page-intro">Включайте только то, что нужно серверу. Выключенная функция сразу перестаёт работать, а все её настройки и данные сохраняются: после включения всё вернётся как было.</p>
+      </div>
+      <form method="post">
+        <div class="switch-list">
+          <% features.forEach(f => { %>
+            <div class="checkbox-row feature-row">
+              <label for="f_<%= f.key %>">
+                <span class="feature-title"><%= f.title %></span>
+                <span class="feature-desc"><%= f.desc %></span>
+                <% if (f.commands.length) { %><span class="feature-cmds"><% f.commands.forEach(c => { %><code><%= c.includes(' ') ? c : '/' + c %></code> <% }) %></span><% } %>
+              </label>
+              <% if (f.page) { %><a class="feature-link" href="/dashboard/<%= guild.id %>/<%= f.page %>">Настроить</a><% } %>
+              <input type="checkbox" id="f_<%= f.key %>" name="<%= f.field %>" <%= settings[f.field] ? 'checked' : '' %> />
+            </div>
+          <% }) %>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

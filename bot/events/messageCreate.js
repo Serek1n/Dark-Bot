@@ -65,7 +65,7 @@ module.exports = {
 
     // Custom commands (prefix-based, e.g. "!rules")
     const prefix = settings?.prefix || '!';
-    if (message.content.startsWith(prefix)) {
+    if (settings.customCommandsEnabled && message.content.startsWith(prefix)) {
       const trigger = message.content.slice(prefix.length).trim().split(/\s+/)[0]?.toLowerCase();
       if (trigger) {
         const custom = await CustomCommand.findOne({ where: { guildId: message.guild.id, trigger } });

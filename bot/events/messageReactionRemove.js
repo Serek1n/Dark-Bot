@@ -1,4 +1,5 @@
 const { ReactionRole } = require('../../db');
+const { getOrCreateSettings } = require('../modules/leveling');
 const logger = require('../utils/logger');
 
 function emojiKey(emoji) {
@@ -11,6 +12,7 @@ module.exports = {
     if (user.bot) return;
     if (reaction.partial) await reaction.fetch().catch(() => {});
     if (!reaction.message.guild) return;
+    if (!(await getOrCreateSettings(reaction.message.guild.id)).reactionRolesEnabled) return;
 
     const rr = await ReactionRole.findOne({
       where: { messageId: reaction.message.id, emoji: emojiKey(reaction.emoji) }

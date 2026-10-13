@@ -76,9 +76,6 @@
                       <% if (p.status === 'pending') { %>
                         <form method="post" action="/dashboard/<%= guild.id %>/shop/purchases/<%= p.id %>/deliver" data-no-guard><button class="btn" type="submit">Выдано</button></form>
                       <% } %>
-                      <% if (p.status !== 'refunded') { %>
-                        <form method="post" action="/dashboard/<%= guild.id %>/shop/purchases/<%= p.id %>/refund" data-no-guard onsubmit="return confirm('Вернуть деньги участнику?')"><button class="btn secondary" type="submit">Вернуть деньги</button></form>
-                      <% } %>
                     </div>
                   </td>
                 </tr>

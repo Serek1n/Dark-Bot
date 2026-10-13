@@ -117,6 +117,22 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   res.redirect(saved(req.params.guildId, 'leveling'));
 });
 
+// ---- Features: switch parts of the bot on and off ----
+const { FEATURES } = require('../../bot/utils/features');
+
+router.get('/:guildId/features', ensureGuildAccess, async (req, res) => {
+  const guild = await getGuild(req.params.guildId);
+  const settings = await getSettings(req.params.guildId);
+  res.render('dashboard/features', { guild, settings, features: FEATURES, active: 'features' });
+});
+
+router.post('/:guildId/features', ensureGuildAccess, async (req, res) => {
+  const settings = await getSettings(req.params.guildId);
+  FEATURES.forEach((f) => { settings[f.field] = req.body[f.field] === 'on'; });
+  await settings.save();
+  res.redirect(saved(req.params.guildId, 'features'));
+});
+
 // ---- Economy: currencies ----
 router.get('/:guildId/economy', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
@@ -229,28 +245,6 @@ router.post('/:guildId/shop/purchases/:id/deliver', ensureGuildAccess, async (re
   const purchase = await Purchase.findOne({ where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId } });
   if (purchase && purchase.status === 'pending') await purchase.update({ status: 'done' });
   res.redirect(saved(guildId, 'shop'));
-});
-
-// Refund: give the money back, return the piece to stock, and (best effort) take the role away.
-router.post('/:guildId/shop/purchases/:id/refund', ensureGuildAccess, async (req, res) => {
-  const { guildId } = req.params;
-  const { withLock } = require('../../bot/utils/lock');
-  const ok = await withLock(`shop:${guildId}`, async () => {
-    const purchase = await Purchase.findOne({ where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId } });
-    if (!purchase || purchase.status === 'refunded') return false;
-    const [profile] = await MemberProfile.findOrCreate({ where: { guildId, userId: purchase.userId } });
-    const field = purchase.currency === 'crystals' ? 'crystals' : 'balance';
-    profile[field] = Number(profile[field] || 0) + purchase.price;
-    await profile.save();
-    await purchase.update({ status: 'refunded' });
-    const item = await ShopItem.findOne({ where: { id: purchase.itemId, guildId } });
-    if (item && item.stock !== null && item.stock !== undefined) await item.update({ stock: item.stock + 1 });
-    if (purchase.itemType === 'role' && purchase.roleId) {
-      await botApi.delete(`/guilds/${guildId}/members/${purchase.userId}/roles/${purchase.roleId}`, { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Возврат покупки') } }).catch(() => {});
-    }
-    return true;
-  });
-  res.redirect(saved(guildId, 'shop', ok ? 'refunded' : 'invalid'));
 });
 
 // ---- Leaderboard (read-only) ----

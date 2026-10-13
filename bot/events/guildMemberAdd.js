@@ -5,7 +5,7 @@ module.exports = {
   name: 'guildMemberAdd',
   async execute(member) {
     const settings = await GuildSettings.findOne({ where: { guildId: member.guild.id } });
-    if (!settings) return;
+    if (!settings || !settings.welcomeEnabled) return;
 
     if (settings.autoRoleId) {
       const role = member.guild.roles.cache.get(settings.autoRoleId);
