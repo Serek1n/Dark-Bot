@@ -19,6 +19,7 @@ module.exports = (sequelize) => {
       crystals: { type: DataTypes.BIGINT, defaultValue: 0 },
       lastXpAt: { type: DataTypes.DATE, allowNull: true },
       lastDailyAt: { type: DataTypes.DATE, allowNull: true },
+      dailyStreak: { type: DataTypes.INTEGER, defaultValue: 0 }, // consecutive days with /daily
       messageCount: { type: DataTypes.BIGINT, defaultValue: 0 },
       voiceSeconds: { type: DataTypes.BIGINT, defaultValue: 0 }
     },

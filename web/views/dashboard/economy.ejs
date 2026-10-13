@@ -29,6 +29,17 @@
               <input type="number" name="dailyCoins" value="<%= settings.dailyCoins %>" min="0" max="1000000" />
             </div>
           </div>
+          <div class="two-col">
+            <div>
+              <label>Бонус за каждый день серии</label>
+              <input type="number" name="dailyStreakBonus" value="<%= settings.dailyStreakBonus %>" min="0" max="1000000" />
+              <div class="hint">Заходят за наградой каждый день подряд — награда растёт.</div>
+            </div>
+            <div>
+              <label>Серия растёт до (дней)</label>
+              <input type="number" name="dailyStreakMax" value="<%= settings.dailyStreakMax %>" min="1" max="365" />
+            </div>
+          </div>
         </div>
         <div class="card">
           <h2><%= settings.crystalName %></h2>

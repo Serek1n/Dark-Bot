@@ -3,6 +3,7 @@ const embeds = require('../utils/embeds');
 const logger = require('../utils/logger');
 const { isMusicButton, handleMusicButton } = require('../modules/music/panel');
 const { isTopButton, handleTopButton } = require('../modules/leaderboardPage');
+const { isShopComponent, handleShopComponent } = require('../modules/shop');
 
 module.exports = {
   name: 'interactionCreate',
@@ -30,6 +31,18 @@ module.exports = {
         await handleTopButton(interaction);
       } catch (err) {
         logger.error('Leaderboard button failed:', err);
+      }
+      return;
+    }
+
+    if (isShopComponent(interaction)) {
+      try {
+        await handleShopComponent(interaction);
+      } catch (err) {
+        logger.error('Shop interaction failed:', err);
+        const payload = { embeds: [embeds.error('Не получилось выполнить действие.')], flags: MessageFlags.Ephemeral };
+        if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
+        else await interaction.reply(payload).catch(() => {});
       }
       return;
     }

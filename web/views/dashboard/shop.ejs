@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Магазин' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <div class="page-header">
+        <h1>Магазин</h1>
+        <p class="page-intro">Участники тратят монеты и кристаллы командой <code>/shop</code>. Товар — это роль (выдаётся сразу) или «предмет» (текст с выдачей или ручная выдача).</p>
+      </div>
+      <% const n = (v) => Number(v).toLocaleString('ru-RU'); const cn = (c) => c === 'crystals' ? settings.crystalName : settings.currencyName; %>
+
+      <form method="post" action="/dashboard/<%= guild.id %>/shop/settings" class="card">
+        <h2>Настройки</h2>
+        <label class="checkbox-row"><input type="checkbox" name="shopEnabled" <%= settings.shopEnabled ? 'checked' : '' %> /> Магазин включён</label>
+        <div>
+          <label>Канал для журнала покупок</label>
+          <select name="shopLogChannelId">
+            <option value="">Не отправлять</option>
+            <% channels.filter(c => c.type === 0).forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.shopLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+
+      <div class="card">
+        <h2>Товары <span class="muted">(<%= items.length %> из <%= maxItems %>)</span></h2>
+        <% if (!items.length) { %><p class="empty-state">Товаров пока нет. Добавьте первый ниже.</p><% } %>
+        <% items.forEach(it => { %>
+          <details class="shop-item" style="margin-bottom:10px;">
+            <summary>
+              <strong><%= it.name %></strong>
+              — <%= n(it.price) %> <%= cn(it.currency) %>
+              <span class="muted"> · <%= it.type === 'role' ? 'роль' : 'предмет' %><%= it.stock !== null ? ' · осталось ' + it.stock : '' %><%= it.enabled ? '' : ' · скрыт' %></span>
+            </summary>
+            <form method="post" action="/dashboard/<%= guild.id %>/shop/items/<%= it.id %>" data-no-guard>
+              <%- include('../partials/shop-fields', { it, roles, settings }) %>
+              <div class="btn-row">
+                <button class="btn" type="submit">Сохранить товар</button>
+              </div>
+            </form>
+            <form method="post" action="/dashboard/<%= guild.id %>/shop/items/<%= it.id %>/delete" data-no-guard onsubmit="return confirm('Удалить товар «<%= it.name.replace(/['"\\]/g, '') %>»?')">
+              <button class="btn danger" type="submit">Удалить</button>
+            </form>
+          </details>
+        <% }) %>
+      </div>
+
+      <% if (items.length < maxItems) { %>
+      <form method="post" action="/dashboard/<%= guild.id %>/shop/items" class="card" data-no-guard>
+        <h2>Новый товар</h2>
+        <%- include('../partials/shop-fields', { it: { name: '', description: '', price: 100, currency: 'coins', type: 'item', roleId: null, stock: null, minLevel: 0, deliveryMessage: '', enabled: true }, roles, settings }) %>
+        <button class="btn" type="submit">Добавить</button>
+      </form>
+      <% } %>
+
+      <div class="card">
+        <h2>Покупки <% if (pending) { %><span class="muted">· ждут выдачи: <%= pending %></span><% } %></h2>
+        <% if (!purchases.length) { %>
+          <p class="empty-state">Покупок пока не было.</p>
+        <% } else { %>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Участник</th><th>Товар</th><th>Цена</th><th>Статус</th><th></th></tr></thead>
+            <tbody>
+              <% purchases.forEach(p => { const u = users[p.userId] || { name: p.userId }; %>
+                <tr>
+                  <td><%= u.name %></td>
+                  <td><%= p.itemName %></td>
+                  <td><%= n(p.price) %> <%= cn(p.currency) %></td>
+                  <td><%= { done: 'Выдано', pending: 'Ждёт выдачи', refunded: 'Возвращено' }[p.status] || p.status %></td>
+                  <td>
+                    <div class="btn-row">
+                      <% if (p.status === 'pending') { %>
+                        <form method="post" action="/dashboard/<%= guild.id %>/shop/purchases/<%= p.id %>/deliver" data-no-guard><button class="btn" type="submit">Выдано</button></form>
+                      <% } %>
+                      <% if (p.status !== 'refunded') { %>
+                        <form method="post" action="/dashboard/<%= guild.id %>/shop/purchases/<%= p.id %>/refund" data-no-guard onsubmit="return confirm('Вернуть деньги участнику?')"><button class="btn secondary" type="submit">Вернуть деньги</button></form>
+                      <% } %>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

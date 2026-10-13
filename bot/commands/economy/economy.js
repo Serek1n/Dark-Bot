@@ -72,11 +72,18 @@ module.exports = {
           const remaining = DAY_MS - (Date.now() - new Date(profile.lastDailyAt).getTime());
           return { wait: remaining };
         }
-        const amount = Math.max(0, Number(settings.dailyCoins) || 0);
+        // Streak: claiming again within 48 hours of the previous claim continues it, otherwise it restarts.
+        const last = profile.lastDailyAt ? new Date(profile.lastDailyAt).getTime() : 0;
+        const streak = last && Date.now() - last < 2 * DAY_MS ? Number(profile.dailyStreak || 0) + 1 : 1;
+        const base = Math.max(0, Number(settings.dailyCoins) || 0);
+        const maxDays = Math.max(1, Number(settings.dailyStreakMax) || 1);
+        const bonus = Math.max(0, Number(settings.dailyStreakBonus) || 0) * (Math.min(streak, maxDays) - 1);
+        const amount = base + bonus;
         profile.balance = Number(profile.balance) + amount;
+        profile.dailyStreak = streak;
         profile.lastDailyAt = new Date();
         await profile.save();
-        return { balance: profile.balance, currency: settings.currencyName, amount };
+        return { balance: profile.balance, currency: settings.currencyName, amount, base, bonus, streak };
       });
 
       if (result.wait) {
@@ -89,7 +96,11 @@ module.exports = {
       const embed = embeds
         .baseEmbed(embeds.COLORS.success)
         .setTitle('✓ Награда получена')
-        .setDescription('Возвращайтесь через 24 часа')
+        .setDescription(
+          result.streak > 1
+            ? `Серия: **${result.streak} дн.** подряд${result.bonus ? ` (бонус +${result.bonus})` : ''}. Возвращайтесь через 24 часа, чтобы не прервать её.`
+            : 'Возвращайтесь завтра: за каждый день подряд бонус растёт.'
+        )
         .addFields(
           { name: 'Получено', value: `+${result.amount} ${result.currency}`, inline: true },
           { name: 'Баланс', value: `${result.balance} ${result.currency}`, inline: true }

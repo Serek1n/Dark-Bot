@@ -35,7 +35,15 @@ module.exports = (sequelize) => {
       chatCoinsPerMessage: { type: DataTypes.INTEGER, defaultValue: 5 },
       voiceCoinsPerMinute: { type: DataTypes.INTEGER, defaultValue: 5 },
       dailyCoins: { type: DataTypes.INTEGER, defaultValue: 100 },
+      dailyStreakBonus: { type: DataTypes.INTEGER, defaultValue: 10 }, // extra coins for every day of the streak
+      dailyStreakMax: { type: DataTypes.INTEGER, defaultValue: 7 }, // streak days that still add a bonus
+      shopEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      shopLogChannelId: { type: DataTypes.STRING, allowNull: true }, // purchases are posted here
       crystalsPerLevel: { type: DataTypes.INTEGER, defaultValue: 1 }, // crystals for every new (single, total) level,
+
+      // Shop
+      shopEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      shopLogChannelId: { type: DataTypes.STRING, allowNull: true }, // purchases are announced here (optional)
 
       // Automod
       automodEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },

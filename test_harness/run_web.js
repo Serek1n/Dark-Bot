@@ -30,7 +30,7 @@ const express = require('express');
   const S = () => db.GuildSettings.findOne({ where: { guildId: '777000000000000001' } });
 
   await test('GET all pages return 200', async () => {
-    for (const p of ['', '/leveling', '/economy', '/level-roles', '/leaderboard', '/leaderboard?track=voice', '/leaderboard?track=chat']) {
+    for (const p of ['', '/leveling', '/economy', '/level-roles', '/shop', '/leaderboard', '/leaderboard?track=voice', '/leaderboard?track=chat']) {
       const r = await fetch(base + p); assert(r.status === 200, `${p || '/'} -> ${r.status}: ${(await r.text()).slice(0, 200)}`);
     }
   });
@@ -115,6 +115,43 @@ const express = require('express');
   await test('every page ships the unsaved-changes bar and a search box on the leaderboard', async () => {
     for (const p of ['/leveling', '/economy', '/welcome']) assert((await (await fetch(base + p)).text()).includes('id="saveBar"'), p);
     assert((await (await fetch(base + '/leaderboard')).text()).includes('id="lbSearch"'), 'search');
+  });
+
+  await test('shop: create, edit, validate, delete, refund', async () => {
+    const G = '777000000000000001';
+    let r = await post('/shop/items', { name: 'VIP', price: '500', currency: 'crystals', type: 'role', roleId: '223456789012345678', stock: '3', minLevel: '2', enabled: 'on' });
+    assert(r.status === 302 && !r.headers.get('location').includes('invalid'), 'create ' + r.headers.get('location'));
+    const it = await db.ShopItem.findOne({ where: { guildId: G, name: 'VIP' } });
+    assert(it && it.price === 500 && it.currency === 'crystals' && it.stock === 3 && it.minLevel === 2 && it.enabled, 'fields');
+    r = await post('/shop/items', { name: 'Bad role', price: '5', type: 'role', roleId: 'zz' });
+    assert(r.headers.get('location').includes('invalid'), 'role item without a role is rejected');
+    r = await post('/shop/items', { name: '', price: '5' });
+    assert(r.headers.get('location').includes('invalid'), 'empty name rejected');
+    r = await post('/shop/items/' + it.id, { name: 'VIP+', price: '-5', currency: 'coins', type: 'item', stock: '', deliveryMessage: 'key-1' });
+    await it.reload();
+    assert(it.name === 'VIP+' && it.price === 1 && it.stock === null && it.type === 'item' && it.enabled === false && it.deliveryMessage === 'key-1', 'edit ' + JSON.stringify(it.toJSON()));
+    const page = await (await fetch(base + '/shop')).text();
+    assert(page.includes('VIP+') && page.includes('Новый товар'), 'page lists item');
+    // refund
+    const [p] = await db.MemberProfile.findOrCreate({ where: { guildId: G, userId: '5' } });
+    await p.update({ balance: 0 });
+    const pur = await db.Purchase.create({ guildId: G, userId: '5', itemId: it.id, itemName: 'VIP+', itemType: 'item', price: 40, currency: 'coins', status: 'pending' });
+    await it.update({ stock: 1 });
+    await post(`/shop/purchases/${pur.id}/refund`, {});
+    await p.reload(); await it.reload(); await pur.reload();
+    assert(p.balance === 40 && it.stock === 2 && pur.status === 'refunded', 'refund');
+    await post(`/shop/purchases/${pur.id}/refund`, {});
+    await p.reload(); assert(p.balance === 40, 'double refund must not pay twice');
+    r = await post('/shop/items/' + it.id + '/delete', {});
+    assert(!(await db.ShopItem.findByPk(it.id)), 'deleted');
+  });
+  await test('shop settings and daily streak settings save', async () => {
+    await post('/shop/settings', { shopEnabled: 'on', shopLogChannelId: '123456789012345678' });
+    let s = await S(); assert(s.shopEnabled && s.shopLogChannelId === '123456789012345678', 'shop settings');
+    await post('/shop/settings', {});
+    s = await S(); assert(!s.shopEnabled && !s.shopLogChannelId, 'shop off');
+    await post('/economy', { currencyName: 'A', crystalName: 'B', dailyCoins: '50', dailyStreakBonus: '7', dailyStreakMax: '5' });
+    s = await S(); assert(s.dailyStreakBonus === 7 && s.dailyStreakMax === 5, 'streak');
   });
 
   server.close();

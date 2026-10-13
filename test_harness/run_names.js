@@ -15,7 +15,7 @@ const { makeInteraction, makeUser } = require('./mock');
 
   await test('exactly the expected commands are registered, old names are gone', async () => {
     const names = [...cmds.keys()].sort();
-    assert(names.join() === ['Report message', 'balance', 'play', 'mod', 'daily', 'pay', 'help', 'profile', 'top'].sort().join(), names.join());
+    assert(names.join() === ['Report message', 'balance', 'play', 'mod', 'daily', 'pay', 'shop', 'help', 'profile', 'top'].sort().join(), names.join());
   });
   await test('all names/options are valid for Discord (lowercase, 1-32 chars) and descriptions <= 100', async () => {
     const re = /^[-_\p{L}\p{N}]{1,32}$/u;

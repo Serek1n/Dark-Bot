@@ -1,0 +1,31 @@
+<div class="two-col">
+  <div><label>Название</label><input type="text" name="name" value="<%= it.name %>" maxlength="60" required /></div>
+  <div><label>Цена</label><input type="number" name="price" value="<%= it.price %>" min="1" max="1000000000" required /></div>
+</div>
+<div><label>Описание</label><input type="text" name="description" value="<%= it.description || '' %>" maxlength="200" /></div>
+<div class="two-col">
+  <div><label>Валюта</label>
+    <select name="currency">
+      <option value="coins" <%= it.currency === 'coins' ? 'selected' : '' %>><%= settings.currencyName %></option>
+      <option value="crystals" <%= it.currency === 'crystals' ? 'selected' : '' %>><%= settings.crystalName %></option>
+    </select>
+  </div>
+  <div><label>Тип</label>
+    <select name="type">
+      <option value="item" <%= it.type === 'item' ? 'selected' : '' %>>Предмет (текст или ручная выдача)</option>
+      <option value="role" <%= it.type === 'role' ? 'selected' : '' %>>Роль (выдаётся сразу)</option>
+    </select>
+  </div>
+</div>
+<div><label>Роль (для типа «Роль»)</label>
+  <select name="roleId">
+    <option value="">—</option>
+    <% roles.forEach(r => { %><option value="<%= r.id %>" <%= it.roleId === r.id ? 'selected' : '' %>>@<%= r.name %></option><% }) %>
+  </select>
+</div>
+<div class="two-col">
+  <div><label>Количество на складе</label><input type="number" name="stock" value="<%= it.stock === null || it.stock === undefined ? '' : it.stock %>" min="0" placeholder="Пусто — без ограничений" /></div>
+  <div><label>Минимальный уровень</label><input type="number" name="minLevel" value="<%= it.minLevel || 0 %>" min="0" max="1000" /></div>
+</div>
+<div><label>Сообщение при выдаче</label><textarea name="deliveryMessage" maxlength="500" rows="2" placeholder="Например, ключ или инструкция. Покажется покупателю. Если пусто — выдаёте вручную."><%= it.deliveryMessage || '' %></textarea></div>
+<label class="checkbox-row"><input type="checkbox" name="enabled" <%= it.enabled ? 'checked' : '' %> /> Товар виден в магазине</label>

@@ -51,7 +51,14 @@ const COLUMN_ADDITIONS = [
   { table: 'guild_settings', column: 'chatCoinsPerMessage', ddl: 'INTEGER DEFAULT 5' },
   { table: 'guild_settings', column: 'voiceCoinsPerMinute', ddl: 'INTEGER DEFAULT 5' },
   { table: 'guild_settings', column: 'dailyCoins', ddl: 'INTEGER DEFAULT 100' },
-  { table: 'guild_settings', column: 'crystalsPerLevel', ddl: 'INTEGER DEFAULT 1' }
+  { table: 'guild_settings', column: 'shopEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
+  { table: 'guild_settings', column: 'shopLogChannelId', ddl: 'VARCHAR(255)' },
+  { table: 'guild_settings', column: 'crystalsPerLevel', ddl: 'INTEGER DEFAULT 1' },
+  { table: 'member_profiles', column: 'dailyStreak', ddl: 'INTEGER DEFAULT 0' },
+  { table: 'guild_settings', column: 'dailyStreakBonus', ddl: 'INTEGER DEFAULT 10' },
+  { table: 'guild_settings', column: 'dailyStreakMax', ddl: 'INTEGER DEFAULT 7' },
+  { table: 'guild_settings', column: 'shopEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
+  { table: 'guild_settings', column: 'shopLogChannelId', ddl: 'VARCHAR(255)' }
 ];
 
 async function addMissingColumns() {
