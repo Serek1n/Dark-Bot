@@ -1,4 +1,5 @@
 const { getBotGuildIds } = require('../discordApi');
+const { refreshUserGuilds } = require('../utils/userGuilds');
 const { asyncHandler } = require('../utils/asyncHandler');
 
 const MANAGE_GUILD = 0x20;
@@ -27,7 +28,11 @@ async function ensureGuildAccess(req, res, next) {
     return next();
   }
 
-  const guild = (req.user.guilds || []).find((g) => g.id === guildId);
+  let guild = (req.user.guilds || []).find((g) => g.id === guildId);
+  if (!guild || !hasManageAccess(guild)) {
+    // Maybe the user got the rights (or joined) after logging in: look once at the fresh list.
+    guild = (await refreshUserGuilds(req)).find((g) => g.id === guildId);
+  }
   if (!guild || !hasManageAccess(guild)) {
     return res.status(403).render('error', { message: 'У вас нет прав администратора на этом сервере.' });
   }

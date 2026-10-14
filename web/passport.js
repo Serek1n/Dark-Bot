@@ -15,6 +15,10 @@ passport.use(
     (accessToken, refreshToken, profile, done) => {
       // profile.guilds contains guilds the user is in, with `permissions` bitfield we use
       // to filter down to "Manage Server" guilds in the dashboard route.
+      // Kept to re-read the server list later (see web/utils/userGuilds.js).
+      profile.accessToken = accessToken;
+      profile.refreshToken = refreshToken;
+      profile.guildsAt = Date.now();
       done(null, profile);
     }
   )

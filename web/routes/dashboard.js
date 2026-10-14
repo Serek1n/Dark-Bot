@@ -2,7 +2,7 @@ const express = require('express');
 const { Op } = require('sequelize');
 const { ensureAuth } = require('../middleware/ensureAuth');
 const { ensureGuildAccess } = require('../middleware/ensureGuildAccess');
-const { getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers, botApi } = require('../discordApi');
+const { getBotGuilds, getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers, botApi } = require('../discordApi');
 const {
   GuildSettings,
   MemberProfile,
@@ -18,6 +18,7 @@ const {
 
 const { CATEGORIES, KEYS: LOG_KEYS } = require('../../bot/utils/logCategories');
 const { setupLogForum } = require('../utils/logForum');
+const { refreshUserGuilds } = require('../utils/userGuilds');
 
 const router = express.Router();
 
@@ -52,9 +53,13 @@ function hasManageAccess(guild) {
 
 // ---- Guild picker ----
 router.get('/', async (req, res) => {
-  const botGuildIds = await getBotGuildIds();
-  const manageable = (req.user.guilds || []).filter(hasManageAccess);
-  const guilds = manageable.map((g) => ({ ...g, botPresent: botGuildIds.has(g.id) }));
+  const [botGuilds, userGuilds] = await Promise.all([getBotGuilds(), refreshUserGuilds(req, { force: true })]);
+  const guilds = userGuilds.filter(hasManageAccess).map((g) => {
+    const live = botGuilds.get(g.id); // the bot's own data has the current name and icon
+    return { ...g, name: live?.name || g.name, icon: live ? live.icon : g.icon, botPresent: Boolean(live) };
+  });
+  // Servers with the bot first, then the rest, each alphabetically.
+  guilds.sort((a, b) => Number(b.botPresent) - Number(a.botPresent) || a.name.localeCompare(b.name));
   res.render('guilds', { guilds });
 });
 

@@ -21,11 +21,24 @@ async function cached(key, ttlMs, loader) {
   return value;
 }
 
-function getBotGuildIds() {
+// Guilds of the bot (name and icon are always current here, unlike the copy saved at login).
+// Discord returns at most 200 per page, so follow the pages for big bots.
+function getBotGuilds() {
   return cached('guilds', 30_000, async () => {
-    const { data } = await botApi.get('/users/@me/guilds');
-    return new Set(data.map((g) => g.id));
+    const map = new Map();
+    let after;
+    for (let page = 0; page < 20; page++) {
+      const { data } = await botApi.get('/users/@me/guilds', { params: { limit: 200, ...(after ? { after } : {}) } });
+      for (const g of data) map.set(g.id, { id: g.id, name: g.name, icon: g.icon });
+      if (data.length < 200) break;
+      after = data[data.length - 1].id;
+    }
+    return map;
   });
+}
+
+async function getBotGuildIds() {
+  return new Set((await getBotGuilds()).keys());
 }
 
 function getGuildChannels(guildId) {
@@ -77,4 +90,4 @@ async function getUsers(ids) {
   return out;
 }
 
-module.exports = { getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers, botApi };
+module.exports = { getBotGuilds, getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers, botApi };
