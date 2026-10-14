@@ -6,6 +6,8 @@ module.exports = (sequelize) => {
   GuildSettings.init(
     {
       guildId: { type: DataTypes.STRING, primaryKey: true },
+      // Set when the bot was removed from the server; everything is kept for 14 days (see guildBackup.js)
+      leftAt: { type: DataTypes.DATE, allowNull: true },
       prefix: { type: DataTypes.STRING, defaultValue: '!' },
 
       // Logging

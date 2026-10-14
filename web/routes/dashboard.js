@@ -58,6 +58,13 @@ router.get('/', async (req, res) => {
     const live = botGuilds.get(g.id); // the bot's own data has the current name and icon
     return { ...g, name: live?.name || g.name, icon: live ? live.icon : g.icon, botPresent: Boolean(live) };
   });
+  // Servers the bot was removed from keep their data for 14 days: tell how long is left.
+  const gone = await GuildSettings.findAll({ where: { guildId: guilds.filter((g) => !g.botPresent).map((g) => g.id), leftAt: { [Op.ne]: null } }, attributes: ['guildId', 'leftAt'] });
+  const left = new Map(gone.map((r) => [r.guildId, r.leftAt]));
+  for (const g of guilds) {
+    const at = left.get(g.id);
+    if (at) g.daysLeft = Math.max(0, Math.ceil((new Date(at).getTime() + 14 * 86400000 - Date.now()) / 86400000));
+  }
   // Servers with the bot first, then the rest, each alphabetically.
   guilds.sort((a, b) => Number(b.botPresent) - Number(a.botPresent) || a.name.localeCompare(b.name));
   res.render('guilds', { guilds });

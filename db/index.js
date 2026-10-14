@@ -60,6 +60,7 @@ const COLUMN_ADDITIONS = [
   ...['economyEnabled', 'musicEnabled', 'welcomeEnabled', 'reactionRolesEnabled', 'customCommandsEnabled', 'tempVoiceEnabled', 'alertsEnabled', 'reportEnabled'].map((column) => ({ table: 'guild_settings', column, ddl: 'TINYINT(1) DEFAULT 1' })),
   { table: 'guild_settings', column: 'shopEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
   { table: 'guild_settings', column: 'shopLogChannelId', ddl: 'VARCHAR(255)' },
+  { table: 'guild_settings', column: 'leftAt', ddl: 'DATETIME' },
   { table: 'guild_settings', column: 'logForumChannelId', ddl: 'VARCHAR(255)' },
   { table: 'guild_settings', column: 'logWebhookId', ddl: 'VARCHAR(255)' },
   { table: 'guild_settings', column: 'logWebhookToken', ddl: 'VARCHAR(255)' },
