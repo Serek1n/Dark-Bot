@@ -273,6 +273,13 @@ WebhookClient.prototype.send = async function (p) { sent.push({ thread: p.thread
     const ok = await S.sendLog(G, 'members', require('../bot/utils/embeds').info('x')); assert(ok === false, 'no throw, false');
     await h('guildMemberAdd')(member()); // must not throw
   });
+  await test('members are loaded into the cache once for guilds with the forum (needed to see old nicknames and roles)', async () => {
+    const fetched = []; const mk = (id) => ({ id, members: { fetch: async () => { fetched.push(id); } } });
+    const client = { guilds: { cache: new Map([[G, mk(G)], ['OTHER', mk('OTHER')]]) } };
+    await db.GuildSettings.update({ logDisabled: '[]' }, { where: { guildId: G } }); S.invalidate(G);
+    await handlers.loadMembersForLogs(client); await handlers.loadMembersForLogs(client);
+    assert(fetched.join() === G, 'only the guild with logs, once: ' + fetched);
+  });
   await test('every log event is registered with discord.js (array export) and the intents are enabled', async () => {
     const { loadEvents } = require('../bot/handlers/loadEvents'); const names = [];
     loadEvents({ on: (n) => names.push(n), once: (n) => names.push(n) });

@@ -405,5 +405,31 @@ on('guildScheduledEventUpdate', async (oldEv, ev) => {
   await L.log(ev.guildId, 'server', (base) => base(COLORS.edit).setTitle('📅 Событие изменено').addFields([...eventLine(ev), ...changes]));
 });
 
+// ============================== Member cache ==============================
+// A role / nickname / avatar change can only be compared with the old state when the member is cached.
+// After a restart the cache is empty, so members are loaded once for every guild that has the log forum.
+const loaded = new Set();
+async function loadMembersForLogs(client) {
+  for (const guild of client.guilds.cache.values()) {
+    if (loaded.has(guild.id) || !(await L.getConfig(guild.id))) continue;
+    loaded.add(guild.id);
+    await guild.members.fetch().catch((err) => {
+      loaded.delete(guild.id);
+      logger.warn(`Log: could not load members of ${guild.id}: ${err?.message || err}`);
+    });
+  }
+}
+handlers.push({
+  name: 'clientReady',
+  once: true,
+  execute: safe('clientReady', async (client) => {
+    await loadMembersForLogs(client);
+    // A forum connected later in the panel is picked up here (the panel is another process).
+    setInterval(() => loadMembersForLogs(client).catch(() => {}), 60_000).unref?.();
+  })
+});
+handlers.push({ name: 'guildCreate', execute: safe('guildCreate', async (guild) => loadMembersForLogs(guild.client)) });
+
 module.exports = handlers;
+module.exports.loadMembersForLogs = loadMembersForLogs;
 module.exports.tempRooms = tempRooms;
