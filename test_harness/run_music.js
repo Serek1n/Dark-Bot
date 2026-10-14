@@ -1,5 +1,7 @@
 // Tests for the music control panel (buttons) without a real Discord or voice connection.
 process.env.VOICE_IDLE_MINUTES = '0.005'; // 0.3 s, to test the auto-leave
+process.env.YTDLP_PATH = require('path').join(__dirname, 'fake-ytdlp.sh'); // no network, no real yt-dlp
+process.env.FAKE_YTDLP_LOG = '/tmp/fake-ytdlp-audio.log';
 const assert = require('assert');
 const { Readable } = require('stream');
 // play-dl exports read-only getters, so swap the whole module in the require cache with a copy
@@ -26,7 +28,7 @@ function fakeTextChannel() {
   const sent = [];
   return { sent, send: async (p) => { const m = fakeMessage(`m${sent.length + 1}`); m.payload = p; sent.push(m); return m; } };
 }
-function track(n, source = 'soundcloud') {
+function track(n, source = 'other') { // 'other' plays through the stubbed play-dl; youtube/soundcloud go through yt-dlp
   return { title: `Track ${n}`, url: `https://example.com/${n}`, duration: '3:00', requestedBy: 'u1', source };
 }
 function btn(customId, { guildId = 'g1', channelId = 'vc1', messageId = null } = {}) {
@@ -195,6 +197,28 @@ async function main() {
     q3.player.stop(true); // track "ends"
     await new Promise((r) => setTimeout(r, 900));
     assert.strictEqual(player.getQueue('g3'), null);
+  });
+
+  await run('yt-dlp arguments: SoundCloud asks for the plain mp3 first, YouTube for the best audio', async () => {
+    const sc = player.ytDlpAudioArgs('https://soundcloud.com/a/b');
+    assert.strictEqual(sc[sc.indexOf('-f') + 1].split('/')[0], 'http_mp3_1_0');
+    assert.ok(sc.includes('https://soundcloud.com/a/b') && sc.includes('--no-playlist'));
+    assert.strictEqual(player.ytDlpAudioArgs('https://www.youtube.com/watch?v=x')[1], 'bestaudio');
+  });
+
+  await run('a SoundCloud track is played through yt-dlp (not through play-dl, which needs an expiring key)', async () => {
+    require('fs').rmSync('/tmp/fake-ytdlp-audio.log', { force: true });
+    const t = fakeTextChannel();
+    const q = player.getOrCreateQueue('g-sc', vc, t);
+    q.enqueue({ title: 'SC track', url: 'https://soundcloud.com/a/track', duration: '3:00', requestedBy: 'u1', source: 'soundcloud' });
+    await q.playNext();
+    assert.ok(q.currentProcess, 'yt-dlp process was started');
+    assert.ok(q.playing && q.playing.title === 'SC track', 'track is playing');
+    assert.ok(!t.sent.some((m) => JSON.stringify(m.payload).includes('Не удалось')), 'no failure message');
+    await new Promise((r) => setTimeout(r, 300));
+    const log = require('fs').readFileSync('/tmp/fake-ytdlp-audio.log', 'utf8');
+    assert.ok(log.includes('https://soundcloud.com/a/track') && log.includes('http_mp3_1_0'), log);
+    q.stopAndDestroy();
   });
 
   const failed = results.filter((r) => !r.ok);

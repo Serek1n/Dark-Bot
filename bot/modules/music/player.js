@@ -20,12 +20,14 @@ const IDLE_TIMEOUT_MS = Number(process.env.VOICE_IDLE_MINUTES || 5) * 60 * 1000;
 const YTDLP_BIN = process.env.YTDLP_PATH || 'yt-dlp';
 
 /** Spawns yt-dlp and returns { proc, stream } with raw audio on stdout. */
+function ytDlpAudioArgs(url) {
+  // SoundCloud offers a plain mp3 over HTTP next to its HLS streams: take that first, it needs nothing extra.
+  const format = /soundcloud\.com|snd\.sc/i.test(String(url)) ? 'http_mp3_1_0/http_mp3/bestaudio/best' : 'bestaudio';
+  return ['-f', format, '-o', '-', '--quiet', '--no-warnings', '--no-playlist', url];
+}
+
 function spawnYtDlpAudio(url) {
-  const proc = spawn(
-    YTDLP_BIN,
-    ['-f', 'bestaudio', '-o', '-', '--quiet', '--no-warnings', '--no-playlist', url],
-    { stdio: ['ignore', 'pipe', 'pipe'] }
-  );
+  const proc = spawn(YTDLP_BIN, ytDlpAudioArgs(url), { stdio: ['ignore', 'pipe', 'pipe'] });
   let stderr = '';
   proc.stderr.on('data', (d) => {
     stderr += d.toString();
@@ -226,7 +228,8 @@ class GuildQueue {
     this._clearIdleTimer();
     try {
       let resource;
-      if (next.source === 'youtube') {
+      if (next.source === 'youtube' || next.source === 'soundcloud') {
+        // Both go through yt-dlp: it keeps up with the sites, play-dl's SoundCloud needs a key that expires.
         const { proc, stream } = spawnYtDlpAudio(next.url);
         this.currentProcess = proc;
         resource = createAudioResource(stream, {
@@ -391,10 +394,11 @@ async function ytDlpSoundCloud(query, requestedBy) {
 }
 
 async function ytDlpSoundCloudSearch(query, requestedBy) {
-  const j = await ytDlpJson(['--skip-download', '--flat-playlist', '--dump-single-json', '--no-warnings', `scsearch1:${query}`], 20000);
+  // Not "flat": a flat search only returns an internal api link, the full entry has the real track page.
+  const j = await ytDlpJson(['--skip-download', '--dump-single-json', '--no-warnings', '--playlist-end', '1', `scsearch1:${query}`], 30000);
   const e = j.entries && j.entries[0];
   if (!e) return [];
-  return [{ ...trackFromYtDlp({ ...e, webpage_url: e.url || e.webpage_url }, requestedBy), source: 'soundcloud' }];
+  return [{ ...trackFromYtDlp(e, requestedBy), source: 'soundcloud' }];
 }
 
 async function ytDlpSearch(query, requestedBy) {
@@ -535,4 +539,4 @@ async function resolveQueryInner(query, requestedBy) {
   ];
 }
 
-module.exports = { getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue };
+module.exports = { ytDlpAudioArgs, getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue };
