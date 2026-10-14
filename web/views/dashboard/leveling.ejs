@@ -93,6 +93,37 @@
         <button class="btn" type="submit">Сохранить</button>
       </form>
 
+      <form method="post" action="/dashboard/<%= guild.id %>/leveling/adjust" class="card" id="adjust" data-no-guard>
+        <h2>Изменить уровень участника</h2>
+        <p>Добавьте или уберите уровни, либо задайте точный. Участник окажется в начале нужного уровня, роли за уровни обновятся сразу. Кристаллы за такое изменение не выдаются.</p>
+        <% if (locals.adjusted) { %>
+          <div class="hint" style="color:var(--ember);margin-bottom:6px;">
+            <%= adjusted.name %>: уровень <%= adjusted.from %> → <%= adjusted.to %>.
+            <%= adjusted.roles === 'ok' ? 'Роли обновлены.' : adjusted.roles === 'fail' ? 'Роли обновить не удалось: проверьте, что роль бота стоит выше ролей за уровни.' : '' %>
+          </div>
+        <% } %>
+        <div>
+          <label>ID участника</label>
+          <input type="text" name="userId" inputmode="numeric" placeholder="Например, 123456789012345678" required pattern="[0-9]{15,25}" value="<%= locals.prefillUser || '' %>" />
+          <div class="hint">Включите режим разработчика в Discord, правый клик по участнику → «Копировать ID».</div>
+        </div>
+        <div class="two-col">
+          <div>
+            <label>Действие</label>
+            <select name="mode">
+              <option value="add">Добавить уровни</option>
+              <option value="remove">Убавить уровни</option>
+              <option value="set">Задать точный уровень</option>
+            </select>
+          </div>
+          <div>
+            <label>Сколько (или какой уровень)</label>
+            <input type="number" name="amount" value="1" min="0" max="1000" required />
+          </div>
+        </div>
+        <button class="btn" type="submit">Применить</button>
+      </form>
+
       <div class="card">
         <h2>Экспорт уровней</h2>
         <p>Скачайте опыт, уровни, сообщения, время в голосовых и обе валюты всех участников, например перед переходом на другого бота. JSON можно импортировать обратно сюда, CSV открывается в Excel и Google Таблицах. В файле только ID участников и цифры, без имён и почт.</p>

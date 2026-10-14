@@ -13,6 +13,13 @@ module.exports = (sequelize) => {
       reportChannelId: { type: DataTypes.STRING, allowNull: true },
       levelUpChannelId: { type: DataTypes.STRING, allowNull: true },
 
+      // Forum "Логи": a webhook posts into one thread per event kind (see bot/utils/logCategories.js)
+      logForumChannelId: { type: DataTypes.STRING, allowNull: true },
+      logWebhookId: { type: DataTypes.STRING, allowNull: true },
+      logWebhookToken: { type: DataTypes.STRING, allowNull: true },
+      logThreads: { type: DataTypes.TEXT, defaultValue: '{}' }, // JSON { category: threadId }
+      logDisabled: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON [category] switched off
+
       // Welcome / autorole
       welcomeChannelId: { type: DataTypes.STRING, allowNull: true },
       welcomeMessage: { type: DataTypes.STRING, defaultValue: 'Добро пожаловать, {user}, на сервере **{server}**!' },

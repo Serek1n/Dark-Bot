@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Логи сервера' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <div class="page-header">
+        <h1>Логи сервера</h1>
+        <p class="page-intro">Бот ведёт журнал событий в форуме: для каждого вида событий создаётся отдельная тема с тегом. Записи в неё приходят через вебхук.</p>
+      </div>
+
+      <form method="post" class="card">
+        <h2>Форум</h2>
+        <div>
+          <label>Форум для логов</label>
+          <select name="logForumChannelId">
+            <option value="">— не выбрано —</option>
+            <% forums.forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.logForumChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+            <% }) %>
+          </select>
+          <% if (!forums.length) { %>
+            <p class="hint">На сервере нет форумов. Создайте канал типа «Форум» (лучше закрытый для обычных участников) и обновите страницу.</p>
+          <% } else { %>
+            <p class="hint">Боту нужны права «Управлять каналами» и «Управлять вебхуками», а в самом форуме — доступ на просмотр и отправку сообщений. Теги и темы бот создаёт сам.</p>
+          <% } %>
+        </div>
+
+        <h2 style="margin-top:22px;">Что записывать</h2>
+        <div class="switch-list">
+          <% categories.forEach(c => { %>
+            <div class="checkbox-row feature-row">
+              <label for="cat_<%= c.key %>">
+                <span class="feature-title"><%= c.thread %> <span class="feature-cmds"><code><%= c.tag %></code></span></span>
+                <span class="feature-desc"><%= c.content %></span>
+              </label>
+              <% if (threads[c.key] && settings.logForumChannelId) { %><a class="feature-link" href="https://discord.com/channels/<%= guild.id %>/<%= threads[c.key] %>" target="_blank" rel="noopener">Открыть тему</a><% } %>
+              <input type="checkbox" id="cat_<%= c.key %>" name="cat_<%= c.key %>" <%= disabled.has(c.key) ? '' : 'checked' %> />
+            </div>
+          <% }) %>
+        </div>
+
+        <div class="actions" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;">
+          <button class="btn" type="submit" name="action" value="save">Сохранить</button>
+          <% if (settings.logForumChannelId) { %>
+            <button class="btn btn-secondary" type="submit" name="action" value="setup">Пересоздать недостающие темы</button>
+            <button class="btn btn-danger" type="submit" name="action" value="off" onclick="return confirm('Отключить логи? Темы в форуме останутся, но бот перестанет в них писать.')">Отключить</button>
+          <% } %>
+        </div>
+        <p class="hint">Первое сохранение с выбранным форумом создаёт теги, вебхук и темы. Если тему удалили вручную — нажмите «Пересоздать недостающие темы». Изменения доходят до бота в течение полуминуты.</p>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

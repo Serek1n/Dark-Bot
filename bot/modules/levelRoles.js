@@ -16,6 +16,23 @@ function computeRoleChanges(levelRoles, level, current, replace) {
   return { add, remove };
 }
 
+/**
+ * Role changes after an admin set the member's level by hand. Unlike a normal level-up, a LOWER level
+ * also takes away the level roles the member no longer reaches (`allowRemove`), even without "replace" mode.
+ * Only roles of the common ("total") level track are touched.
+ */
+function computeAdjustRoleChanges(levelRoles, level, current, replace, allowRemove) {
+  const rows = levelRoles.filter((r) => (r.track || 'total') === 'total');
+  const reached = rows.filter((r) => r.level <= level).sort((a, b) => a.level - b.level);
+  const wanted = new Set((replace ? reached.slice(-1) : reached).map((r) => r.roleId));
+  const managed = new Set(rows.map((r) => r.roleId));
+  const have = new Set(current);
+  return {
+    add: [...wanted].filter((id) => !have.has(id)),
+    remove: replace || allowRemove ? [...managed].filter((id) => have.has(id) && !wanted.has(id)) : []
+  };
+}
+
 // Level roles are read for every XP message, so keep them in memory for a short while.
 const cache = new Map();
 const TTL_MS = 60 * 1000;
@@ -70,4 +87,4 @@ async function applyLevelRoles(member, levels, replace) {
   }
 }
 
-module.exports = { computeRoleChanges, computeTrackRoleChanges, applyLevelRoles, getLevelRoles };
+module.exports = { computeRoleChanges, computeTrackRoleChanges, computeAdjustRoleChanges, applyLevelRoles, getLevelRoles };

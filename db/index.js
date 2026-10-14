@@ -59,7 +59,12 @@ const COLUMN_ADDITIONS = [
   { table: 'guild_settings', column: 'dailyStreakMax', ddl: 'INTEGER DEFAULT 7' },
   ...['economyEnabled', 'musicEnabled', 'welcomeEnabled', 'reactionRolesEnabled', 'customCommandsEnabled', 'tempVoiceEnabled', 'alertsEnabled', 'reportEnabled'].map((column) => ({ table: 'guild_settings', column, ddl: 'TINYINT(1) DEFAULT 1' })),
   { table: 'guild_settings', column: 'shopEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
-  { table: 'guild_settings', column: 'shopLogChannelId', ddl: 'VARCHAR(255)' }
+  { table: 'guild_settings', column: 'shopLogChannelId', ddl: 'VARCHAR(255)' },
+  { table: 'guild_settings', column: 'logForumChannelId', ddl: 'VARCHAR(255)' },
+  { table: 'guild_settings', column: 'logWebhookId', ddl: 'VARCHAR(255)' },
+  { table: 'guild_settings', column: 'logWebhookToken', ddl: 'VARCHAR(255)' },
+  { table: 'guild_settings', column: 'logThreads', ddl: "TEXT DEFAULT '{}'" },
+  { table: 'guild_settings', column: 'logDisabled', ddl: "TEXT DEFAULT '[]'" }
 ];
 
 async function addMissingColumns() {

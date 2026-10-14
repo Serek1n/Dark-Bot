@@ -41,6 +41,10 @@
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5L16.5 5V9.5C16.5 13.5 13.7 16.8 10 17.5C6.3 16.8 3.5 13.5 3.5 9.5V5L10 2.5Z"/></svg>
         Журнал и каналы
       </a>
+      <a href="/dashboard/<%= guild.id %>/logs" class="<%= active === 'logs' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3H12L15.5 6.5V17H5V3Z"/><path d="M12 3V6.5H15.5M7.5 10H13M7.5 13H11"/></svg>
+        Логи сервера
+      </a>
       <a href="/dashboard/<%= guild.id %>/automod" class="<%= active === 'automod' ? 'active' : '' %>">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6L10 3L17 6V9C17 13 14 16.5 10 17.5C6 16.5 3 13 3 9V6Z"/><path d="M7.5 9.5L9 11L12.5 7.5"/></svg>
         Автомодерация
@@ -101,7 +105,13 @@
       running: ['Выдача ролей уже идёт', true],
       nomessage: ['Сообщение не найдено в выбранном канале', true],
       granted: ['Баланс участника обновлён', false],
-      baduser: ['Укажите корректный ID участника', true]
+      adjusted: ['Уровень участника изменён', false],
+      baduser: ['Укажите корректный ID участника', true],
+      logready: ['Форум логов готов: темы созданы', false],
+      logoff: ['Логи отключены', false],
+      lognoforum: ['Выберите именно форум — обычные каналы не подходят', true],
+      logperm: ['Не хватает прав у бота: нужны «Управлять каналами» и «Управлять вебхуками»', true],
+      logfail: ['Не удалось создать темы. Проверьте права бота в этом форуме', true]
     };
     for (var key in kinds) {
       if (!params.has(key)) continue;

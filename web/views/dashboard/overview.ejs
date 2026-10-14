@@ -27,6 +27,7 @@
           { name: 'Музыка', on: settings.musicEnabled, href: 'features' },
           { name: 'Автомодерация', on: settings.automodEnabled, href: 'automod' },
           { name: 'Журнал модерации', on: !!settings.modLogChannelId, href: 'moderation' },
+          { name: 'Логи сервера', on: !!settings.logForumChannelId && !!settings.logWebhookId, href: 'logs' },
           { name: 'Приветствие', on: settings.welcomeEnabled && !!settings.welcomeChannelId, href: 'welcome' },
           { name: 'Автороль', on: settings.welcomeEnabled && !!settings.autoRoleId, href: 'welcome' },
           { name: 'Временные голосовые', on: settings.tempVoiceEnabled && !!settings.tempVoiceJoinChannelId, href: 'temp-voice' }

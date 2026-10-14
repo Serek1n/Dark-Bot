@@ -1,14 +1,14 @@
 const { ModLog, GuildSettings } = require('../../db');
 const embeds = require('./embeds');
+const serverLog = require('../modules/serverLog');
 
 async function recordAndAnnounce(guild, { userId, moderatorId, action, reason }) {
   await ModLog.create({ guildId: guild.id, userId, moderatorId, action, reason: reason || 'Без причины' });
 
-  const settings = await GuildSettings.findOne({ where: { guildId: guild.id } });
-  if (!settings?.modLogChannelId) return;
+  // Tell the Discord-event log that this action is already known (a ban would be logged twice otherwise).
+  serverLog.markReported(guild.id, userId, action);
 
-  const channel = await guild.channels.fetch(settings.modLogChannelId).catch(() => null);
-  if (!channel) return;
+  const settings = await GuildSettings.findOne({ where: { guildId: guild.id } });
 
   const labels = {
     warn: '⚠️ Предупреждение',
@@ -32,7 +32,11 @@ async function recordAndAnnounce(guild, { userId, moderatorId, action, reason })
       { name: 'Причина', value: shownReason }
     );
 
-  channel.send({ embeds: [embed] }).catch(() => {});
+  // The "Логи" forum (thread "Выдача наказаний") and, if set, the classic mod-log channel.
+  serverLog.sendLog(guild.id, 'punishments', embed).catch(() => {});
+  if (!settings?.modLogChannelId) return;
+  const channel = await guild.channels.fetch(settings.modLogChannelId).catch(() => null);
+  channel?.send({ embeds: [embed] }).catch(() => {});
 }
 
 module.exports = { recordAndAnnounce };

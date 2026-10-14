@@ -13,7 +13,11 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.GuildVoiceStates
+    GatewayIntentBits.GuildVoiceStates,
+    // Only for the "Логи" forum (none of these is privileged): emoji, scheduled events, bans.
+    GatewayIntentBits.GuildExpressions,
+    GatewayIntentBits.GuildScheduledEvents,
+    GatewayIntentBits.GuildModeration
   ],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.GuildMember],
   // The bot never reads old messages, reactions or presences from the cache (events carry what they

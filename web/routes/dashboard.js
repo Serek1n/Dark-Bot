@@ -16,6 +16,9 @@ const {
   Purchase
 } = require('../../db');
 
+const { CATEGORIES, KEYS: LOG_KEYS } = require('../../bot/utils/logCategories');
+const { setupLogForum } = require('../utils/logForum');
+
 const router = express.Router();
 
 function clampInt(value, min, max, fallback) {
@@ -92,7 +95,50 @@ router.get('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
   const settings = await getSettings(req.params.guildId);
   const channels = await getGuildChannels(req.params.guildId);
-  res.render('dashboard/leveling', { guild, settings, channels, active: 'leveling' });
+  // Result of the last manual level change (the redirect carries it in the query string).
+  let adjusted = null;
+  const q = req.query;
+  if (q.adjusted && snowflake(q.u)) {
+    const users = await getUsers([q.u]);
+    adjusted = { name: users[q.u]?.name || q.u, from: clampInt(q.from, 0, 1000, 0), to: clampInt(q.to, 0, 1000, 0), roles: ['ok', 'fail', 'none'].includes(q.roles) ? q.roles : 'none' };
+  }
+  res.render('dashboard/leveling', { guild, settings, channels, adjusted, prefillUser: snowflake(q.user) || '', active: 'leveling' });
+});
+
+// Manual level change: add, take away or set an exact level. Roles for levels are updated right away.
+router.post('/:guildId/leveling/adjust', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const userId = snowflake(req.body.userId);
+  if (!userId) return res.redirect(saved(guildId, 'leveling', 'baduser'));
+  const mode = ['add', 'remove', 'set'].includes(req.body.mode) ? req.body.mode : 'add';
+  const { computeLevelAdjust, MAX_LEVEL } = require('../../bot/modules/leveling');
+  const amount = clampInt(req.body.amount, mode === 'set' ? 0 : 1, MAX_LEVEL, mode === 'set' ? 0 : 1);
+
+  const [profile] = await MemberProfile.findOrCreate({ where: { guildId, userId } });
+  const result = computeLevelAdjust(profile, mode, amount);
+  await profile.update({ xp: result.xp, level: result.level, chatXp: result.chatXp, voiceXp: result.voiceXp });
+
+  // Level roles (best effort: the member may have left, or the bot may not be allowed to give a role).
+  let roles = 'none';
+  try {
+    const settings = await getSettings(guildId);
+    const levelRoles = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId, track: r.track }));
+    if (levelRoles.length) {
+      const { computeAdjustRoleChanges } = require('../../bot/modules/levelRoles');
+      const member = await botApi.get(`/guilds/${guildId}/members/${userId}`).then((r) => r.data).catch(() => null);
+      if (member && !member.user?.bot) {
+        const { add, remove } = computeAdjustRoleChanges(levelRoles, result.level, member.roles || [], settings.levelRolesReplace, result.level < result.previousLevel);
+        const reason = { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Уровень изменён администратором') } };
+        let failed = false;
+        for (const id of add) await botApi.put(`/guilds/${guildId}/members/${userId}/roles/${id}`, null, reason).catch(() => { failed = true; });
+        for (const id of remove) await botApi.delete(`/guilds/${guildId}/members/${userId}/roles/${id}`, reason).catch(() => { failed = true; });
+        roles = failed ? 'fail' : 'ok';
+      }
+    }
+  } catch (err) {
+    roles = 'fail';
+  }
+  res.redirect(`/dashboard/${guildId}/leveling?adjusted=1&u=${userId}&from=${result.previousLevel}&to=${result.level}&roles=${roles}#adjust`);
 });
 
 router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
@@ -337,6 +383,81 @@ router.post('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
   settings.reportChannelId = snowflake(req.body.reportChannelId);
   await settings.save();
   res.redirect(saved(req.params.guildId, 'moderation'));
+});
+
+// ---- Logs: the "Логи" forum (one post per kind of event, filled through a webhook) ----
+function parseJson(text, fallback) {
+  try {
+    const v = JSON.parse(text);
+    return v && typeof v === 'object' ? v : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+router.get('/:guildId/logs', ensureGuildAccess, async (req, res) => {
+  const guild = await getGuild(req.params.guildId);
+  const settings = await getSettings(req.params.guildId);
+  const channels = await getGuildChannels(req.params.guildId);
+  res.render('dashboard/logs', {
+    guild,
+    settings,
+    forums: channels.filter((c) => c.type === 15),
+    categories: CATEGORIES,
+    threads: parseJson(settings.logThreads, {}),
+    disabled: new Set(parseJson(settings.logDisabled, [])),
+    active: 'logs'
+  });
+});
+
+router.post('/:guildId/logs', ensureGuildAccess, async (req, res) => {
+  const guildId = req.params.guildId;
+  const settings = await getSettings(guildId);
+  const back = (flag) => res.redirect(`/dashboard/${guildId}/logs?${flag}=1`);
+
+  // Disconnect: the posts stay in Discord, the bot just stops writing.
+  if (req.body.action === 'off') {
+    if (settings.logWebhookId) await botApi.delete(`/webhooks/${settings.logWebhookId}`, { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Логи отключены') } }).catch(() => {});
+    settings.logForumChannelId = null;
+    settings.logWebhookId = null;
+    settings.logWebhookToken = null;
+    settings.logThreads = '{}';
+    await settings.save();
+    return back('logoff');
+  }
+
+  const enabled = new Set(LOG_KEYS.filter((k) => req.body['cat_' + k] === 'on'));
+  settings.logDisabled = JSON.stringify(LOG_KEYS.filter((k) => !enabled.has(k)));
+
+  const forumId = snowflake(req.body.logForumChannelId);
+  if (!forumId) {
+    await settings.save();
+    return back('saved');
+  }
+  const sameForum = forumId === settings.logForumChannelId;
+  if (sameForum && req.body.action !== 'setup' && settings.logWebhookId) {
+    await settings.save();
+    return back('saved');
+  }
+
+  try {
+    const result = await setupLogForum(botApi, forumId, {
+      webhookId: sameForum ? settings.logWebhookId : null,
+      webhookToken: sameForum ? settings.logWebhookToken : null,
+      threads: sameForum ? parseJson(settings.logThreads, {}) : {}
+    });
+    // Leaving an old forum: its webhook is no longer needed.
+    if (!sameForum && settings.logWebhookId) await botApi.delete(`/webhooks/${settings.logWebhookId}`).catch(() => {});
+    settings.logForumChannelId = forumId;
+    settings.logWebhookId = result.webhookId;
+    settings.logWebhookToken = result.webhookToken;
+    settings.logThreads = JSON.stringify(result.threads);
+    await settings.save();
+    return back(result.created.length ? 'logready' : 'saved');
+  } catch (err) {
+    await settings.save();
+    return back(err.code === 'notforum' ? 'lognoforum' : err.code === 'perm' ? 'logperm' : 'logfail');
+  }
 });
 
 // ---- Automod ----

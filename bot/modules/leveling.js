@@ -51,6 +51,33 @@ async function getOrCreateProfile(guildId, userId) {
 }
 
 const TRACKS = ['chat', 'voice'];
+const MAX_LEVEL = 1000;
+
+/**
+ * Manual level change by an admin (web panel). mode: 'add' | 'remove' | 'set'.
+ * The member lands exactly at the START of the target level (progress inside the level is reset).
+ * Total XP always equals chat XP + voice XP, so the difference is taken from chat XP first
+ * (and from voice XP if chat XP is not enough). Never below level 0, never above MAX_LEVEL.
+ * Returns { level, previousLevel, xp, chatXp, voiceXp }.
+ */
+function computeLevelAdjust({ xp, chatXp, voiceXp }, mode, amount) {
+  const current = levelFromXp(Number(xp) || 0);
+  const n = Math.max(0, Math.trunc(Number(amount) || 0));
+  const wanted = mode === 'set' ? n : mode === 'remove' ? current - n : current + n;
+  const level = Math.min(MAX_LEVEL, Math.max(0, wanted));
+  const newXp = totalXpForLevel(level);
+  const delta = newXp - (Number(xp) || 0);
+  let chat = Number(chatXp) || 0;
+  let voice = Number(voiceXp) || 0;
+  if (delta >= 0) {
+    chat += delta;
+  } else {
+    const fromChat = Math.min(chat, -delta);
+    chat -= fromChat;
+    voice = Math.max(0, voice - (-delta - fromChat));
+  }
+  return { level, previousLevel: current, xp: newXp, chatXp: chat, voiceXp: voice };
+}
 
 /**
  * ONE level for everyone: `xp` / `level` are the total of chat XP and voice XP. The two sources
@@ -194,6 +221,8 @@ module.exports = {
   grantVoiceXpBatch,
   getLeaderboard,
   applyGain,
+  computeLevelAdjust,
+  MAX_LEVEL,
   levelsOf,
   TRACKS,
   TRACK_FIELDS
