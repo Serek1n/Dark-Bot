@@ -262,6 +262,7 @@ git pull
 | Команды задвоились или остались старые | `npm run deploy-commands`: он регистрирует команды глобально и чистит серверные копии. Затем Ctrl+R в Discord |
 | Изменений нет на сервере | Закоммичено → Push origin → видно на github.com → `git pull` → `pm2 restart` |
 | `Cannot find module …` или `X.init is not a function` | `pm2 stop all && rm -rf node_modules package-lock.json && npm install && pm2 restart all` |
+| Музыка: «Не удалось воспроизвести … возрастное ограничение / 403 / не бот» | Бот пишет причину в чат. Для YouTube: `sudo yt-dlp -U`, в `.env` добавить `YTDLP_EXTRA_ARGS=--js-runtimes node`; для возрастных видео и проверки «не бот» — файл cookies и `YTDLP_COOKIES=/путь/cookies.txt` (см. `.env.example`), затем `pm2 restart dark-bot --update-env` |
 | Музыка: «Не удалось воспроизвести» | Проверить `yt-dlp --version`, `ffmpeg -version`; в `package.json` должен быть `@discordjs/opus`; обновить `sudo yt-dlp -U`; смотреть `pm2 logs dark-bot --lines 60` |
 | Панель не открывается | `sudo nginx -t`; `WEB_PORT` должен быть 3000; порты: `sudo ss -tlnp \| grep -E '8843\|8880\|3000'` |
 | `redirect_uri` при входе | Redirect в Developer Portal должен точно совпадать с `WEB_BASE_URL` + `/auth/callback` |

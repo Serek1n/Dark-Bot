@@ -1,4 +1,5 @@
 const { LevelRole } = require('../../db');
+const warnedAt = new Map(); // guildId -> time of the last "role too high" warning
 const logger = require('../utils/logger');
 
 /**
@@ -81,7 +82,14 @@ async function applyLevelRoles(member, levels, replace) {
     const toRemove = remove.filter(usable);
     if (toAdd.length) await member.roles.add(toAdd, 'Роль за уровень');
     if (toRemove.length) await member.roles.remove(toRemove, 'Роль за уровень');
-    if (add.length !== toAdd.length) logger.warn(`Level roles: no permission for some roles in guild ${member.guild.id} (move the bot's role higher)`);
+    if (add.length !== toAdd.length) {
+      // Once per hour per server: this used to repeat every minute and flood the error log.
+      const last = warnedAt.get(member.guild.id) || 0;
+      if (Date.now() - last > 60 * 60 * 1000) {
+        warnedAt.set(member.guild.id, Date.now());
+        logger.warn(`Level roles: no permission for some roles in guild ${member.guild.id} (move the bot's role higher)`);
+      }
+    }
   } catch (err) {
     logger.error('applyLevelRoles failed:', err);
   }

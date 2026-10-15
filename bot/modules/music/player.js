@@ -1,3 +1,4 @@
+const fs = require('fs');
 const {
   joinVoiceChannel,
   createAudioPlayer,
@@ -19,23 +20,54 @@ const logger = require('../../utils/logger');
 const IDLE_TIMEOUT_MS = Number(process.env.VOICE_IDLE_MINUTES || 5) * 60 * 1000;
 const YTDLP_BIN = process.env.YTDLP_PATH || 'yt-dlp';
 
+/**
+ * Options for every yt-dlp call, from the .env file (read on each call):
+ *  YTDLP_COOKIES    path to a cookies.txt of a YouTube account: age-restricted videos and "confirm you're not a bot"
+ *  YTDLP_EXTRA_ARGS any extra yt-dlp options, e.g. "--js-runtimes node" (new yt-dlp versions need a JS runtime for YouTube)
+ */
+function ytDlpBaseArgs() {
+  const args = [];
+  const cookies = (process.env.YTDLP_COOKIES || '').trim();
+  if (cookies && fs.existsSync(cookies)) args.push('--cookies', cookies);
+  const extra = (process.env.YTDLP_EXTRA_ARGS || '').trim();
+  if (extra) args.push(...extra.split(/\s+/));
+  return args;
+}
+
+/** Why yt-dlp failed, in words for the chat (null when the reason is not recognised). */
+function ytDlpFailReason(stderr) {
+  const t = String(stderr || '');
+  if (/confirm your age|age-restricted|inappropriate for some users/i.test(t)) return 'видео с возрастным ограничением: нужен вход в YouTube (файл cookies)';
+  if (/not a bot/i.test(t)) return 'YouTube просит подтвердить, что это не бот (нужен файл cookies или другой IP сервера)';
+  if (/HTTP Error 403|Forbidden/i.test(t)) return 'YouTube отклонил загрузку (ошибка 403): обновите yt-dlp или добавьте cookies';
+  if (/Private video|Video unavailable|removed|not available in your country|blocked/i.test(t)) return 'видео недоступно (приватное, удалено или закрыто для региона)';
+  if (/Requested format is not available|n challenge|JavaScript runtime|nsig/i.test(t)) return 'yt-dlp не смог разобрать YouTube: обновите его и включите JS-рантайм (`--js-runtimes node`)';
+  if (/ENOENT|not found/i.test(t)) return 'не найден yt-dlp на сервере';
+  return null;
+}
+
 /** Spawns yt-dlp and returns { proc, stream } with raw audio on stdout. */
 function ytDlpAudioArgs(url) {
   // SoundCloud offers a plain mp3 over HTTP next to its HLS streams: take that first, it needs nothing extra.
   const format = /soundcloud\.com|snd\.sc/i.test(String(url)) ? 'http_mp3_1_0/http_mp3/bestaudio/best' : 'bestaudio';
-  return ['-f', format, '-o', '-', '--quiet', '--no-warnings', '--no-playlist', url];
+  return [...ytDlpBaseArgs(), '-f', format, '-o', '-', '--quiet', '--no-warnings', '--no-playlist', url];
 }
 
-function spawnYtDlpAudio(url) {
+function spawnYtDlpAudio(url, onFail = null) {
   const proc = spawn(YTDLP_BIN, ytDlpAudioArgs(url), { stdio: ['ignore', 'pipe', 'pipe'] });
   let stderr = '';
+  let gotAudio = false;
+  proc.stdout.once('data', () => { gotAudio = true; });
   proc.stderr.on('data', (d) => {
     stderr += d.toString();
     if (stderr.length > 2000) stderr = stderr.slice(-2000);
   });
   proc.on('error', (err) => logger.error('yt-dlp spawn error', err));
   proc.on('close', (code) => {
-    if (code && code !== 0 && code !== null) logger.warn?.(`yt-dlp exited ${code}: ${stderr.trim()}`);
+    if (code && code !== 0 && code !== null) {
+      logger.warn(`yt-dlp exited ${code}: ${stderr.trim()}`);
+      if (!gotAudio && onFail) onFail(ytDlpFailReason(stderr)); // nothing was played: tell the chat why
+    }
   });
   return { proc, stream: proc.stdout };
 }
@@ -230,7 +262,9 @@ class GuildQueue {
       let resource;
       if (next.source === 'youtube' || next.source === 'soundcloud') {
         // Both go through yt-dlp: it keeps up with the sites, play-dl's SoundCloud needs a key that expires.
-        const { proc, stream } = spawnYtDlpAudio(next.url);
+        const { proc, stream } = spawnYtDlpAudio(next.url, (reason) =>
+          this.textChannel?.send(`⚠️ Не удалось воспроизвести **${next.title}**${reason ? ': ' + reason : ''}.`).catch(() => {})
+        );
         this.currentProcess = proc;
         resource = createAudioResource(stream, {
           inputType: StreamType.Arbitrary,
@@ -343,7 +377,7 @@ function withTimeout(promise, ms, label) {
 
 function ytDlpJson(args, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
-    const proc = spawn(YTDLP_BIN, [...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const proc = spawn(YTDLP_BIN, [...ytDlpBaseArgs(), ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
     const timer = setTimeout(() => {
@@ -539,4 +573,4 @@ async function resolveQueryInner(query, requestedBy) {
   ];
 }
 
-module.exports = { ytDlpAudioArgs, getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue };
+module.exports = { spawnYtDlpAudio, ytDlpBaseArgs, ytDlpFailReason, ytDlpAudioArgs, getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue };
