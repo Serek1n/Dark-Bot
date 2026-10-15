@@ -6,15 +6,18 @@ fs.mkdirSync('./data', { recursive: true });
 
 // ---- fake Discord REST (bot token) and fake webhook REST ----
 const G = '777000000000000001', FORUM = '900000000000000001';
-const state = { tags: [{ id: '5001', name: 'Старый', moderated: false, emoji_id: null, emoji_name: null }], threads: new Map(), webhooks: new Map(), nextId: 1000, forumType: 15, deny: false, log: [] };
+const state = { tags: [{ id: '5001', name: 'Старый', moderated: false, emoji_id: null, emoji_name: null }], threads: new Map(), webhooks: new Map(), nextId: 1000, forumType: 15, deny: false, log: [], botAvatar: 'abc' };
 const nid = () => String(++state.nextId);
 const hookFake = {
+  patch: async (u, body) => { const m = u.match(/\/webhooks\/(\d+)\/(\w+)/); state.webhooks.get(m[1]).avatar = body.avatar; state.log.push(['HOOK-AVATAR']); return { data: {} }; },
   get: async (u) => { const m = u.match(/\/webhooks\/(\d+)\/(\w+)/); const w = state.webhooks.get(m[1]); if (!w || w.token !== m[2]) throw Object.assign(new Error('404'), { response: { status: 404 } }); return { data: { id: w.id, channel_id: w.channel_id } }; },
-  post: async (u, body) => { const m = u.match(/\/webhooks\/(\d+)\/(\w+)/); const w = state.webhooks.get(m[1]); if (!w) throw new Error('no webhook'); const id = nid(); state.threads.set(id, { id, parent_id: w.channel_id, name: body.thread_name, tags: body.applied_tags, content: body.content, archived: false }); state.log.push(['HOOK', body.thread_name]); return { data: { id: nid(), channel_id: id } }; }
+  post: async (u, body) => { const m = u.match(/\/webhooks\/(\d+)\/(\w+)/); const w = state.webhooks.get(m[1]); if (!w) throw new Error('no webhook'); const id = nid(); state.threads.set(id, { id, parent_id: w.channel_id, avatar_url: body.avatar_url, name: body.thread_name, tags: body.applied_tags, content: body.content, archived: false }); state.log.push(['HOOK', body.thread_name]); return { data: { id: nid(), channel_id: id } }; }
 };
 const axios = require('axios'); const realCreate = axios.create; axios.create = () => hookFake;
+axios.get = async () => ({ data: Buffer.from('fakepng') }); // the bot's avatar on Discord's CDN
 const botApi = {
   get: async (u) => {
+    if (u === '/users/@me') return { data: { id: 'BOT', avatar: state.botAvatar } };
     if (u === `/channels/${FORUM}`) return { data: { id: FORUM, type: state.forumType, available_tags: state.tags } };
     const m = u.match(/^\/channels\/(\d+)$/); const t = m && state.threads.get(m[1]);
     if (!t) throw Object.assign(new Error('404'), { response: { status: 404 } });
@@ -25,7 +28,7 @@ const botApi = {
     if (body.available_tags) { state.tags = body.available_tags.map((t) => ({ id: t.id || nid(), name: t.name, moderated: false, emoji_id: null, emoji_name: null })); return { data: { available_tags: state.tags } }; }
     const t = state.threads.get(u.split('/').pop()); if (t) t.archived = body.archived; return { data: {} };
   },
-  post: async (u) => { if (state.deny) throw Object.assign(new Error('403'), { response: { status: 403, data: { code: 50013 } } }); const id = nid(); const token = 'tok' + id; state.webhooks.set(id, { id, token, channel_id: u.split('/')[2] }); state.log.push(['WEBHOOK+']); return { data: { id, token } }; },
+  post: async (u, body) => { if (state.deny) throw Object.assign(new Error('403'), { response: { status: 403, data: { code: 50013 } } }); const id = nid(); const token = 'tok' + id; state.webhooks.set(id, { id, token, channel_id: u.split('/')[2], avatar: body?.avatar }); state.log.push(['WEBHOOK+']); return { data: { id, token } }; },
   delete: async (u) => { state.webhooks.delete(u.split('/').pop()); state.log.push(['WEBHOOK-']); return {}; }
 };
 const stub = (rel, exports) => { const f = require.resolve(path.join('..', 'web', rel)); require.cache[f] = { id: f, filename: f, loaded: true, exports }; };
@@ -37,7 +40,8 @@ const express = require('express');
 // ---- capture what the bot sends to threads ----
 const { WebhookClient, ChannelType, PermissionsBitField, Collection } = require('discord.js');
 const sent = [];
-WebhookClient.prototype.send = async function (p) { sent.push({ thread: p.threadId, embed: p.embeds[0].toJSON(), p }); return {}; };
+const capture = async function (p) { sent.push({ thread: p.threadId, embed: p.embeds[0].toJSON(), p }); return {}; };
+WebhookClient.prototype.send = capture;
 
 (async () => {
   const db = require('../db'); await db.init();
@@ -79,7 +83,7 @@ WebhookClient.prototype.send = async function (p) { sent.push({ thread: p.thread
   await test('setup again changes nothing; a deleted post and an archived post are repaired', async () => {
     state.log.length = 0;
     let r = await setupLogForum(botApi, FORUM, { webhookId: saved.webhookId, webhookToken: saved.webhookToken, threads: saved.threads });
-    assert(!r.created.length && !state.log.length && state.webhooks.size === 1, 'idempotent ' + JSON.stringify(state.log));
+    assert(!r.created.length && state.log.every((x) => x[0] === 'HOOK-AVATAR') && state.webhooks.size === 1, 'idempotent (only the avatar is refreshed) ' + JSON.stringify(state.log));
     state.threads.delete(saved.threads.files); state.threads.get(saved.threads.roles).archived = true;
     r = await setupLogForum(botApi, FORUM, { webhookId: saved.webhookId, webhookToken: saved.webhookToken, threads: saved.threads });
     assert(r.created.join() === 'files' && r.threads.files !== saved.threads.files && state.threads.get(saved.threads.roles).archived === false, 'repair ' + r.created);
@@ -272,6 +276,93 @@ WebhookClient.prototype.send = async function (p) { sent.push({ thread: p.thread
     WebhookClient.prototype.send = async () => { throw Object.assign(new Error('Unknown Webhook'), { code: 10015 }); };
     const ok = await S.sendLog(G, 'members', require('../bot/utils/embeds').info('x')); assert(ok === false, 'no throw, false');
     await h('guildMemberAdd')(member()); // must not throw
+  });
+  await test('webhook avatar: created with the bot avatar, old webhooks get it too, posts carry avatar_url; without an avatar the bundled icon is used', async () => {
+    const png = 'data:image/png;base64,' + Buffer.from('fakepng').toString('base64');
+    state.tags = []; state.threads.clear(); state.webhooks.clear();
+    const r = await setupLogForum(botApi, FORUM, {});
+    assert(state.webhooks.get(r.webhookId).avatar === png, 'webhook avatar');
+    assert([...state.threads.values()].every((t) => t.avatar_url === 'https://cdn.discordapp.com/avatars/BOT/abc.png?size=256'), 'thread posts carry the avatar');
+    state.log.length = 0; await setupLogForum(botApi, FORUM, { webhookId: r.webhookId, webhookToken: r.webhookToken, threads: r.threads });
+    assert(state.log.some((x) => x[0] === 'HOOK-AVATAR'), 'existing webhook updated');
+    state.botAvatar = null; state.webhooks.clear(); state.threads.clear(); state.tags = [];
+    const r2 = await setupLogForum(botApi, FORUM, {}); const av = state.webhooks.get(r2.webhookId).avatar;
+    assert(av && av.startsWith('data:image/png;base64,') && av !== png, 'bundled icon fallback'); state.botAvatar = 'abc';
+  });
+  await test('every log post is sent with the bot avatar', async () => {
+    WebhookClient.prototype.send = capture; await db.GuildSettings.update({ logDisabled: '[]' }, { where: { guildId: G } }); S.invalidate(G);
+    S.setAvatar('http://cdn/bot.png'); clear(); await h('roleCreate')({ id: 'R', name: 'n', guild: { id: G } });
+    assert(sent[0].p.avatarURL === 'http://cdn/bot.png', 'avatarURL ' + sent[0].p.avatarURL);
+  });
+
+  // ---- who did it (audit log) ----
+  const { AuditLogEvent: AE } = require('discord.js');
+  let auditEntries = []; let auditCalls = 0; let canView = true; let eid = 0;
+  const entry = (action, targetId, extra = {}) => ({ id: 'e' + ++eid, action, targetId, executorId: 'MOD1', reason: 'нарушение', createdTimestamp: Date.now() - 500, changes: [], ...extra });
+  const guildWith = (o = {}) => ({ id: G, members: { me: { permissions: { has: () => canView } } }, fetchAuditLogs: async () => { auditCalls++; return { entries: new Collection(auditEntries.map((e) => [e.id, e])) }; }, ...o });
+  await test('who: a deleted message shows the moderator; a self-delete says "вероятно, сам автор"; no permission is not an error', async () => {
+    await db.GuildSettings.update({ logDisabled: '[]' }, { where: { guildId: G } }); S.invalidate(G);
+    const g = guildWith(); clear();
+    auditEntries = [entry(AE.MessageDelete, 'U1', { extra: { channel: { id: 'C1' }, count: 1 } })];
+    const m = msg({ id: 'W1', guild: g }); await h('messageCreate')(m); clear();
+    await h('messageDelete')({ id: 'W1', guild: g, guildId: G, channelId: 'C1', partial: true, content: null, author: null });
+    assert(text(to('messages')[0].embed).includes('<@MOD1>') && text(to('messages')[0].embed).includes('Удалил'), text(sent[0].embed));
+    auditEntries = []; S.invalidate(G); clear(); await sleep(1100);
+    const m2 = msg({ id: 'W2', guild: g }); await h('messageCreate')(m2); clear();
+    await h('messageDelete')({ id: 'W2', guild: g, guildId: G, channelId: 'C1', partial: true, content: null, author: null });
+    assert(text(to('messages')[0].embed).includes('вероятно, сам автор'), 'self delete');
+    canView = false; auditCalls = 0; auditEntries = [entry(AE.MessageDelete, 'U1')]; clear(); await sleep(1100);
+    await h('messageDelete')({ id: 'x', guild: g, guildId: G, channelId: 'C1', partial: true, content: null, author: { id: 'U1' } });
+    assert(sent.length === 1 && !auditCalls && text(sent[0].embed).includes('вероятно'), 'no permission -> no audit request, log still sent'); canView = true;
+  });
+  await test('who: roles, nickname, role edits, channel and server changes name the person', async () => {
+    const g = guildWith(); auditEntries = []; clear(); await sleep(1100);
+    const role = { id: 'R7', name: 'Мод', color: 0, hexColor: '#000', hoist: false, mentionable: false, guild: g, permissions: new PermissionsBitField(0n) };
+    auditEntries = [entry(AE.RoleCreate, 'R7', { executorId: 'ADM' })]; await h('roleCreate')(role);
+    assert(text(sent[0].embed).includes('<@ADM>') && text(sent[0].embed).includes('Создал'), 'role create');
+    auditEntries = [entry(AE.RoleUpdate, 'R7', { executorId: 'ADM2' })]; clear(); await sleep(1100);
+    await h('roleUpdate')(role, { ...role, name: 'Новое' }); assert(text(sent[0].embed).includes('<@ADM2>'), 'role update');
+    clear(); await sleep(1100); auditEntries = [entry(AE.MemberUpdate, 'U2', { executorId: 'MOD9', changes: [{ key: 'nick' }] })];
+    await h('guildMemberUpdate')({ ...member({ nickname: 'a' }) }, member({ nickname: 'b', guild: g }));
+    assert(text(sent[0].embed).includes('<@MOD9>') && text(sent[0].embed).includes('Изменил'), 'nick');
+    clear(); await sleep(1100); auditEntries = [entry(AE.MemberRoleUpdate, 'U2', { executorId: 'MOD8' })];
+    await h('guildMemberUpdate')(member({ roles: { cache: new Collection() } }), member({ guild: g, roles: { cache: new Collection([['R1', { id: 'R1' }]]) } }));
+    assert(text(sent[0].embed).includes('<@MOD8>'), 'member roles');
+    clear(); await sleep(1100); auditEntries = [entry(AE.ChannelOverwriteUpdate, 'T5', { executorId: 'MOD7' })];
+    await h('channelUpdate')(ch('T5', ChannelType.GuildText, { name: 'a', guild: g }), ch('T5', ChannelType.GuildText, { name: 'b', guild: g }));
+    assert(text(sent[0].embed).includes('<@MOD7>'), 'channel update');
+    clear(); await sleep(1100); auditEntries = [entry(AE.GuildUpdate, G, { executorId: 'OWN' })];
+    await h('guildUpdate')({ id: G, name: 'A', icon: null, banner: null, splash: null, description: null, verificationLevel: 1, afkChannelId: null, systemChannelId: null, vanityURLCode: null, ownerId: 'O', premiumTier: 0 }, { id: G, name: 'B', icon: null, banner: null, splash: null, description: null, verificationLevel: 1, afkChannelId: null, systemChannelId: null, vanityURLCode: null, ownerId: 'O', premiumTier: 0, ...{} , fetchAuditLogs: g.fetchAuditLogs, members: g.members });
+    assert(text(sent[0].embed).includes('<@OWN>'), 'guild update ' + text(sent[0]?.embed));
+  });
+  await test('who: kicks (found only in the audit log), manual bans and timeouts show the moderator and the reason', async () => {
+    const g = guildWith(); clear(); await sleep(1100);
+    auditEntries = [entry(AE.MemberKick, 'U5', { executorId: 'MODK', reason: 'спам' })];
+    await h('guildMemberRemove')({ ...member({ id: 'U5', guild: g }), user: user({ id: 'U5' }) });
+    assert(to('punishments').length === 1 && text(to('punishments')[0].embed).includes('<@MODK>') && text(to('punishments')[0].embed).includes('спам') && text(to('members')[0].embed).includes('выгнали'), 'kick logged in both threads');
+    clear(); await sleep(1100); auditEntries = [];
+    await h('guildMemberRemove')({ ...member({ id: 'U6', guild: g }), user: user({ id: 'U6' }) });
+    assert(to('punishments').length === 0 && text(sent[0].embed).includes('Участник вышел'), 'a normal leave is not a kick');
+    clear(); await sleep(1100); auditEntries = [entry(AE.MemberBanAdd, 'U7', { executorId: 'MODB', reason: 'реклама' })];
+    await h('guildBanAdd')({ guild: g, user: { id: 'U7', username: 'z' }, reason: null });
+    assert(text(sent[0].embed).includes('<@MODB>') && text(sent[0].embed).includes('реклама'), 'ban');
+    clear(); await sleep(1100); const until = new Date(Date.now() + 600000);
+    auditEntries = [entry(AE.MemberUpdate, 'U2', { executorId: 'MODT', changes: [{ key: 'communication_disabled_until' }] })];
+    await h('guildMemberUpdate')(member(), member({ guild: g, communicationDisabledUntilTimestamp: +until, communicationDisabledUntil: until }));
+    assert(text(sent[0].embed).includes('<@MODT>'), 'timeout');
+  });
+  await test('who: one audit entry is never given to two events; an old entry is ignored; several events share one request', async () => {
+    const g = guildWith(); await sleep(1100); auditEntries = [entry(AE.RoleCreate, 'RA'), entry(AE.RoleCreate, 'RB', { executorId: 'OTHER' }), entry(AE.RoleDelete, 'RC', { createdTimestamp: Date.now() - 60000 })]; auditCalls = 0;
+    const r = (id) => ({ id, name: id, hexColor: '#000', guild: g }); clear();
+    await Promise.all([h('roleCreate')(r('RA')), h('roleCreate')(r('RB')), h('roleDelete')(r('RC'))]);
+    const t = sent.map((x) => text(x.embed));
+    assert(t.some((x) => x.includes('RA') && x.includes('<@MOD1>')) && t.some((x) => x.includes('RB') && x.includes('<@OTHER>')), 'each event got its own entry');
+    assert(!t.find((x) => x.includes('Роль удалена')).includes('Удалил'), 'a minute old entry is not used');
+    assert(auditCalls <= 2, 'requests were shared: ' + auditCalls);
+  });
+  await test('the invite permission list contains "View Audit Log"', async () => {
+    const { PERMISSIONS } = require('../bot/utils/invite'); const { PermissionFlagsBits: F } = require('discord.js');
+    assert(PERMISSIONS.includes(F.ViewAuditLog), 'audit permission');
   });
   await test('members are loaded into the cache once for guilds with the forum (needed to see old nicknames and roles)', async () => {
     const fetched = []; const mk = (id) => ({ id, members: { fetch: async () => { fetched.push(id); } } });

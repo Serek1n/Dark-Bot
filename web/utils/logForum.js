@@ -1,11 +1,34 @@
 // Builds the "Логи" forum: tags, a webhook and one post (thread) per category.
 // Safe to run again: whatever already exists is kept, only the missing parts are created.
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 const { CATEGORIES } = require('../../bot/utils/logCategories');
 
 const FORUM = 15; // ChannelType.GuildForum
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 const hook = axios.create({ baseURL: 'https://discord.com/api/v10', timeout: 10000 }); // webhook calls need no bot token
+
+// The bot's own avatar, as a data URI for the webhook (the bundled icon when the bot has none).
+async function botAvatar(botApi) {
+  let url = null;
+  try {
+    const { data: me } = await botApi.get('/users/@me');
+    if (me?.avatar) {
+      url = `https://cdn.discordapp.com/avatars/${me.id}/${me.avatar}.png?size=256`;
+      const img = await axios.get(url, { responseType: 'arraybuffer', timeout: 8000 });
+      return { url, dataUri: `data:image/png;base64,${Buffer.from(img.data).toString('base64')}` };
+    }
+  } catch {
+    // fall through to the bundled icon
+  }
+  try {
+    const file = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'icon.png'));
+    return { url, dataUri: `data:image/png;base64,${file.toString('base64')}` };
+  } catch {
+    return { url, dataUri: null };
+  }
+}
 
 class SetupError extends Error {
   constructor(code, message) {
@@ -46,14 +69,16 @@ async function setupLogForum(botApi, forumId, saved = {}) {
     const tagId = (c) => tagList.find((t) => t.name.toLowerCase() === c.tag.toLowerCase())?.id;
 
     // 2. Webhook: reuse the saved one when it still belongs to this forum.
+    const avatar = await botAvatar(botApi);
     let webhookId = saved.webhookId;
     let webhookToken = saved.webhookToken;
     if (webhookId && webhookToken) {
       const ok = await hook.get(`/webhooks/${webhookId}/${webhookToken}`).then((r) => r.data.channel_id === forumId).catch(() => false);
       if (!ok) webhookId = webhookToken = null;
+      else if (avatar.dataUri) await hook.patch(`/webhooks/${webhookId}/${webhookToken}`, { avatar: avatar.dataUri }).catch(() => {}); // old webhooks get the avatar too
     }
     if (!webhookId) {
-      const { data } = await botApi.post(`/channels/${forumId}/webhooks`, { name: 'Dark · Логи' });
+      const { data } = await botApi.post(`/channels/${forumId}/webhooks`, { name: 'Dark · Логи', ...(avatar.dataUri ? { avatar: avatar.dataUri } : {}) });
       webhookId = data.id;
       webhookToken = data.token;
     }
@@ -78,6 +103,7 @@ async function setupLogForum(botApi, forumId, saved = {}) {
         thread_name: c.thread,
         applied_tags: tag ? [tag] : [],
         username: 'Dark · Логи',
+        ...(avatar.url ? { avatar_url: avatar.url } : {}),
         allowed_mentions: { parse: [] }
       }, { params: { wait: true } });
       threads[c.key] = data.channel_id;

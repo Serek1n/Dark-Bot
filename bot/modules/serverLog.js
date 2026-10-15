@@ -3,6 +3,9 @@
 const { WebhookClient } = require('discord.js');
 const { GuildSettings } = require('../../db');
 const embeds = require('../utils/embeds');
+
+let avatarUrl = null; // the bot's avatar: the webhook posts with it
+const setAvatar = (url) => { avatarUrl = url || null; };
 const logger = require('../utils/logger');
 
 const CONFIG_TTL = 30_000; // the panel runs in another process, so changes arrive within this time
@@ -72,6 +75,7 @@ async function sendLog(guildId, key, embed) {
     await clientFor(cfg).send({
       threadId: cfg.threads[key],
       username: 'Dark · Логи',
+      ...(avatarUrl ? { avatarURL: avatarUrl } : {}),
       embeds: [embed],
       allowedMentions: { parse: [] }
     });
@@ -87,7 +91,7 @@ async function sendLog(guildId, key, embed) {
 /** Builds the embed lazily: nothing is computed for guilds without this category. */
 async function log(guildId, key, build) {
   if (!(await isOn(guildId, key))) return false;
-  const embed = build(embeds.baseEmbed);
+  const embed = await build(embeds.baseEmbed); // builders may look the actor up in the audit log
   return embed ? sendLog(guildId, key, embed) : false;
 }
 
@@ -120,4 +124,4 @@ function markReported(guildId, userId, action) {
 }
 const wasReported = (guildId, userId, action) => Date.now() - (reported.get(`${guildId}:${userId}:${action}`) || 0) < 15_000;
 
-module.exports = { getConfig, invalidate, isOn, sendLog, log, remember, recall, forget, markReported, wasReported };
+module.exports = { setAvatar, getConfig, invalidate, isOn, sendLog, log, remember, recall, forget, markReported, wasReported };

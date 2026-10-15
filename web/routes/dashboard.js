@@ -19,6 +19,7 @@ const {
 const { CATEGORIES, KEYS: LOG_KEYS } = require('../../bot/utils/logCategories');
 const { setupLogForum } = require('../utils/logForum');
 const { refreshUserGuilds } = require('../utils/userGuilds');
+const { inviteUrl } = require('../../bot/utils/invite');
 
 const router = express.Router();
 
@@ -56,7 +57,7 @@ router.get('/', async (req, res) => {
   const [botGuilds, userGuilds] = await Promise.all([getBotGuilds(), refreshUserGuilds(req, { force: true })]);
   const guilds = userGuilds.filter(hasManageAccess).map((g) => {
     const live = botGuilds.get(g.id); // the bot's own data has the current name and icon
-    return { ...g, name: live?.name || g.name, icon: live ? live.icon : g.icon, botPresent: Boolean(live) };
+    return { ...g, name: live?.name || g.name, icon: live ? live.icon : g.icon, botPresent: Boolean(live), inviteUrl: live ? null : inviteUrl(process.env.DISCORD_CLIENT_ID, g.id) };
   });
   // Servers the bot was removed from keep their data for 14 days: tell how long is left.
   const gone = await GuildSettings.findAll({ where: { guildId: guilds.filter((g) => !g.botPresent).map((g) => g.id), leftAt: { [Op.ne]: null } }, attributes: ['guildId', 'leftAt'] });
