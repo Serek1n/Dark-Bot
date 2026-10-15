@@ -84,7 +84,7 @@ async function main() {
   await run('moderation warn', () => moderationCmd.execute(makeInteraction({ subcommand: 'warn', options: { 'user': makeUser('user2'), 'reason': 'test' } })));
   await run('moderation warnings', () => moderationCmd.execute(makeInteraction({ subcommand: 'warnings', options: { 'user': makeUser('user2') } })));
   await run('moderation unwarn (none exists)', () => moderationCmd.execute(makeInteraction({ subcommand: 'unwarn', options: { 'number': 999 } })));
-  await run('moderation mute', () => moderationCmd.execute(makeInteraction({ subcommand: 'mute', options: { 'user': makeUser('user2'), 'minutes': 10, 'reason': 'test' } })));
+  await run('moderation mute', () => moderationCmd.execute(makeInteraction({ subcommand: 'mute', options: { 'user': makeUser('user2'), 'duration': '10m', 'reason': 'test' } })));
   await run('moderation unmute', () => moderationCmd.execute(makeInteraction({ subcommand: 'unmute', options: { 'user': makeUser('user2') } })));
   await run('moderation kick', () => moderationCmd.execute(makeInteraction({ subcommand: 'kick', options: { 'user': makeUser('user2'), 'reason': 'test' } })));
   await run('moderation ban', () => moderationCmd.execute(makeInteraction({ subcommand: 'ban', options: { 'user': makeUser('user2'), 'reason': 'test', 'delete_days': 0 } })));

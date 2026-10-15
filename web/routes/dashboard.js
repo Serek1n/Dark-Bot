@@ -377,17 +377,19 @@ router.get('/:guildId/leaderboard', ensureGuildAccess, async (req, res) => {
   res.render('dashboard/leaderboard', { guild, top, users, track, xpField, levelField, active: 'leaderboard' });
 });
 
-// ---- Moderation: log channel, report channel, mod log + warnings viewer ----
+// ---- Moderation: channels, warning rules (escalation), cases ----
 router.get('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
   const settings = await getSettings(req.params.guildId);
   const channels = await getGuildChannels(req.params.guildId);
-  const actions = ['warn', 'unwarn', 'mute', 'unmute', 'kick', 'ban', 'unban', 'clear', 'automod'];
+  const actions = ['warn', 'unwarn', 'mute', 'unmute', 'kick', 'ban', 'unban', 'clear', 'automod', 'note'];
   const action = actions.includes(req.query.action) ? req.query.action : '';
   const where = action ? { guildId: req.params.guildId, action } : { guildId: req.params.guildId };
   const logs = await ModLog.findAll({ where, order: [['createdAt', 'DESC']], limit: 50 });
   const users = await getUsers(logs.flatMap((l) => [l.userId, l.moderatorId]));
-  res.render('dashboard/moderation', { guild, settings, channels, logs, users, action, active: 'moderation' });
+  const { parseThresholds } = require('../../bot/modules/moderation');
+  const { formatDuration } = require('../../bot/utils/duration');
+  res.render('dashboard/moderation', { guild, settings, channels, logs, users, action, thresholds: parseThresholds(settings.modWarnThresholds), formatDuration, active: 'moderation' });
 });
 
 router.post('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
@@ -397,6 +399,28 @@ router.post('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
   await settings.save();
   res.redirect(saved(req.params.guildId, 'moderation'));
 });
+
+// Rules of /mod: DMs, mandatory reason, warning expiry and "N warnings -> action" (kept apart from the channels form).
+router.post('/:guildId/moderation/rules', ensureGuildAccess, async (req, res) => {
+  const settings = await getSettings(req.params.guildId);
+  settings.modDmEnabled = req.body.modDmEnabled === 'on';
+  settings.modRequireReason = req.body.modRequireReason === 'on';
+  settings.modWarnExpireDays = clampInt(req.body.modWarnExpireDays, 0, 365, settings.modWarnExpireDays);
+  const list = (v) => [].concat(v ?? []);
+  const counts = list(req.body.thrCount), acts = list(req.body.thrAction), mins = list(req.body.thrMinutes);
+  const { parseThresholds, ESCALATION_ACTIONS } = require('../../bot/modules/moderation');
+  const rows = counts.map((c, i) => ({
+    count: clampInt(c, 0, 100, 0),
+    action: ESCALATION_ACTIONS.includes(acts[i]) ? acts[i] : 'mute',
+    minutes: clampInt(mins[i], 0, 40320 * 52, 0)
+  }));
+  // One rule per number of warnings (the last one wins); mutes are limited by Discord to 28 days.
+  const byCount = new Map(rows.filter((r) => r.count >= 1).map((r) => [r.count, { ...r, minutes: r.action === 'mute' ? Math.min(Math.max(r.minutes, 1), 40320) : r.action === 'kick' ? 0 : r.minutes }]));
+  settings.modWarnThresholds = JSON.stringify(parseThresholds(JSON.stringify([...byCount.values()])));
+  await settings.save();
+  res.redirect(saved(req.params.guildId, 'moderation'));
+});
+
 
 // ---- Logs: the "Логи" forum (one post per kind of event, filled through a webhook) ----
 function parseJson(text, fallback) {
@@ -477,26 +501,42 @@ router.post('/:guildId/logs', ensureGuildAccess, async (req, res) => {
 router.get('/:guildId/automod', ensureGuildAccess, async (req, res) => {
   const guild = await getGuild(req.params.guildId);
   const settings = await getSettings(req.params.guildId);
-  const bannedWords = parseWords(settings.automodBannedWords);
-  res.render('dashboard/automod', { guild, settings, bannedWords, active: 'automod' });
+  const channels = await getGuildChannels(req.params.guildId);
+  const roles = await getGuildRoles(req.params.guildId);
+  res.render('dashboard/automod', {
+    guild, settings, channels, roles,
+    bannedWords: parseWords(settings.automodBannedWords),
+    linkWhitelist: parseWords(settings.automodLinkWhitelist),
+    ignoredChannels: parseWords(settings.automodIgnoredChannels),
+    ignoredRoles: parseWords(settings.automodIgnoredRoles),
+    active: 'automod'
+  });
 });
 
 router.post('/:guildId/automod', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
+  const lines = (text, max, len) => [...new Set(String(text || '').split(/\r?\n/).map((w) => w.trim().toLowerCase().slice(0, len)).filter(Boolean))].slice(0, max);
+  const ids = (v) => [...new Set([].concat(v ?? []).map(snowflake).filter(Boolean))].slice(0, 200);
   settings.automodEnabled = req.body.automodEnabled === 'on';
   settings.automodBlockInvites = req.body.automodBlockInvites === 'on';
   settings.automodAntiSpam = req.body.automodAntiSpam === 'on';
   settings.automodSpamMessages = clampInt(req.body.automodSpamMessages, 2, 30, settings.automodSpamMessages);
   settings.automodSpamSeconds = clampInt(req.body.automodSpamSeconds, 2, 60, settings.automodSpamSeconds);
-  const words = [
-    ...new Set(
-      (req.body.bannedWords || '')
-        .split(/\r?\n/)
-        .map((w) => w.trim().toLowerCase().slice(0, 64))
-        .filter(Boolean)
-    )
-  ].slice(0, 500);
-  settings.automodBannedWords = JSON.stringify(words);
+  settings.automodBannedWords = JSON.stringify(lines(req.body.bannedWords, 500, 64));
+  // New rules: 0 switches a numeric rule off
+  settings.automodBlockLinks = req.body.automodBlockLinks === 'on';
+  settings.automodLinkWhitelist = JSON.stringify(lines(req.body.linkWhitelist, 100, 100).map((d) => d.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '')).filter(Boolean));
+  settings.automodDuplicates = req.body.automodDuplicates === 'on';
+  settings.automodMentionLimit = clampInt(req.body.automodMentionLimit, 0, 50, settings.automodMentionLimit);
+  settings.automodEmojiLimit = clampInt(req.body.automodEmojiLimit, 0, 100, settings.automodEmojiLimit);
+  settings.automodCapsPercent = clampInt(req.body.automodCapsPercent, 0, 100, settings.automodCapsPercent);
+  settings.automodCapsMinLength = clampInt(req.body.automodCapsMinLength, 5, 200, settings.automodCapsMinLength);
+  // What to do with the author
+  settings.automodAction = ['delete', 'warn', 'mute'].includes(req.body.automodAction) ? req.body.automodAction : 'delete';
+  settings.automodMuteMinutes = clampInt(req.body.automodMuteMinutes, 1, 40320, settings.automodMuteMinutes);
+  // Exceptions
+  settings.automodIgnoredChannels = JSON.stringify(ids(req.body.ignoredChannels));
+  settings.automodIgnoredRoles = JSON.stringify(ids(req.body.ignoredRoles));
   await settings.save();
   res.redirect(saved(req.params.guildId, 'automod'));
 });

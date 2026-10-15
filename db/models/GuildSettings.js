@@ -71,6 +71,23 @@ module.exports = (sequelize) => {
       automodAntiSpam: { type: DataTypes.BOOLEAN, defaultValue: false },
       automodSpamMessages: { type: DataTypes.INTEGER, defaultValue: 5 }, // messages
       automodSpamSeconds: { type: DataTypes.INTEGER, defaultValue: 7 }, // within N seconds
+      automodAction: { type: DataTypes.STRING, defaultValue: 'delete' }, // delete | warn | mute (the message is always deleted)
+      automodMuteMinutes: { type: DataTypes.INTEGER, defaultValue: 10 },
+      automodMentionLimit: { type: DataTypes.INTEGER, defaultValue: 0 }, // 0 = off
+      automodCapsPercent: { type: DataTypes.INTEGER, defaultValue: 0 }, // 0 = off
+      automodCapsMinLength: { type: DataTypes.INTEGER, defaultValue: 10 },
+      automodBlockLinks: { type: DataTypes.BOOLEAN, defaultValue: false },
+      automodLinkWhitelist: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON array of domains
+      automodEmojiLimit: { type: DataTypes.INTEGER, defaultValue: 0 }, // 0 = off
+      automodDuplicates: { type: DataTypes.BOOLEAN, defaultValue: false },
+      automodIgnoredChannels: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON array of channel ids
+      automodIgnoredRoles: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON array of role ids
+
+      // Moderation (/mod): see bot/modules/moderation.js
+      modDmEnabled: { type: DataTypes.BOOLEAN, defaultValue: true }, // tell the member about a punishment in DMs
+      modRequireReason: { type: DataTypes.BOOLEAN, defaultValue: false },
+      modWarnExpireDays: { type: DataTypes.INTEGER, defaultValue: 0 }, // 0 = warnings never expire
+      modWarnThresholds: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON [{ count, action: mute|kick|ban, minutes }]
 
       // Temp voice ("join to create")
       tempVoiceJoinChannelId: { type: DataTypes.STRING, allowNull: true },

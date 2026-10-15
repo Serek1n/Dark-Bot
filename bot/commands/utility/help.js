@@ -43,8 +43,9 @@ const MEMBER_SECTIONS = [
 const MODERATOR_SECTION = {
   title: 'Модерация',
   text:
-    '`/mod` — `warn`, `unwarn`, `warnings`, `mute`, `unmute`, `kick`, `ban`, `unban`, `clear`. Для `kick`, `ban` и `clear` нужны соответствующие права в Discord.\n\n' +
-    '**Каждое действие записывается в журнал модерации.**'
+    '`/mod` — наказания: `warn`, `mute`, `kick`, `ban` (можно на срок: `30m`, `2h`, `7d`), а также `unwarn`, `clearwarns`, `unmute`, `unban`.\n' +
+    'Дела: `case`, `history`, `reason`, `note`. Каналы: `clear`, `slowmode`, `lock`, `unlock`. Для `kick`, `ban`, `clear` и каналов нужны соответствующие права в Discord.\n\n' +
+    '**Каждое наказание получает номер дела, участник получает уведомление в личные сообщения, а за несколько предупреждений бот сам мутит, кикает или банит (настраивается в панели).**'
 };
 
 function adminSection() {

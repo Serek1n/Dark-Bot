@@ -372,6 +372,7 @@ td:has(> code), td.mono { font-family: var(--font-mono); font-size: 13px; }
 .badge-ban, .badge-kick { background: var(--danger-tint); color: var(--danger); }
 .badge-unban, .badge-unwarn, .badge-unmute { background: var(--success-tint); color: var(--success); }
 .badge-mute { background: var(--panel-raised); color: var(--fog); }
+.badge-note, .badge-automod, .badge-clear { background: var(--panel-raised); color: var(--fog); }
 .badge-automod { background: var(--signal-tint); color: var(--signal); }
 .badge-clear { background: var(--panel-raised); color: var(--fog); }
 

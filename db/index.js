@@ -65,7 +65,26 @@ const COLUMN_ADDITIONS = [
   { table: 'guild_settings', column: 'logWebhookId', ddl: 'VARCHAR(255)' },
   { table: 'guild_settings', column: 'logWebhookToken', ddl: 'VARCHAR(255)' },
   { table: 'guild_settings', column: 'logThreads', ddl: "TEXT DEFAULT '{}'" },
-  { table: 'guild_settings', column: 'logDisabled', ddl: "TEXT DEFAULT '[]'" }
+  { table: 'guild_settings', column: 'logDisabled', ddl: "TEXT DEFAULT '[]'" },
+  { table: 'guild_settings', column: 'automodAction', ddl: "VARCHAR(255) DEFAULT 'delete'" },
+  { table: 'guild_settings', column: 'automodMuteMinutes', ddl: "INTEGER DEFAULT 10" },
+  { table: 'guild_settings', column: 'automodMentionLimit', ddl: "INTEGER DEFAULT 0" },
+  { table: 'guild_settings', column: 'automodCapsPercent', ddl: "INTEGER DEFAULT 0" },
+  { table: 'guild_settings', column: 'automodCapsMinLength', ddl: "INTEGER DEFAULT 10" },
+  { table: 'guild_settings', column: 'automodBlockLinks', ddl: "TINYINT(1) DEFAULT 0" },
+  { table: 'guild_settings', column: 'automodLinkWhitelist', ddl: "TEXT DEFAULT '[]'" },
+  { table: 'guild_settings', column: 'automodEmojiLimit', ddl: "INTEGER DEFAULT 0" },
+  { table: 'guild_settings', column: 'automodDuplicates', ddl: "TINYINT(1) DEFAULT 0" },
+  { table: 'guild_settings', column: 'automodIgnoredChannels', ddl: "TEXT DEFAULT '[]'" },
+  { table: 'guild_settings', column: 'automodIgnoredRoles', ddl: "TEXT DEFAULT '[]'" },
+  { table: 'guild_settings', column: 'modDmEnabled', ddl: "TINYINT(1) DEFAULT 1" },
+  { table: 'guild_settings', column: 'modRequireReason', ddl: "TINYINT(1) DEFAULT 0" },
+  { table: 'guild_settings', column: 'modWarnExpireDays', ddl: "INTEGER DEFAULT 0" },
+  { table: 'guild_settings', column: 'modWarnThresholds', ddl: "TEXT DEFAULT '[]'" },
+  { table: 'mod_logs', column: 'caseNumber', ddl: "INTEGER" },
+  { table: 'mod_logs', column: 'duration', ddl: "BIGINT" },
+  { table: 'mod_logs', column: 'expiresAt', ddl: "DATETIME" },
+  { table: 'mod_logs', column: 'active', ddl: "TINYINT(1) DEFAULT 0" }
 ];
 
 async function addMissingColumns() {
@@ -95,6 +114,15 @@ async function migrateTracks() {
   await sequelize.query('CREATE UNIQUE INDEX IF NOT EXISTS level_roles_guild_track_level ON level_roles (guildId, track, level);');
 }
 
+// Cases written before numbering existed get numbers 1, 2, 3... in the order they happened.
+// Runs only for servers that have no numbered case yet, so it is safe to repeat.
+async function backfillCaseNumbers() {
+  await sequelize.query(
+    `UPDATE mod_logs SET caseNumber = (SELECT COUNT(*) FROM mod_logs m2 WHERE m2.guildId = mod_logs.guildId AND m2.id <= mod_logs.id)
+     WHERE caseNumber IS NULL AND NOT EXISTS (SELECT 1 FROM mod_logs x WHERE x.guildId = mod_logs.guildId AND x.caseNumber IS NOT NULL);`
+  );
+}
+
 // Indexes for what the panel and /top sort and count by, and for per-member lookups.
 const INDEXES = [
   ['member_profiles_guild_xp', 'member_profiles', 'guildId, xp'],
@@ -103,6 +131,8 @@ const INDEXES = [
   ['mod_logs_guild_created', 'mod_logs', 'guildId, createdAt'],
   ['mod_logs_guild_user', 'mod_logs', 'guildId, userId'],
   ['warnings_guild_user', 'warnings', 'guildId, userId'],
+  ['mod_logs_guild_case', 'mod_logs', 'guildId, caseNumber'],
+  ['mod_logs_due', 'mod_logs', 'active, expiresAt'],
   ['level_roles_guild', 'level_roles', 'guildId']
 ];
 
@@ -130,6 +160,7 @@ async function init() {
   await sequelize.query('PRAGMA mmap_size = 134217728;');
   await sequelize.sync(); // creates tables if they don't exist
   await addMissingColumns();
+  await backfillCaseNumbers();
   await migrateTracks();
   await ensureIndexes();
 }

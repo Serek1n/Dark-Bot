@@ -49,7 +49,7 @@ async function main() {
   await test('mute: cannot act on member with equal/higher role', async () => {
     const guild = require('./mock').makeGuild();
     guild.members.fetch = async (id) => makeMember(id, { rolePosition: 10 });
-    const i = makeInteraction({ guild, subcommand: 'mute', options: { 'user': makeUser('user2'), 'minutes': 5 } });
+    const i = makeInteraction({ guild, subcommand: 'mute', options: { 'user': makeUser('user2'), 'duration': '5m' } });
     await moderation.execute(i);
     assert(text(i).includes('не ниже вашей'), text(i));
   });

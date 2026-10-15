@@ -1,7 +1,6 @@
 const { CustomCommand } = require('../../db');
 const { grantMessageXp, getOrCreateSettings } = require('../modules/leveling');
-const { evaluateMessage, logModAction } = require('../modules/automod');
-const embeds = require('../utils/embeds');
+const { evaluateMessage, handleViolation } = require('../modules/automod');
 const { announceLevelUp } = require('../utils/levelUp');
 const { applyLevelRoles } = require('../modules/levelRoles');
 const logger = require('../utils/logger');
@@ -21,20 +20,7 @@ module.exports = {
     try {
       const violation = await evaluateMessage(settings, message);
       if (violation) {
-        await message.delete().catch(() => {});
-        await logModAction(message.guild.id, message.author.id, message.client.user.id, 'automod', violation);
-        if (settings.modLogChannelId) {
-          const logChannel = await message.guild.channels.fetch(settings.modLogChannelId).catch(() => null);
-          logChannel
-            ?.send({
-              embeds: [
-                embeds
-                  .error(`Сообщение от <@${message.author.id}> удалено автомодерацией`)
-                  .addFields({ name: 'Причина', value: violation })
-              ]
-            })
-            .catch(() => {});
-        }
+        await handleViolation(settings, message, violation);
         return; // don't process leveling/custom commands for deleted messages
       }
     } catch (err) {
