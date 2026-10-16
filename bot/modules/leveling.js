@@ -50,6 +50,46 @@ async function getOrCreateProfile(guildId, userId) {
   return profile;
 }
 
+// ---- Channel bonuses ----------------------------------------------------------------------------
+// An admin can make some channels (or a whole category) pay more XP and coins, or nothing at all.
+// Stored as JSON { "<channelId or categoryId>": { xp: 2, coins: 1.5 } }; a missing channel pays x1.
+const MAX_BOOST = 10;
+const parsedBoosts = new WeakMap(); // settings row -> parsed object (rows are re-read every few seconds)
+
+function parseBoosts(json) {
+  let raw = {};
+  try {
+    raw = JSON.parse(json || '{}');
+  } catch {
+    raw = {};
+  }
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [id, v] of Object.entries(raw)) {
+    if (!/^\d{15,25}$/.test(id) || !v || typeof v !== 'object') continue;
+    const clamp = (n) => (Number.isFinite(Number(n)) ? Math.min(MAX_BOOST, Math.max(0, Math.round(Number(n) * 100) / 100)) : 1);
+    out[id] = { xp: clamp(v.xp ?? 1), coins: clamp(v.coins ?? 1) };
+  }
+  return out;
+}
+
+/**
+ * The multipliers for a place, from the most specific id to the least: the channel itself, then its
+ * category (or the parent channel of a thread), then that parent's category. Nothing set = x1 / x1.
+ */
+function boostFor(settings, ids) {
+  if (!settings) return { xp: 1, coins: 1 };
+  let table = parsedBoosts.get(settings);
+  if (!table) {
+    table = parseBoosts(settings.channelBoosts);
+    if (typeof settings === 'object') parsedBoosts.set(settings, table);
+  }
+  for (const id of ids || []) if (id && table[id]) return table[id];
+  return { xp: 1, coins: 1 };
+}
+
+const scale = (value, multiplier) => Math.max(0, Math.round(value * multiplier));
+
 const TRACKS = ['chat', 'voice'];
 const MAX_LEVEL = 1000;
 
@@ -114,17 +154,20 @@ function applyGain(profile, track, xp, coins, settings) {
  * Award XP for an eligible message (chat direction). Returns the result of applyGain,
  * or null if on cooldown / the direction is switched off.
  */
-function grantMessageXp(guildId, userId) {
-  return withLock(`xp:${guildId}:${userId}`, () => grantMessageXpUnlocked(guildId, userId));
+function grantMessageXp(guildId, userId, where = []) {
+  return withLock(`xp:${guildId}:${userId}`, () => grantMessageXpUnlocked(guildId, userId, where));
 }
 
 // Last time each member got message XP. Most messages fall inside the cooldown, and those are
 // answered from memory without touching the database.
 const lastXpGrant = new Map();
 
-async function grantMessageXpUnlocked(guildId, userId) {
+// `where`: ids of the channel, its category and so on (see boostFor); only used for the bonuses.
+async function grantMessageXpUnlocked(guildId, userId, where = []) {
   const settings = await getOrCreateSettings(guildId);
   if (!settings.levelingEnabled || !settings.chatEnabled) return null;
+  const boost = boostFor(settings, where);
+  if (boost.xp === 0 && boost.coins === 0) return null; // a channel that pays nothing
 
   const memKey = `${guildId}:${userId}`;
   const seen = lastXpGrant.get(memKey);
@@ -140,8 +183,9 @@ async function grantMessageXpUnlocked(guildId, userId) {
     }
   }
 
-  const gained = randomInt(settings.xpPerMessageMin, settings.xpPerMessageMax);
-  const result = applyGain(profile, 'chat', gained, Math.max(0, Number(settings.chatCoinsPerMessage) || 0), settings);
+  const gained = scale(randomInt(settings.xpPerMessageMin, settings.xpPerMessageMax), boost.xp);
+  const coins = scale(Math.max(0, Number(settings.chatCoinsPerMessage) || 0), boost.coins);
+  const result = applyGain(profile, 'chat', gained, coins, settings);
   profile.lastXpAt = new Date();
   profile.messageCount = Number(profile.messageCount) + 1;
   await profile.save();
@@ -154,11 +198,12 @@ async function grantMessageXpUnlocked(guildId, userId) {
  * Award voice XP and coins for one minute in a voice channel (voice direction).
  * `amount` is the XP for that minute; coins come from the server settings.
  */
-function grantVoiceXp(guildId, userId, amount) {
+function grantVoiceXp(guildId, userId, amount, coinMultiplier = 1) {
   return withLock(`xp:${guildId}:${userId}`, async () => {
     const settings = await getOrCreateSettings(guildId);
     const profile = await getOrCreateProfile(guildId, userId);
-    const result = applyGain(profile, 'voice', Math.max(0, Number(amount) || 0), Math.max(0, Number(settings.voiceCoinsPerMinute) || 0), settings);
+    const coins = scale(Math.max(0, Number(settings.voiceCoinsPerMinute) || 0), coinMultiplier);
+    const result = applyGain(profile, 'voice', Math.max(0, Number(amount) || 0), coins, settings);
     await profile.save();
     return result;
   });
@@ -170,14 +215,14 @@ function grantVoiceXp(guildId, userId, amount) {
  * Same per-member locks as grantVoiceXp, so a message sent at the same moment can't be lost.
  * Returns Map userId -> result of applyGain.
  */
-function grantVoiceXpBatch(guildId, userIds, amount) {
+function grantVoiceXpBatch(guildId, userIds, amount, coinMultiplier = 1) {
   const ids = [...new Set(userIds)];
   const results = new Map();
   if (!ids.length) return Promise.resolve(results);
   return withLocks(ids.map((id) => `xp:${guildId}:${id}`), async () => {
     const settings = await getOrCreateSettings(guildId);
     const xp = Math.max(0, Number(amount) || 0);
-    const coins = Math.max(0, Number(settings.voiceCoinsPerMinute) || 0);
+    const coins = scale(Math.max(0, Number(settings.voiceCoinsPerMinute) || 0), coinMultiplier);
     const byId = new Map((await MemberProfile.findAll({ where: { guildId, userId: ids } })).map((p) => [p.userId, p]));
     const rows = [];
     for (const id of ids) {
@@ -221,6 +266,9 @@ module.exports = {
   grantVoiceXpBatch,
   getLeaderboard,
   applyGain,
+  parseBoosts,
+  boostFor,
+  MAX_BOOST,
   computeLevelAdjust,
   MAX_LEVEL,
   levelsOf,

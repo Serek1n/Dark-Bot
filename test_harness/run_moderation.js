@@ -326,7 +326,7 @@ const { makeUser, makeInteraction } = require('./mock');
   const S = () => GuildSettings.findByPk('G1');
   await test('panel: moderation page shows case numbers, terms and the warning rules', async () => {
     const r = await fetch(base2 + '/moderation'); const html = await r.text();
-    assert(r.status === 200 && html.includes('Правила наказаний') && html.includes('<th>№</th>') && /#\d+/.test(html), html.slice(0, 300));
+    assert(r.status === 200 && html.includes('Правила наказаний') && html.includes('>№</th>') && /#\d+/.test(html), html.slice(0, 300));
     assert((await fetch(base2 + '/moderation?action=note')).status === 200, 'note filter');
   });
   await test('panel: warning rules are saved, cleaned and sorted', async () => {
@@ -364,6 +364,19 @@ const { makeUser, makeInteraction } = require('./mock');
     const html = await (await fetch(base2 + '/automod')).text();
     assert(html.includes('youtube.com') && html.includes('selected'), 'values shown on the page');
     await post('/automod', { automodAction: 'explode' }); assert((await S()).automodAction === 'delete', 'unknown action falls back to delete');
+  });
+  await test('panel: the save bar script waits for the page (the forms come after the sidebar), and every table can scroll sideways', async () => {
+    const html = await (await fetch(base2 + '/automod')).text();
+    assert(/DOMContentLoaded[\s\S]{0,80}\n\s+var bar = document\.getElementById\('saveBar'\)/.test(html), 'save bar script must run after the forms exist');
+    for (const f of fs.readdirSync(path.join(__dirname, '..', 'web', 'views', 'dashboard'))) {
+      const t = fs.readFileSync(path.join(__dirname, '..', 'web', 'views', 'dashboard', f), 'utf8');
+      assert(!t.includes('<table') || t.includes('table-scroll'), f + ': a table without a scroll wrapper breaks the phone layout');
+    }
+  });
+  await test('panel: the overview shows action names in Russian, including notes and automod', async () => {
+    const html = await (await fetch(base2)).text();
+    assert(html.includes('Заметка') || !html.includes('>note<'), 'note is not translated');
+    assert(!/>(note|automod|warn|unwarn|kick|ban|mute)<\/span><span class="person"/.test(html), 'raw action name in the overview');
   });
   server.close();
 

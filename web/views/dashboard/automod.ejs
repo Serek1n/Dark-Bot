@@ -7,111 +7,118 @@
     <div class="content">
       <div class="page-header">
         <h1>Автомодерация</h1>
-        <p class="page-intro">Автоматическая проверка сообщений. Нарушившее правило сообщение удаляется, а автору можно ещё выдать предупреждение или мут.</p>
+        <p class="page-intro">Бот проверяет каждое сообщение. Если оно нарушает включённое правило, оно удаляется, а автору при желании выдаётся предупреждение или мут.</p>
       </div>
-      <form method="post" class="card">
-        <div class="checkbox-row">
-          <input type="checkbox" id="automodEnabled" name="automodEnabled" <%= settings.automodEnabled ? 'checked' : '' %> />
-          <label for="automodEnabled" style="margin:0;">Включить автомодерацию</label>
+      <nav class="jump" aria-label="Разделы страницы">
+        <a href="#rules">Правила</a><a href="#words">Слова и сайты</a><a href="#action">Наказание</a><a href="#skip">Исключения</a>
+      </nav>
+
+      <form method="post" class="plain">
+        <div class="card">
+          <div class="rules">
+            <label class="rule">
+              <span class="rule-text"><b>Автомодерация включена</b><span>Если выключить, сообщения не проверяются, а все настройки ниже сохраняются.</span></span>
+              <input type="checkbox" name="automodEnabled" <%= settings.automodEnabled ? 'checked' : '' %> />
+            </label>
+          </div>
         </div>
 
-        <h2 style="margin-top:20px;">Что проверять</h2>
-        <div class="checkbox-row">
-          <input type="checkbox" id="automodBlockInvites" name="automodBlockInvites" <%= settings.automodBlockInvites ? 'checked' : '' %> />
-          <label for="automodBlockInvites" style="margin:0;">Ссылки-приглашения на другие серверы</label>
-        </div>
-        <div class="checkbox-row">
-          <input type="checkbox" id="automodBlockLinks" name="automodBlockLinks" <%= settings.automodBlockLinks ? 'checked' : '' %> />
-          <label for="automodBlockLinks" style="margin:0;">Любые ссылки (кроме разрешённых сайтов ниже)</label>
-        </div>
-        <div class="checkbox-row">
-          <input type="checkbox" id="automodDuplicates" name="automodDuplicates" <%= settings.automodDuplicates ? 'checked' : '' %> />
-          <label for="automodDuplicates" style="margin:0;">Одинаковые сообщения (3 раза за 30 секунд)</label>
-        </div>
-        <div class="checkbox-row">
-          <input type="checkbox" id="automodAntiSpam" name="automodAntiSpam" <%= settings.automodAntiSpam ? 'checked' : '' %> />
-          <label for="automodAntiSpam" style="margin:0;">Анти-спам: много сообщений подряд</label>
-        </div>
-        <div class="two-col">
-          <div>
-            <label>Макс. сообщений подряд</label>
-            <input type="number" name="automodSpamMessages" value="<%= settings.automodSpamMessages %>" min="2" />
+        <div class="card" id="rules">
+          <h2>Что проверять<span class="sub">Включите нужные правила. Цифры «0» выключают правило.</span></h2>
+          <div class="rules">
+            <label class="rule">
+              <span class="rule-text"><b>Приглашения на другие серверы</b><span>Ссылки вида discord.gg/… и discord.com/invite/…</span></span>
+              <input type="checkbox" name="automodBlockInvites" <%= settings.automodBlockInvites ? 'checked' : '' %> />
+            </label>
+            <label class="rule">
+              <span class="rule-text"><b>Любые ссылки</b><span>Разрешены только сайты из списка ниже («Слова и сайты»).</span></span>
+              <input type="checkbox" name="automodBlockLinks" <%= settings.automodBlockLinks ? 'checked' : '' %> />
+            </label>
+            <label class="rule">
+              <span class="rule-text"><b>Одинаковые сообщения</b><span>Одно и то же сообщение 3 раза за 30 секунд.</span></span>
+              <input type="checkbox" name="automodDuplicates" <%= settings.automodDuplicates ? 'checked' : '' %> />
+            </label>
+            <label class="rule">
+              <span class="rule-text"><b>Спам: много сообщений подряд</b><span>Срабатывает, когда участник превысил лимит ниже.</span></span>
+              <input type="checkbox" name="automodAntiSpam" <%= settings.automodAntiSpam ? 'checked' : '' %> />
+            </label>
+            <div class="rule">
+              <span class="rule-text"><b>Лимит для спама</b><span>Больше этого числа сообщений за указанное время считается спамом.</span></span>
+              <span class="rule-ctl"><input type="number" name="automodSpamMessages" value="<%= settings.automodSpamMessages %>" min="2" max="30" /><span class="unit">сообщ. за</span><input type="number" name="automodSpamSeconds" value="<%= settings.automodSpamSeconds %>" min="2" max="60" /><span class="unit">сек.</span></span>
+            </div>
+            <div class="rule">
+              <span class="rule-text"><b>Упоминания</b><span>Максимум разных упоминаний (@участник, @роль, @everyone) в одном сообщении.</span></span>
+              <span class="rule-ctl"><input type="number" name="automodMentionLimit" value="<%= settings.automodMentionLimit || 0 %>" min="0" max="50" /><span class="unit">шт.</span></span>
+            </div>
+            <div class="rule">
+              <span class="rule-text"><b>Эмодзи</b><span>Максимум эмодзи (обычных и серверных) в одном сообщении.</span></span>
+              <span class="rule-ctl"><input type="number" name="automodEmojiLimit" value="<%= settings.automodEmojiLimit || 0 %>" min="0" max="100" /><span class="unit">шт.</span></span>
+            </div>
+            <div class="rule">
+              <span class="rule-text"><b>Заглавные буквы («КРИК»)</b><span>Доля заглавных от всех букв. Короткие сообщения не проверяются.</span></span>
+              <span class="rule-ctl"><input type="number" name="automodCapsPercent" value="<%= settings.automodCapsPercent || 0 %>" min="0" max="100" /><span class="unit">% от</span><input type="number" name="automodCapsMinLength" value="<%= settings.automodCapsMinLength || 10 %>" min="5" max="200" /><span class="unit">букв</span></span>
+            </div>
           </div>
-          <div>
-            <label>За сколько секунд</label>
-            <input type="number" name="automodSpamSeconds" value="<%= settings.automodSpamSeconds %>" min="2" />
-          </div>
-        </div>
-        <div class="two-col">
-          <div>
-            <label>Макс. упоминаний в сообщении (0 — не проверять)</label>
-            <input type="number" name="automodMentionLimit" value="<%= settings.automodMentionLimit || 0 %>" min="0" max="50" />
-          </div>
-          <div>
-            <label>Макс. эмодзи в сообщении (0 — не проверять)</label>
-            <input type="number" name="automodEmojiLimit" value="<%= settings.automodEmojiLimit || 0 %>" min="0" max="100" />
-          </div>
-        </div>
-        <div class="two-col">
-          <div>
-            <label>Заглавные буквы, % от букв (0 — не проверять)</label>
-            <input type="number" name="automodCapsPercent" value="<%= settings.automodCapsPercent || 0 %>" min="0" max="100" />
-          </div>
-          <div>
-            <label>Проверять сообщения не короче (букв)</label>
-            <input type="number" name="automodCapsMinLength" value="<%= settings.automodCapsMinLength || 10 %>" min="5" max="200" />
-          </div>
-        </div>
-        <div>
-          <label>Запрещённые слова (по одному на строку)</label>
-          <textarea name="bannedWords" rows="6"><%= bannedWords.join('\n') %></textarea>
-          <div class="hint">Слово ловится с начала слова: «слово» поймает и «словом», но не «пословица».</div>
-        </div>
-        <div>
-          <label>Разрешённые сайты, если ссылки запрещены (по одному на строку)</label>
-          <textarea name="linkWhitelist" rows="4"><%= linkWhitelist.join('\n') %></textarea>
-          <div class="hint">Например <b>youtube.com</b>: разрешит и www.youtube.com, и m.youtube.com.</div>
         </div>
 
-        <h2 style="margin-top:20px;">Что делать с нарушителем</h2>
-        <div class="two-col">
+        <div class="card" id="words">
+          <h2>Слова и сайты<span class="sub">По одному на строку</span></h2>
           <div>
-            <label>Наказание (сообщение удаляется всегда)</label>
-            <select name="automodAction">
-              <option value="delete" <%= (settings.automodAction || 'delete') === 'delete' ? 'selected' : '' %>>Только удалить сообщение</option>
-              <option value="warn" <%= settings.automodAction === 'warn' ? 'selected' : '' %>>Удалить и выдать предупреждение</option>
-              <option value="mute" <%= settings.automodAction === 'mute' ? 'selected' : '' %>>Удалить и замутить</option>
-            </select>
+            <label>Запрещённые слова</label>
+            <textarea name="bannedWords" rows="6" placeholder="например: реклама"><%= bannedWords.join('\n') %></textarea>
+            <div class="hint">Слово ловится с начала: «слово» поймает и «словом», но не «пословица». Регистр не важен.</div>
           </div>
           <div>
-            <label>Срок мута, минут</label>
-            <input type="number" name="automodMuteMinutes" value="<%= settings.automodMuteMinutes || 10 %>" min="1" max="40320" />
+            <label>Разрешённые сайты (когда запрещены любые ссылки)</label>
+            <textarea name="linkWhitelist" rows="4" placeholder="например: youtube.com"><%= linkWhitelist.join('\n') %></textarea>
+            <div class="hint">«youtube.com» разрешит и www.youtube.com, и m.youtube.com. Похожий адрес вроде youtube.com.evil.ru разрешён не будет.</div>
           </div>
         </div>
-        <div class="hint">Предупреждения от автомодерации считаются вместе с остальными: на странице «Модерация» можно настроить, что бот делает после нескольких предупреждений.</div>
 
-        <h2 style="margin-top:20px;">Исключения</h2>
-        <div class="two-col">
+        <div class="card" id="action">
+          <h2>Что делать с нарушителем<span class="sub">Сообщение удаляется всегда</span></h2>
+          <div class="two-col">
+            <div>
+              <label>Наказание автора</label>
+              <select name="automodAction">
+                <option value="delete" <%= (settings.automodAction || 'delete') === 'delete' ? 'selected' : '' %>>Только удалить сообщение</option>
+                <option value="warn" <%= settings.automodAction === 'warn' ? 'selected' : '' %>>Удалить и выдать предупреждение</option>
+                <option value="mute" <%= settings.automodAction === 'mute' ? 'selected' : '' %>>Удалить и замутить</option>
+              </select>
+            </div>
+            <div>
+              <label>Срок мута, минут</label>
+              <input type="number" name="automodMuteMinutes" value="<%= settings.automodMuteMinutes || 10 %>" min="1" max="40320" />
+            </div>
+          </div>
+          <div class="callout">Предупреждения автомодерации считаются вместе с остальными. Что бот сделает после нескольких предупреждений (мут, кик, бан), задаётся на странице <a href="/dashboard/<%= guild.id %>/moderation#rules" style="color:var(--ember);">«Наказания и журнал»</a>. Один нарушитель получает не больше одного наказания за 8 секунд, даже если продолжает писать.</div>
+        </div>
+
+        <div class="card" id="skip">
+          <h2>Исключения<span class="sub">Нажмите, чтобы выбрать. Выбранное подсвечено</span></h2>
           <div>
             <label>Каналы, где автомодерация не работает</label>
-            <select name="ignoredChannels" multiple size="6">
-              <% channels.filter(c => c.type === 0 || c.type === 5).forEach(c => { %>
-                <option value="<%= c.id %>" <%= ignoredChannels.includes(c.id) ? 'selected' : '' %>>#<%= c.name %></option>
+            <div class="pick">
+              <% const textCh = channels.filter(c => c.type === 0 || c.type === 5); %>
+              <% if (!textCh.length) { %><span class="pick-empty">Текстовых каналов не найдено</span><% } %>
+              <% textCh.forEach(c => { %>
+                <label><input type="checkbox" name="ignoredChannels" value="<%= c.id %>" <%= ignoredChannels.includes(c.id) ? 'checked' : '' %> /><span>#<%= c.name %></span></label>
               <% }) %>
-            </select>
+            </div>
           </div>
           <div>
             <label>Роли, которых автомодерация не проверяет</label>
-            <select name="ignoredRoles" multiple size="6">
+            <div class="pick">
+              <% if (!roles.length) { %><span class="pick-empty">Ролей не найдено</span><% } %>
               <% roles.forEach(r => { %>
-                <option value="<%= r.id %>" <%= ignoredRoles.includes(r.id) ? 'selected' : '' %>><%= r.name %></option>
+                <label><input type="checkbox" name="ignoredRoles" value="<%= r.id %>" <%= ignoredRoles.includes(r.id) ? 'checked' : '' %> /><span><%= r.name %></span></label>
               <% }) %>
-            </select>
+            </div>
+            <div class="hint">Участников с правом «Управлять сообщениями» бот не проверяет никогда.</div>
           </div>
         </div>
-        <div class="hint">Несколько пунктов выбираются с зажатым Ctrl (на телефоне — нажатием). Модераторов с правом управлять сообщениями бот не проверяет никогда.</div>
 
-        <button class="btn" type="submit">Сохранить</button>
+        <button class="btn" type="submit" style="align-self:flex-start;">Сохранить</button>
       </form>
     </div>
   </div>

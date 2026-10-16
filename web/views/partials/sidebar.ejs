@@ -26,6 +26,10 @@
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M12.4 7.6C12 6.9 11.1 6.5 10 6.5C8.6 6.5 7.6 7.2 7.6 8.2C7.6 10.3 12.4 9.2 12.4 11.8C12.4 12.8 11.4 13.5 10 13.5C8.8 13.5 7.9 13.1 7.5 12.3M10 5V6.5M10 13.5V15"/></svg>
         Экономика
       </a>
+      <a href="/dashboard/<%= guild.id %>/channel-boosts" class="<%= active === 'channel-boosts' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z"/></svg>
+        Бонусы каналов
+      </a>
       <a href="/dashboard/<%= guild.id %>/shop" class="<%= active === 'shop' ? 'active' : '' %>">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7H16L15.2 16H4.8L4 7Z"/><path d="M7.5 7V6C7.5 4.6 8.6 3.5 10 3.5C11.4 3.5 12.5 4.6 12.5 6V7"/></svg>
         Магазин
@@ -39,7 +43,7 @@
       <span class="nav-group-label">Модерация</span>
       <a href="/dashboard/<%= guild.id %>/moderation" class="<%= active === 'moderation' ? 'active' : '' %>">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5L16.5 5V9.5C16.5 13.5 13.7 16.8 10 17.5C6.3 16.8 3.5 13.5 3.5 9.5V5L10 2.5Z"/></svg>
-        Журнал и каналы
+        Наказания и журнал
       </a>
       <a href="/dashboard/<%= guild.id %>/logs" class="<%= active === 'logs' ? 'active' : '' %>">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3H12L15.5 6.5V17H5V3Z"/><path d="M12 3V6.5H15.5M7.5 10H13M7.5 13H11"/></svg>
@@ -111,6 +115,7 @@
       logoff: ['Логи отключены', false],
       lognoforum: ['Выберите именно форум — обычные каналы не подходят', true],
       logperm: ['Не хватает прав у бота: нужны «Управлять каналами» и «Управлять вебхуками»', true],
+      rules: ['Правила наказаний сохранены', false],
       logfail: ['Не удалось создать темы. Проверьте права бота в этом форуме', true]
     };
     for (var key in kinds) {
@@ -138,7 +143,8 @@
 </div>
 <script>
   // Shows a "save" bar once any settings form is edited, and warns before leaving with unsaved changes.
-  (function () {
+  // The forms come after the sidebar in the page, so wait until they exist.
+  document.addEventListener('DOMContentLoaded', function () {
     var bar = document.getElementById('saveBar');
     var forms = Array.prototype.filter.call(document.querySelectorAll('.content form[method=post]'), function (f) {
       return f.querySelector('input:not([type=hidden]):not([type=file]), select, textarea') && !f.hasAttribute('data-no-guard');
@@ -153,5 +159,5 @@
     document.getElementById('sbSave').addEventListener('click', function () { if (dirty) { submitting = true; dirty.requestSubmit ? dirty.requestSubmit() : dirty.submit(); } });
     document.getElementById('sbReset').addEventListener('click', function () { submitting = true; location.reload(); });
     window.addEventListener('beforeunload', function (e) { if (dirty && !submitting) { e.preventDefault(); e.returnValue = ''; } });
-  })();
+  });
 </script>

@@ -32,7 +32,7 @@
         <% if (!levelRoles.length) { %>
           <p class="empty-state">Наград пока нет.</p>
         <% } else { %>
-          <table>
+          <div class="table-scroll"><table>
             <thead><tr><th>Уровень</th><th>Роль</th><th></th></tr></thead>
             <tbody>
               <% levelRoles.forEach(lr => {
@@ -49,7 +49,7 @@
                 </tr>
               <% }) %>
             </tbody>
-          </table>
+          </table></div>
         <% } %>
       </div>
 

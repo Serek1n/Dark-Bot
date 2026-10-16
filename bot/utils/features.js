@@ -6,7 +6,7 @@ const FEATURES = [
   { key: 'economy', field: 'economyEnabled', title: 'Экономика', desc: 'Ежедневная награда, баланс и переводы: /daily, /balance, /pay', commands: ['daily', 'balance', 'pay'], page: 'economy' },
   { key: 'shop', field: 'shopEnabled', title: 'Магазин', desc: 'Покупка ролей и предметов за валюту: /shop', commands: ['shop'], page: 'shop' },
   { key: 'music', field: 'musicEnabled', title: 'Музыка', desc: 'Команда /play. Уже играющая музыка продолжит играть, пока её не остановят кнопкой', commands: ['play'], page: null },
-  { key: 'automod', field: 'automodEnabled', title: 'Автомодерация', desc: 'Удаление спама, приглашений и запрещённых слов', commands: [], page: 'automod' },
+  { key: 'automod', field: 'automodEnabled', title: 'Автомодерация', desc: 'Удаление спама, ссылок, приглашений, запрещённых слов и крика, с наказанием нарушителей', commands: [], page: 'automod' },
   { key: 'welcome', field: 'welcomeEnabled', title: 'Приветствие и автороль', desc: 'Сообщение и роль для новых участников', commands: [], page: 'welcome' },
   { key: 'reactionRoles', field: 'reactionRolesEnabled', title: 'Роли по реакциям', desc: 'Выдача ролей за реакцию на сообщение', commands: [], page: 'reaction-roles' },
   { key: 'customCommands', field: 'customCommandsEnabled', title: 'Свои команды', desc: 'Ответы на сообщения с префиксом, например !правила', commands: [], page: 'custom-commands' },

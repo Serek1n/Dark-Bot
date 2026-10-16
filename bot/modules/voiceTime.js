@@ -1,6 +1,6 @@
 const { sequelize } = require('../../db');
 const logger = require('../utils/logger');
-const { grantVoiceXpBatch, getOrCreateSettings } = require('./leveling');
+const { grantVoiceXpBatch, getOrCreateSettings, boostFor } = require('./leveling');
 const { announceLevelUp } = require('../utils/levelUp');
 const { applyLevelRoles } = require('./levelRoles');
 
@@ -82,37 +82,43 @@ async function xpTick(client) {
     const minMembers = Math.max(1, Number(settings.voiceMinMembers) || 2);
     const announceChannel = settings.levelUpChannelId ? guild.channels.cache.get(settings.levelUpChannelId) : null;
 
-    // Everyone who earns this minute, across all voice channels of the server.
-    const earners = [];
+    // Everyone who earns this minute, across all voice channels of the server, grouped by the bonus of
+    // their channel (a channel or its category can pay more XP and coins, or nothing).
+    const groups = new Map(); // "xpMultiplier|coinMultiplier" -> { xp, coins, members: [] }
     for (const channel of guild.channels.cache.values()) {
       if (!channel.isVoiceBased?.() || channel.id === guild.afkChannelId) continue;
       const humans = [...channel.members.values()].filter((m) => !m.user.bot);
       if (humans.length < minMembers) continue;
-      for (const member of humans) if (!member.voice?.deaf) earners.push(member);
+      const boost = boostFor(settings, [channel.id, channel.parentId]);
+      if (boost.xp === 0 && boost.coins === 0) continue;
+      const k = `${boost.xp}|${boost.coins}`;
+      if (!groups.has(k)) groups.set(k, { ...boost, members: [] });
+      for (const member of humans) if (!member.voice?.deaf) groups.get(k).members.push(member);
     }
-    if (!earners.length) continue;
 
-    // 200 members at a time: one database round trip for each group instead of one per member.
-    for (let i = 0; i < earners.length; i += 200) {
-      const group = earners.slice(i, i + 200);
-      const results = await grantVoiceXpBatch(guild.id, group.map((m) => m.id), xpPerMinute).catch((err) => {
-        logger.error('voice xp batch failed', err);
-        return new Map();
-      });
-      for (const member of group) {
-        const result = results.get(member.id);
-        if (!result) continue;
-        await applyLevelRoles(member, result.levels, settings.levelRolesReplace);
-        if (result.leveledUp) {
-          await announceLevelUp({
-            guild,
-            user: member.user,
-            displayName: member.displayName,
-            level: result.newLevel,
-            channel: announceChannel,
-            crystals: result.crystals,
-            crystalName: settings.crystalName
-          });
+    for (const { xp, coins, members: earners } of groups.values()) {
+      // 200 members at a time: one database round trip for each group instead of one per member.
+      for (let i = 0; i < earners.length; i += 200) {
+        const group = earners.slice(i, i + 200);
+        const results = await grantVoiceXpBatch(guild.id, group.map((m) => m.id), Math.round(xpPerMinute * xp), coins).catch((err) => {
+          logger.error('voice xp batch failed', err);
+          return new Map();
+        });
+        for (const member of group) {
+          const result = results.get(member.id);
+          if (!result) continue;
+          await applyLevelRoles(member, result.levels, settings.levelRolesReplace);
+          if (result.leveledUp) {
+            await announceLevelUp({
+              guild,
+              user: member.user,
+              displayName: member.displayName,
+              level: result.newLevel,
+              channel: announceChannel,
+              crystals: result.crystals,
+              crystalName: settings.crystalName
+            });
+          }
         }
       }
     }

@@ -89,6 +89,9 @@ module.exports = (sequelize) => {
       modWarnExpireDays: { type: DataTypes.INTEGER, defaultValue: 0 }, // 0 = warnings never expire
       modWarnThresholds: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON [{ count, action: mute|kick|ban, minutes }]
 
+      // Channel bonuses: JSON { "<channel or category id>": { xp: 2, coins: 1.5 } }, see bot/modules/leveling.js
+      channelBoosts: { type: DataTypes.TEXT, defaultValue: '{}' },
+
       // Temp voice ("join to create")
       tempVoiceJoinChannelId: { type: DataTypes.STRING, allowNull: true },
       tempVoiceCategoryId: { type: DataTypes.STRING, allowNull: true },

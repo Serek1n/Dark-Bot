@@ -29,7 +29,10 @@ module.exports = {
 
     // Leveling
     try {
-      const result = await grantMessageXp(message.guild.id, message.author.id);
+      // Where the message was written, for the channel bonuses: the channel, its category (or, in a thread, the parent channel and its category)
+      const ch = message.channel;
+      const where = [message.channelId, ch?.parentId, ch?.parent?.parentId].filter(Boolean);
+      const result = await grantMessageXp(message.guild.id, message.author.id, where);
       if (result && message.member) await applyLevelRoles(message.member, result.levels, settings.levelRolesReplace);
       if (result?.leveledUp) {
         const target = settings.levelUpChannelId

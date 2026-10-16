@@ -1,62 +1,73 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><%- include('../partials/head', { title: guild.name + ' — Модерация' }) %></head>
+<head><%- include('../partials/head', { title: guild.name + ' — Наказания' }) %></head>
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <div class="content">
       <div class="page-header">
-        <h1>Модерация</h1>
-        <p class="page-intro">Куда бот публикует действия модераторов и куда попадают жалобы участников.</p>
+        <h1>Наказания и журнал</h1>
+        <p class="page-intro">Здесь настраивается, что бот делает за предупреждения, и виден журнал всех наказаний. Выдают их модераторы командой <code>/mod</code> в Discord, а автомодерация — сама.</p>
       </div>
+      <nav class="jump" aria-label="Разделы страницы">
+        <a href="#channels">Каналы</a><a href="#rules">Правила наказаний</a><a href="#journal">Журнал</a>
+      </nav>
 
-      <form method="post" class="card">
-        <h2>Каналы</h2>
+      <form method="post" class="card" id="channels">
+        <h2>Каналы<span class="sub">Куда бот пишет о наказаниях и куда приходят жалобы участников</span></h2>
         <div>
-          <label>Канал журнала модерации</label>
+          <label>Канал журнала наказаний</label>
           <select name="modLogChannelId">
             <option value="">— не выбрано —</option>
             <% channels.filter(c => c.type === 0).forEach(c => { %>
               <option value="<%= c.id %>" <%= settings.modLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
           </select>
+          <div class="hint">Каждое наказание появится здесь отдельным сообщением с номером дела. Отдельно все наказания попадают в тему «Выдача наказаний» форума логов.</div>
         </div>
         <div>
-          <label>Канал для жалоб участников (контекстное меню "Пожаловаться")</label>
+          <label>Канал для жалоб участников</label>
           <select name="reportChannelId">
             <option value="">— не выбрано —</option>
             <% channels.filter(c => c.type === 0).forEach(c => { %>
               <option value="<%= c.id %>" <%= settings.reportChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
           </select>
+          <div class="hint">Участник нажимает на сообщение правой кнопкой → «Приложения» → «Report message», жалоба приходит сюда.</div>
         </div>
-        <button class="btn" type="submit">Сохранить</button>
+        <button class="btn" type="submit">Сохранить каналы</button>
       </form>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/moderation/rules" class="card">
-        <h2>Правила наказаний</h2>
-        <div class="checkbox-row">
-          <input type="checkbox" id="modDmEnabled" name="modDmEnabled" <%= settings.modDmEnabled ? 'checked' : '' %> />
-          <label for="modDmEnabled" style="margin:0;">Сообщать участнику о наказании в личные сообщения</label>
-        </div>
-        <div class="checkbox-row">
-          <input type="checkbox" id="modRequireReason" name="modRequireReason" <%= settings.modRequireReason ? 'checked' : '' %> />
-          <label for="modRequireReason" style="margin:0;">Требовать причину для предупреждения, мута, кика и бана</label>
-        </div>
-        <div>
-          <label>Предупреждения сгорают через (дней, 0 — никогда)</label>
-          <input type="number" name="modWarnExpireDays" value="<%= settings.modWarnExpireDays || 0 %>" min="0" max="365" />
+      <form method="post" action="/dashboard/<%= guild.id %>/moderation/rules" class="card" id="rules">
+        <h2>Правила наказаний<span class="sub">Как вести себя боту при предупреждениях</span></h2>
+        <div class="rules">
+          <label class="rule">
+            <span class="rule-text"><b>Сообщать участнику в личные сообщения</b><span>Участник узнает, за что и на какой срок его наказали. Если личные сообщения закрыты, бот просто продолжит.</span></span>
+            <input type="checkbox" name="modDmEnabled" <%= settings.modDmEnabled ? 'checked' : '' %> />
+          </label>
+          <label class="rule">
+            <span class="rule-text"><b>Причина обязательна</b><span>Предупреждение, мут, кик и бан без причины будут отклонены.</span></span>
+            <input type="checkbox" name="modRequireReason" <%= settings.modRequireReason ? 'checked' : '' %> />
+          </label>
+          <div class="rule">
+            <span class="rule-text"><b>Предупреждения сгорают</b><span>Старые предупреждения перестают считаться. 0 — не сгорают никогда.</span></span>
+            <span class="rule-ctl"><input type="number" name="modWarnExpireDays" value="<%= settings.modWarnExpireDays || 0 %>" min="0" max="365" /><span class="unit">дней</span></span>
+          </div>
         </div>
 
-        <h3 style="margin-top:20px;">Что делать за предупреждения</h3>
-        <div class="hint">Когда у участника становится ровно столько <b>действующих</b> предупреждений, бот сам применяет наказание. Пустую строку (0) бот пропускает.</div>
+        <h3 style="margin-top:22px;">Что делать за предупреждения</h3>
+        <% if (thresholds.length) { %>
+          <div class="callout">Сейчас: <b><%= thresholds.map(t => t.count + ' → ' + ({ mute: 'мут', kick: 'кик', ban: 'бан' })[t.action] + (t.action !== 'kick' && t.minutes ? ' на ' + formatDuration(t.minutes * 60000) : t.action === 'ban' ? ' навсегда' : '')).join(' · ') %></b></div>
+        <% } else { %>
+          <div class="callout">Пока бот только записывает предупреждения. Добавьте правило, например: <b>3 → мут на 60 минут</b>, <b>5 → бан на 1440 минут (сутки)</b>.</div>
+        <% } %>
         <div class="table-scroll"><table>
-          <thead><tr><th>Предупреждений</th><th>Наказание</th><th>Срок, минут</th></tr></thead>
+          <thead><tr><th class="nowrap">Когда предупреждений</th><th>Наказание</th><th class="nowrap">Срок, минут</th></tr></thead>
           <tbody>
             <% const rows = thresholds.concat(Array.from({ length: Math.max(0, 5 - thresholds.length) }, () => ({ count: 0, action: 'mute', minutes: 0 }))); %>
             <% rows.forEach(t => { %>
               <tr>
-                <td><input type="number" name="thrCount" value="<%= t.count || '' %>" min="0" max="100" placeholder="0" style="width:90px;" /></td>
+                <td><input type="number" name="thrCount" value="<%= t.count || '' %>" min="0" max="100" placeholder="—" style="width:96px;" /></td>
                 <td>
                   <select name="thrAction">
                     <option value="mute" <%= t.action === 'mute' ? 'selected' : '' %>>Мут</option>
@@ -69,7 +80,7 @@
             <% }) %>
           </tbody>
         </table></div>
-        <div class="hint">Для мута срок обязателен (до 40320 минут — 28 дней). Для бана 0 — навсегда, иначе бан снимется сам. Для кика срок не нужен.</div>
+        <div class="hint">Наказание срабатывает, когда у участника становится <b>ровно</b> столько действующих предупреждений. Строки с пустым числом бот пропускает. Мут — от 1 минуты до 40320 (28 дней, предел Discord). Бан: 0 — навсегда, иначе он снимется сам. Для кика срок не нужен.</div>
         <button class="btn" type="submit">Сохранить правила</button>
       </form>
 
@@ -77,28 +88,28 @@
         const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' };
         const base = '/dashboard/' + guild.id + '/moderation';
       %>
-      <div class="card">
-        <h2>Последние действия</h2>
+      <div class="card" id="journal">
+        <h2>Журнал<span class="sub">Последние 50 наказаний. Подробности дела: <code>/mod case</code> и номер, история участника: <code>/mod history</code></span></h2>
         <div class="chips">
-          <a class="chip <%= !action ? 'active' : '' %>" href="<%= base %>">Все</a>
-          <% Object.keys(actionRu).forEach(k => { %><a class="chip <%= action === k ? 'active' : '' %>" href="<%= base %>?action=<%= k %>"><%= actionRu[k] %></a><% }) %>
+          <a class="chip <%= !action ? 'active' : '' %>" href="<%= base %>#journal">Все</a>
+          <% Object.keys(actionRu).forEach(k => { %><a class="chip <%= action === k ? 'active' : '' %>" href="<%= base %>?action=<%= k %>#journal"><%= actionRu[k] %></a><% }) %>
         </div>
         <% if (!logs.length) { %>
-          <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg><%= action ? 'Таких действий пока нет.' : 'Действий пока нет.' %></p>
+          <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg><%= action ? 'Таких действий пока нет.' : 'Наказаний пока не было.' %></p>
         <% } else { %>
           <div class="table-scroll"><table>
-            <thead><tr><th>№</th><th>Действие</th><th>Участник</th><th>Модератор</th><th>Причина</th><th>Срок</th><th>Дата</th></tr></thead>
+            <thead><tr><th class="nowrap">№</th><th>Действие</th><th>Участник</th><th>Модератор</th><th>Причина</th><th>Срок</th><th>Дата</th></tr></thead>
             <tbody>
               <% logs.forEach(l => { %>
                 <tr>
-                  <td>#<%= l.caseNumber || '—' %></td>
+                  <td class="nowrap">#<%= l.caseNumber || '—' %></td>
                   <td><span class="badge badge-<%= l.action %>"><%= actionRu[l.action] || l.action %></span></td>
                   <% const tu = users[l.userId] || { name: l.userId, avatar: '' }; const mu = users[l.moderatorId] || { name: l.moderatorId, avatar: '' }; %>
-                  <td><span class="person"><img src="<%= tu.avatar %>" alt="" loading="lazy" /><span><%= tu.name %></span></span></td>
-                  <td><span class="person"><img src="<%= mu.avatar %>" alt="" loading="lazy" /><span><%= mu.name %></span></span></td>
-                  <td><%= l.reason || '—' %></td>
-                  <td><%= l.duration ? formatDuration(Number(l.duration)) + (l.active ? ' · ещё действует' : '') : '—' %></td>
-                  <td><%= new Date(l.createdAt).toLocaleString('ru-RU') %></td>
+                  <td class="nowrap"><span class="person"><img src="<%= tu.avatar %>" alt="" loading="lazy" /><span><%= tu.name %></span></span></td>
+                  <td class="nowrap"><span class="person"><img src="<%= mu.avatar %>" alt="" loading="lazy" /><span><%= mu.name %></span></span></td>
+                  <td style="min-width:180px;"><%= l.reason || '—' %></td>
+                  <td class="nowrap"><%= l.duration ? formatDuration(Number(l.duration)) + (l.active ? ' · действует' : '') : '—' %></td>
+                  <td class="nowrap"><%= new Date(l.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></td>
                 </tr>
               <% }) %>
             </tbody>
