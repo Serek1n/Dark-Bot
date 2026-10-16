@@ -1,7 +1,7 @@
 const { sequelize } = require('../../db');
 const logger = require('../utils/logger');
 const { grantVoiceXpBatch, getOrCreateSettings, boostFor } = require('./leveling');
-const { announceLevelUp } = require('../utils/levelUp');
+const { announceLevelUp, levelUpTarget } = require('../utils/levelUp');
 const { applyLevelRoles } = require('./levelRoles');
 
 // userId+guildId -> timestamp (ms) when the current counting window started.
@@ -80,7 +80,6 @@ async function xpTick(client) {
     const xpPerMinute = Math.max(0, Number(settings.voiceXpPerMinute) || 0);
     if (!(xpPerMinute > 0) && !(Number(settings.voiceCoinsPerMinute) > 0)) continue;
     const minMembers = Math.max(1, Number(settings.voiceMinMembers) || 2);
-    const announceChannel = settings.levelUpChannelId ? guild.channels.cache.get(settings.levelUpChannelId) : null;
 
     // Everyone who earns this minute, across all voice channels of the server, grouped by the bonus of
     // their channel (a channel or its category can pay more XP and coins, or nothing).
@@ -109,12 +108,15 @@ async function xpTick(client) {
           if (!result) continue;
           await applyLevelRoles(member, result.levels, settings.levelRolesReplace);
           if (result.leveledUp) {
+            // The member is in a voice channel right now: the message goes to that channel's chat.
+            const { channel, fallback } = await levelUpTarget({ guild, member, settings });
             await announceLevelUp({
               guild,
               user: member.user,
               displayName: member.displayName,
               level: result.newLevel,
-              channel: announceChannel,
+              channel,
+              fallback,
               crystals: result.crystals,
               crystalName: settings.crystalName
             });

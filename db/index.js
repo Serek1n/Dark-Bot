@@ -81,6 +81,7 @@ const COLUMN_ADDITIONS = [
   { table: 'guild_settings', column: 'modRequireReason', ddl: "TINYINT(1) DEFAULT 0" },
   { table: 'guild_settings', column: 'modWarnExpireDays', ddl: "INTEGER DEFAULT 0" },
   { table: 'guild_settings', column: 'modWarnThresholds', ddl: "TEXT DEFAULT '[]'" },
+  { table: 'guild_settings', column: 'levelUpInVoice', ddl: 'TINYINT(1) DEFAULT 1' },
   { table: 'guild_settings', column: 'channelBoosts', ddl: "TEXT DEFAULT '{}'" },
   { table: 'mod_logs', column: 'caseNumber', ddl: "INTEGER" },
   { table: 'mod_logs', column: 'duration', ddl: "BIGINT" },

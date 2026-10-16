@@ -1,7 +1,7 @@
 const { CustomCommand } = require('../../db');
 const { grantMessageXp, getOrCreateSettings } = require('../modules/leveling');
 const { evaluateMessage, handleViolation } = require('../modules/automod');
-const { announceLevelUp } = require('../utils/levelUp');
+const { announceLevelUp, levelUpTarget } = require('../utils/levelUp');
 const { applyLevelRoles } = require('../modules/levelRoles');
 const logger = require('../utils/logger');
 
@@ -35,15 +35,14 @@ module.exports = {
       const result = await grantMessageXp(message.guild.id, message.author.id, where);
       if (result && message.member) await applyLevelRoles(message.member, result.levels, settings.levelRolesReplace);
       if (result?.leveledUp) {
-        const target = settings.levelUpChannelId
-          ? await message.guild.channels.fetch(settings.levelUpChannelId).catch(() => null)
-          : message.channel;
+        const { channel, fallback } = await levelUpTarget({ guild: message.guild, member: message.member, settings, fallback: message.channel });
         await announceLevelUp({
           guild: message.guild,
           user: message.author,
           displayName: message.member?.displayName,
           level: result.newLevel,
-          channel: target || message.channel,
+          channel: channel || message.channel,
+          fallback,
           crystals: result.crystals,
           crystalName: settings.crystalName
         });

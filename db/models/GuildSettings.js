@@ -14,6 +14,7 @@ module.exports = (sequelize) => {
       modLogChannelId: { type: DataTypes.STRING, allowNull: true },
       reportChannelId: { type: DataTypes.STRING, allowNull: true },
       levelUpChannelId: { type: DataTypes.STRING, allowNull: true },
+      levelUpInVoice: { type: DataTypes.BOOLEAN, defaultValue: true }, // a member in a voice channel gets the level-up message in that channel's chat
 
       // Forum "Логи": a webhook posts into one thread per event kind (see bot/utils/logCategories.js)
       logForumChannelId: { type: DataTypes.STRING, allowNull: true },

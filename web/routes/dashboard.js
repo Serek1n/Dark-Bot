@@ -172,6 +172,7 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   settings.voiceMinMembers = clampInt(req.body.voiceMinMembers, 1, 10, settings.voiceMinMembers);
   settings.crystalsPerLevel = clampInt(req.body.crystalsPerLevel, 0, 10000, settings.crystalsPerLevel);
   settings.levelUpChannelId = snowflake(req.body.levelUpChannelId);
+  settings.levelUpInVoice = req.body.levelUpInVoice === 'on';
   await settings.save();
   res.redirect(saved(req.params.guildId, 'leveling'));
 });

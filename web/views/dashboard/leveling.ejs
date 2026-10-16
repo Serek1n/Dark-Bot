@@ -81,7 +81,13 @@
 
         <div class="card">
           <h2>Объявления</h2>
-          <label>Канал для объявлений о новом уровне (пусто — в том же канале)</label>
+          <div class="rules">
+            <label class="rule">
+              <span class="rule-text"><b>Участнику в голосовом канале писать в чат этого канала</b><span>Если участник сидит в голосовом канале, поздравление придёт в чат этого канала, где бы он ни набрал уровень. Если писать туда нельзя, бот использует обычный канал ниже.</span></span>
+              <input type="checkbox" name="levelUpInVoice" <%= settings.levelUpInVoice !== false ? 'checked' : '' %> />
+            </label>
+          </div>
+          <label style="margin-top:14px;">Канал для объявлений о новом уровне (пусто — в том же канале)</label>
           <select name="levelUpChannelId">
             <option value="">— не выбрано —</option>
             <% channels.filter(c => c.type === 0).forEach(c => { %>
