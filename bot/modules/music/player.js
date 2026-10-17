@@ -384,7 +384,11 @@ function ytDlpJson(args, timeoutMs = 20000) {
       proc.kill('SIGKILL');
       reject(new Error('yt-dlp: нет ответа за ' + Math.round(timeoutMs / 1000) + ' с'));
     }, timeoutMs);
-    proc.stdout.on('data', (d) => { out += d; });
+    const MAX_OUT = 20 * 1024 * 1024; // a playlist answer is a few MB at most; more means something is wrong
+    proc.stdout.on('data', (d) => {
+      out += d;
+      if (out.length > MAX_OUT) { proc.kill('SIGKILL'); clearTimeout(timer); reject(new Error('yt-dlp: ответ слишком большой')); }
+    });
     proc.stderr.on('data', (d) => { err = (err + d).slice(-1000); });
     proc.on('error', (e) => { clearTimeout(timer); reject(e); });
     proc.on('close', (code) => {
@@ -587,4 +591,4 @@ async function resolveQueryInner(query, requestedBy) {
   ];
 }
 
-module.exports = { spawnYtDlpAudio, ytDlpBaseArgs, ytDlpFailReason, ytDlpAudioArgs, getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue };
+module.exports = { ytDlpJson, spawnYtDlpAudio, ytDlpBaseArgs, ytDlpFailReason, ytDlpAudioArgs, getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue };

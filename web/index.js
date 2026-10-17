@@ -10,6 +10,10 @@ const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
 const legalRoutes = require('./routes/legal');
 const logger = require('../bot/utils/logger');
+const { csrfGuard } = require('./middleware/csrf');
+const { rateLimit } = require('./middleware/rateLimit');
+const { panelAudit } = require('./middleware/panelAudit');
+const { requireSessionSecret } = require('./security');
 
 const app = express();
 app.set('trust proxy', 1); // needed behind nginx so secure cookies and req.protocol work correctly
@@ -48,30 +52,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// CSRF guard: state-changing requests must come from this site (browsers always send Origin on
-// cross-site POSTs; same-origin form posts send either Origin or a same-host Referer).
-app.use((req, res, next) => {
-  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
-  const source = req.get('origin') || req.get('referer');
-  if (!source) return next();
-  try {
-    const from = new URL(source);
-    if (from.host === req.get('host')) return next();
-    // Behind nginx with "proxy_set_header Host $host" the port is stripped from Host,
-    // so also accept the same hostname and the site's own configured address.
-    const ownHost = (() => { try { return new URL(process.env.WEB_BASE_URL).host; } catch (_) { return null; } })();
-    if (ownHost && from.host === ownHost) return next();
-    if (from.hostname === String(req.get('host') || '').split(':')[0]) return next();
-  } catch (_) { /* fall through */ }
-  return res.status(403).render('error', { message: 'Запрос отклонён: он отправлен с другого сайта.' });
-});
+app.use(csrfGuard);
+app.use(panelAudit);
 
 const isHttps = (process.env.WEB_BASE_URL || '').startsWith('https://');
 
 app.use(
   session({
     store: new SQLiteStore({ dir: path.join(__dirname, '..', 'data'), db: 'sessions.sqlite' }),
-    secret: process.env.SESSION_SECRET || 'change-me',
+    secret: process.env.SESSION_SECRET || 'not-configured', // main() refuses to start without a real one
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 3 * 24 * 60 * 60 * 1000, secure: isHttps, httpOnly: true, sameSite: 'lax' }
@@ -88,12 +77,18 @@ app.use((req, res, next) => {
 
 app.get('/', (req, res) => res.render('login'));
 app.use('/', legalRoutes); // public pages: /terms and /privacy (required by Discord for the app profile)
+// Rate limits: sign-in attempts per address, and any change made in the panel per user.
+const loginLimit = rateLimit({ windowMs: 10 * 60_000, max: 30, key: (req) => req.ip, message: 'Слишком много попыток входа. Подождите несколько минут.' });
+const changeLimit = rateLimit({ windowMs: 60_000, max: 120 });
+app.use('/auth/login', loginLimit);
+app.use('/auth/callback', loginLimit);
+app.use('/dashboard', (req, res, next) => (req.method === 'GET' || req.method === 'HEAD' ? next() : changeLimit(req, res, next)));
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 
 app.use((req, res, next) => res.status(404).render('error', { message: 'Страница не найдена.' }));
 app.use((err, req, res, next) => {
-  logger.error('Web error:', err);
+  logger.error('Web error:', err.isAxiosError ? `${err.message} (${err.response?.status || 'нет ответа'})` : err); // an axios error holds request URLs, which can contain webhook tokens
   const isDiscordApiError = err.isAxiosError || err.response?.status;
   const message = isDiscordApiError
     ? 'Не удалось получить данные от Discord (сервис временно недоступен или истёк токен бота). Попробуйте обновить страницу через минуту.'
@@ -101,14 +96,15 @@ app.use((err, req, res, next) => {
   res.status(500).render('error', { message });
 });
 
-if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'change-me') {
-  logger.warn('SESSION_SECRET не задан — сессии небезопасны. Укажите длинную случайную строку в .env.');
-}
-
 async function main() {
+  try { requireSessionSecret(); } catch (err) { logger.error(err.message); process.exit(1); }
+  // The database and session files hold tokens: keep them readable for this user only (best effort).
+  for (const f of ['', 'sessions.sqlite', 'dark.sqlite']) { try { fs.chmodSync(path.join(__dirname, '..', 'data', f), f ? 0o600 : 0o700); } catch (_) { /* not there or not allowed */ } }
   await init();
   const port = process.env.WEB_PORT || 3000;
   app.listen(port, () => logger.info(`Веб-панель запущена: http://localhost:${port}`));
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { app };

@@ -4,6 +4,7 @@
 const axios = require('axios');
 
 const MIN_INTERVAL = 20_000; // do not ask Discord more often than this per user
+const MAX_STALE = 60 * 60_000; // if the list could not be refreshed for an hour, the saved rights are no longer trusted
 const api = axios.create({ baseURL: 'https://discord.com/api/v10', timeout: 8000 });
 
 async function refreshAccessToken(user) {
@@ -36,6 +37,7 @@ async function refreshUserGuilds(req, { force = false } = {}) {
     if (Array.isArray(guilds)) {
       user.guilds = guilds;
       user.guildsAt = Date.now();
+      user.guildsOkAt = Date.now();
     }
   } catch {
     user.guildsAt = Date.now(); // keep the saved list and do not hammer Discord
@@ -43,4 +45,7 @@ async function refreshUserGuilds(req, { force = false } = {}) {
   return user.guilds || [];
 }
 
-module.exports = { refreshUserGuilds };
+/** True when the saved list of servers was last confirmed by Discord too long ago (or never since login). */
+const isStale = (user, now = Date.now()) => now - (user.guildsOkAt || user.guildsAt || 0) > MAX_STALE;
+
+module.exports = { refreshUserGuilds, isStale, MAX_STALE };

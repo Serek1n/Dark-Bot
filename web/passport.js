@@ -19,6 +19,7 @@ passport.use(
       profile.accessToken = accessToken;
       profile.refreshToken = refreshToken;
       profile.guildsAt = Date.now();
+      profile.guildsOkAt = Date.now();
       done(null, profile);
     }
   )

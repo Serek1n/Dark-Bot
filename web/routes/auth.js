@@ -18,6 +18,6 @@ function logout(req, res, next) {
   });
 }
 router.post('/logout', logout);
-router.get('/logout', logout); // kept so old bookmarks keep working
+// Logging out is POST only: a link on another site must not be able to sign an admin out.
 
 module.exports = router;

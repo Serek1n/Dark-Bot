@@ -13,7 +13,8 @@ const {
   ReactionRole,
   Alert,
   ShopItem,
-  Purchase
+  Purchase,
+  sequelize
 } = require('../../db');
 
 const { CATEGORIES, KEYS: LOG_KEYS } = require('../../bot/utils/logCategories');
@@ -127,9 +128,19 @@ router.post('/:guildId/leveling/adjust', ensureGuildAccess, async (req, res) => 
   const { computeLevelAdjust, MAX_LEVEL } = require('../../bot/modules/leveling');
   const amount = clampInt(req.body.amount, mode === 'set' ? 0 : 1, MAX_LEVEL, mode === 'set' ? 0 : 1);
 
-  const [profile] = await MemberProfile.findOrCreate({ where: { guildId, userId } });
-  const result = computeLevelAdjust(profile, mode, amount);
-  await profile.update({ xp: result.xp, level: result.level, chatXp: result.chatXp, voiceXp: result.voiceXp });
+  await MemberProfile.findOrCreate({ where: { guildId, userId } });
+  // The bot adds experience at the same time: write only if nobody changed the row since it was read, otherwise read again.
+  let result = null;
+  for (let attempt = 0; attempt < 5 && !result; attempt++) {
+    const profile = await MemberProfile.findOne({ where: { guildId, userId } });
+    const next = computeLevelAdjust(profile, mode, amount);
+    const [changed] = await MemberProfile.update(
+      { xp: next.xp, level: next.level, chatXp: next.chatXp, voiceXp: next.voiceXp },
+      { where: { guildId, userId, xp: profile.xp, chatXp: profile.chatXp, voiceXp: profile.voiceXp } }
+    );
+    if (changed) result = next;
+  }
+  if (!result) return res.redirect(saved(guildId, 'leveling', 'invalid'));
 
   // Level roles (best effort: the member may have left, or the bot may not be allowed to give a role).
   let roles = 'none';
@@ -215,9 +226,9 @@ router.post('/:guildId/economy/grant', ensureGuildAccess, async (req, res) => {
   if (!userId) return res.redirect(saved(guildId, 'economy', 'baduser'));
   const field = req.body.currency === 'crystals' ? 'crystals' : 'balance';
   const amount = clampInt(req.body.amount, -1000000000, 1000000000, 0);
-  const [profile] = await MemberProfile.findOrCreate({ where: { guildId, userId } });
-  profile[field] = Math.max(0, Number(profile[field] || 0) + amount);
-  await profile.save();
+  await MemberProfile.findOrCreate({ where: { guildId, userId } });
+  // One SQL statement: the bot may pay out coins in the same second, and a read-then-write here would lose one of the two changes.
+  await MemberProfile.update({ [field]: sequelize.literal(`MAX(0, COALESCE(${field}, 0) + ${amount})`) }, { where: { guildId, userId } });
   res.redirect(saved(guildId, 'economy', 'granted'));
 });
 
@@ -825,6 +836,8 @@ router.post('/:guildId/alerts/delete/:id', ensureGuildAccess, async (req, res) =
 
 // ---- Webhooks ----
 const webhooks = require('../webhooks');
+const { rateLimit } = require('../middleware/rateLimit');
+const webhookLimit = rateLimit({ windowMs: 60_000, max: 10, message: 'Слишком много действий с вебхуками. Подождите минуту.' });
 const BOT_ID = () => process.env.DISCORD_CLIENT_ID;
 const WEBHOOK_CHANNEL_TYPES = [0, 2, 5, 13, 15, 16];
 const webhookPage = (guildId, flag, text) => `/dashboard/${guildId}/webhooks?${flag}=1${text ? '&msg=' + encodeURIComponent(text.slice(0, 200)) : ''}`;
@@ -839,7 +852,7 @@ router.get('/:guildId/webhooks', ensureGuildAccess, async (req, res) => {
   res.render('dashboard/webhooks', { guild, channels, hooks, error, active: 'webhooks', msg: String(req.query.msg || '').slice(0, 200) });
 });
 
-router.post('/:guildId/webhooks', ensureGuildAccess, async (req, res) => {
+router.post('/:guildId/webhooks', webhookLimit, ensureGuildAccess, async (req, res) => {
   const guildId = req.params.guildId;
   const channelId = snowflake(req.body.channelId);
   const name = String(req.body.name || '').trim().slice(0, 32);
@@ -854,7 +867,7 @@ router.post('/:guildId/webhooks', ensureGuildAccess, async (req, res) => {
   }
 });
 
-router.post('/:guildId/webhooks/:id/delete', ensureGuildAccess, async (req, res) => {
+router.post('/:guildId/webhooks/:id/delete', webhookLimit, ensureGuildAccess, async (req, res) => {
   const guildId = req.params.guildId;
   const settings = await GuildSettings.findByPk(guildId);
   try {
@@ -867,7 +880,7 @@ router.post('/:guildId/webhooks/:id/delete', ensureGuildAccess, async (req, res)
   }
 });
 
-router.post('/:guildId/webhooks/:id/send', ensureGuildAccess, async (req, res) => {
+router.post('/:guildId/webhooks/:id/send', webhookLimit, ensureGuildAccess, async (req, res) => {
   const guildId = req.params.guildId;
   const content = String(req.body.content || '').trim().slice(0, 2000);
   if (!content) return res.redirect(saved(guildId, 'webhooks', 'invalid'));

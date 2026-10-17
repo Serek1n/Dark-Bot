@@ -17,6 +17,7 @@ stub('discordApi.js', {
   getBotGuildIds: async () => [], getGuildChannels: async () => [{ id: '123456789012345678', name: 'новости', type: 0 }, { id: '123456789012345679', name: 'категория', type: 4 }],
   getGuildRoles: async () => [], getGuild: async (id) => ({ id, name: 'T', icon: null }), getUsers: async () => ({}), botApi
 });
+stub('middleware/rateLimit.js', { rateLimit: () => (q, s, n) => n() }); // the limit itself is tested in run_security.js
 const express = require('express');
 
 (async () => {

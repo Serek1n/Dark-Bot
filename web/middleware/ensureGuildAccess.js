@@ -1,5 +1,5 @@
 const { getBotGuildIds } = require('../discordApi');
-const { refreshUserGuilds } = require('../utils/userGuilds');
+const { refreshUserGuilds, isStale } = require('../utils/userGuilds');
 const { asyncHandler } = require('../utils/asyncHandler');
 
 const MANAGE_GUILD = 0x20;
@@ -28,11 +28,13 @@ async function ensureGuildAccess(req, res, next) {
     return next();
   }
 
-  let guild = (req.user.guilds || []).find((g) => g.id === guildId);
-  if (!guild || !hasManageAccess(guild)) {
-    // Maybe the user got the rights (or joined) after logging in: look once at the fresh list.
-    guild = (await refreshUserGuilds(req)).find((g) => g.id === guildId);
+  // The rights are re-read from Discord (at most every 20 s per user), so an admin who lost the role loses the panel quickly,
+  // not after the 3 days the session lasts. If Discord cannot confirm them for an hour, the user has to sign in again.
+  const fresh = await refreshUserGuilds(req);
+  if (isStale(req.user)) {
+    return res.status(401).render('error', { message: 'Не удалось подтвердить ваши права на сервере. Выйдите из панели и войдите снова.' });
   }
+  const guild = fresh.find((g) => g.id === guildId);
   if (!guild || !hasManageAccess(guild)) {
     return res.status(403).render('error', { message: 'У вас нет прав администратора на этом сервере.' });
   }
