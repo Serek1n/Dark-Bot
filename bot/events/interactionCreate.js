@@ -4,6 +4,8 @@ const logger = require('../utils/logger');
 const { isMusicButton, handleMusicButton } = require('../modules/music/panel');
 const { isTopButton, handleTopButton } = require('../modules/leaderboardPage');
 const { isShopComponent, handleShopComponent } = require('../modules/shop');
+const { isGiveawayButton, handleGiveawayButton } = require('../modules/giveaways');
+const { isTicketButton, handleTicketButton } = require('../modules/tickets');
 const { featureForCommand, isEnabled } = require('../utils/features');
 const { getOrCreateSettings } = require('../modules/leveling');
 
@@ -38,6 +40,19 @@ module.exports = {
         await handleTopButton(interaction);
       } catch (err) {
         logger.error('Leaderboard button failed:', err);
+      }
+      return;
+    }
+
+    for (const [matches, handle, label] of [[isGiveawayButton, handleGiveawayButton, 'Giveaway'], [isTicketButton, handleTicketButton, 'Ticket']]) {
+      if (!matches(interaction)) continue;
+      try {
+        await handle(interaction);
+      } catch (err) {
+        logger.error(`${label} button failed:`, err);
+        const payload = { embeds: [embeds.error('Не получилось выполнить действие.')], flags: MessageFlags.Ephemeral };
+        if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
+        else await interaction.reply(payload).catch(() => {});
       }
       return;
     }

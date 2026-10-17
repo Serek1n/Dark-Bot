@@ -240,6 +240,19 @@ const { makeUser, makeInteraction } = require('./mock');
     const i2 = await run('clear', { count: 10 }, { channel: { ...channel, bulkDelete: async (n) => ({ size: n }) } }); assert(text(i2).includes('Удалено 10'), text(i2));
     const none = await run('clear', { count: 5, user: makeUser('ZZZ') }, { channel }); assert(text(none).includes('Удалено 0'), text(none));
   });
+  await test('clear filters: bots, text, links, files (together they must all match)', async () => {
+    const mk2 = (id, o) => [id, { id, author: { id: 'A', bot: false }, content: '', attachments: new Map(), ...o }];
+    const msgs = new Map([mk2('1', { author: { id: 'BOTX', bot: true }, content: 'hi' }), mk2('2', { content: 'Купи тут https://x.ru' }), mk2('3', { content: 'привет' }), mk2('4', { attachments: new Map([['f', 1]]) }), mk2('5', { content: 'ПРИВЕТ всем https://y.ru' })]);
+    let removed = null;
+    const channel = { id: 'C1', name: 'general', messages: { fetch: async () => msgs }, bulkDelete: async (x) => { removed = x; return { size: x.length }; } };
+    const ids = () => removed.map((m) => m.id).join();
+    await run('clear', { count: 50, bots: true }, { channel }); assert(ids() === '1', 'bots ' + ids());
+    await run('clear', { count: 50, links: true }, { channel }); assert(ids() === '2,5', 'links ' + ids());
+    await run('clear', { count: 50, attachments: true }, { channel }); assert(ids() === '4', 'files ' + ids());
+    await run('clear', { count: 50, contains: 'привет' }, { channel }); assert(ids() === '3,5', 'text ' + ids());
+    await run('clear', { count: 50, contains: 'привет', links: true }, { channel }); assert(ids() === '5', 'text+links ' + ids());
+    await run('clear', { count: 1, links: true }, { channel }); assert(ids() === '2', 'count limit ' + ids());
+  });
   await test('slowmode, lock and unlock change the channel; they need Manage Channels', async () => {
     const calls = []; const channel = { id: 'C9', name: 'x', setRateLimitPerUser: async (s) => calls.push(['slow', s]), permissionOverwrites: { edit: async (role, perms) => calls.push(['perm', role.id, perms]) } };
     assert(text(await run('slowmode', { seconds: 30 }, { channel })).includes('30 с'), 'slow');

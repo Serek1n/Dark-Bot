@@ -6,8 +6,8 @@
     <%- include('../partials/sidebar') %>
     <div class="content">
       <div class="page-header">
-        <h1>Приветствие и автороль</h1>
-        <p class="page-intro">Сообщение и роль, которые получает новый участник сразу после входа на сервер.</p>
+        <h1>Приветствие, прощание и автороль</h1>
+        <p class="page-intro">Сообщение и роль, которые получает новый участник сразу после входа на сервер, и прощание, когда кто-то уходит.</p>
       </div>
       <form method="post" class="card">
         <div>
@@ -20,7 +20,7 @@
           </select>
         </div>
         <div>
-          <label>Текст приветствия — доступны {user} и {server}, поддерживается **жирный** текст</label>
+          <label>Текст приветствия — доступны {user}, {name}, {server} и {count} (сколько людей на сервере), поддерживается **жирный** текст</label>
           <textarea name="welcomeMessage" id="welcomeMessage" maxlength="1800"><%= settings.welcomeMessage %></textarea>
         </div>
         <div>
@@ -30,6 +30,10 @@
             <div><div class="pv-name">Dark<em>БОТ</em></div><div id="welcomePreview"></div></div>
           </div>
         </div>
+        <label class="checkbox-row">
+          <input type="checkbox" name="welcomeCard" <%= settings.welcomeCard ? 'checked' : '' %> />
+          <span>Прикладывать картинку-карточку с аватаркой нового участника</span>
+        </label>
         <div>
           <label>Роль, выдаваемая автоматически при входе</label>
           <select name="autoRoleId">
@@ -38,6 +42,20 @@
               <option value="<%= r.id %>" <%= settings.autoRoleId === r.id ? 'selected' : '' %>>@<%= r.name %></option>
             <% }) %>
           </select>
+        </div>
+        <h2 style="margin-top:8px">Прощание</h2>
+        <div>
+          <label>Канал прощания</label>
+          <select name="leaveChannelId">
+            <option value="">— выключено —</option>
+            <% channels.filter(c => c.type === 0).forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.leaveChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label>Текст прощания — доступны {user} (имя без упоминания), {server} и {count}</label>
+          <textarea name="leaveMessage" maxlength="1800"><%= settings.leaveMessage %></textarea>
         </div>
         <button class="btn" type="submit">Сохранить</button>
       </form>
@@ -52,6 +70,8 @@
       function render() {
         out.innerHTML = esc(input.value)
           .replace(/\{user\}/g, '<span class="mention">@Новый участник</span>')
+          .replace(/\{name\}/g, 'Новый участник')
+          .replace(/\{count\}/g, '128')
           .replace(/\{server\}/g, esc(server))
           .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
           .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')

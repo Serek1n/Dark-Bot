@@ -27,6 +27,9 @@ module.exports = (sequelize) => {
       welcomeChannelId: { type: DataTypes.STRING, allowNull: true },
       welcomeMessage: { type: DataTypes.STRING, defaultValue: 'Добро пожаловать, {user}, на сервере **{server}**!' },
       autoRoleId: { type: DataTypes.STRING, allowNull: true },
+      welcomeCard: { type: DataTypes.BOOLEAN, defaultValue: false }, // attach a picture card to the welcome message
+      leaveChannelId: { type: DataTypes.STRING, allowNull: true }, // farewell message when a member leaves
+      leaveMessage: { type: DataTypes.STRING, defaultValue: '**{user}** покинул(а) сервер. Нас осталось {count}.' },
 
       // Leveling
       levelingEnabled: { type: DataTypes.BOOLEAN, defaultValue: true }, // master switch for levels + economy income
@@ -64,6 +67,17 @@ module.exports = (sequelize) => {
       tempVoiceEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       alertsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       reportEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      pollsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      giveawaysEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      ticketsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      remindersEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      funEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+
+      // Tickets: a button makes a private channel with the staff (see bot/modules/tickets.js)
+      ticketCategoryId: { type: DataTypes.STRING, allowNull: true },
+      ticketSupportRoleId: { type: DataTypes.STRING, allowNull: true },
+      ticketLogChannelId: { type: DataTypes.STRING, allowNull: true },
+      ticketMessage: { type: DataTypes.STRING, defaultValue: 'Опишите вашу проблему, и скоро вам ответит команда сервера.' },
 
       // Automod
       automodEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
@@ -81,6 +95,8 @@ module.exports = (sequelize) => {
       automodLinkWhitelist: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON array of domains
       automodEmojiLimit: { type: DataTypes.INTEGER, defaultValue: 0 }, // 0 = off
       automodDuplicates: { type: DataTypes.BOOLEAN, defaultValue: false },
+      automodProfanity: { type: DataTypes.BOOLEAN, defaultValue: false }, // the built-in list of obscene words
+      automodZalgo: { type: DataTypes.BOOLEAN, defaultValue: false }, // "z̷a̸l̶g̵o̷" text with piles of combining marks
       automodIgnoredChannels: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON array of channel ids
       automodIgnoredRoles: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON array of role ids
 

@@ -11,7 +11,12 @@ const FEATURES = [
   { key: 'reactionRoles', field: 'reactionRolesEnabled', title: 'Роли по реакциям', desc: 'Выдача ролей за реакцию на сообщение', commands: [], page: 'reaction-roles' },
   { key: 'customCommands', field: 'customCommandsEnabled', title: 'Свои команды', desc: 'Ответы на сообщения с префиксом, например !правила', commands: [], page: 'custom-commands' },
   { key: 'tempVoice', field: 'tempVoiceEnabled', title: 'Временные голосовые', desc: 'Личные комнаты по входу в специальный канал', commands: [], page: 'temp-voice' },
-  { key: 'alerts', field: 'alertsEnabled', title: 'Оповещения', desc: 'Уведомления о новых видео и стримах', commands: [], page: 'alerts' },
+  { key: 'alerts', field: 'alertsEnabled', title: 'Оповещения', desc: 'Уведомления о новых видео YouTube, стримах Twitch и постах Reddit', commands: [], page: 'alerts' },
+  { key: 'polls', field: 'pollsEnabled', title: 'Голосования', desc: 'Команда /poll: голосование с эмодзи-ответами', commands: ['poll'], page: null },
+  { key: 'giveaways', field: 'giveawaysEnabled', title: 'Розыгрыши', desc: 'Команда /giveaway: призы с таймером и случайными победителями', commands: ['giveaway'], page: null },
+  { key: 'tickets', field: 'ticketsEnabled', title: 'Обращения (тикеты)', desc: 'Кнопка создаёт приватный канал с командой сервера: /ticket', commands: ['ticket'], page: 'tickets' },
+  { key: 'reminders', field: 'remindersEnabled', title: 'Напоминания', desc: 'Команда /remind: бот упомянет вас через заданное время', commands: ['remind'], page: null },
+  { key: 'fun', field: 'funEnabled', title: 'Мини-игры', desc: 'Кубик, монетка, шар предсказаний, камень-ножницы-бумага: /dice, /coinflip, /8ball, /rps', commands: ['dice', 'coinflip', '8ball', 'rps'], page: null },
   { key: 'report', field: 'reportEnabled', title: 'Жалобы', desc: 'Меню «Report message» для жалоб на сообщения', commands: ['Report message'], page: 'moderation' }
 ];
 

@@ -446,6 +446,8 @@ async function ytDlpVideo(url, requestedBy) {
   return [trackFromYtDlp(j, requestedBy)];
 }
 
+const { isAppleMusicUrl, resolveAppleMusic } = require('./appleMusic');
+
 async function resolveQuery(query, requestedBy) {
   const started = Date.now();
   try {
@@ -475,6 +477,18 @@ async function resolveQueryInner(query, requestedBy) {
     const d = await withTimeout(playdl.soundcloud(query), 15000, 'soundcloud');
     const sec = d.durationInSec || 0;
     return [{ title: d.name, url: d.url, duration: `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, thumbnail: d.thumbnail, requestedBy, source: 'soundcloud' }];
+  }
+
+  // Apple Music: names from the public page, audio from YouTube.
+  if (isAppleMusicUrl(query)) {
+    const names = await resolveAppleMusic(query);
+    const tracks = [];
+    for (const item of names) {
+      const found = await ytDlpSearch(`${item.name} ${item.artist}`.trim(), requestedBy).catch(() => null);
+      if (found && found[0]) tracks.push({ ...found[0], title: `${item.name}${item.artist ? ' — ' + item.artist : ''}` });
+    }
+    if (!tracks.length) throw new Error('Не нашёл эти треки на YouTube.');
+    return tracks;
   }
 
   const type = await withTimeout(playdl.validate(query), 5000, 'validate').catch(() => false);

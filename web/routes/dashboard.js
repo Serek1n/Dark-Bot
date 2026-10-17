@@ -528,6 +528,8 @@ router.post('/:guildId/automod', ensureGuildAccess, async (req, res) => {
   settings.automodBlockLinks = req.body.automodBlockLinks === 'on';
   settings.automodLinkWhitelist = JSON.stringify(lines(req.body.linkWhitelist, 100, 100).map((d) => d.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '')).filter(Boolean));
   settings.automodDuplicates = req.body.automodDuplicates === 'on';
+  settings.automodProfanity = req.body.automodProfanity === 'on';
+  settings.automodZalgo = req.body.automodZalgo === 'on';
   settings.automodMentionLimit = clampInt(req.body.automodMentionLimit, 0, 50, settings.automodMentionLimit);
   settings.automodEmojiLimit = clampInt(req.body.automodEmojiLimit, 0, 100, settings.automodEmojiLimit);
   settings.automodCapsPercent = clampInt(req.body.automodCapsPercent, 0, 100, settings.automodCapsPercent);
@@ -608,6 +610,9 @@ router.post('/:guildId/welcome', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   settings.welcomeChannelId = snowflake(req.body.welcomeChannelId);
   settings.welcomeMessage = (req.body.welcomeMessage || '').trim().slice(0, 1800) || settings.welcomeMessage;
+  settings.welcomeCard = req.body.welcomeCard === 'on';
+  settings.leaveChannelId = snowflake(req.body.leaveChannelId);
+  settings.leaveMessage = (req.body.leaveMessage || '').trim().slice(0, 1800) || settings.leaveMessage;
   settings.autoRoleId = snowflake(req.body.autoRoleId);
   await settings.save();
   res.redirect(saved(req.params.guildId, 'welcome'));

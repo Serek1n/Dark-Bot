@@ -7,7 +7,7 @@ module.exports = (sequelize) => {
     {
       guildId: { type: DataTypes.STRING, allowNull: false },
       channelId: { type: DataTypes.STRING, allowNull: false }, // where to post
-      platform: { type: DataTypes.ENUM('youtube', 'twitch'), allowNull: false },
+      platform: { type: DataTypes.ENUM('youtube', 'twitch', 'reddit'), allowNull: false },
       targetId: { type: DataTypes.STRING, allowNull: false }, // YouTube channel ID or Twitch login
       targetName: { type: DataTypes.STRING, allowNull: true }, // display name (resolved)
       message: { type: DataTypes.STRING, defaultValue: '{name} только что опубликовал(а) новое видео/начал(а) стрим! {url}' },

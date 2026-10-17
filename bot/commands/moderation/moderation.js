@@ -43,6 +43,10 @@ const data = new SlashCommandBuilder()
     s.setName('clear').setDescription('Удалить последние сообщения в канале')
       .addIntegerOption((o) => o.setName('count').setDescription('Сколько сообщений (1-100)').setRequired(true).setMinValue(1).setMaxValue(100))
       .addUserOption((o) => o.setName('user').setDescription('Удалять только сообщения этого участника'))
+      .addBooleanOption((o) => o.setName('bots').setDescription('Удалять только сообщения ботов'))
+      .addStringOption((o) => o.setName('contains').setDescription('Удалять только сообщения, где есть этот текст').setMaxLength(100))
+      .addBooleanOption((o) => o.setName('links').setDescription('Удалять только сообщения со ссылками'))
+      .addBooleanOption((o) => o.setName('attachments').setDescription('Удалять только сообщения с файлами или картинками'))
   )
   .addSubcommand((s) =>
     s.setName('note').setDescription('Приватная заметка об участнике (видна в /mod history)').addUserOption(userOpt('О ком'))
@@ -209,11 +213,21 @@ module.exports = {
       const amount = interaction.options.getInteger('count');
       const only = interaction.options.getUser('user');
       await interaction.deferReply(ephemeral);
+      const text = (interaction.options.getString('contains') || '').toLowerCase();
+      const onlyBots = interaction.options.getBoolean('bots');
+      const onlyLinks = interaction.options.getBoolean('links');
+      const onlyFiles = interaction.options.getBoolean('attachments');
+      const filtered = Boolean(only || text || onlyBots || onlyLinks || onlyFiles);
       let deleted = null;
-      if (only) {
-        // Bulk delete takes the last 100 messages and keeps only this member's.
+      if (filtered) {
+        // Bulk delete takes the last 100 messages; keep those that match every filter.
         const fetched = await interaction.channel.messages.fetch({ limit: 100 }).catch(() => null);
-        const mine = fetched ? [...fetched.values()].filter((m) => m.author?.id === only.id).slice(0, amount) : [];
+        const matches = (m) => (!only || m.author?.id === only.id)
+          && (!onlyBots || m.author?.bot)
+          && (!text || String(m.content || '').toLowerCase().includes(text))
+          && (!onlyLinks || /https?:\/\/|discord\.gg\//i.test(m.content || ''))
+          && (!onlyFiles || (m.attachments?.size || 0) > 0);
+        const mine = fetched ? [...fetched.values()].filter(matches).slice(0, amount) : [];
         deleted = mine.length ? await interaction.channel.bulkDelete(mine, true).catch(() => null) : { size: 0 };
       } else {
         deleted = await interaction.channel.bulkDelete(amount, true).catch(() => null);
@@ -223,7 +237,7 @@ module.exports = {
         userId: only?.id || interaction.user.id,
         moderatorId: interaction.user.id,
         action: 'clear',
-        reason: `Удалено ${deleted.size} сообщений в #${interaction.channel.name}${only ? ` (только <@${only.id}>)` : ''}`
+        reason: `Удалено ${deleted.size} сообщений в #${interaction.channel.name}${only ? ` (только <@${only.id}>)` : ''}${onlyBots ? ' (только боты)' : ''}${onlyLinks ? ' (только со ссылками)' : ''}${onlyFiles ? ' (только с файлами)' : ''}${text ? ` (с текстом «${text.slice(0, 40)}»)` : ''}`
       });
       return interaction.editReply({ embeds: [embeds.success(`Удалено ${deleted.size} сообщений.`)] });
     }

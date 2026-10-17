@@ -4,6 +4,7 @@ const mod = require('./moderation');
 const { recordAndAnnounce } = require('../utils/modlog');
 const { MINUTE, MAX_TIMEOUT } = require('../utils/duration');
 const logger = require('../utils/logger');
+const { containsProfanity, isZalgo } = require('../utils/profanity');
 
 const INVITE_REGEX = /(discord\.gg|discord(app)?\.com\/invite)\/[a-zA-Z0-9-]+/i;
 const URL_REGEX = /(?:https?:\/\/|www\.)([^\s/<>]+)/gi;
@@ -144,6 +145,8 @@ async function evaluateMessage(settings, message) {
   const content = message.content || '';
 
   if (checkBannedWords(settings, content)) return 'запрещённое слово';
+  if (settings.automodProfanity && containsProfanity(content)) return 'нецензурная лексика';
+  if (settings.automodZalgo && isZalgo(content)) return 'Zalgo-текст (символы друг на друге)';
   if (checkInvite(settings, content)) return 'ссылка-приглашение на другой сервер';
   if (checkLinks(settings, content)) return 'ссылки здесь запрещены';
   if (checkMentions(settings, content)) return 'слишком много упоминаний';

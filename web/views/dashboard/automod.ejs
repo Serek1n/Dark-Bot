@@ -35,6 +35,14 @@
               <input type="checkbox" name="automodBlockLinks" <%= settings.automodBlockLinks ? 'checked' : '' %> />
             </label>
             <label class="rule">
+              <span class="rule-text"><b>Нецензурная лексика</b><span>Готовый список русского и английского мата. Свои слова можно добавить ниже.</span></span>
+              <input type="checkbox" name="automodProfanity" <%= settings.automodProfanity ? 'checked' : '' %> />
+            </label>
+            <label class="rule">
+              <span class="rule-text"><b>Zalgo-текст</b><span>Строки с кучей символов друг на друге, вроде «з̷а̸л̶г̵о̷».</span></span>
+              <input type="checkbox" name="automodZalgo" <%= settings.automodZalgo ? 'checked' : '' %> />
+            </label>
+            <label class="rule">
               <span class="rule-text"><b>Одинаковые сообщения</b><span>Одно и то же сообщение 3 раза за 30 секунд.</span></span>
               <input type="checkbox" name="automodDuplicates" <%= settings.automodDuplicates ? 'checked' : '' %> />
             </label>

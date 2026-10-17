@@ -393,4 +393,4 @@ async function renderLeaderboard(data) {
   return canvas.encode('png');
 }
 
-module.exports = { renderRankCard, renderLeaderboard };
+module.exports = { renderRankCard, renderLeaderboard, cardKit: { ensureFonts, makeCanvas, paintBackground, drawAvatar, drawCrescent, truncateToWidth, COLORS } };
