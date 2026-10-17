@@ -823,4 +823,63 @@ router.post('/:guildId/alerts/delete/:id', ensureGuildAccess, async (req, res) =
   res.redirect(saved(req.params.guildId, 'alerts', 'deleted'));
 });
 
+// ---- Webhooks ----
+const webhooks = require('../webhooks');
+const BOT_ID = () => process.env.DISCORD_CLIENT_ID;
+const WEBHOOK_CHANNEL_TYPES = [0, 2, 5, 13, 15, 16];
+const webhookPage = (guildId, flag, text) => `/dashboard/${guildId}/webhooks?${flag}=1${text ? '&msg=' + encodeURIComponent(text.slice(0, 200)) : ''}`;
+
+router.get('/:guildId/webhooks', ensureGuildAccess, async (req, res) => {
+  const guildId = req.params.guildId;
+  const guild = await getGuild(guildId);
+  const channels = (await getGuildChannels(guildId)).filter((c) => WEBHOOK_CHANNEL_TYPES.includes(c.type));
+  const settings = await GuildSettings.findByPk(guildId);
+  let hooks = []; let error = null;
+  try { hooks = await webhooks.listOwn(guildId, BOT_ID(), settings?.logWebhookId); } catch (err) { error = webhooks.explain(err); }
+  res.render('dashboard/webhooks', { guild, channels, hooks, error, active: 'webhooks', msg: String(req.query.msg || '').slice(0, 200) });
+});
+
+router.post('/:guildId/webhooks', ensureGuildAccess, async (req, res) => {
+  const guildId = req.params.guildId;
+  const channelId = snowflake(req.body.channelId);
+  const name = String(req.body.name || '').trim().slice(0, 32);
+  if (!channelId || !name) return res.redirect(saved(guildId, 'webhooks', 'invalid'));
+  const channels = await getGuildChannels(guildId);
+  if (!channels.some((c) => c.id === channelId && WEBHOOK_CHANNEL_TYPES.includes(c.type))) return res.redirect(saved(guildId, 'webhooks', 'invalid'));
+  try {
+    await webhooks.create(channelId, name, String(req.body.avatarUrl || '').trim() || null, `Создан через веб-панель (${req.user?.username || req.session?.user?.username || 'админ'})`);
+    res.redirect(webhookPage(guildId, 'created'));
+  } catch (err) {
+    res.redirect(webhookPage(guildId, 'whfail', webhooks.explain(err)));
+  }
+});
+
+router.post('/:guildId/webhooks/:id/delete', ensureGuildAccess, async (req, res) => {
+  const guildId = req.params.guildId;
+  const settings = await GuildSettings.findByPk(guildId);
+  try {
+    const hook = (await webhooks.listOwn(guildId, BOT_ID(), settings?.logWebhookId)).find((w) => w.id === req.params.id);
+    if (!hook) return res.redirect(saved(guildId, 'webhooks', 'invalid'));
+    await webhooks.remove(hook.id, 'Удалён через веб-панель');
+    res.redirect(saved(guildId, 'webhooks', 'deleted'));
+  } catch (err) {
+    res.redirect(webhookPage(guildId, 'whfail', webhooks.explain(err)));
+  }
+});
+
+router.post('/:guildId/webhooks/:id/send', ensureGuildAccess, async (req, res) => {
+  const guildId = req.params.guildId;
+  const content = String(req.body.content || '').trim().slice(0, 2000);
+  if (!content) return res.redirect(saved(guildId, 'webhooks', 'invalid'));
+  const settings = await GuildSettings.findByPk(guildId);
+  try {
+    const hook = (await webhooks.listOwn(guildId, BOT_ID(), settings?.logWebhookId)).find((w) => w.id === req.params.id);
+    if (!hook) return res.redirect(saved(guildId, 'webhooks', 'invalid'));
+    await webhooks.send(hook, { content, username: String(req.body.username || '').trim().slice(0, 80) || null });
+    res.redirect(webhookPage(guildId, 'whsent'));
+  } catch (err) {
+    res.redirect(webhookPage(guildId, 'whfail', webhooks.explain(err)));
+  }
+});
+
 module.exports = router;

@@ -71,6 +71,7 @@ module.exports = (sequelize) => {
       giveawaysEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       ticketsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       remindersEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      webhooksEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       funEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
 
       // Tickets: a button makes a private channel with the staff (see bot/modules/tickets.js)

@@ -80,6 +80,10 @@
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8C5 5.2 7.2 3 10 3C12.8 3 15 5.2 15 8C15 11.5 16.5 12.5 16.5 13.5H3.5C3.5 12.5 5 11.5 5 8Z"/><path d="M8.3 16C8.6 16.6 9.2 17 10 17C10.8 17 11.4 16.6 11.7 16"/></svg>
         Оповещения
       </a>
+      <a href="/dashboard/<%= guild.id %>/webhooks" class="<%= active === 'webhooks' ? 'active' : '' %>">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="14" r="2.3"/><circle cx="14" cy="14" r="2.3"/><circle cx="10" cy="5.5" r="2.3"/><path d="M10 7.8L7.2 12M8.3 14H11.7M10 7.8L12.8 12"/></svg>
+        Вебхуки
+      </a>
     </div>
   </nav>
   <div class="sidebar-footer">
@@ -116,6 +120,9 @@
       lognoforum: ['Выберите именно форум — обычные каналы не подходят', true],
       logperm: ['Не хватает прав у бота: нужны «Управлять каналами» и «Управлять вебхуками»', true],
       rules: ['Правила наказаний сохранены', false],
+      created: ['Вебхук создан', false],
+      whsent: ['Сообщение отправлено', false],
+      whfail: [params.get('msg') || 'Не удалось выполнить действие с вебхуком', true],
       logfail: ['Не удалось создать темы. Проверьте права бота в этом форуме', true]
     };
     for (var key in kinds) {

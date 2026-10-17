@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Вебхуки' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <div class="page-header">
+        <h1>Вебхуки</h1>
+        <p class="page-intro">Вебхук позволяет публиковать сообщения в канал от любого имени и с любой аватаркой — например, из внешних сервисов. Здесь можно создать вебхук в нужном канале, получить его ссылку и отправить тестовое сообщение. То же самое в Discord делает команда <code>/webhook</code>.</p>
+      </div>
+
+      <% if (error) { %>
+        <div class="card"><p>Не удалось загрузить список вебхуков: <%= error %></p></div>
+      <% } %>
+
+      <form method="post" class="card">
+        <h2>Новый вебхук</h2>
+        <div class="two-col">
+          <div>
+            <label>Канал</label>
+            <select name="channelId" required>
+              <% channels.forEach(c => { %>
+                <option value="<%= c.id %>"><%= c.type === 2 || c.type === 13 ? '🔊' : c.type === 15 || c.type === 16 ? '🗂' : '#' %> <%= c.name %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div>
+            <label>Имя (до 32 символов)</label>
+            <input type="text" name="name" maxlength="32" required placeholder="Например: Новости" />
+          </div>
+        </div>
+        <div>
+          <label>Ссылка на аватарку (необязательно, https, PNG/JPG/GIF/WebP до 8 МБ)</label>
+          <input type="text" inputmode="url" name="avatarUrl" placeholder="Если не указать, будет аватарка бота" />
+        </div>
+        <div class="hint">Боту нужно право «Управлять вебхуками» в этом канале. В канале может быть не больше 15 вебхуков.</div>
+        <button class="btn" type="submit">Создать</button>
+      </form>
+
+      <div class="card">
+        <h2>Вебхуки, созданные этим ботом</h2>
+        <% if (!hooks.length) { %>
+          <p class="empty-state">Пока нет ни одного. Вебхук логов сервера здесь не показывается — им управляет страница «Логи».</p>
+        <% } else { %>
+          <div class="hint">Ссылка вебхука — как пароль: любой, у кого она есть, может писать в канал. Не публикуйте её.</div>
+          <% hooks.forEach(h => {
+            const channel = channels.find(c => c.id === h.channel_id);
+          %>
+            <div class="webhook-item">
+              <div>
+                <strong><%= h.name %></strong> · <%= channel ? '#' + channel.name : h.channel_id %> · ID <code><%= h.id %></code>
+                <details>
+                  <summary>Показать ссылку</summary>
+                  <input type="text" readonly value="https://discord.com/api/webhooks/<%= h.id %>/<%= h.token %>" onclick="this.select()" />
+                </details>
+                <details>
+                  <summary>Отправить сообщение</summary>
+                  <form method="post" action="/dashboard/<%= guild.id %>/webhooks/<%= h.id %>/send">
+                    <label>Текст</label>
+                    <textarea name="content" rows="3" maxlength="2000" required></textarea>
+                    <label>Другое имя отправителя (необязательно)</label>
+                    <input type="text" name="username" maxlength="80" />
+                    <button class="btn" type="submit">Отправить</button>
+                  </form>
+                </details>
+              </div>
+              <form method="post" action="/dashboard/<%= guild.id %>/webhooks/<%= h.id %>/delete" onsubmit="return confirm('Удалить вебхук «<%= h.name.replace(/'/g, '') %>»? Сервисы, которые используют его ссылку, перестанут работать.')">
+                <button class="btn btn-danger" type="submit">Удалить</button>
+              </form>
+            </div>
+          <% }) %>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

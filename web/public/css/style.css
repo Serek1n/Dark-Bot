@@ -890,3 +890,14 @@ code { white-space: nowrap; }
 .card > .rules + h3, .card > .rules + .callout { margin-top: 18px; }
 form.plain > .btn[type=submit] { margin: 2px 0 28px; }
 @media (max-width: 760px) { .card h2 { flex-wrap: wrap; } .card h2 .sub { flex-basis: 100%; margin-top: 0; } }
+
+/* Webhooks page */
+.webhook-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 14px 0; border-top: 1px solid var(--border, rgba(255,255,255,.08)); }
+.webhook-item:first-of-type { border-top: 0; }
+.webhook-item > div { min-width: 0; flex: 1; }
+.webhook-item details { margin-top: 8px; }
+.webhook-item summary { cursor: pointer; color: var(--ember, #e3a857); font-size: 14px; }
+.webhook-item details[open] > :not(summary) { margin-top: 8px; }
+.webhook-item input[type=text], .webhook-item textarea { width: 100%; box-sizing: border-box; }
+.webhook-item details { max-width: 100%; }
+@media (max-width: 640px) { .webhook-item { flex-direction: column; } }

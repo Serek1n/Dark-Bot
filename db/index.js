@@ -92,6 +92,7 @@ const COLUMN_ADDITIONS = [
   { table: 'guild_settings', column: 'giveawaysEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
   { table: 'guild_settings', column: 'ticketsEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
   { table: 'guild_settings', column: 'remindersEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
+  { table: 'guild_settings', column: 'webhooksEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
   { table: 'guild_settings', column: 'funEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
   { table: 'guild_settings', column: 'ticketCategoryId', ddl: 'VARCHAR(255)' },
   { table: 'guild_settings', column: 'ticketSupportRoleId', ddl: 'VARCHAR(255)' },
