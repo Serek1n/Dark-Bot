@@ -625,6 +625,9 @@ router.post('/:guildId/welcome', ensureGuildAccess, async (req, res) => {
   settings.leaveChannelId = snowflake(req.body.leaveChannelId);
   settings.leaveMessage = (req.body.leaveMessage || '').trim().slice(0, 1800) || settings.leaveMessage;
   settings.autoRoleId = snowflake(req.body.autoRoleId);
+  settings.restoreOnRejoin = req.body.restoreOnRejoin === 'on';
+  settings.restoreDays = clampInt(req.body.restoreDays, 1, 3650, 365);
+  settings.restoreStaffRoles = req.body.restoreStaffRoles === 'on';
   await settings.save();
   res.redirect(saved(req.params.guildId, 'welcome'));
 });

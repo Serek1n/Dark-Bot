@@ -2,6 +2,7 @@ const { AttachmentBuilder } = require('discord.js');
 const { GuildSettings } = require('../../db');
 const logger = require('../utils/logger');
 const { renderWelcomeCard } = require('../modules/welcomeCard');
+const { restoreMember } = require('../modules/memberRestore');
 
 /** {user} {name} {server} {count} -> text. `mention` is false for people who already left (no ping). */
 function fillTemplate(template, member, mention = true) {
@@ -17,6 +18,7 @@ module.exports = {
   name: 'guildMemberAdd',
   fillTemplate,
   async execute(member) {
+    await restoreMember(member); // returning member: roles and nickname come back (works even when the welcome message is off)
     const settings = await GuildSettings.findOne({ where: { guildId: member.guild.id } });
     if (!settings || !settings.welcomeEnabled) return;
 

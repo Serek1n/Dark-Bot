@@ -72,6 +72,10 @@ module.exports = (sequelize) => {
       ticketsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       remindersEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       webhooksEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      // Roles and nickname come back when a member who left joins again
+      restoreOnRejoin: { type: DataTypes.BOOLEAN, defaultValue: true },
+      restoreDays: { type: DataTypes.INTEGER, defaultValue: 365 },
+      restoreStaffRoles: { type: DataTypes.BOOLEAN, defaultValue: false },
       funEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
 
       // Tickets: a button makes a private channel with the staff (see bot/modules/tickets.js)

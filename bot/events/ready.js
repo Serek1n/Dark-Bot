@@ -6,6 +6,7 @@ const { startModScheduler } = require('../modules/moderation');
 const { startGiveawayScheduler } = require('../modules/giveaways');
 const { startReminderScheduler } = require('../modules/reminders');
 const { startPollScheduler } = require('../modules/polls');
+const { startRestoreCleanup } = require('../modules/memberRestore');
 
 module.exports = {
   name: Events.ClientReady,
@@ -18,6 +19,7 @@ module.exports = {
     startGiveawayScheduler(client); // ends giveaways when their time is up
     startReminderScheduler(client); // sends due reminders
     startPollScheduler(client); // posts the results of timed polls
+    startRestoreCleanup(); // forgets old data of members who left
     client.user.setActivity('/help | Dark', { type: ActivityType.Watching });
   }
 };

@@ -57,6 +57,21 @@
           <label>Текст прощания — доступны {user} (имя без упоминания), {server} и {count}</label>
           <textarea name="leaveMessage" maxlength="1800"><%= settings.leaveMessage %></textarea>
         </div>
+        <h2 style="margin-top:8px">Возвращение участника</h2>
+        <div class="hint">Если человек вышел с сервера и зашёл снова, он получит обратно роли и никнейм. Его уровень, опыт, монеты, кристаллы, покупки и предупреждения никогда не удаляются при выходе — они продолжаются сами.</div>
+        <label class="checkbox-row">
+          <input type="checkbox" name="restoreOnRejoin" <%= settings.restoreOnRejoin !== false ? 'checked' : '' %> />
+          <span>Возвращать роли и никнейм вернувшемуся участнику</span>
+        </label>
+        <div>
+          <label>Сколько дней помнить участника после выхода</label>
+          <input type="number" name="restoreDays" min="1" max="3650" value="<%= settings.restoreDays || 365 %>" />
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" name="restoreStaffRoles" <%= settings.restoreStaffRoles ? 'checked' : '' %> />
+          <span>Возвращать и роли с правами модератора или администратора (по умолчанию не возвращаются — их выдают заново вручную)</span>
+        </label>
+        <div class="hint">Не возвращаются роли выше роли бота, роли ботов и подписчиков-бустеров. Забаненный участник после разбана возвращается без ролей.</div>
         <button class="btn" type="submit">Сохранить</button>
       </form>
     </div>
