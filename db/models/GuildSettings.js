@@ -117,7 +117,9 @@ module.exports = (sequelize) => {
       // Temp voice ("join to create")
       tempVoiceJoinChannelId: { type: DataTypes.STRING, allowNull: true },
       tempVoiceCategoryId: { type: DataTypes.STRING, allowNull: true },
-      tempVoiceNameTemplate: { type: DataTypes.STRING, defaultValue: 'Комната {user}' }
+      tempVoiceNameTemplate: { type: DataTypes.STRING, defaultValue: 'Комната {user}' },
+      tempVoicePanelChannelId: { type: DataTypes.STRING, allowNull: true }, // where the room control panel (buttons) was posted
+      tempVoicePanelMessageId: { type: DataTypes.STRING, allowNull: true }
     },
     { sequelize, modelName: 'GuildSettings', tableName: 'guild_settings' }
   );

@@ -34,6 +34,22 @@
         </div>
         <button class="btn" type="submit">Сохранить</button>
       </form>
+
+      <form method="post" action="/dashboard/<%= guild.id %>/temp-voice/panel" class="card">
+        <h2>Панель управления комнатами</h2>
+        <div class="hint">Сообщение с кнопками для владельцев комнат: название и лимит, доступ (открыть, закрыть, скрыть), доверенные, приглашение, выгнать, регион, бан и разбан, удаление. Разместите его в отдельном канале, например «панель-управления». Кнопки управляют той комнатой, в которой сидит нажавший (или его собственной). Те же действия есть в команде <code>/voice</code>.</div>
+        <div>
+          <label>Канал для панели</label>
+          <select name="channelId" required>
+            <% channels.filter(c => c.type === 0 || c.type === 5).forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.tempVoicePanelChannelId === c.id ? 'selected' : '' %>># <%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <% if (settings.tempVoicePanelMessageId) { %><div class="hint">Панель уже размещена. Если разместить заново, старое сообщение будет удалено.</div><% } %>
+        <div class="hint">Боту нужны в этом канале права «Просмотр канала», «Отправлять сообщения» и «Встраивать ссылки», а для работы кнопок — «Управлять каналами», «Управлять ролями» и «Перемещать участников».</div>
+        <button class="btn" type="submit"><%= settings.tempVoicePanelMessageId ? 'Разместить заново' : 'Разместить панель' %></button>
+      </form>
     </div>
   </div>
 </body>

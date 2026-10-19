@@ -6,6 +6,7 @@ const { isTopButton, handleTopButton } = require('../modules/leaderboardPage');
 const { isShopComponent, handleShopComponent } = require('../modules/shop');
 const { isGiveawayButton, handleGiveawayButton } = require('../modules/giveaways');
 const { isTicketButton, handleTicketButton } = require('../modules/tickets');
+const { isVoiceRoomComponent, handleVoiceRoomComponent } = require('../modules/voiceRoom');
 const { featureForCommand, isEnabled } = require('../utils/features');
 const { getOrCreateSettings } = require('../modules/leveling');
 
@@ -54,6 +55,11 @@ module.exports = {
         if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
         else await interaction.reply(payload).catch(() => {});
       }
+      return;
+    }
+
+    if (isVoiceRoomComponent(interaction)) {
+      await handleVoiceRoomComponent(interaction); // answers its own errors
       return;
     }
 

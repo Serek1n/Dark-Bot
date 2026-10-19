@@ -1,4 +1,4 @@
-const { ChannelType } = require('discord.js');
+const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { GuildSettings, TempVoiceChannel } = require('../../db');
 const logger = require('../utils/logger');
 const { getQueue, destroyQueue } = require('../modules/music/player');
@@ -55,9 +55,11 @@ module.exports = {
           name,
           type: ChannelType.GuildVoice,
           parent: settings.tempVoiceCategoryId || newState.channel.parentId,
-          permissionOverwrites: newState.channel.parent?.permissionOverwrites?.cache
-            ? [...newState.channel.parent.permissionOverwrites.cache.values()]
-            : undefined
+          // The category's rules, plus the owner: he can always see and enter his room, even when he closes it.
+          permissionOverwrites: [
+            ...(newState.channel.parent?.permissionOverwrites?.cache ? [...newState.channel.parent.permissionOverwrites.cache.values()] : []),
+            { id: newState.member.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] }
+          ]
         });
         await TempVoiceChannel.create({ guildId: guild.id, channelId: channel.id, ownerId: newState.member.id });
         await newState.setChannel(channel).catch(() => {});

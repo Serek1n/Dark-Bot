@@ -10,7 +10,7 @@ const FEATURES = [
   { key: 'welcome', field: 'welcomeEnabled', title: 'Приветствие и автороль', desc: 'Сообщение и роль для новых участников', commands: [], page: 'welcome' },
   { key: 'reactionRoles', field: 'reactionRolesEnabled', title: 'Роли по реакциям', desc: 'Выдача ролей за реакцию на сообщение', commands: [], page: 'reaction-roles' },
   { key: 'customCommands', field: 'customCommandsEnabled', title: 'Свои команды', desc: 'Ответы на сообщения с префиксом, например !правила', commands: [], page: 'custom-commands' },
-  { key: 'tempVoice', field: 'tempVoiceEnabled', title: 'Временные голосовые', desc: 'Личные комнаты по входу в специальный канал', commands: [], page: 'temp-voice' },
+  { key: 'tempVoice', field: 'tempVoiceEnabled', title: 'Временные голосовые', desc: 'Личные комнаты по входу в специальный канал, кнопки управления ими и команда /voice', commands: ['voice'], page: 'temp-voice' },
   { key: 'alerts', field: 'alertsEnabled', title: 'Оповещения', desc: 'Уведомления о новых видео YouTube, стримах Twitch и постах Reddit', commands: [], page: 'alerts' },
   { key: 'polls', field: 'pollsEnabled', title: 'Голосования', desc: 'Команда /poll: голосование с эмодзи-ответами', commands: ['poll'], page: null },
   { key: 'giveaways', field: 'giveawaysEnabled', title: 'Розыгрыши', desc: 'Команда /giveaway: призы с таймером и случайными победителями', commands: ['giveaway'], page: null },
