@@ -24,15 +24,18 @@
     "express-async-errors": "^3.1.1",
     "express-session": "^1.18.0",
     "ffmpeg-static": "^5.2.0",
-    "node-cron": "^3.0.3",
+    "node-cron": "^4.6.0",
     "opusscript": "^0.0.8",
     "passport": "^0.7.0",
     "passport-discord": "^0.1.4",
     "play-dl": "^1.9.7",
     "sequelize": "^6.37.3",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^6.0.1"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=20.17.0"
   }
 }
