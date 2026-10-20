@@ -70,8 +70,15 @@
                 <details>
                   <summary>Отправить сообщение</summary>
                   <form method="post" action="/dashboard/<%= guild.id %>/webhooks/<%= h.id %>/send">
+                    <label>Оформление</label>
+                    <select name="style">
+                      <option value="frame" selected>В рамке (как сообщения бота)</option>
+                      <option value="plain">Обычным текстом</option>
+                    </select>
+                    <label>Заголовок рамки (необязательно)</label>
+                    <input type="text" name="title" maxlength="256" />
                     <label>Текст</label>
-                    <textarea name="content" rows="3" maxlength="2000" required></textarea>
+                    <textarea name="content" rows="5" maxlength="4000" required></textarea>
                     <label>Другое имя отправителя (необязательно)</label>
                     <input type="text" name="username" maxlength="80" />
                     <button class="btn" type="submit">Отправить</button>

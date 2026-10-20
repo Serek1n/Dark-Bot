@@ -92,8 +92,13 @@ const axios = require('axios');
     const m = await press('wh:send'); assert(txt(m.replies).includes('wh:s:send') && txt(m.replies).includes('"value":"1"') && !txt(m.replies).includes('"value":"2"') && !txt(m.replies).includes('"value":"LOG"'), 'menu');
     const w = await press('wh:s:send', { values: ['1'] }); assert(w.modals[0].custom_id === 'wh:m:send:1', 'window');
     const o = await press('wh:m:send:1', { fields: { text: 'всем @everyone привет', username: 'Бот' } });
-    const s = sent.find((x) => x[0] === '1'); assert(s && s[1].content.includes('@everyone') && s[1].username === 'Бот' && s[1].allowedMentions.parse.length === 0, txt(sent));
+    const s = sent.find((x) => x[0] === '1'); assert(s && !s[1].content && s[1].embeds[0].toJSON().description.includes('@everyone') && s[1].username === 'Бот' && s[1].allowedMentions.parse.length === 0, txt(sent));
     assert(said(o).includes('отправлено'), said(o));
+    await press('wh:m:send:1', { fields: { text: 'просто текст', frame: 'нет' } });
+    const p = sent[sent.length - 1][1]; assert(p.content === 'просто текст' && !p.embeds, 'plain: ' + txt(p));
+    await press('wh:m:send:1', { fields: { text: 'a', title: 'Заголовок', frame: 'да' } });
+    assert(sent[sent.length - 1][1].embeds[0].toJSON().title === 'Заголовок', 'title');
+    assert(said(await press('wh:m:send:1', { fields: { text: 'x'.repeat(2001), frame: 'нет' } })).includes('2000'), 'plain limit');
   });
   await test('send/edit/delete refuse a webhook that is not the bot\'s own (another bot, the log webhook)', async () => {
     const n = sent.length;

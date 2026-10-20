@@ -80,6 +80,9 @@ const express = require('express');
     hooks.push({ id: 'H5', name: 'Тест', channel_id: CH, application_id: 'BOTAPP', token: 'tok5' });
     assert(loc(await post('/H5/send', { content: '@everyone привет', username: 'Диктор' })).includes('whsent=1'), 'sent');
     assert(sent[0][0].endsWith('/webhooks/H5/tok5') && sent[0][1].username === 'Диктор' && sent[0][1].allowed_mentions.parse.length === 0, JSON.stringify(sent));
+    const e = sent[0][1].embeds && sent[0][1].embeds[0]; assert(e && e.color === 0xe3a857 && e.description.includes('@everyone') && !sent[0][1].content, 'framed by default: ' + JSON.stringify(sent[0][1]));
+    await post('/H5/send', { content: 'простой', style: 'plain' }); await post('/H5/send', { content: 'с заголовком', title: 'Новости' });
+    assert(sent[1][1].content === 'простой' && !sent[1][1].embeds && sent[2][1].embeds[0].title === 'Новости', 'plain / title'); sent.length = 1;
     assert(loc(await post('/H5/send', { content: '   ' })).includes('invalid=1') && loc(await post('/H2/send', { content: 'x' })).includes('invalid=1') && sent.length === 1, 'refused');
   });
   await test('avatar from a link: https and public hosts only', async () => {

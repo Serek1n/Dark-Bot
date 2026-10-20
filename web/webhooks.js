@@ -24,9 +24,12 @@ async function create(channelId, name, avatarUrl, reason) {
 
 const remove = (id, reason) => botApi.delete(`/webhooks/${id}`, { headers: { 'X-Audit-Log-Reason': encodeURIComponent(reason) } });
 
-/** Posts through a webhook; no mentions are parsed, so @everyone stays text. */
-const send = (hook, { content, username, avatarUrl }) =>
-  axios.post(`https://discord.com/api/v10/webhooks/${hook.id}/${hook.token}`, { content, ...(username ? { username } : {}), ...(avatarUrl ? { avatar_url: avatarUrl } : {}), allowed_mentions: { parse: [] } }, { timeout: 10000 });
+/** The framed look (same orange bar as the bot's own messages). */
+const frame = (title, text) => ({ color: 0xe3a857, ...(title ? { title: String(title).slice(0, 256) } : {}), description: String(text).slice(0, 4000), timestamp: new Date().toISOString() });
+
+/** Posts through a webhook, as plain text or in a frame; no mentions are parsed, so @everyone stays text. */
+const send = (hook, { content, username, avatarUrl, framed, title }) =>
+  axios.post(`https://discord.com/api/v10/webhooks/${hook.id}/${hook.token}`, { ...(framed ? { embeds: [frame(title, content)] } : { content }), ...(username ? { username } : {}), ...(avatarUrl ? { avatar_url: avatarUrl } : {}), allowed_mentions: { parse: [] } }, { timeout: 10000 });
 
 const explain = (err) => {
   const m = err.response?.data?.message || err.message || '';

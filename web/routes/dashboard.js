@@ -932,13 +932,14 @@ router.post('/:guildId/webhooks/:id/delete', webhookLimit, ensureGuildAccess, as
 
 router.post('/:guildId/webhooks/:id/send', webhookLimit, ensureGuildAccess, async (req, res) => {
   const guildId = req.params.guildId;
-  const content = String(req.body.content || '').trim().slice(0, 2000);
+  const framed = req.body.style !== 'plain';
+  const content = String(req.body.content || '').trim().slice(0, framed ? 4000 : 2000);
   if (!content) return res.redirect(saved(guildId, 'webhooks', 'invalid'));
   const settings = await GuildSettings.findByPk(guildId);
   try {
     const hook = (await webhooks.listOwn(guildId, BOT_ID(), settings?.logWebhookId)).find((w) => w.id === req.params.id);
     if (!hook) return res.redirect(saved(guildId, 'webhooks', 'invalid'));
-    await webhooks.send(hook, { content, username: String(req.body.username || '').trim().slice(0, 80) || null });
+    await webhooks.send(hook, { content, framed, title: String(req.body.title || '').trim().slice(0, 256), username: String(req.body.username || '').trim().slice(0, 80) || null });
     res.redirect(webhookPage(guildId, 'whsent'));
   } catch (err) {
     res.redirect(webhookPage(guildId, 'whfail', webhooks.explain(err)));

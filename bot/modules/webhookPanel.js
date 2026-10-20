@@ -123,8 +123,10 @@ async function afterChoice(i, kind, id, ctx) {
   const hook = await findHook(ctx, id);
   if (kind === 'send') {
     return i.showModal(new ModalBuilder().setCustomId(`${PREFIX}m:send:${id}`).setTitle(`Сообщение от «${hook.name}»`.slice(0, 45)).addComponents(
-      input('text', 'Текст сообщения', { paragraph: true, required: true, max: 2000 }),
-      input('username', 'Другое имя на этот раз (необязательно)', { max: 80 })));
+      input('text', 'Текст сообщения', { paragraph: true, required: true, max: 4000 }),
+      input('title', 'Заголовок рамки (необязательно)', { max: 256 }),
+      input('username', 'Другое имя на этот раз (необязательно)', { max: 80 }),
+      input('frame', 'В рамке? да или нет', { max: 3, value: 'да' })));
   }
   if (kind === 'edit') {
     return i.showModal(new ModalBuilder().setCustomId(`${PREFIX}m:edit:${id}`).setTitle('Изменить вебхук').addComponents(
@@ -154,7 +156,11 @@ async function sendThrough(i, ctx, id) {
   const text = i.fields.getTextInputValue('text');
   if (!text || !text.trim()) fail('Напишите текст сообщения.');
   const username = (i.fields.getTextInputValue('username') || '').trim() || undefined;
-  await hook.send({ content: text, username, allowedMentions: { parse: [] } }); // no @everyone through a webhook
+  const framed = !/^(нет|no|н|n|0)$/i.test((i.fields.getTextInputValue('frame') || '').trim());
+  if (!framed && text.length > 2000) fail('Обычным текстом можно не больше 2000 символов. Включите рамку (да) или сократите текст.');
+  const title = (i.fields.getTextInputValue('title') || '').trim();
+  const body = framed ? { embeds: [embeds.baseEmbed().setDescription(text.slice(0, 4000)).setTitle(title || null)] } : { content: text };
+  await hook.send({ ...body, username, allowedMentions: { parse: [] } }); // no @everyone through a webhook
   return reply(i, `Сообщение отправлено от имени **${username || hook.name}** в <#${hook.channelId}>.`, true);
 }
 

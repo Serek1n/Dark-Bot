@@ -29,7 +29,9 @@ module.exports = {
     .addSubcommand((s) => s.setName('delete').setDescription('Удалить вебхук, созданный этим ботом').addStringOption(idOpt))
     .addSubcommand((s) => s.setName('send').setDescription('Отправить сообщение от имени вебхука')
       .addStringOption(idOpt)
-      .addStringOption((o) => o.setName('text').setDescription('Текст сообщения').setRequired(true).setMaxLength(2000))
+      .addStringOption((o) => o.setName('text').setDescription('Текст сообщения').setRequired(true).setMaxLength(4000))
+      .addBooleanOption((o) => o.setName('frame').setDescription('Оформить в рамке, как сообщения бота (по умолчанию — да)'))
+      .addStringOption((o) => o.setName('title').setDescription('Заголовок рамки').setMaxLength(256))
       .addStringOption((o) => o.setName('username').setDescription('Другое имя отправителя на этот раз').setMaxLength(80))
       .addStringOption((o) => o.setName('avatar_url').setDescription('Ссылка на другую аватарку на этот раз'))),
 
@@ -94,7 +96,11 @@ module.exports = {
       const username = interaction.options.getString('username') || undefined;
       const avatarURL = interaction.options.getString('avatar_url') || undefined;
       if (avatarURL && !/^https?:\/\//i.test(avatarURL)) return fail(interaction, 'Ссылка на аватарку должна начинаться с http:// или https://.');
-      await hook.send({ content: text, username, avatarURL, allowedMentions: { parse: [] } }); // no @everyone through a webhook
+      const framed = interaction.options.getBoolean?.('frame') !== false;
+      if (!framed && text.length > 2000) return fail(interaction, 'Обычным текстом можно не больше 2000 символов.');
+      const title = interaction.options.getString('title') || null;
+      const body = framed ? { embeds: [embeds.baseEmbed().setDescription(text.slice(0, 4000)).setTitle(title)] } : { content: text };
+      await hook.send({ ...body, username, avatarURL, allowedMentions: { parse: [] } }); // no @everyone through a webhook
       return interaction.reply({ embeds: [embeds.success(`Сообщение отправлено от имени **${username || hook.name}** в <#${hook.channelId}>.`)], ...ephemeral });
     } catch (err) {
       const msg = explain(err);
