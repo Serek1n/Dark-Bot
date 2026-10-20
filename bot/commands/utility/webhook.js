@@ -4,7 +4,7 @@ const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = 
 const embeds = require('../../utils/embeds');
 const { memberHasPermission } = require('../../utils/permissions');
 const { getOrCreateSettings } = require('../../modules/leveling');
-const { panelPayload, ownWebhooks, listEmbed, explain } = require('../../modules/webhookPanel');
+const { panelPayload, ownWebhooks, listEmbed, createdEmbed, explain } = require('../../modules/webhookPanel');
 
 const CHANNEL_TYPES = [ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildVoice, ChannelType.GuildStageVoice, ChannelType.GuildForum, ChannelType.GuildMedia].filter((t) => t !== undefined);
 const MAX_AVATAR = 8 * 1024 * 1024;
@@ -71,7 +71,7 @@ module.exports = {
           reason: `Создал ${interaction.user.tag || interaction.user.username} через /webhook`
         });
         return interaction.reply({
-          embeds: [embeds.success(`Вебхук **${hook.name}** создан в <#${channel.id}>.\n\n**Ссылка** (никому не показывайте, по ней можно писать в канал):\n||${hook.url}||\n\nID: \`${hook.id}\``)],
+          embeds: [createdEmbed(hook, channel.id)],
           ...ephemeral
         });
       }

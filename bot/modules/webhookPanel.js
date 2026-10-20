@@ -49,6 +49,15 @@ async function ownWebhooks(guild, settings) {
   return [...all.values()].filter((w) => w.owner?.id === guild.client.user.id && w.id !== settings?.logWebhookId);
 }
 
+/** The framed message (same look as the control panel) shown to the person who just created a webhook. */
+function createdEmbed(hook, channelId) {
+  return embeds.baseEmbed().setTitle('Вебхук создан').setDescription(
+    `Вебхук **${hook.name}** создан в <#${channelId}>.\n\n` +
+    `🔗 **Ссылка** — никому не показывайте, по ней можно писать в канал:\n||${hook.url}||\n\n` +
+    `🆔 **ID:** \`${hook.id}\`\n\n` +
+    '**Чтобы написать через вебхук, нажмите ✉️ в панели или используйте `/webhook send`.**');
+}
+
 /** The embed with the webhooks and their links. */
 function listEmbed(hooks) {
   if (!hooks.length) return embeds.baseEmbed().setDescription('Вебхуков, созданных этим ботом, пока нет. Создайте через панель или командой `/webhook create`.');
@@ -137,7 +146,7 @@ async function createHook(i, ctx, channelId) {
   let avatar;
   if (url) { try { avatar = await fetchAvatar(url); } catch (e) { fail(e.message); } }
   const hook = await channel.createWebhook({ name, avatar: avatar || i.client.user.displayAvatarURL({ extension: 'png', size: 256 }), reason: `Создал ${who(i)} через панель вебхуков` });
-  return i.reply({ embeds: [embeds.success(`Вебхук **${hook.name}** создан в <#${channel.id}>.\n\n**Ссылка** (никому не показывайте, по ней можно писать в канал):\n||${hook.url}||\n\nID: \`${hook.id}\``)], ...ephemeral });
+  return i.reply({ embeds: [createdEmbed(hook, channel.id)], ...ephemeral });
 }
 
 async function sendThrough(i, ctx, id) {
@@ -195,4 +204,4 @@ async function handleWebhookComponent(i) {
   }
 }
 
-module.exports = { PREFIX, BUTTONS, panelPayload, isWebhookComponent, handleWebhookComponent, ownWebhooks, listEmbed, explain, WebhookError };
+module.exports = { PREFIX, BUTTONS, panelPayload, isWebhookComponent, handleWebhookComponent, ownWebhooks, listEmbed, createdEmbed, explain, WebhookError };
