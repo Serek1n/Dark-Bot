@@ -1,4 +1,5 @@
 const { AttachmentBuilder } = require('discord.js');
+const { getOrCreateSettings } = require('../modules/leveling');
 const { GuildSettings } = require('../../db');
 const logger = require('../utils/logger');
 const { renderWelcomeCard } = require('../modules/welcomeCard');
@@ -19,7 +20,7 @@ module.exports = {
   fillTemplate,
   async execute(member) {
     await restoreMember(member); // returning member: roles and nickname come back (works even when the welcome message is off)
-    const settings = await GuildSettings.findOne({ where: { guildId: member.guild.id } });
+    const settings = await getOrCreateSettings(member.guild.id);
     if (!settings || !settings.welcomeEnabled) return;
 
     if (settings.autoRoleId) {

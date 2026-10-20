@@ -1,4 +1,5 @@
 const { ModLog, GuildSettings } = require('../../db');
+const { getOrCreateSettings } = require('../modules/leveling');
 const embeds = require('./embeds');
 const serverLog = require('../modules/serverLog');
 const { formatDuration } = require('./duration');
@@ -47,7 +48,7 @@ async function recordAndAnnounce(guild, { userId, moderatorId, action, reason, d
   // Tell the Discord-event log that this action is already known (a ban would be logged twice otherwise).
   serverLog.markReported(guild.id, userId, action);
 
-  const settings = await GuildSettings.findOne({ where: { guildId: guild.id } });
+  const settings = await getOrCreateSettings(guild.id);
   const embed = caseEmbed(entry);
 
   // The "Логи" forum (thread "Выдача наказаний") and, if set, the classic mod-log channel.

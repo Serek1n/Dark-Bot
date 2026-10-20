@@ -1,4 +1,5 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
+const { getOrCreateSettings } = require('../modules/leveling');
 const { GuildSettings, TempVoiceChannel } = require('../../db');
 const logger = require('../utils/logger');
 const { getQueue, destroyQueue } = require('../modules/music/player');
@@ -44,7 +45,7 @@ module.exports = {
       }
     }
 
-    const settings = await GuildSettings.findOne({ where: { guildId: guild.id } });
+    const settings = await getOrCreateSettings(guild.id);
     if (!settings?.tempVoiceJoinChannelId || !settings.tempVoiceEnabled) return;
 
     // User joined the "join to create" channel -> spawn a new temp channel and move them into it

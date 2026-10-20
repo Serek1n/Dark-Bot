@@ -1,6 +1,7 @@
 // The moderation core, shared by /mod, the automod and the web panel: warnings with automatic
 // escalation, temporary bans that lift themselves, DMs to the punished member.
 const { Op } = require('sequelize');
+const { getOrCreateSettings } = require('./leveling');
 const { Warning, ModLog, GuildSettings } = require('../../db');
 const { recordAndAnnounce } = require('../utils/modlog');
 const { formatDuration, MAX_TIMEOUT, MINUTE } = require('../utils/duration');
@@ -50,7 +51,7 @@ async function dmMember(guild, userId, text, settings) {
 }
 
 async function loadSettings(guildId) {
-  return GuildSettings.findOne({ where: { guildId } });
+  return getOrCreateSettings(guildId);
 }
 
 /** Timeout ("mute"). Returns the case, or throws an Error with a readable message. */

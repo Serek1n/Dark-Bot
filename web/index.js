@@ -37,25 +37,35 @@ function assetVersion() {
 }
 app.locals.assetV = assetVersion();
 
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '7d' }));
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '7d',
+  setHeaders: (res, file) => { if (file.endsWith('.woff2')) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); } // fonts never change under the same name
+}));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // Basic hardening headers. The panel loads only its own assets plus Discord's CDN for avatars.
+const httpsSite = (process.env.WEB_BASE_URL || '').startsWith('https://');
 app.use((req, res, next) => {
   res.set({
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'same-origin',
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Resource-Policy': 'same-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
     'Content-Security-Policy':
-      "default-src 'self'; img-src 'self' https://cdn.discordapp.com data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; form-action 'self'"
+      "default-src 'self'; img-src 'self' https://cdn.discordapp.com data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
   });
+  if (httpsSite) res.set('Strict-Transport-Security', 'max-age=31536000'); // the browser stays on https for a year
+  // Pages of the panel hold private data (webhook links, member lists): never kept in a shared or browser cache, never shown by "Back" after logout.
+  if (req.path.startsWith('/dashboard') || req.path.startsWith('/auth')) res.set({ 'Cache-Control': 'no-store', Pragma: 'no-cache' });
   next();
 });
 
 app.use(csrfGuard);
 app.use(panelAudit);
 
-const isHttps = (process.env.WEB_BASE_URL || '').startsWith('https://');
+const isHttps = httpsSite;
 
 app.use(
   session({

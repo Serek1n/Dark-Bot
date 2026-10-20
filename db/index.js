@@ -160,6 +160,9 @@ const INDEXES = [
   ['warnings_guild_user', 'warnings', 'guildId, userId'],
   ['mod_logs_guild_case', 'mod_logs', 'guildId, caseNumber'],
   ['mod_logs_due', 'mod_logs', 'active, expiresAt'],
+  ['member_profiles_guild_chat', 'member_profiles', 'guildId, chatXp'],
+  ['member_profiles_guild_voicexp', 'member_profiles', 'guildId, voiceXp'],
+  ['temp_voice_guild_owner', 'temp_voice_channels', 'guildId, ownerId'],
   ['level_roles_guild', 'level_roles', 'guildId']
 ];
 

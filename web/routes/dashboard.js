@@ -79,15 +79,13 @@ async function getSettings(guildId) {
 
 // ---- Overview ----
 router.get('/:guildId', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const settings = await getSettings(req.params.guildId);
-  const memberCount = await MemberProfile.count({ where: { guildId: req.params.guildId } });
-  const warningCount = await Warning.count({ where: { guildId: req.params.guildId } });
-  const reactionRoleCount = await ReactionRole.count({ where: { guildId: req.params.guildId } });
-  const customCommandCount = await CustomCommand.count({ where: { guildId: req.params.guildId } });
-  const alertCount = await Alert.count({ where: { guildId: req.params.guildId } });
-  const topMembers = await MemberProfile.findAll({ where: { guildId: req.params.guildId }, order: [['xp', 'DESC']], limit: 5 });
-  const recentLogs = await ModLog.findAll({ where: { guildId: req.params.guildId }, order: [['createdAt', 'DESC']], limit: 5 });
+  const [guild, settings] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId)]);
+  const where = { guildId: req.params.guildId };
+  const [memberCount, warningCount, reactionRoleCount, customCommandCount, alertCount, topMembers, recentLogs] = await Promise.all([
+    MemberProfile.count({ where }), Warning.count({ where }), ReactionRole.count({ where }), CustomCommand.count({ where }), Alert.count({ where }),
+    MemberProfile.findAll({ where, order: [['xp', 'DESC']], limit: 5 }),
+    ModLog.findAll({ where, order: [['createdAt', 'DESC']], limit: 5 })
+  ]);
   const users = await getUsers([...topMembers.map((p) => p.userId), ...recentLogs.flatMap((l) => [l.userId, l.moderatorId])]);
   res.render('dashboard/overview', {
     guild,
@@ -106,9 +104,7 @@ router.get('/:guildId', ensureGuildAccess, async (req, res) => {
 
 // ---- Leveling settings ----
 router.get('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const settings = await getSettings(req.params.guildId);
-  const channels = await getGuildChannels(req.params.guildId);
+  const [guild, settings, channels] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId)]);
   // Result of the last manual level change (the redirect carries it in the query string).
   let adjusted = null;
   const q = req.query;
@@ -192,8 +188,7 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
 const { FEATURES } = require('../../bot/utils/features');
 
 router.get('/:guildId/features', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const settings = await getSettings(req.params.guildId);
+  const [guild, settings] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId)]);
   res.render('dashboard/features', { guild, settings, features: FEATURES, active: 'features' });
 });
 
@@ -206,8 +201,7 @@ router.post('/:guildId/features', ensureGuildAccess, async (req, res) => {
 
 // ---- Economy: currencies ----
 router.get('/:guildId/economy', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const settings = await getSettings(req.params.guildId);
+  const [guild, settings] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId)]);
   const where = { guildId: req.params.guildId };
   const [coinsTotal, crystalsTotal, holders] = await Promise.all([
     MemberProfile.sum('balance', { where }),
@@ -267,10 +261,7 @@ const validItem = (f) => f.name.length > 0 && (f.type !== 'role' || f.roleId);
 
 router.get('/:guildId/shop', ensureGuildAccess, async (req, res) => {
   const { guildId } = req.params;
-  const guild = await getGuild(guildId);
-  const settings = await getSettings(guildId);
-  const channels = await getGuildChannels(guildId);
-  const roles = await getGuildRoles(guildId);
+  const [guild, settings, channels, roles] = await Promise.all([getGuild(guildId), getSettings(guildId), getGuildChannels(guildId), getGuildRoles(guildId)]);
   const items = await ShopItem.findAll({ where: { guildId }, order: [['id', 'ASC']] });
   const purchases = await Purchase.findAll({ where: { guildId }, order: [['createdAt', 'DESC'], ['id', 'DESC']], limit: 30 });
   const users = await getUsers([...new Set(purchases.map((p) => p.userId))]);
@@ -391,9 +382,7 @@ router.get('/:guildId/leaderboard', ensureGuildAccess, async (req, res) => {
 
 // ---- Moderation: channels, warning rules (escalation), cases ----
 router.get('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const settings = await getSettings(req.params.guildId);
-  const channels = await getGuildChannels(req.params.guildId);
+  const [guild, settings, channels] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId)]);
   const actions = ['warn', 'unwarn', 'mute', 'unmute', 'kick', 'ban', 'unban', 'clear', 'automod', 'note'];
   const action = actions.includes(req.query.action) ? req.query.action : '';
   const where = action ? { guildId: req.params.guildId, action } : { guildId: req.params.guildId };
@@ -445,9 +434,7 @@ function parseJson(text, fallback) {
 }
 
 router.get('/:guildId/logs', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const settings = await getSettings(req.params.guildId);
-  const channels = await getGuildChannels(req.params.guildId);
+  const [guild, settings, channels] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId)]);
   res.render('dashboard/logs', {
     guild,
     settings,
@@ -511,10 +498,7 @@ router.post('/:guildId/logs', ensureGuildAccess, async (req, res) => {
 
 // ---- Automod ----
 router.get('/:guildId/automod', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const settings = await getSettings(req.params.guildId);
-  const channels = await getGuildChannels(req.params.guildId);
-  const roles = await getGuildRoles(req.params.guildId);
+  const [guild, settings, channels, roles] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId), getGuildRoles(req.params.guildId)]);
   res.render('dashboard/automod', {
     guild, settings, channels, roles,
     bannedWords: parseWords(settings.automodBannedWords),
@@ -559,8 +543,7 @@ router.post('/:guildId/automod', ensureGuildAccess, async (req, res) => {
 const BOOST_CHANNEL_TYPES = [0, 2, 4, 5, 13, 15]; // text, voice, category, announcement, stage, forum
 
 router.get('/:guildId/channel-boosts', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const settings = await getSettings(req.params.guildId);
+  const [guild, settings] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId)]);
   const channels = (await getGuildChannels(req.params.guildId)).filter((c) => BOOST_CHANNEL_TYPES.includes(c.type));
   const { parseBoosts, MAX_BOOST } = require('../../bot/modules/leveling');
   const boosts = parseBoosts(settings.channelBoosts);
@@ -610,10 +593,7 @@ router.post('/:guildId/channel-boosts/delete/:channelId', ensureGuildAccess, asy
 
 // ---- Welcome & autorole ----
 router.get('/:guildId/welcome', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const settings = await getSettings(req.params.guildId);
-  const channels = await getGuildChannels(req.params.guildId);
-  const roles = await getGuildRoles(req.params.guildId);
+  const [guild, settings, channels, roles] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId), getGuildRoles(req.params.guildId)]);
   res.render('dashboard/welcome', { guild, settings, channels, roles, active: 'welcome' });
 });
 
@@ -636,9 +616,7 @@ router.post('/:guildId/welcome', ensureGuildAccess, async (req, res) => {
 const syncStatus = new Map(); // guildId -> { running, done, total, error }
 
 router.get('/:guildId/level-roles', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const settings = await getSettings(req.params.guildId);
-  const roles = await getGuildRoles(req.params.guildId);
+  const [guild, settings, roles] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildRoles(req.params.guildId)]);
   const levelRoles = await LevelRole.findAll({ where: { guildId: req.params.guildId, track: 'total' }, order: [['level', 'ASC']] });
   res.render('dashboard/level-roles', { guild, settings, roles, levelRoles, sync: syncStatus.get(req.params.guildId) || null, active: 'level-roles' });
 });
@@ -714,9 +692,7 @@ router.post('/:guildId/level-roles/sync', ensureGuildAccess, async (req, res) =>
 
 // ---- Reaction roles ----
 router.get('/:guildId/reaction-roles', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const channels = await getGuildChannels(req.params.guildId);
-  const roles = await getGuildRoles(req.params.guildId);
+  const [guild, channels, roles] = await Promise.all([getGuild(req.params.guildId), getGuildChannels(req.params.guildId), getGuildRoles(req.params.guildId)]);
   const reactionRoles = await ReactionRole.findAll({ where: { guildId: req.params.guildId } });
   res.render('dashboard/reaction-roles', { guild, channels, roles, reactionRoles, flag: req.query, active: 'reaction-roles' });
 });
@@ -788,9 +764,7 @@ router.post('/:guildId/custom-commands/delete/:id', ensureGuildAccess, async (re
 
 // ---- Temp voice ----
 router.get('/:guildId/temp-voice', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const settings = await getSettings(req.params.guildId);
-  const channels = await getGuildChannels(req.params.guildId);
+  const [guild, settings, channels] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId)]);
   res.render('dashboard/temp-voice', { guild, settings, channels, active: 'temp-voice' });
 });
 
@@ -829,8 +803,7 @@ router.post('/:guildId/temp-voice/panel', ensureGuildAccess, async (req, res) =>
 
 // ---- Alerts (YouTube / Twitch) ----
 router.get('/:guildId/alerts', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const channels = await getGuildChannels(req.params.guildId);
+  const [guild, channels] = await Promise.all([getGuild(req.params.guildId), getGuildChannels(req.params.guildId)]);
   const alerts = await Alert.findAll({ where: { guildId: req.params.guildId } });
   res.render('dashboard/alerts', { guild, channels, alerts, active: 'alerts' });
 });

@@ -10,7 +10,8 @@ passport.use(
       clientID: process.env.DISCORD_CLIENT_ID,
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
       callbackURL: `${process.env.WEB_BASE_URL}/auth/callback`,
-      scope: ['identify', 'guilds']
+      scope: ['identify', 'guilds'],
+      state: true // a random value kept in the session and checked on return: a sign-in cannot be forced from another site
     },
     (accessToken, refreshToken, profile, done) => {
       // profile.guilds contains guilds the user is in, with `permissions` bitfield we use

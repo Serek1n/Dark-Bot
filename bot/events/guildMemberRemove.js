@@ -1,4 +1,5 @@
 const { GuildSettings } = require('../../db');
+const { getOrCreateSettings } = require('../modules/leveling');
 const { fillTemplate } = require('./guildMemberAdd');
 const { saveSnapshot } = require('../modules/memberRestore');
 
@@ -7,7 +8,7 @@ module.exports = {
   async execute(member) {
     if (!member?.guild || member.user?.bot) return;
     await saveSnapshot(member); // roles and nickname, to give them back if he returns
-    const settings = await GuildSettings.findOne({ where: { guildId: member.guild.id } });
+    const settings = await getOrCreateSettings(member.guild.id);
     if (!settings || !settings.welcomeEnabled || !settings.leaveChannelId) return;
     const channel = await member.guild.channels.fetch(settings.leaveChannelId).catch(() => null);
     if (!channel) return;

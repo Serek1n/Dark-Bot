@@ -50,7 +50,7 @@ function ytDlpFailReason(stderr) {
 function ytDlpAudioArgs(url) {
   // SoundCloud offers a plain mp3 over HTTP next to its HLS streams: take that first, it needs nothing extra.
   const format = /soundcloud\.com|snd\.sc/i.test(String(url)) ? 'http_mp3_1_0/http_mp3/bestaudio/best' : 'bestaudio';
-  return [...ytDlpBaseArgs(), '-f', format, '-o', '-', '--quiet', '--no-warnings', '--no-playlist', url];
+  return [...ytDlpBaseArgs(), '-f', format, '-o', '-', '--quiet', '--no-warnings', '--no-playlist', '--', url]
 }
 
 function spawnYtDlpAudio(url, onFail = null) {
@@ -423,7 +423,7 @@ const isSoundCloudUrl = (q) => /^https?:\/\/(www\.|m\.|on\.)?soundcloud\.com\//i
 
 /** SoundCloud through yt-dlp: a single track, a set/playlist (up to 50), or a search. */
 async function ytDlpSoundCloud(query, requestedBy) {
-  const j = await ytDlpJson(['--skip-download', '--flat-playlist', '--playlist-end', '50', '--dump-single-json', '--no-warnings', query], 30000);
+  const j = await ytDlpJson(['--skip-download', '--flat-playlist', '--playlist-end', '50', '--dump-single-json', '--no-warnings', '--', query], 30000);
   const entries = j.entries ? j.entries.filter(Boolean) : [j];
   return entries.map((e) => {
     const t = trackFromYtDlp({ ...e, webpage_url: e.webpage_url || e.url }, requestedBy);
@@ -433,20 +433,20 @@ async function ytDlpSoundCloud(query, requestedBy) {
 
 async function ytDlpSoundCloudSearch(query, requestedBy) {
   // Not "flat": a flat search only returns an internal api link, the full entry has the real track page.
-  const j = await ytDlpJson(['--skip-download', '--dump-single-json', '--no-warnings', '--playlist-end', '1', `scsearch1:${query}`], 30000);
+  const j = await ytDlpJson(['--skip-download', '--dump-single-json', '--no-warnings', '--playlist-end', '1', '--', `scsearch1:${query}`], 30000);
   const e = j.entries && j.entries[0];
   if (!e) return [];
   return [{ ...trackFromYtDlp(e, requestedBy), source: 'soundcloud' }];
 }
 
 async function ytDlpSearch(query, requestedBy) {
-  const j = await ytDlpJson(['--skip-download', '--flat-playlist', '--dump-single-json', '--no-warnings', `ytsearch1:${query}`], 15000);
+  const j = await ytDlpJson(['--skip-download', '--flat-playlist', '--dump-single-json', '--no-warnings', '--', `ytsearch1:${query}`], 15000);
   const e = j.entries && j.entries[0];
   return e ? [trackFromYtDlp(e, requestedBy)] : [];
 }
 
 async function ytDlpVideo(url, requestedBy) {
-  const j = await ytDlpJson(['--skip-download', '--no-playlist', '--dump-json', '--no-warnings', url], 20000);
+  const j = await ytDlpJson(['--skip-download', '--no-playlist', '--dump-json', '--no-warnings', '--', url], 20000);
   return [trackFromYtDlp(j, requestedBy)];
 }
 

@@ -9,16 +9,22 @@ const botApi = axios.create({
 // Small TTL cache. Every dashboard page used to hit Discord 2-4 times; with several admins
 // clicking around that burns through rate limits and slows pages down.
 const cache = new Map();
+const inflight = new Map(); // key -> promise of a load that is already running: parallel callers share it instead of asking Discord again
 async function cached(key, ttlMs, loader) {
   const hit = cache.get(key);
   if (hit && hit.expires > Date.now()) return hit.value;
-  const value = await loader();
-  cache.set(key, { value, expires: Date.now() + ttlMs });
-  if (cache.size > 500) {
-    const now = Date.now();
-    for (const [k, v] of cache) if (v.expires < now) cache.delete(k);
-  }
-  return value;
+  if (inflight.has(key)) return inflight.get(key);
+  const pending = (async () => {
+    const value = await loader();
+    cache.set(key, { value, expires: Date.now() + ttlMs });
+    if (cache.size > 500) {
+      const now = Date.now();
+      for (const [k, v] of cache) if (v.expires < now) cache.delete(k);
+    }
+    return value;
+  })().finally(() => inflight.delete(key));
+  inflight.set(key, pending);
+  return pending;
 }
 
 // Guilds of the bot (name and icon are always current here, unlike the copy saved at login).
