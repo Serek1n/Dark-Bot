@@ -101,6 +101,8 @@ const COLUMN_ADDITIONS = [
   { table: 'temp_voice_channels', column: 'lockState', ddl: "TEXT NOT NULL DEFAULT '{}'" },
   { table: 'guild_settings', column: 'tempVoicePanelChannelId', ddl: 'VARCHAR(255)' },
   { table: 'guild_settings', column: 'tempVoicePanelMessageId', ddl: 'VARCHAR(255)' },
+  { table: 'guild_settings', column: 'webhookPanelChannelId', ddl: 'VARCHAR(255)' },
+  { table: 'guild_settings', column: 'webhookPanelMessageId', ddl: 'VARCHAR(255)' },
   { table: 'guild_settings', column: 'funEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
   { table: 'guild_settings', column: 'ticketCategoryId', ddl: 'VARCHAR(255)' },
   { table: 'guild_settings', column: 'ticketSupportRoleId', ddl: 'VARCHAR(255)' },

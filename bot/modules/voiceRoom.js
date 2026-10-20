@@ -33,22 +33,31 @@ const REGIONS = [
 ];
 const regionName = (id) => (REGIONS.find(([r]) => r === (id || 'auto')) || [null, id])[1];
 
+// id, icon (the buttons carry only the icon), name and a short explanation for the list in the message
 const BUTTONS = [
-  ['name', '✏️', 'Название'], ['access', '🔒', 'Доступ'], ['trust', '🤝', 'Доверять'], ['untrust', '🚫', 'Не доверять'], ['invite', '📨', 'Пригласить'],
-  ['kick', '👢', 'Выгнать'], ['region', '🌍', 'Регион'], ['ban', '⛔', 'Забанить'], ['unban', '✅', 'Разбанить'], ['delete', '🗑️', 'Удалить']
+  ['name', '✏️', 'Название', 'переименовать комнату, задать лимит участников'],
+  ['access', '🔒', 'Доступ', 'открыть, закрыть или скрыть комнату'],
+  ['trust', '🤝', 'Доверить', 'пускать участника, даже если комната закрыта'],
+  ['untrust', '🙅', 'Убрать доверие', 'снять доверие с участника'],
+  ['invite', '📨', 'Пригласить', 'позвать в комнату личным сообщением'],
+  ['kick', '👢', 'Выгнать', 'отключить участника от голоса'],
+  ['region', '🌍', 'Регион', 'регион голосового сервера'],
+  ['ban', '⛔', 'Забанить', 'запретить участнику заходить в комнату'],
+  ['unban', '✅', 'Разбанить', 'снять запрет на вход'],
+  ['delete', '🗑️', 'Удалить', 'удалить комнату']
 ];
 
 /** The message with the buttons that is posted into a control channel. */
 function panelPayload() {
-  const legend = BUTTONS.map(([, emoji, label]) => `${emoji} **${label}**`);
   const embed = embeds.baseEmbed().setTitle('Управление личной комнатой').setDescription(
     'Этот интерфейс управляет вашей личной голосовой комнатой. Чтобы её получить, зайдите в канал-создатель: бот сделает комнату, и вы станете её владельцем.\n\n' +
-    `${legend.slice(0, 5).join(' · ')}\n${legend.slice(5).join(' · ')}\n\n` +
-    'Остальное — командами `/voice` (например `/voice limit`, `/voice transfer`, `/voice claim` — забрать комнату, если владелец вышел).\n\n' +
+    `${BUTTONS.map(([, emoji, label, hint]) => `${emoji} **${label}** — ${hint}`).join('\n')}\n\n` +
+    'Остальное — командами `/voice`: `/voice transfer` передаёт комнату, `/voice claim` забирает её, если владелец вышел.\n\n' +
     '**Чтобы воспользоваться функциями интерфейса, нажмите на кнопки ниже.**'
   );
-  const rows = [0, 5].map((from) => new ActionRowBuilder().addComponents(BUTTONS.slice(from, from + 5).map(([id, emoji, label]) => new ButtonBuilder()
-    .setCustomId(`${PREFIX}${id}`).setEmoji(emoji).setStyle(id === 'delete' ? ButtonStyle.Danger : ButtonStyle.Secondary).setLabel(label))));
+  // Buttons without names, only icons: what each one does is written in the message above.
+  const rows = [0, 5].map((from) => new ActionRowBuilder().addComponents(BUTTONS.slice(from, from + 5).map(([id, emoji]) => new ButtonBuilder()
+    .setCustomId(`${PREFIX}${id}`).setEmoji(emoji).setStyle(id === 'delete' ? ButtonStyle.Danger : ButtonStyle.Secondary))));
   return { embeds: [embed], components: rows };
 }
 

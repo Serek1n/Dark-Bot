@@ -119,7 +119,9 @@ module.exports = (sequelize) => {
       tempVoiceCategoryId: { type: DataTypes.STRING, allowNull: true },
       tempVoiceNameTemplate: { type: DataTypes.STRING, defaultValue: 'Комната {user}' },
       tempVoicePanelChannelId: { type: DataTypes.STRING, allowNull: true }, // where the room control panel (buttons) was posted
-      tempVoicePanelMessageId: { type: DataTypes.STRING, allowNull: true }
+      tempVoicePanelMessageId: { type: DataTypes.STRING, allowNull: true },
+      webhookPanelChannelId: { type: DataTypes.STRING, allowNull: true }, // where the webhook control panel (buttons) was posted
+      webhookPanelMessageId: { type: DataTypes.STRING, allowNull: true }
     },
     { sequelize, modelName: 'GuildSettings', tableName: 'guild_settings' }
   );

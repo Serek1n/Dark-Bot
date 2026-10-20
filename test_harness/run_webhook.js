@@ -28,9 +28,9 @@ const { PermissionFlagsBits } = require('discord.js');
     await cmd.execute(i); return JSON.stringify(replies);
   };
 
-  await test('definition: needs Manage Webhooks by default, 4 subcommands, valid size', async () => {
+  await test('definition: needs Manage Webhooks by default, 5 subcommands, valid size', async () => {
     const j = cmd.data.toJSON();
-    assert(j.options.map((o) => o.name).join() === 'create,list,delete,send', 'subs');
+    assert(j.options.map((o) => o.name).join() === 'create,panel,list,delete,send', 'subs');
     assert(BigInt(j.default_member_permissions) === PermissionFlagsBits.ManageWebhooks, 'default permission');
   });
   await test('create: webhook appears with the bot avatar, the link is shown only to the author', async () => {

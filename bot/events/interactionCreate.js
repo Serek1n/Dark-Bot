@@ -7,6 +7,7 @@ const { isShopComponent, handleShopComponent } = require('../modules/shop');
 const { isGiveawayButton, handleGiveawayButton } = require('../modules/giveaways');
 const { isTicketButton, handleTicketButton } = require('../modules/tickets');
 const { isVoiceRoomComponent, handleVoiceRoomComponent } = require('../modules/voiceRoom');
+const { isWebhookComponent, handleWebhookComponent } = require('../modules/webhookPanel');
 const { featureForCommand, isEnabled } = require('../utils/features');
 const { getOrCreateSettings } = require('../modules/leveling');
 
@@ -60,6 +61,11 @@ module.exports = {
 
     if (isVoiceRoomComponent(interaction)) {
       await handleVoiceRoomComponent(interaction); // answers its own errors
+      return;
+    }
+
+    if (isWebhookComponent(interaction)) {
+      await handleWebhookComponent(interaction); // answers its own errors
       return;
     }
 

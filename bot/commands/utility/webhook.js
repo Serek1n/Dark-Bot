@@ -4,6 +4,7 @@ const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = 
 const embeds = require('../../utils/embeds');
 const { memberHasPermission } = require('../../utils/permissions');
 const { getOrCreateSettings } = require('../../modules/leveling');
+const { panelPayload, ownWebhooks, listEmbed, explain } = require('../../modules/webhookPanel');
 
 const CHANNEL_TYPES = [ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildVoice, ChannelType.GuildStageVoice, ChannelType.GuildForum, ChannelType.GuildMedia].filter((t) => t !== undefined);
 const MAX_AVATAR = 8 * 1024 * 1024;
@@ -11,12 +12,6 @@ const ephemeral = { flags: MessageFlags.Ephemeral };
 
 const fail = (interaction, text) => interaction.reply({ embeds: [embeds.error(text)], ...ephemeral });
 const idOpt = (o) => o.setName('id').setDescription('ID вебхука (из /webhook list)').setRequired(true);
-
-/** Webhooks this bot created: only those it can show a link for and is allowed to remove (the log webhook is left alone). */
-async function ownWebhooks(guild, settings) {
-  const all = await guild.fetchWebhooks();
-  return [...all.values()].filter((w) => w.owner?.id === guild.client.user.id && w.id !== settings?.logWebhookId);
-}
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -28,6 +23,8 @@ module.exports = {
       .addChannelOption((o) => o.setName('channel').setDescription('В каком канале').addChannelTypes(...CHANNEL_TYPES).setRequired(true))
       .addStringOption((o) => o.setName('name').setDescription('Имя вебхука (1–32 символа)').setRequired(true).setMinLength(1).setMaxLength(32))
       .addAttachmentOption((o) => o.setName('avatar').setDescription('Картинка-аватарка (по умолчанию — аватарка бота)')))
+    .addSubcommand((s) => s.setName('panel').setDescription('Разместить в канале панель с кнопками для управления вебхуками')
+      .addChannelOption((o) => o.setName('channel').setDescription('Куда разместить (по умолчанию — этот канал)').addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)))
     .addSubcommand((s) => s.setName('list').setDescription('Вебхуки, созданные этим ботом, со ссылками (видите только вы)'))
     .addSubcommand((s) => s.setName('delete').setDescription('Удалить вебхук, созданный этим ботом').addStringOption(idOpt))
     .addSubcommand((s) => s.setName('send').setDescription('Отправить сообщение от имени вебхука')
@@ -47,6 +44,20 @@ module.exports = {
     const settings = await getOrCreateSettings(guild.id);
 
     try {
+      if (sub === 'panel') {
+        const channel = interaction.options.getChannel('channel') || interaction.channel;
+        if (!channel || typeof channel.send !== 'function') return fail(interaction, 'Сюда нельзя отправить панель.');
+        const sent = await channel.send(panelPayload());
+        if (settings.webhookPanelChannelId && settings.webhookPanelMessageId) { // the older panel is replaced, not left next to the new one
+          const old = guild.channels.cache.get(settings.webhookPanelChannelId);
+          await old?.messages?.delete?.(settings.webhookPanelMessageId).catch(() => {});
+        }
+        settings.webhookPanelChannelId = channel.id;
+        settings.webhookPanelMessageId = sent.id;
+        await settings.save();
+        return interaction.reply({ embeds: [embeds.success(`Панель размещена в <#${channel.id}>.`)], ...ephemeral });
+      }
+
       if (sub === 'create') {
         const channel = interaction.options.getChannel('channel', true);
         const name = interaction.options.getString('name', true).trim();
@@ -66,11 +77,7 @@ module.exports = {
       }
 
       if (sub === 'list') {
-        const hooks = await ownWebhooks(guild, settings);
-        if (!hooks.length) return interaction.reply({ embeds: [embeds.baseEmbed().setDescription('Вебхуков, созданных этим ботом, пока нет. Создайте командой `/webhook create`.')], ...ephemeral });
-        const lines = hooks.slice(0, 15).map((w) => `**${w.name}** · <#${w.channelId}> · ID \`${w.id}\`\n||${w.url}||`);
-        const more = hooks.length > 15 ? `\n\nИ ещё ${hooks.length - 15}.` : '';
-        return interaction.reply({ embeds: [embeds.baseEmbed().setTitle(`Вебхуки бота (${hooks.length})`).setDescription(lines.join('\n\n').slice(0, 3900) + more)], ...ephemeral });
+        return interaction.reply({ embeds: [listEmbed(await ownWebhooks(guild, settings))], ...ephemeral });
       }
 
       const id = interaction.options.getString('id', true).trim();
@@ -90,9 +97,7 @@ module.exports = {
       await hook.send({ content: text, username, avatarURL, allowedMentions: { parse: [] } }); // no @everyone through a webhook
       return interaction.reply({ embeds: [embeds.success(`Сообщение отправлено от имени **${username || hook.name}** в <#${hook.channelId}>.`)], ...ephemeral });
     } catch (err) {
-      const msg = /Maximum number of webhooks/i.test(err.message) ? 'В этом канале уже 15 вебхуков — это предел Discord. Удалите ненужные.'
-        : /Missing (Permissions|Access)/i.test(err.message) ? 'У бота не хватает прав в этом канале (нужно «Управлять вебхуками» и «Просмотр канала»).'
-        : `Discord отказал: ${err.message}`;
+      const msg = explain(err);
       return interaction.replied || interaction.deferred ? interaction.editReply({ embeds: [embeds.error(msg)] }) : fail(interaction, msg);
     }
   }

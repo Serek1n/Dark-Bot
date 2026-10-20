@@ -38,6 +38,19 @@
         <button class="btn" type="submit">Создать</button>
       </form>
 
+      <form method="post" action="/dashboard/<%= guild.id %>/webhooks/panel" class="card">
+        <h2>Панель управления в Discord</h2>
+        <p class="hint">Сообщение с кнопками (создать, список, отправить, изменить, удалить), как у личных комнат. Нажимать их могут только те, у кого есть право «Управлять вебхуками».</p>
+        <label>Канал</label>
+        <select name="channelId" required>
+          <% channels.filter(c => c.type === 0 || c.type === 5).forEach(c => { %>
+            <option value="<%= c.id %>" <%= settings && settings.webhookPanelChannelId === c.id ? 'selected' : '' %>># <%= c.name %></option>
+          <% }) %>
+        </select>
+        <% if (settings && settings.webhookPanelMessageId) { %><div class="hint">Панель уже размещена. Если разместить заново, старое сообщение будет удалено.</div><% } %>
+        <button class="btn" type="submit"><%= settings && settings.webhookPanelMessageId ? 'Разместить заново' : 'Разместить панель' %></button>
+      </form>
+
       <div class="card">
         <h2>Вебхуки, созданные этим ботом</h2>
         <% if (!hooks.length) { %>

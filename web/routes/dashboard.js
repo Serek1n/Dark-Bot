@@ -876,7 +876,7 @@ router.get('/:guildId/webhooks', ensureGuildAccess, async (req, res) => {
   const settings = await GuildSettings.findByPk(guildId);
   let hooks = []; let error = null;
   try { hooks = await webhooks.listOwn(guildId, BOT_ID(), settings?.logWebhookId); } catch (err) { error = webhooks.explain(err); }
-  res.render('dashboard/webhooks', { guild, channels, hooks, error, active: 'webhooks', msg: String(req.query.msg || '').slice(0, 200) });
+  res.render('dashboard/webhooks', { guild, channels, settings, hooks, error, active: 'webhooks', msg: String(req.query.msg || '').slice(0, 200) });
 });
 
 router.post('/:guildId/webhooks', webhookLimit, ensureGuildAccess, async (req, res) => {
@@ -891,6 +891,29 @@ router.post('/:guildId/webhooks', webhookLimit, ensureGuildAccess, async (req, r
     res.redirect(webhookPage(guildId, 'created'));
   } catch (err) {
     res.redirect(webhookPage(guildId, 'whfail', webhooks.explain(err)));
+  }
+});
+
+router.post('/:guildId/webhooks/panel', webhookLimit, ensureGuildAccess, async (req, res) => {
+  const guildId = req.params.guildId;
+  const channelId = snowflake(req.body.channelId);
+  const channels = await getGuildChannels(guildId);
+  if (!channelId || !channels.some((c) => c.id === channelId && [0, 5].includes(c.type))) return res.redirect(saved(guildId, 'webhooks', 'invalid'));
+  const settings = await getSettings(guildId);
+  const payload = require('../../bot/modules/webhookPanel').panelPayload();
+  try {
+    const { data } = await botApi.post(`/channels/${channelId}/messages`, { embeds: payload.embeds.map((e) => e.toJSON()), components: payload.components.map((r) => r.toJSON()), allowed_mentions: { parse: [] } });
+    if (settings.webhookPanelChannelId && settings.webhookPanelMessageId) { // the older panel is replaced, not left next to the new one
+      await botApi.delete(`/channels/${settings.webhookPanelChannelId}/messages/${settings.webhookPanelMessageId}`).catch(() => {});
+    }
+    settings.webhookPanelChannelId = channelId;
+    settings.webhookPanelMessageId = data.id;
+    await settings.save();
+    res.redirect(saved(guildId, 'webhooks', 'wpanel'));
+  } catch (err) {
+    const code = err.response?.data?.code;
+    const text = code === 50001 || code === 50013 || err.response?.status === 403 ? 'У бота нет прав в этом канале: нужны «Просмотр канала», «Отправлять сообщения» и «Встраивать ссылки».' : 'Не удалось разместить панель. Попробуйте ещё раз.';
+    res.redirect(webhookPage(guildId, 'whfail', text));
   }
 });
 
