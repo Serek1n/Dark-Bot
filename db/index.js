@@ -18,6 +18,29 @@ const sequelize = new Sequelize({
   retry: { max: 3, match: [/SQLITE_BUSY/i] }
 });
 
+// Sequelize opens an extra connection for every transaction, and a PRAGMA only affects the connection it ran on. So the wait for a
+// busy database (several writers: the bot, the web panel, parallel transactions) is set on EVERY connection as it opens.
+const rawGetConnection = sequelize.connectionManager.getConnection.bind(sequelize.connectionManager);
+const patched = new WeakSet();
+sequelize.connectionManager.getConnection = async function getConnection(options) {
+  const connection = await rawGetConnection(options);
+  if (connection && !patched.has(connection)) {
+    patched.add(connection);
+    try { connection.configure('busyTimeout', 5000); } catch { /* not a sqlite3 handle */ }
+  }
+  return connection;
+};
+
+// Transactions of this process run ONE AT A TIME. Sequelize gives each transaction its own connection, and several of them racing for
+// SQLite's single write lock thrash (BEGIN fails with "database is locked" even with a wait). In a queue they are instant; against another
+// process (the web panel) the busy timeout above still waits. Never call inTransaction from inside another inTransaction.
+let txQueue = Promise.resolve();
+function inTransaction(work) {
+  const run = txQueue.then(() => sequelize.transaction({ type: 'IMMEDIATE' }, work));
+  txQueue = run.catch(() => {});
+  return run;
+}
+
 const modelsDir = path.join(__dirname, 'models');
 const models = {};
 
@@ -58,8 +81,6 @@ const COLUMN_ADDITIONS = [
   { table: 'guild_settings', column: 'dailyStreakBonus', ddl: 'INTEGER DEFAULT 10' },
   { table: 'guild_settings', column: 'dailyStreakMax', ddl: 'INTEGER DEFAULT 7' },
   ...['economyEnabled', 'musicEnabled', 'welcomeEnabled', 'reactionRolesEnabled', 'customCommandsEnabled', 'tempVoiceEnabled', 'alertsEnabled', 'reportEnabled'].map((column) => ({ table: 'guild_settings', column, ddl: 'TINYINT(1) DEFAULT 1' })),
-  { table: 'guild_settings', column: 'shopEnabled', ddl: 'TINYINT(1) DEFAULT 1' },
-  { table: 'guild_settings', column: 'shopLogChannelId', ddl: 'VARCHAR(255)' },
   { table: 'guild_settings', column: 'leftAt', ddl: 'DATETIME' },
   { table: 'guild_settings', column: 'logForumChannelId', ddl: 'VARCHAR(255)' },
   { table: 'guild_settings', column: 'logWebhookId', ddl: 'VARCHAR(255)' },
@@ -196,4 +217,4 @@ async function init() {
   await ensureIndexes();
 }
 
-module.exports = { sequelize, init, ...models };
+module.exports = { sequelize, init, inTransaction, ...models };

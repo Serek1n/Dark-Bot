@@ -1,5 +1,8 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { getOrCreateProfile, getOrCreateSettings } = require('../../modules/leveling');
+const { transfer } = require('../../modules/wallet');
+const { sequelize } = require('../../../db');
+const { QueryTypes } = require('sequelize');
 const embeds = require('../../utils/embeds');
 const { withLock } = require('../../utils/lock');
 
@@ -79,16 +82,23 @@ module.exports = {
         const maxDays = Math.max(1, Number(settings.dailyStreakMax) || 1);
         const bonus = Math.max(0, Number(settings.dailyStreakBonus) || 0) * (Math.min(streak, maxDays) - 1);
         const amount = base + bonus;
-        profile.balance = Number(profile.balance) + amount;
-        profile.dailyStreak = streak;
-        profile.lastDailyAt = new Date();
-        await profile.save();
-        return { balance: profile.balance, currency: settings.currencyName, amount, base, bonus, streak };
+        // Compare-and-set in ONE statement: the reward is paid only if the last claim is still older than a day, so even two
+        // processes (the bot and the web panel) can never both pay it, and the coins are added to the balance, not written over it.
+        const now = new Date();
+        const rows = await sequelize.query(
+          `UPDATE member_profiles SET balance = balance + ?, dailyStreak = ?, lastDailyAt = ?, updatedAt = ?
+           WHERE guildId = ? AND userId = ? AND (lastDailyAt IS NULL OR lastDailyAt <= ?) RETURNING balance`,
+          { replacements: [amount, streak, now, now, guildId, userId, new Date(now.getTime() - DAY_MS)], type: QueryTypes.SELECT }
+        );
+        if (!rows.length) return { wait: DAY_MS };
+        return { balance: Number(rows[0].balance), currency: settings.currencyName, amount, base, bonus, streak };
       });
 
       if (result.wait) {
-        const h = Math.floor(result.wait / 3600000);
-        const m = Math.ceil((result.wait % 3600000) / 60000);
+        // Round up to whole minutes FIRST, then split into hours and minutes (59.5 min is "59 мин"... and 59.9 min is "1 ч 0 мин", never "60 мин").
+        const totalMin = Math.max(1, Math.ceil(result.wait / 60000));
+        const h = Math.floor(totalMin / 60);
+        const m = totalMin % 60;
         const left = h > 0 ? `${h} ч ${m} мин` : `${m} мин`;
         return interaction.reply({ embeds: [embeds.error(`Награда уже получена. Следующая через ${left}.`)], flags: MessageFlags.Ephemeral });
       }
@@ -120,17 +130,8 @@ module.exports = {
       const crystals = interaction.options.getString('currency') === 'crystals';
       const field = crystals ? 'crystals' : 'balance';
       const currency = crystals ? settings.crystalName : settings.currencyName;
-      // One transfer at a time per server: the balance check and both writes must not interleave.
-      const ok = await withLock(`pay:${guildId}`, async () => {
-        const sender = await getOrCreateProfile(guildId, interaction.user.id);
-        const receiver = await getOrCreateProfile(guildId, target.id);
-        if (Number(sender[field]) < amount) return false;
-        sender[field] = Number(sender[field]) - amount;
-        receiver[field] = Number(receiver[field]) + amount;
-        await sender.save();
-        await receiver.save();
-        return true;
-      });
+      // The take-away ("only if enough") and the credit are two statements of ONE transaction: both happen or neither does.
+      const ok = await transfer(guildId, interaction.user.id, target.id, field, amount);
       if (!ok) return interaction.reply({ embeds: [embeds.error('Недостаточно средств.')], flags: MessageFlags.Ephemeral });
 
       const embed = embeds

@@ -3,4 +3,3 @@ data/
 .env
 npm-debug.log*
 *.sqlite
-package-lock.json

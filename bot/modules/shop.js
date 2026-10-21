@@ -1,6 +1,8 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, MessageFlags } = require('discord.js');
+const { Op } = require('sequelize');
 const { ShopItem, Purchase } = require('../../db');
 const { getOrCreateProfile, getOrCreateSettings } = require('./leveling');
+const { spend, credit } = require('./wallet');
 const { withLock } = require('../utils/lock');
 const embeds = require('../utils/embeds');
 const logger = require('../utils/logger');
@@ -85,19 +87,24 @@ function purchaseItem({ guild, member, itemId }) {
       if (!role) return { ok: false, error: 'Роль этого товара удалена с сервера. Сообщите администрации.' };
       if (member.roles.cache.has(item.roleId)) return { ok: false, error: 'У вас уже есть эта роль.' };
       if (role.managed || !role.editable) return { ok: false, error: 'Бот не может выдать эту роль: администрации нужно поднять роль бота выше.' };
+    }
+
+    // The money goes FIRST and atomically ("take only if enough"): this is the real check, so nobody can pay twice with the same coins.
+    const balanceAfter = await spend(guild.id, member.id, field, item.price);
+    if (balanceAfter === null) return { ok: false, error: `Не хватает: нужно ${fmt(item.price)} ${cName}.` };
+
+    if (item.type === 'role') {
       try {
         await member.roles.add(item.roleId, `Покупка в магазине: ${item.name}`);
       } catch (err) {
         logger.error('Shop: could not give role:', err);
+        await credit(guild.id, member.id, field, item.price); // give the money back
         return { ok: false, error: 'Не удалось выдать роль. С вас ничего не списано.' };
       }
     }
 
-    profile[field] = Number(profile[field]) - item.price;
-    await profile.save();
     if (item.stock !== null && item.stock !== undefined) {
-      item.stock -= 1;
-      await item.save();
+      await ShopItem.decrement('stock', { by: 1, where: { id: item.id, stock: { [Op.gt]: 0 } } });
     }
     const status = item.type === 'role' || item.deliveryMessage ? 'done' : 'pending';
     const purchase = await Purchase.create({
@@ -111,7 +118,7 @@ function purchaseItem({ guild, member, itemId }) {
       currency: item.currency,
       status
     });
-    return { ok: true, item, purchase, settings, balanceAfter: Number(profile[field]), currencyName: cName };
+    return { ok: true, item, purchase, settings, balanceAfter, currencyName: cName };
   });
 }
 

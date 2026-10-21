@@ -4,6 +4,6 @@ services:
     restart: unless-stopped
     env_file: .env
     ports:
-      - "3000:3000" # web dashboard, adjust WEB_PORT in .env to match
+      - "127.0.0.1:3000:3000" # only this machine; put nginx (HTTPS) in front, X-Forwarded-For is trusted
     volumes:
       - ./data:/app/data

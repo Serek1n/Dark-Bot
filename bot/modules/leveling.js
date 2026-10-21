@@ -1,5 +1,7 @@
-const { MemberProfile, GuildSettings, sequelize } = require('../../db');
+const { MemberProfile, GuildSettings, sequelize, inTransaction } = require('../../db');
 const { withLock, withLocks } = require('../utils/lock');
+const { QueryTypes } = require('sequelize');
+const { ensureProfile } = require('./wallet');
 
 // XP needed to go from level N to N+1. Classic MEE6-style curve.
 function xpForLevel(level) {
@@ -151,6 +153,52 @@ function applyGain(profile, track, xp, coins, settings) {
 }
 
 /**
+ * The level and the crystals for a profile row that already received its XP. The level is worked out from the total XP and written
+ * with a separate statement ("only if the stored level is lower"), so two gains at the same moment can never pay the crystals twice.
+ */
+async function settleLevel(row, xp, coins, settings, transaction) {
+  const previousLevel = Number(row.level) || 0;
+  const level = levelFromXp(Number(row.xp) || 0);
+  let crystals = 0;
+  if (level > previousLevel) {
+    crystals = (level - previousLevel) * Math.max(0, Number(settings.crystalsPerLevel) || 0);
+    const rows = await sequelize.query(
+      'UPDATE member_profiles SET level = ?, crystals = crystals + ?, updatedAt = ? WHERE guildId = ? AND userId = ? AND level < ? RETURNING *',
+      { replacements: [level, crystals, new Date(), row.guildId, row.userId, level], type: QueryTypes.SELECT, transaction }
+    );
+    if (rows.length) row = rows[0]; else crystals = 0;
+  }
+  return {
+    leveledUp: crystals > 0 || level > previousLevel,
+    newLevel: level,
+    levels: { total: level },
+    gained: xp,
+    coins,
+    crystals,
+    profile: { ...row, level }
+  };
+}
+
+/**
+ * Gives XP and coins to one member with ONE additive statement (xp = xp + ?), so it never overwrites what another process
+ * (the web panel, /pay, the shop) wrote in the meantime. `message: true` also stamps the cooldown and counts the message.
+ */
+async function addGain(guildId, userId, { track, xp, coins, settings, message = false }) {
+  if (!TRACKS.includes(track)) throw new Error(`Unknown track: ${track}`);
+  const col = `${track}Xp`;
+  return inTransaction(async (transaction) => {
+    await ensureProfile(guildId, userId, transaction);
+    const now = new Date();
+    const rows = await sequelize.query(
+      `UPDATE member_profiles SET xp = xp + ?, ${col} = ${col} + ?, balance = balance + ?, updatedAt = ?${message ? ', lastXpAt = ?, messageCount = messageCount + 1' : ''}
+       WHERE guildId = ? AND userId = ? RETURNING *`,
+      { replacements: [xp, xp, coins, now, ...(message ? [now] : []), guildId, userId], type: QueryTypes.SELECT, transaction }
+    );
+    return settleLevel(rows[0], xp, coins, settings, transaction);
+  });
+}
+
+/**
  * Award XP for an eligible message (chat direction). Returns the result of applyGain,
  * or null if on cooldown / the direction is switched off.
  */
@@ -185,10 +233,7 @@ async function grantMessageXpUnlocked(guildId, userId, where = []) {
 
   const gained = scale(randomInt(settings.xpPerMessageMin, settings.xpPerMessageMax), boost.xp);
   const coins = scale(Math.max(0, Number(settings.chatCoinsPerMessage) || 0), boost.coins);
-  const result = applyGain(profile, 'chat', gained, coins, settings);
-  profile.lastXpAt = new Date();
-  profile.messageCount = Number(profile.messageCount) + 1;
-  await profile.save();
+  const result = await addGain(guildId, userId, { track: 'chat', xp: gained, coins, settings, message: true });
   if (lastXpGrant.size > 50000) lastXpGrant.clear();
   lastXpGrant.set(memKey, now);
   return result;
@@ -201,17 +246,14 @@ async function grantMessageXpUnlocked(guildId, userId, where = []) {
 function grantVoiceXp(guildId, userId, amount, coinMultiplier = 1) {
   return withLock(`xp:${guildId}:${userId}`, async () => {
     const settings = await getOrCreateSettings(guildId);
-    const profile = await getOrCreateProfile(guildId, userId);
     const coins = scale(Math.max(0, Number(settings.voiceCoinsPerMinute) || 0), coinMultiplier);
-    const result = applyGain(profile, 'voice', Math.max(0, Number(amount) || 0), coins, settings);
-    await profile.save();
-    return result;
+    return addGain(guildId, userId, { track: 'voice', xp: Math.max(0, Number(amount) || 0), coins, settings });
   });
 }
 
 /**
- * Voice XP for many members of one server at once (the once-a-minute tick). One query loads all
- * profiles, one transaction saves them — about 20x faster than one round trip per member.
+ * Voice XP for many members of one server at once (the once-a-minute tick). One additive statement
+ * writes the whole group — about 20x faster than one round trip per member.
  * Same per-member locks as grantVoiceXp, so a message sent at the same moment can't be lost.
  * Returns Map userId -> result of applyGain.
  */
@@ -223,24 +265,19 @@ function grantVoiceXpBatch(guildId, userIds, amount, coinMultiplier = 1) {
     const settings = await getOrCreateSettings(guildId);
     const xp = Math.max(0, Number(amount) || 0);
     const coins = scale(Math.max(0, Number(settings.voiceCoinsPerMinute) || 0), coinMultiplier);
-    const byId = new Map((await MemberProfile.findAll({ where: { guildId, userId: ids } })).map((p) => [p.userId, p]));
-    const rows = [];
-    for (const id of ids) {
-      // A member without a profile yet starts from a fresh one (nothing is created beforehand).
-      const profile = byId.get(id) || MemberProfile.build({ guildId, userId: id });
-      results.set(id, applyGain(profile, 'voice', xp, coins, settings));
-      rows.push(profile);
-    }
-    // ONE statement for the whole group: insert, or update the XP/level/coin columns if the row exists.
     const now = new Date();
-    const placeholders = rows.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(',');
-    const values = rows.flatMap((p) => [p.guildId, p.userId, p.xp, p.level, p.voiceXp, p.balance, p.crystals, now, now]);
-    await sequelize.query(
-      `INSERT INTO member_profiles (guildId, userId, xp, level, voiceXp, balance, crystals, createdAt, updatedAt) VALUES ${placeholders}
-       ON CONFLICT (guildId, userId) DO UPDATE SET xp = excluded.xp, level = excluded.level, voiceXp = excluded.voiceXp,
-         balance = excluded.balance, crystals = excluded.crystals, updatedAt = excluded.updatedAt`,
-      { replacements: values }
-    );
+    // ONE statement for the whole group that ADDS to the existing numbers (a new member gets a row): nobody else's change is overwritten.
+    const placeholders = ids.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(',');
+    await inTransaction(async (transaction) => {
+      await sequelize.query(
+        `INSERT INTO member_profiles (guildId, userId, xp, voiceXp, balance, createdAt, updatedAt) VALUES ${placeholders}
+         ON CONFLICT (guildId, userId) DO UPDATE SET xp = member_profiles.xp + excluded.xp, voiceXp = member_profiles.voiceXp + excluded.voiceXp,
+           balance = member_profiles.balance + excluded.balance, updatedAt = excluded.updatedAt`,
+        { replacements: ids.flatMap((id) => [guildId, id, xp, xp, coins, now, now]), transaction }
+      );
+      const rows = await sequelize.query('SELECT * FROM member_profiles WHERE guildId = ? AND userId IN (?)', { replacements: [guildId, ids], type: QueryTypes.SELECT, transaction });
+      for (const row of rows) results.set(row.userId, await settleLevel(row, xp, coins, settings, transaction));
+    });
     return results;
   });
 }
