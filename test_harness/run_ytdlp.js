@@ -1,6 +1,7 @@
 // yt-dlp options from .env, and the readable reason when YouTube refuses.
 const fs = require('fs'); const path = require('path'); const os = require('os');
 process.env.YTDLP_PATH = path.join(__dirname, 'fail-ytdlp.sh');
+try { require('fs').chmodSync(process.env.YTDLP_PATH, 0o755); } catch {} // git on Windows does not keep the executable bit
 const P = require('../bot/modules/music/player');
 const results = [];
 const test = async (l, f) => { try { await f(); results.push({ l, ok: true }); } catch (e) { results.push({ l, ok: false, e: e.stack.split('\n').slice(0, 3).join(' | ') }); } };

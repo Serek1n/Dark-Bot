@@ -1,6 +1,7 @@
 // Tests for the music control panel (buttons) without a real Discord or voice connection.
 process.env.VOICE_IDLE_MINUTES = '0.005'; // 0.3 s, to test the auto-leave
 process.env.YTDLP_PATH = require('path').join(__dirname, 'fake-ytdlp.sh'); // no network, no real yt-dlp
+try { require('fs').chmodSync(process.env.YTDLP_PATH, 0o755); } catch {} // git on Windows does not keep the executable bit
 process.env.FAKE_YTDLP_LOG = '/tmp/fake-ytdlp-audio.log';
 const assert = require('assert');
 const { Readable } = require('stream');
