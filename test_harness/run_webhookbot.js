@@ -25,7 +25,7 @@ const axios = require('axios');
   const channels = new Map([['C1', channel], ['P1', panelChannel]]);
   const guild = { id: 'WB1', client: { user: { id: BOT } }, members: { me: { permissions: { has: () => guild.botCan !== false } } },
     channels: { cache: channels, fetch: async (id) => channels.get(id) || null }, fetchWebhooks: async () => new Map(store.map((h) => [h.id, h])) };
-  await db.GuildSettings.create({ guildId: 'WB1', logWebhookId: 'LOG' });
+  await db.GuildSettings.create({ guildId: 'WB1', logWebhookId: 'LOG', betaEnabled: true });
   const member = (can) => ({ permissions: { has: (f) => (can ? true : f !== PermissionFlagsBits.ManageWebhooks) } });
 
   // one fake pressed component / submitted window
@@ -58,7 +58,10 @@ const axios = require('axios');
   await test('the bot lacks the right, or the feature is off: refused', async () => {
     guild.botCan = false; assert(said(await press('wh:list')).includes('У бота нет права'), 'bot'); guild.botCan = true;
     await db.GuildSettings.update({ webhooksEnabled: false }, { where: { guildId: 'WB1' } });
-    assert(said(await press('wh:list')).includes('отключены'), 'off');
+    assert(said(await press('wh:list')).includes('отключена'), 'off');
+    await db.GuildSettings.update({ webhooksEnabled: true, betaEnabled: false }, { where: { guildId: 'WB1' } });
+    assert(said(await press('wh:list')).includes('бета-функция'), 'beta is off');
+    await db.GuildSettings.update({ betaEnabled: true }, { where: { guildId: 'WB1' } });
     await db.GuildSettings.update({ webhooksEnabled: true }, { where: { guildId: 'WB1' } });
   });
   await test('create: channel menu, then a window, then the webhook with the bot avatar and a private link', async () => {

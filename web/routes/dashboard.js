@@ -185,7 +185,7 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
 });
 
 // ---- Features: switch parts of the bot on and off ----
-const { FEATURES } = require('../../bot/utils/features');
+const { FEATURES, isEnabled, disabledText } = require('../../bot/utils/features');
 
 router.get('/:guildId/features', ensureGuildAccess, async (req, res) => {
   const [guild, settings] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId)]);
@@ -195,6 +195,7 @@ router.get('/:guildId/features', ensureGuildAccess, async (req, res) => {
 router.post('/:guildId/features', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   FEATURES.forEach((f) => { settings[f.field] = req.body[f.field] === 'on'; });
+  settings.betaEnabled = req.body.betaEnabled === 'on';
   await settings.save();
   res.redirect(saved(req.params.guildId, 'features'));
 });
@@ -849,7 +850,7 @@ router.get('/:guildId/webhooks', ensureGuildAccess, async (req, res) => {
   const settings = await GuildSettings.findByPk(guildId);
   let hooks = []; let error = null;
   try { hooks = await webhooks.listOwn(guildId, BOT_ID(), settings?.logWebhookId); } catch (err) { error = webhooks.explain(err); }
-  res.render('dashboard/webhooks', { guild, channels, settings, hooks, error, active: 'webhooks', msg: String(req.query.msg || '').slice(0, 200) });
+  res.render('dashboard/webhooks', { guild, channels, settings, hooks, error, featureOff: !isEnabled(settings, 'webhooks'), disabledNote: disabledText(settings, 'webhooks'), active: 'webhooks', msg: String(req.query.msg || '').slice(0, 200) });
 });
 
 router.post('/:guildId/webhooks', webhookLimit, ensureGuildAccess, async (req, res) => {

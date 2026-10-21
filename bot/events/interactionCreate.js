@@ -8,7 +8,7 @@ const { isGiveawayButton, handleGiveawayButton } = require('../modules/giveaways
 const { isTicketButton, handleTicketButton } = require('../modules/tickets');
 const { isVoiceRoomComponent, handleVoiceRoomComponent } = require('../modules/voiceRoom');
 const { isWebhookComponent, handleWebhookComponent } = require('../modules/webhookPanel');
-const { featureForCommand, isEnabled } = require('../utils/features');
+const { featureForCommand, isEnabled, disabledText } = require('../utils/features');
 const { getOrCreateSettings } = require('../modules/leveling');
 
 module.exports = {
@@ -21,8 +21,9 @@ module.exports = {
       try {
         // Features an admin switched off in the panel answer with a short note instead of running.
         const feature = interaction.guildId ? featureForCommand(interaction.commandName) : null;
-        if (feature && !isEnabled(await getOrCreateSettings(interaction.guildId), feature.key)) {
-          return await interaction.reply({ embeds: [embeds.info(`Функция «${feature.title}» отключена администрацией сервера.`)], flags: MessageFlags.Ephemeral });
+        const featureSettings = feature ? await getOrCreateSettings(interaction.guildId) : null;
+        if (feature && !isEnabled(featureSettings, feature.key)) {
+          return await interaction.reply({ embeds: [embeds.info(disabledText(featureSettings, feature.key))], flags: MessageFlags.Ephemeral });
         }
         await command.execute(interaction);
       } catch (err) {

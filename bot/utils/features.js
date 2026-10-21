@@ -1,5 +1,7 @@
 // The list of features an admin can switch on and off in the web panel ("Функции").
 // One place for both sides: the panel draws the switches from it, the bot checks the same flags.
+// A feature marked `beta: true` is new and not proven yet: it works only on servers where an admin switched on
+// "Бета-функции" in the panel (Функции). To release it for everyone, delete the `beta: true` part.
 // Moderation commands (/mod) are not listed on purpose: admins should not be able to lock themselves out.
 const FEATURES = [
   { key: 'leveling', field: 'levelingEnabled', title: 'Уровни', desc: 'Опыт за чат и голос, команды /profile и /top', commands: ['profile', 'top'], page: 'leveling' },
@@ -17,7 +19,7 @@ const FEATURES = [
   { key: 'tickets', field: 'ticketsEnabled', title: 'Обращения (тикеты)', desc: 'Кнопка создаёт приватный канал с командой сервера: /ticket', commands: ['ticket'], page: 'tickets' },
   { key: 'reminders', field: 'remindersEnabled', title: 'Напоминания', desc: 'Команда /remind: бот упомянет вас через заданное время', commands: ['remind'], page: null },
   { key: 'fun', field: 'funEnabled', title: 'Мини-игры', desc: 'Кубик, монетка, шар предсказаний, камень-ножницы-бумага: /dice, /coinflip, /8ball, /rps', commands: ['dice', 'coinflip', '8ball', 'rps'], page: null },
-  { key: 'webhooks', field: 'webhooksEnabled', title: 'Вебхуки', desc: 'Команда /webhook: создание вебхуков и отправка сообщений через них (нужно право «Управлять вебхуками»)', commands: ['webhook'], page: 'webhooks' },
+  { key: 'webhooks', field: 'webhooksEnabled', title: 'Вебхуки', desc: 'Команда /webhook: создание вебхуков и отправка сообщений через них (нужно право «Управлять вебхуками»)', commands: ['webhook'], page: 'webhooks', beta: true },
   { key: 'report', field: 'reportEnabled', title: 'Жалобы', desc: 'Меню «Report message» для жалоб на сообщения', commands: ['Report message'], page: 'moderation' }
 ];
 
@@ -30,8 +32,19 @@ const featureForCommand = (name) => byCommand.get(name);
 function isEnabled(settings, key) {
   const f = FEATURES.find((x) => x.key === key);
   if (!f) return true;
-  if (!settings) return f.key !== 'automod';
+  if (!settings) return f.key !== 'automod' && !f.beta;
+  if (f.beta && !settings.betaEnabled) return false;
   return Boolean(settings[f.field]);
 }
 
-module.exports = { FEATURES, featureForCommand, isEnabled };
+/** What to tell a person who tried a feature that is off: a beta feature explains how to get it. */
+function disabledText(settings, key) {
+  const f = FEATURES.find((x) => x.key === key);
+  if (f && f.beta && !settings?.betaEnabled) return `«${f.title}» — бета-функция. Администратор сервера может включить её в панели: Функции → «Бета-функции».`;
+  return `Функция «${f ? f.title : key}» отключена администрацией сервера.`;
+}
+
+/** Panel pages that belong to beta features (they get a "бета" tag in the menu). */
+const betaPages = FEATURES.filter((f) => f.beta && f.page).map((f) => f.page);
+
+module.exports = { FEATURES, featureForCommand, isEnabled, disabledText, betaPages };

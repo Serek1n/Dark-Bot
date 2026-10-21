@@ -70,9 +70,11 @@ const { PermissionFlagsBits } = require('discord.js');
   });
 
   // feature switch exists and is registered
-  await test('the feature switch is registered and on by default', async () => {
+  await test('the feature switch is registered; it is a beta feature, so it works once the server switches beta on', async () => {
     const { featureForCommand, isEnabled } = require('../bot/utils/features');
-    assert(featureForCommand('webhook')?.key === 'webhooks' && isEnabled(await db.GuildSettings.findByPk('WG1'), 'webhooks'), 'switch');
+    const row = await db.GuildSettings.findByPk('WG1');
+    assert(featureForCommand('webhook')?.key === 'webhooks' && !isEnabled(row, 'webhooks'), 'beta: off by default');
+    row.betaEnabled = true; assert(isEnabled(row, 'webhooks'), 'on with beta');
   });
 
   results.forEach((r) => console.log(r.ok ? '✅' : '❌', r.l, r.ok ? '' : '\n   ' + r.e));

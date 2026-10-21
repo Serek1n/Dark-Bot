@@ -28,7 +28,7 @@ app.disable('x-powered-by');
 const fs = require('fs');
 function assetVersion() {
   let newest = 0;
-  for (const f of ['css/style.css', 'css/fonts.css']) {
+  for (const f of ['css/style.css', 'css/fonts.css', 'js/theme.js']) {
     try {
       newest = Math.max(newest, fs.statSync(path.join(__dirname, 'public', f)).mtimeMs);
     } catch (_) { /* missing file: ignore */ }
@@ -36,6 +36,7 @@ function assetVersion() {
   return Math.floor(newest).toString(36);
 }
 app.locals.assetV = assetVersion();
+app.locals.betaPages = require('../bot/utils/features').betaPages; // menu items of features still in testing
 
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '7d',

@@ -7,7 +7,7 @@ const {
 } = require('discord.js');
 const embeds = require('../utils/embeds');
 const logger = require('../utils/logger');
-const { isEnabled } = require('../utils/features');
+const { isEnabled, disabledText } = require('../utils/features');
 const { memberHasPermission } = require('../utils/permissions');
 const { fetchAvatar } = require('../utils/safeImage');
 const { getOrCreateSettings } = require('./leveling');
@@ -83,7 +83,7 @@ async function gate(i) {
   const guild = i.guild;
   if (!guild || !i.member) fail('Вебхуками можно управлять только на сервере.');
   const settings = await getOrCreateSettings(guild.id);
-  if (!isEnabled(settings, 'webhooks')) fail('Вебхуки отключены на этом сервере.');
+  if (!isEnabled(settings, 'webhooks')) fail(disabledText(settings, 'webhooks'));
   if (!memberHasPermission(i.member, 'ManageWebhooks')) fail('Нужно право «Управлять вебхуками».');
   const me = guild.members?.me;
   if (me && !me.permissions.has(PermissionFlagsBits.ManageWebhooks)) fail('У бота нет права «Управлять вебхуками». Выдайте его роли бота и повторите.');
