@@ -1139,3 +1139,12 @@ tbody tr:hover { background: var(--soft); }
 }
 
 @media (prefers-reduced-motion: reduce) { .guild-card:hover { transform: none; } }
+
+/* Side menu scrolling: no native scrollbar (it was wide and light), a thin thumb while scrolling and faded edges instead */
+.sidebar nav { scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior: contain; }
+.sidebar nav::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.sidebar nav.can-up { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22px); mask-image: linear-gradient(to bottom, transparent 0, #000 22px); }
+.sidebar nav.can-down { -webkit-mask-image: linear-gradient(to top, transparent 0, #000 22px); mask-image: linear-gradient(to top, transparent 0, #000 22px); }
+.sidebar nav.can-up.can-down { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); }
+.rail-thumb { position: absolute; top: 0; right: 3px; width: 3px; border-radius: 3px; background: var(--fog-dim); opacity: 0; transition: opacity 0.25s ease; pointer-events: none; z-index: 2; }
+@media (max-width: 760px) { .rail-thumb { display: none; } .sidebar nav.can-up, .sidebar nav.can-down { -webkit-mask-image: none; mask-image: none; } }
