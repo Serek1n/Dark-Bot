@@ -295,6 +295,29 @@ node test_harness/run_events.js    # события
 node test_harness/run_music.js     # музыкальная панель
 ```
 
+## Релиз и бета: ветки main и beta
+
+В репозитории две ветки: **main** — проверенная версия, **beta** — то, что ещё тестируется.
+
+**Как работать в GitHub Desktop**
+1. Один раз: *Current Branch → New Branch*, имя `beta`, основа `main`, затем *Publish branch*.
+2. Новые изменения распаковывайте и коммитьте, когда выбрана ветка **beta** (вверху слева), затем *Push origin*.
+3. Когда beta проверена: переключитесь на **main**, *Branch → Merge into current branch…*, выберите `beta`, затем *Push origin*.
+
+**Как обновлять сервер** (по одной команде)
+
+```bash
+cd /opt/Dark-Bot
+sh scripts/update.sh beta    # поставить бету
+sh scripts/update.sh main    # вернуться на релиз
+```
+
+Скрипт сам скачивает ветку, ставит зависимости (`npm ci`) и перезапускает `dark-bot`. Без аргумента обновляет ту ветку, на которой сервер стоит сейчас.
+
+**Бета и релиз одновременно (по желанию).** Для этого нужен второй бот: отдельное приложение в Discord Developer Portal со своим токеном, вторая копия проекта (`git clone -b beta … /opt/Dark-Bot-beta`) со своим `.env` (другой `DISCORD_TOKEN`, `WEB_PORT=3001`, `DATABASE_PATH=./data/beta.sqlite`), запуск `pm2 start bot/index.js --name dark-beta` и отдельный адрес для панели (nginx и redirect в приложении Discord). Обновлять его: `PM2_NAME=dark-beta sh scripts/update.sh beta`.
+
+Кроме веток, в самой панели есть переключатель «Бета-функции» (раздел «Функции»): он включает отдельные новые возможности на выбранном сервере, не меняя версию бота.
+
 ## Структура
 
 ```
