@@ -17,7 +17,8 @@
         <% } else { %>
           <a class="guild-card disabled" href="<%= g.inviteUrl %>" target="_blank" rel="noopener">
         <% } %>
-            <img src="<%= g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png' %>" alt="" />
+            <% if (g.icon) { %><img src="https://cdn.discordapp.com/icons/<%= g.id %>/<%= g.icon %>.png" alt="" data-initial="<%= String(g.name || '?').trim().charAt(0).toUpperCase() %>" />
+            <% } else { %><span class="guild-initial" aria-hidden="true"><%= String(g.name || '?').trim().charAt(0).toUpperCase() %></span><% } %>
             <div>
               <div class="name"><%= g.name %></div>
               <div class="status"><%= g.botPresent ? 'Открыть панель' : (g.daysLeft !== undefined ? 'Бот удалён — настройки сохранены ещё на ' + g.daysLeft + ' дн. Нажмите, чтобы вернуть бота' : 'Бот не добавлен — нажмите, чтобы пригласить') %></div>

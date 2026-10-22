@@ -10,7 +10,8 @@
     </button>
   </div>
   <div class="sidebar-guild">
-    <img src="<%= guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png' %>" alt="" class="guild-icon" />
+    <% if (guild.icon) { %><img src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png" alt="" class="guild-icon" data-initial="<%= String(guild.name || '?').trim().charAt(0).toUpperCase() %>" />
+    <% } else { %><span class="guild-icon guild-initial" aria-hidden="true"><%= String(guild.name || '?').trim().charAt(0).toUpperCase() %></span><% } %>
     <span class="rl"><%= guild.name %></span>
   </div>
   <nav>

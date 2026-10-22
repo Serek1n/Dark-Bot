@@ -28,7 +28,7 @@ app.disable('x-powered-by');
 const fs = require('fs');
 function assetVersion() {
   let newest = 0;
-  for (const f of ['css/style.css', 'css/fonts.css', 'js/theme.js']) {
+  for (const f of ['css/style.css', 'css/fonts.css', 'js/theme.js', 'js/ui.js']) {
     try {
       newest = Math.max(newest, fs.statSync(path.join(__dirname, 'public', f)).mtimeMs);
     } catch (_) { /* missing file: ignore */ }

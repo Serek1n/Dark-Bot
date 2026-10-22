@@ -5,9 +5,13 @@
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <div class="content">
-      <div class="page-header">
-        <h1>Обзор</h1>
-        <p class="page-intro">Состояние сервера и быстрые переходы. Всё, что касается настроек бота, делается здесь, в панели.</p>
+      <div class="hero">
+        <% if (guild.icon) { %><img class="hero-icon" src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png" alt="" data-initial="<%= String(guild.name || '?').trim().charAt(0).toUpperCase() %>" />
+        <% } else { %><span class="hero-icon guild-initial" aria-hidden="true"><%= String(guild.name || '?').trim().charAt(0).toUpperCase() %></span><% } %>
+        <div>
+          <h1><%= guild.name %></h1>
+          <p class="page-intro">Состояние сервера и быстрые переходы. Все настройки бота — здесь, в панели.</p>
+        </div>
       </div>
 
       <div class="stat-row">
