@@ -1,5 +1,6 @@
 // Beta mode: beta features work only where "Бета-функции" is on; the panel shows the switch and tags.
 process.env.BOT_CHANNEL = 'beta'; // these tests are about the beta build
+require('./betaFeature'); // treat the webhooks as a beta feature in this test
 process.env.DATABASE_PATH = './data/test_beta.sqlite';
 const fs = require('fs'); const path = require('path'); const ejs = require('ejs');
 fs.mkdirSync('./data', { recursive: true });

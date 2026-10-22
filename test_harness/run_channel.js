@@ -1,5 +1,6 @@
 // Beta features exist only in the beta build (git branch "beta" or BOT_CHANNEL=beta); the release never runs them, whatever the server switch says.
 process.env.DATABASE_PATH = './data/test_channel.sqlite';
+require('./betaFeature'); // treat the webhooks as a beta feature in this test
 const fs = require('fs'); const assert = require('assert'); const path = require('path'); const ejs = require('ejs');
 fs.mkdirSync('./data', { recursive: true });
 ['', '-shm', '-wal'].forEach((x) => fs.rmSync(process.env.DATABASE_PATH + x, { force: true }));
