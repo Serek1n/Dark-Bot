@@ -11,15 +11,24 @@
       </div>
       <form method="post">
         <div class="switch-list">
+          <% if (!betaBuild) { %>
+          <div class="feature-row beta-row beta-off">
+            <div class="feature-info">
+              <span class="feature-title">Бета-функции <em class="beta-tag">бета</em></span>
+              <span class="feature-desc">Сейчас работает обычная (релизная) версия бота, новых функций на проверке в ней нет. Они появятся здесь, когда будет запущена бета-версия.</span>
+            </div>
+          </div>
+          <% } else { %>
           <div class="checkbox-row feature-row beta-row">
             <label for="f_beta">
               <span class="feature-title">Бета-функции <em class="beta-tag">бета</em></span>
-              <span class="feature-desc">Новые возможности, которые ещё проверяются. Они могут меняться и иногда работать с ошибками. Выключите, если нужна только проверенная версия: бета-функции сразу перестанут работать, а их данные сохранятся.</span>
+              <span class="feature-desc">Запущена бета-версия бота. Новые возможности, которые ещё проверяются. Они могут меняться и иногда работать с ошибками. Выключите, если нужна только проверенная версия: бета-функции сразу перестанут работать, а их данные сохранятся.</span>
               <% const betaTitles = features.filter(x => x.beta).map(x => x.title); %>
               <span class="feature-cmds"><%= betaTitles.length ? 'Сейчас в бете: ' + betaTitles.join(', ') : 'Сейчас бета-функций нет' %></span>
             </label>
             <input type="checkbox" id="f_beta" name="betaEnabled" <%= settings.betaEnabled ? 'checked' : '' %> />
           </div>
+          <% } %>
           <% features.forEach(f => { %>
             <div class="checkbox-row feature-row">
               <label for="f_<%= f.key %>">

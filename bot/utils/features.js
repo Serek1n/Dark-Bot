@@ -1,8 +1,11 @@
 // The list of features an admin can switch on and off in the web panel ("Функции").
 // One place for both sides: the panel draws the switches from it, the bot checks the same flags.
-// A feature marked `beta: true` is new and not proven yet: it works only on servers where an admin switched on
-// "Бета-функции" in the panel (Функции). To release it for everyone, delete the `beta: true` part.
+// A feature marked `beta: true` is new and not proven yet: it exists only in the beta build of the bot (git branch "beta", see
+// utils/channel.js), and there it works on servers where an admin switched on "Бета-функции" in the panel (Функции).
+// To release it for everyone, delete the `beta: true` part and merge the branch into main.
 // Moderation commands (/mod) are not listed on purpose: admins should not be able to lock themselves out.
+const { isBetaBuild } = require('./channel');
+
 const FEATURES = [
   { key: 'leveling', field: 'levelingEnabled', title: 'Уровни', desc: 'Опыт за чат и голос, команды /profile и /top', commands: ['profile', 'top'], page: 'leveling' },
   { key: 'economy', field: 'economyEnabled', title: 'Экономика', desc: 'Ежедневная награда, баланс и переводы: /daily, /balance, /pay', commands: ['daily', 'balance', 'pay'], page: 'economy' },
@@ -33,13 +36,14 @@ function isEnabled(settings, key) {
   const f = FEATURES.find((x) => x.key === key);
   if (!f) return true;
   if (!settings) return f.key !== 'automod' && !f.beta;
-  if (f.beta && !settings.betaEnabled) return false;
+  if (f.beta && (!isBetaBuild() || !settings.betaEnabled)) return false;
   return Boolean(settings[f.field]);
 }
 
 /** What to tell a person who tried a feature that is off: a beta feature explains how to get it. */
 function disabledText(settings, key) {
   const f = FEATURES.find((x) => x.key === key);
+  if (f && f.beta && !isBetaBuild()) return `«${f.title}» — функция бета-версии бота. В обычной (релизной) версии её пока нет.`;
   if (f && f.beta && !settings?.betaEnabled) return `«${f.title}» — бета-функция. Администратор сервера может включить её в панели: Функции → «Бета-функции».`;
   return `Функция «${f ? f.title : key}» отключена администрацией сервера.`;
 }

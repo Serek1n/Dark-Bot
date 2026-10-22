@@ -3,7 +3,7 @@
   <div class="rail-top">
     <a href="/dashboard" class="brand" aria-label="Dark — все серверы">
       <svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><mask id="brand-moon"><rect width="56" height="56" fill="#fff"/><circle cx="36" cy="20" r="15" fill="#000"/></mask><circle cx="27" cy="29" r="19" fill="#e3a857" mask="url(#brand-moon)"/></svg>
-      <span class="rl">Dark</span>
+      <span class="rl">Dark<% if (typeof betaBuild !== 'undefined' && betaBuild) { %> <em class="beta-tag">бета</em><% } %></span>
     </a>
     <button type="button" class="rail-pin" data-rail-pin aria-pressed="false" aria-label="Закрепить меню" title="Закрепить меню">
       <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l5 5-3 1-3 3 .5 4-2 .5-3.5-3.5L2.500 17.500M8 12L4 8l.5-2 4 .5 3-3 1-.5"/></svg>

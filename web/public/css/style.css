@@ -1148,3 +1148,6 @@ tbody tr:hover { background: var(--soft); }
 .sidebar nav.can-up.can-down { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); }
 .rail-thumb { position: absolute; top: 0; right: 3px; width: 3px; border-radius: 3px; background: var(--fog-dim); opacity: 0; transition: opacity 0.25s ease; pointer-events: none; z-index: 2; }
 @media (max-width: 760px) { .rail-thumb { display: none; } .sidebar nav.can-up, .sidebar nav.can-down { -webkit-mask-image: none; mask-image: none; } }
+
+.beta-off { background: var(--soft); border: 1px dashed var(--hairline); border-radius: 12px; padding: 14px 16px; }
+.beta-off .feature-info { display: flex; flex-direction: column; gap: 4px; }

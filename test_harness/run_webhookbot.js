@@ -1,4 +1,5 @@
 // Webhook panel in Discord: buttons, menus and windows. Discord is faked.
+process.env.BOT_CHANNEL = 'beta'; // these tests are about the beta build
 process.env.DATABASE_PATH = './data/test_webhookbot.sqlite';
 const fs = require('fs');
 fs.mkdirSync('./data', { recursive: true });

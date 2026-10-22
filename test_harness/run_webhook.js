@@ -1,4 +1,5 @@
 // /webhook: create, list, delete and send through webhooks.
+process.env.BOT_CHANNEL = 'beta'; // these tests are about the beta build
 process.env.DATABASE_PATH = './data/test_webhook.sqlite';
 const fs = require('fs');
 fs.mkdirSync('./data', { recursive: true });

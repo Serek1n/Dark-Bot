@@ -1,4 +1,5 @@
 // Beta mode: beta features work only where "Бета-функции" is on; the panel shows the switch and tags.
+process.env.BOT_CHANNEL = 'beta'; // these tests are about the beta build
 process.env.DATABASE_PATH = './data/test_beta.sqlite';
 const fs = require('fs'); const path = require('path'); const ejs = require('ejs');
 fs.mkdirSync('./data', { recursive: true });
@@ -34,11 +35,11 @@ const { MessageFlags } = require('discord.js');
     await ev.execute(mk()); assert(ran === 1, 'allowed after the switch');
   });
   await test('features page: the beta switch comes first, beta features carry a tag, saving stores it', async () => {
-    const html = await ejs.renderFile(path.join(__dirname, '..', 'web/views/dashboard/features.ejs'), { guild: { id: '123456789012345678', name: 'T', icon: null }, settings: { betaEnabled: true, webhooksEnabled: true }, features: F.FEATURES, active: 'features', betaPages: F.betaPages });
+    const html = await ejs.renderFile(path.join(__dirname, '..', 'web/views/dashboard/features.ejs'), { guild: { id: '123456789012345678', name: 'T', icon: null }, settings: { betaEnabled: true, webhooksEnabled: true }, features: F.FEATURES, betaBuild: true, active: 'features', betaPages: F.betaPages });
     assert(html.indexOf('name="betaEnabled"') > 0 && html.indexOf('name="betaEnabled"') < html.indexOf('name="levelingEnabled"') && /name="betaEnabled" checked/.test(html), 'switch first and checked');
     assert(html.includes('Сейчас в бете: Вебхуки') && (html.match(/beta-tag/g) || []).length >= 2, 'tags');
     const src = fs.readFileSync(path.join(__dirname, '..', 'web/routes/dashboard/features.js'), 'utf8');
-    assert(src.includes("settings.betaEnabled = req.body.betaEnabled === 'on'"), 'saved by the route');
+    assert(src.includes("settings.betaEnabled = req.body.betaEnabled === 'on'"), 'saved by the route (beta build only)');
   });
   await test('menu: the webhooks entry is tagged as beta, other entries are not', async () => {
     const html = await ejs.renderFile(path.join(__dirname, '..', 'web/views/partials/sidebar.ejs'), { guild: { id: '123456789012345678', name: 'T', icon: null }, active: 'overview', betaPages: F.betaPages, user: null });
