@@ -1,4 +1,5 @@
 // Feature switches: the registry, the command gate, events that must stay silent, and the panel page.
+process.env.BOT_CHANNEL = 'beta'; // these tests are about the beta build
 process.env.DATABASE_PATH = './data/test_features.sqlite';
 const fs = require('fs'); const path = require('path');
 fs.mkdirSync('./data', { recursive: true });

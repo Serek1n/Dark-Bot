@@ -36,6 +36,7 @@ function assetVersion() {
   return Math.floor(newest).toString(36);
 }
 app.locals.assetV = assetVersion();
+app.locals.betaBuild = require('../bot/utils/channel').isBetaBuild(); // the beta build shows a tag next to the name
 app.locals.betaPages = require('../bot/utils/features').betaPages; // menu items of features still in testing
 
 app.use(express.static(path.join(__dirname, 'public'), {
