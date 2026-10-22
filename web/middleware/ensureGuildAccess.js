@@ -2,14 +2,7 @@ const { getBotGuildIds } = require('../discordApi');
 const { refreshUserGuilds, isStale } = require('../utils/userGuilds');
 const { asyncHandler } = require('../utils/asyncHandler');
 
-const MANAGE_GUILD = 0x20;
-const ADMINISTRATOR = 0x8;
-
-function hasManageAccess(guild) {
-  if (guild.owner) return true;
-  const perms = BigInt(guild.permissions || 0);
-  return (perms & BigInt(MANAGE_GUILD)) === BigInt(MANAGE_GUILD) || (perms & BigInt(ADMINISTRATOR)) === BigInt(ADMINISTRATOR);
-}
+const { hasManageAccess } = require('../utils/common');
 
 async function ensureGuildAccess(req, res, next) {
   const { guildId } = req.params;

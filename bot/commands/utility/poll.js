@@ -45,6 +45,7 @@ module.exports = {
     if (durationMs) {
       const labels = options.length ? options : ['Да', 'Нет'];
       await Poll.create({ guildId: interaction.guildId, channelId: message.channelId || interaction.channelId, messageId: message.id, question, options: JSON.stringify(reactions.map((emoji, i) => ({ emoji, label: labels[i] }))), endsAt: new Date(Date.now() + durationMs) });
+      require('../../utils/scheduler').poke('polls');
     }
   }
 };

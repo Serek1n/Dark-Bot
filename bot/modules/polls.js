@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const { Poll } = require('../../db');
 const embeds = require('../utils/embeds');
 const logger = require('../utils/logger');
+const { createScheduler } = require('../utils/scheduler');
 const { withLock } = require('../utils/lock');
 
 const parseOptions = (p) => { try { const v = JSON.parse(p.options || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
@@ -56,12 +57,10 @@ async function tick(client) {
   }
 }
 
-let timer = null;
+let scheduler = null;
 function startPollScheduler(client) {
-  if (timer) clearInterval(timer);
-  timer = setInterval(() => tick(client).catch((err) => logger.error('Poll tick failed:', err.message)), 15_000);
-  timer.unref?.();
-  tick(client).catch(() => {});
+  if (scheduler) scheduler.stop();
+  scheduler = createScheduler({ name: 'polls', nextDue: () => Poll.min('endsAt', { where: { ended: false } }), run: () => tick(client) }).start();
 }
 
 module.exports = { startPollScheduler, tick, resultEmbed, unix };

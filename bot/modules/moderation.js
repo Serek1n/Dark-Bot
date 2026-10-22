@@ -7,6 +7,7 @@ const { recordAndAnnounce } = require('../utils/modlog');
 const { formatDuration, MAX_TIMEOUT, MINUTE } = require('../utils/duration');
 const { withLock } = require('../utils/lock');
 const logger = require('../utils/logger');
+const { createScheduler } = require('../utils/scheduler');
 
 const ESCALATION_ACTIONS = ['mute', 'kick', 'ban'];
 const MAX_THRESHOLDS = 10;
@@ -161,13 +162,14 @@ async function liftExpiredBans(client) {
   return lifted;
 }
 
-let timer = null;
+let scheduler = null;
 function startModScheduler(client) {
-  if (timer) return;
-  const tick = () => liftExpiredBans(client).catch((err) => logger.error('Mod scheduler:', err));
-  timer = setInterval(tick, 30_000);
-  timer.unref();
-  tick();
+  if (scheduler) return;
+  scheduler = createScheduler({
+    name: 'mod',
+    nextDue: () => ModLog.min('expiresAt', { where: { action: 'ban', active: true } }),
+    run: () => liftExpiredBans(client)
+  }).start();
 }
 
 module.exports = {

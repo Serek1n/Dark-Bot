@@ -27,6 +27,7 @@ module.exports = {
       if ((await Reminder.count({ where: { userId } })) >= MAX_PENDING) return reply(embeds.error(`У вас уже ${MAX_PENDING} напоминаний. Отмените ненужные: \`/remind cancel\`.`));
       const text = interaction.options.getString('text', true).trim().replace(/@(everyone|here)/g, '@​$1');
       const row = await Reminder.create({ userId, guildId: interaction.guild?.id || null, channelId: interaction.channelId || null, text, remindAt: new Date(Date.now() + ms) });
+      require('../../utils/scheduler').poke('reminders');
       return reply(embeds.success(`Напомню через ${formatDuration(ms)} (<t:${unix(row.remindAt)}:f>). Номер напоминания: ${row.id}.`));
     }
 

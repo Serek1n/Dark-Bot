@@ -122,10 +122,11 @@ async function main() {
 
   await test('migration: old single-track profile counts as chat, total preserved', async () => {
     await sequelize.query("INSERT INTO member_profiles (guildId,userId,xp,level,chatXp,chatLevel,voiceXp,voiceLevel,balance,crystals,messageCount,voiceSeconds,createdAt,updatedAt) VALUES ('g3','old',500,3,0,0,0,0,10,0,0,0,datetime('now'),datetime('now'))");
+    await sequelize.query("DELETE FROM schema_migrations WHERE name = '0002_tracks_and_cases'"); // an old database: the conversion has not run yet
     await db.init();
     const p = await prof('g3', 'old');
     assert(Number(p.chatXp) === 500 && p.level === 3 && Number(p.xp) === 500, `${p.chatXp}/${p.level}/${p.xp}`);
-    await db.init(); // idempotent
+    await db.init(); // already recorded: not run again
     assert(Number((await prof('g3', 'old')).chatXp) === 500, 'second run changed data');
   });
 

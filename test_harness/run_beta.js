@@ -37,7 +37,7 @@ const { MessageFlags } = require('discord.js');
     const html = await ejs.renderFile(path.join(__dirname, '..', 'web/views/dashboard/features.ejs'), { guild: { id: '123456789012345678', name: 'T', icon: null }, settings: { betaEnabled: true, webhooksEnabled: true }, features: F.FEATURES, active: 'features', betaPages: F.betaPages });
     assert(html.indexOf('name="betaEnabled"') > 0 && html.indexOf('name="betaEnabled"') < html.indexOf('name="levelingEnabled"') && /name="betaEnabled" checked/.test(html), 'switch first and checked');
     assert(html.includes('Сейчас в бете: Вебхуки') && (html.match(/beta-tag/g) || []).length >= 2, 'tags');
-    const src = fs.readFileSync(path.join(__dirname, '..', 'web/routes/dashboard.js'), 'utf8');
+    const src = fs.readFileSync(path.join(__dirname, '..', 'web/routes/dashboard/features.js'), 'utf8');
     assert(src.includes("settings.betaEnabled = req.body.betaEnabled === 'on'"), 'saved by the route');
   });
   await test('menu: the webhooks entry is tagged as beta, other entries are not', async () => {

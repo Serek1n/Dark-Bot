@@ -129,7 +129,7 @@ const express = require('express');
   const gr = express(); errorView(gr); gr.use(express.urlencoded({ extended: true }));
   stub('middleware/ensureAuth.js', { ensureAuth: (q, s, n) => n() });
   stub('middleware/ensureGuildAccess.js', { ensureGuildAccess: (q, s, n) => n() });
-  delete require.cache[require.resolve('../web/routes/dashboard')];
+  for (const k of Object.keys(require.cache)) if (k.includes(require('path').join('web', 'routes', 'dashboard'))) delete require.cache[k]; // the index and every page file, so they pick up the stubs above
   gr.use('/dashboard', require('../web/routes/dashboard'));
   gr.use((err, q, s, n) => s.status(500).send(String(err.stack)));
   const gs = gr.listen(0); const gbase = `http://127.0.0.1:${gs.address().port}/dashboard/${G}`;

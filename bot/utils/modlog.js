@@ -22,7 +22,9 @@ const LABELS = {
 function createCase(guildId, data) {
   return withLock(`case:${guildId}`, async () => {
     const last = Number(await ModLog.max('caseNumber', { where: { guildId } })) || 0;
-    return ModLog.create({ guildId, ...data, caseNumber: last + 1 });
+    const entry = await ModLog.create({ guildId, ...data, caseNumber: last + 1 });
+    if (data.expiresAt && data.active) require('./scheduler').poke('mod'); // a temporary ban: the unban time may be the nearest one now
+    return entry;
   });
 }
 

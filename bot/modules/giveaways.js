@@ -4,6 +4,7 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('
 const { Giveaway, GiveawayEntry } = require('../../db');
 const embeds = require('../utils/embeds');
 const logger = require('../utils/logger');
+const { createScheduler, poke: pokeScheduler } = require('../utils/scheduler');
 const { withLock } = require('../utils/lock');
 const { isEnabled } = require('../utils/features');
 const { getOrCreateSettings } = require('./leveling');
@@ -62,6 +63,7 @@ async function startGiveaway(interaction, { prize, durationMs, winners, roleId }
   const message = await interaction.channel.send({ embeds: [giveawayEmbed(giveaway)], components: [joinRow(giveaway)], allowedMentions: { parse: [] } });
   giveaway.messageId = message.id;
   await giveaway.save();
+  pokeScheduler('giveaways'); // wake the scheduler: this one may end sooner than anything it was waiting for
   return giveaway;
 }
 
@@ -127,7 +129,6 @@ async function handleGiveawayButton(interaction) {
   await interaction.message?.edit?.({ embeds: [giveawayEmbed(giveaway, { count })], components: [joinRow(giveaway, count)] }).catch(() => {});
 }
 
-let timer = null;
 async function tick(client) {
   const due = await Giveaway.findAll({ where: { ended: false }, order: [['endsAt', 'ASC']], limit: 50 });
   for (const g of due) {
@@ -140,11 +141,10 @@ async function tick(client) {
   }
 }
 
+let scheduler = null;
 function startGiveawayScheduler(client) {
-  if (timer) clearInterval(timer);
-  timer = setInterval(() => tick(client).catch((err) => logger.error('Giveaway tick failed:', err.message)), 15_000);
-  timer.unref?.();
-  tick(client).catch(() => {});
+  if (scheduler) scheduler.stop();
+  scheduler = createScheduler({ name: 'giveaways', nextDue: () => Giveaway.min('endsAt', { where: { ended: false } }), run: () => tick(client) }).start();
 }
 
 module.exports = { startGiveaway, finishGiveaway, giveawayEmbed, pickWinners, isGiveawayButton, handleGiveawayButton, startGiveawayScheduler, tick, parseWinners };

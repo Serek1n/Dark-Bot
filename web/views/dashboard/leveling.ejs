@@ -70,6 +70,10 @@
             </div>
             <div></div>
           </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="voiceSkipMuted" name="voiceSkipMuted" <%= settings.voiceSkipMuted !== false && settings.voiceSkipMuted !== 0 ? 'checked' : '' %> />
+            <label for="voiceSkipMuted">Не платить тем, у кого выключен микрофон или звук (и не считать их «компанией»)</label>
+          </div>
           <div class="hint">Не считаются: боты, канал AFK и те, кто заглушил звук. «1» разрешает копить и в одиночестве, «2» (по умолчанию) защищает от накрутки.</div>
         </div>
 

@@ -18,6 +18,8 @@ const logger = require('../../utils/logger');
  */
 
 const IDLE_TIMEOUT_MS = Number(process.env.VOICE_IDLE_MINUTES || 5) * 60 * 1000;
+// A playlist is cut to this many tracks: each Spotify/Apple track is a separate search, so a 500-track list would keep the bot busy for many minutes.
+const MAX_PLAYLIST = 100;
 const YTDLP_BIN = process.env.YTDLP_PATH || 'yt-dlp';
 
 /**
@@ -520,7 +522,7 @@ async function resolveQueryInner(query, requestedBy) {
   if (type === 'yt_playlist') {
     const playlist = await withTimeout(playdl.playlist_info(query, { incomplete: true }), 15000, 'playlist');
     const videos = await withTimeout(playlist.all_videos(), 30000, 'playlist');
-    return videos.map((d) => ({
+    return videos.slice(0, MAX_PLAYLIST).map((d) => ({
       title: d.title,
       url: d.url,
       duration: d.durationRaw,
@@ -547,7 +549,7 @@ async function resolveQueryInner(query, requestedBy) {
   if (type && type.startsWith('sp_')) {
     // Spotify: resolve metadata, then search YouTube for a matching track
     const sp = await withTimeout(playdl.spotify(query), 15000, 'spotify');
-    const items = sp.type === 'track' ? [sp] : await withTimeout(sp.all_tracks(), 30000, 'spotify');
+    const items = sp.type === 'track' ? [sp] : (await withTimeout(sp.all_tracks(), 30000, 'spotify')).slice(0, MAX_PLAYLIST);
     const tracks = [];
     for (const item of items) {
       const searchQuery = `${item.name} ${item.artists?.map((a) => a.name).join(' ') || ''}`;

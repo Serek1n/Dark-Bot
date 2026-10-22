@@ -3,7 +3,7 @@ const path = require('path');
 const express = require('express');
 require('express-async-errors'); // patches Express 4 so rejected promises in route handlers reach the error middleware instead of crashing the process
 const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
+const { SequelizeStore } = require('./sessionStore');
 const passport = require('./passport');
 const { init } = require('../db');
 const authRoutes = require('./routes/auth');
@@ -70,7 +70,7 @@ const isHttps = httpsSite;
 
 app.use(
   session({
-    store: new SQLiteStore({ dir: path.join(__dirname, '..', 'data'), db: 'sessions.sqlite' }),
+    store: new SequelizeStore(),
     secret: process.env.SESSION_SECRET || 'not-configured', // main() refuses to start without a real one
     resave: false,
     saveUninitialized: false,
@@ -107,15 +107,35 @@ app.use((err, req, res, next) => {
   res.status(500).render('error', { message });
 });
 
-async function main() {
-  try { requireSessionSecret(); } catch (err) { logger.error(err.message); process.exit(1); }
+/**
+ * Starts the panel. `client` is the bot's Discord client when the panel runs inside the bot's process (the normal way);
+ * without it the panel works alone and asks Discord over REST. Returns the http server, or null if it could not start.
+ */
+async function start({ client = null, standalone = false } = {}) {
+  try { requireSessionSecret(); } catch (err) {
+    logger.error(err.message);
+    if (standalone) process.exit(1);
+    logger.error('Веб-панель не запущена (бот работает без неё).');
+    return null;
+  }
   // The database and session files hold tokens: keep them readable for this user only (best effort).
-  for (const f of ['', 'sessions.sqlite', 'dark.sqlite']) { try { fs.chmodSync(path.join(__dirname, '..', 'data', f), f ? 0o600 : 0o700); } catch (_) { /* not there or not allowed */ } }
+  for (const f of ['', 'dark.sqlite']) { try { fs.chmodSync(path.join(__dirname, '..', 'data', f), f ? 0o600 : 0o700); } catch (_) { /* not there or not allowed */ } }
+  require('./botBridge').setClient(client);
   await init();
   const port = process.env.WEB_PORT || 3000;
-  app.listen(port, () => logger.info(`Веб-панель запущена: http://localhost:${port}`));
+  return new Promise((resolve) => {
+    const server = app.listen(port, () => {
+      logger.info(`Веб-панель запущена: http://localhost:${port}${client ? ' (в одном процессе с ботом)' : ''}`);
+      resolve(server);
+    });
+    server.on('error', (err) => {
+      logger.error(`Веб-панель не запустилась на порту ${port}: ${err.message}`);
+      if (standalone) process.exit(1);
+      resolve(null); // the bot keeps working
+    });
+  });
 }
 
-if (require.main === module) main();
+if (require.main === module) start({ standalone: true });
 
-module.exports = { app };
+module.exports = { app, start };

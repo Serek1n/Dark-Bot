@@ -2,6 +2,7 @@
 const { Op } = require('sequelize');
 const { Reminder } = require('../../db');
 const logger = require('../utils/logger');
+const { createScheduler } = require('../utils/scheduler');
 
 const MAX_PENDING = 25;
 const MIN_MS = 10_000;
@@ -32,12 +33,10 @@ async function tick(client) {
   }
 }
 
-let timer = null;
+let scheduler = null;
 function startReminderScheduler(client) {
-  if (timer) clearInterval(timer);
-  timer = setInterval(() => tick(client).catch((err) => logger.error('Reminder tick failed:', err.message)), 15_000);
-  timer.unref?.();
-  tick(client).catch(() => {});
+  if (scheduler) scheduler.stop();
+  scheduler = createScheduler({ name: 'reminders', nextDue: () => Reminder.min('remindAt'), run: () => tick(client) }).start();
 }
 
 module.exports = { startReminderScheduler, tick, deliver, MAX_PENDING, MIN_MS, MAX_MS };

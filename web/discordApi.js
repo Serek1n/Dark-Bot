@@ -1,4 +1,8 @@
 const axios = require('axios');
+const { getClient } = require('./botBridge');
+
+// With the bot in the same process everything below is read from its cache; REST is the fallback (panel started alone, or a server the bot has not loaded).
+const cachedGuild = (guildId) => getClient()?.guilds.cache.get(guildId) || null;
 
 const botApi = axios.create({
   baseURL: 'https://discord.com/api/v10',
@@ -30,6 +34,12 @@ async function cached(key, ttlMs, loader) {
 // Guilds of the bot (name and icon are always current here, unlike the copy saved at login).
 // Discord returns at most 200 per page, so follow the pages for big bots.
 function getBotGuilds() {
+  const c = getClient();
+  if (c) {
+    const map = new Map();
+    for (const g of c.guilds.cache.values()) map.set(g.id, { id: g.id, name: g.name, icon: g.icon });
+    return Promise.resolve(map);
+  }
   return cached('guilds', 30_000, async () => {
     const map = new Map();
     let after;
@@ -48,6 +58,8 @@ async function getBotGuildIds() {
 }
 
 function getGuildChannels(guildId) {
+  const g = cachedGuild(guildId);
+  if (g) return Promise.resolve([...g.channels.cache.values()].map((c) => ({ id: c.id, name: c.name, type: c.type, parent_id: c.parentId || null, position: c.rawPosition ?? 0 })));
   return cached(`channels:${guildId}`, 30_000, async () => {
     const { data } = await botApi.get(`/guilds/${guildId}/channels`);
     return data;
@@ -55,6 +67,12 @@ function getGuildChannels(guildId) {
 }
 
 function getGuildRoles(guildId) {
+  const g = cachedGuild(guildId);
+  if (g) {
+    return Promise.resolve(
+      [...g.roles.cache.values()].filter((r) => r.name !== '@everyone').map((r) => ({ id: r.id, name: r.name, position: r.position, color: r.color, managed: r.managed })).sort((a, b) => b.position - a.position)
+    );
+  }
   return cached(`roles:${guildId}`, 30_000, async () => {
     const { data } = await botApi.get(`/guilds/${guildId}/roles`);
     return data.filter((r) => r.name !== '@everyone').sort((a, b) => b.position - a.position);
@@ -62,6 +80,8 @@ function getGuildRoles(guildId) {
 }
 
 function getGuild(guildId) {
+  const g = cachedGuild(guildId);
+  if (g) return Promise.resolve({ id: g.id, name: g.name, icon: g.icon, owner_id: g.ownerId, approximate_member_count: g.memberCount });
   return cached(`guild:${guildId}`, 30_000, async () => {
     const { data } = await botApi.get(`/guilds/${guildId}?with_counts=true`);
     return data;
@@ -79,6 +99,11 @@ async function getUsers(ids) {
   async function worker() {
     while (queue.length) {
       const id = queue.shift();
+      const known = getClient()?.users.cache.get(id);
+      if (known) {
+        out[id] = { id, name: known.globalName || known.username, avatar: known.displayAvatarURL({ extension: 'png', size: 64 }) };
+        continue;
+      }
       try {
         out[id] = await cached(`user:${id}`, 10 * 60_000, async () => {
           const { data } = await botApi.get(`/users/${id}`);

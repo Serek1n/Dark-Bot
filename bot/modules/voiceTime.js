@@ -42,6 +42,8 @@ async function endSession(guildId, userId) {
   await addSeconds(guildId, userId, Math.floor((Date.now() - started) / 1000));
 }
 
+const isMuted = (m) => Boolean(m.voice?.deaf || m.voice?.mute || m.voice?.selfDeaf || m.voice?.selfMute);
+
 /** Handles join / leave / move for one voiceStateUpdate. Bots and the AFK channel are not counted. */
 async function trackVoiceState(oldState, newState) {
   const member = newState.member || oldState.member;
@@ -80,13 +82,16 @@ async function xpTick(client) {
     const xpPerMinute = Math.max(0, Number(settings.voiceXpPerMinute) || 0);
     if (!(xpPerMinute > 0) && !(Number(settings.voiceCoinsPerMinute) > 0)) continue;
     const minMembers = Math.max(1, Number(settings.voiceMinMembers) || 2);
+    const skipMuted = settings.voiceSkipMuted !== false && settings.voiceSkipMuted !== 0;
 
     // Everyone who earns this minute, across all voice channels of the server, grouped by the bonus of
     // their channel (a channel or its category can pay more XP and coins, or nothing).
     const groups = new Map(); // "xpMultiplier|coinMultiplier" -> { xp, coins, members: [] }
     for (const channel of guild.channels.cache.values()) {
       if (!channel.isVoiceBased?.() || channel.id === guild.afkChannelId) continue;
-      const humans = [...channel.members.values()].filter((m) => !m.user.bot);
+      // With "skip muted" on (the default) a member with the microphone or the sound switched off is neither company for the others nor paid:
+      // one real person plus a muted second account would otherwise farm voice income for free.
+      const humans = [...channel.members.values()].filter((m) => !m.user.bot && !(skipMuted && isMuted(m)));
       if (humans.length < minMembers) continue;
       const boost = boostFor(settings, [channel.id, channel.parentId]);
       if (boost.xp === 0 && boost.coins === 0) continue;

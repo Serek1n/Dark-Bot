@@ -40,6 +40,7 @@ module.exports = (sequelize) => {
       xpCooldownSeconds: { type: DataTypes.INTEGER, defaultValue: 60 },
       levelRolesReplace: { type: DataTypes.BOOLEAN, defaultValue: false }, // true = keep only the highest level role
       voiceXpPerMinute: { type: DataTypes.INTEGER, defaultValue: 10 }, // 0 = no XP for voice
+      voiceSkipMuted: { type: DataTypes.BOOLEAN, defaultValue: true }, // muted / deafened members neither count as company nor earn voice income
       voiceMinMembers: { type: DataTypes.INTEGER, defaultValue: 2 }, // people needed in a channel for voice income (1 = also alone)
 
       // Economy: coins (currencyName) and crystals
@@ -53,10 +54,6 @@ module.exports = (sequelize) => {
       shopEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       shopLogChannelId: { type: DataTypes.STRING, allowNull: true }, // purchases are posted here
       crystalsPerLevel: { type: DataTypes.INTEGER, defaultValue: 1 }, // crystals for every new (single, total) level,
-
-      // Shop
-      shopEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
-      shopLogChannelId: { type: DataTypes.STRING, allowNull: true }, // purchases are announced here (optional)
 
       // Feature switches (web panel, page "Функции"); leveling/shop/automod have their own flags above and below
       economyEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },

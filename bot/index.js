@@ -50,6 +50,16 @@ async function main() {
   await client.login(process.env.DISCORD_TOKEN);
 
   startAlertPoller(client);
+
+  // The web panel runs in this same process (instant settings, shared cache); WEB_ENABLED=false keeps it off.
+  if (String(process.env.WEB_ENABLED || 'true').toLowerCase() !== 'false') {
+    // Whatever goes wrong with the panel (bad OAuth settings, busy port) must never take the bot down with it.
+    try {
+      await require('../web').start({ client });
+    } catch (err) {
+      logger.error('Web panel failed to start (the bot keeps running):', err);
+    }
+  }
 }
 
 main().catch((err) => {
