@@ -16,11 +16,18 @@ async function getTwitchToken() {
       client_id: process.env.TWITCH_CLIENT_ID,
       client_secret: process.env.TWITCH_CLIENT_SECRET,
       grant_type: 'client_credentials'
-    }
+    },
+    timeout: 15000 // a hung request would otherwise keep `polling` set and stop every alert until a restart
   });
   twitchToken = data.access_token;
   twitchTokenExpiresAt = Date.now() + (data.expires_in - 60) * 1000;
   return twitchToken;
+}
+
+/** The channel to post into, only if it belongs to the alert's own server. */
+async function alertChannel(client, alert) {
+  const channel = await client.channels.fetch(alert.channelId).catch(() => null);
+  return channel && channel.guildId === alert.guildId ? channel : null;
 }
 
 async function checkYouTube(alert, client) {
@@ -54,7 +61,7 @@ async function checkYouTube(alert, client) {
 
   if (isFirstRun) return; // don't spam-announce old videos on first setup
 
-  const channel = await client.channels.fetch(alert.channelId).catch(() => null);
+  const channel = await alertChannel(client, alert);
   if (!channel) return;
 
   const url = `https://www.youtube.com/watch?v=${videoId}`;
@@ -68,7 +75,11 @@ async function checkTwitch(alert, client) {
 
   const { data } = await axios.get('https://api.twitch.tv/helix/streams', {
     headers: { Authorization: `Bearer ${token}`, 'Client-Id': process.env.TWITCH_CLIENT_ID },
-    params: { user_login: alert.targetId }
+    params: { user_login: alert.targetId },
+    timeout: 15000
+  }).catch((err) => {
+    if (err.response?.status === 401) { twitchToken = null; twitchTokenExpiresAt = 0; } // revoked token: get a new one next time
+    throw err;
   });
 
   const stream = data.data?.[0];
@@ -80,7 +91,7 @@ async function checkTwitch(alert, client) {
   await alert.save();
 
   if (!wasLive && isLiveNow) {
-    const channel = await client.channels.fetch(alert.channelId).catch(() => null);
+    const channel = await alertChannel(client, alert);
     if (!channel) return;
     const url = `https://twitch.tv/${alert.targetId}`;
     const text = alert.message.replaceAll('{name}', stream.user_name).replaceAll('{url}', url);

@@ -20,7 +20,7 @@
           <label>Роль</label>
           <select name="roleId" required>
             <% roles.forEach(r => { %>
-              <option value="<%= r.id %>">@<%= r.name %></option>
+              <option value="<%= r.id %>" <%= r.blocked ? 'disabled' : '' %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option>
             <% }) %>
           </select>
           <div class="hint">Роль бота должна стоять в списке ролей выше выдаваемой, иначе Discord не даст её выдать.</div>
@@ -63,7 +63,7 @@
         <button class="btn" type="submit">Сохранить</button>
       </form>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/level-roles/sync" class="card">
+      <form method="post" action="/dashboard/<%= guild.id %>/level-roles/sync" class="card" data-no-guard>
         <h2>Выдать роли сейчас</h2>
         <p>Роли выдаются сами при росте уровня. Эта кнопка нужна, чтобы выдать роли всем, у кого уровень уже достигнут, например после импорта уровней. Занимает минуту-две на каждые 100 участников.</p>
         <button class="btn" type="submit">Выдать роли всем</button>

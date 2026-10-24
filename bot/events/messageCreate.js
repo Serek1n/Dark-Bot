@@ -1,4 +1,4 @@
-const { CustomCommand } = require('../../db');
+const { findCustomResponse } = require('../modules/customCommands');
 const { grantMessageXp, getOrCreateSettings } = require('../modules/leveling');
 const { evaluateMessage, handleViolation } = require('../modules/automod');
 const { announceLevelUp, levelUpTarget } = require('../utils/levelUp');
@@ -56,10 +56,10 @@ module.exports = {
     if (settings.customCommandsEnabled && message.content.startsWith(prefix)) {
       const trigger = message.content.slice(prefix.length).trim().split(/\s+/)[0]?.toLowerCase();
       if (trigger) {
-        const custom = await CustomCommand.findOne({ where: { guildId: message.guild.id, trigger } });
-        if (custom) {
+        const response = await findCustomResponse(message.guild.id, trigger);
+        if (response !== null) {
           message.channel
-            .send({ content: custom.response, allowedMentions: { parse: ['users', 'roles'] } })
+            .send({ content: response, allowedMentions: { parse: ['users', 'roles'] } })
             .catch(() => {});
         }
       }

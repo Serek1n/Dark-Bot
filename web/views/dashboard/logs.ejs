@@ -19,7 +19,13 @@
             <% forums.forEach(c => { %>
               <option value="<%= c.id %>" <%= settings.logForumChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
+            <% if (settings.logForumChannelId && !forums.some(c => c.id === settings.logForumChannelId)) { %>
+              <option value="<%= settings.logForumChannelId %>" selected>Форум удалён — выберите другой</option>
+            <% } %>
           </select>
+          <% if (settings.logForumChannelId && !forums.some(c => c.id === settings.logForumChannelId)) { %>
+            <p class="hint">Сохранённый форум логов больше не существует: логи не пишутся. Выберите другой форум или отключите логи.</p>
+          <% } %>
           <% if (!forums.length) { %>
             <p class="hint">На сервере нет форумов. Создайте канал типа «Форум» (лучше закрытый для обычных участников) и обновите страницу.</p>
           <% } else { %>

@@ -8,7 +8,18 @@ const mod = require('../../modules/moderation');
 
 const DURATION_HELP = 'Например 30m, 2h, 1d, 1w (минуты, часы, дни, недели)';
 const ephemeral = { flags: MessageFlags.Ephemeral };
-const fail = (interaction, text) => interaction.reply({ embeds: [embeds.error(text)], ...ephemeral });
+// An error is shown to the moderator alone. After a (public) deferReply the placeholder is removed and the
+// error comes as a private follow-up instead.
+const fail = async (interaction, text) => {
+  if (!interaction.deferred) return interaction.reply({ embeds: [embeds.error(text)], ...ephemeral });
+  if (typeof interaction.followUp !== 'function') return interaction.editReply({ embeds: [embeds.error(text)] });
+  await interaction.deleteReply?.().catch(() => {});
+  return interaction.followUp({ embeds: [embeds.error(text)], ...ephemeral });
+};
+// The final answer: into the deferred reply when there is one.
+const done = (interaction, payload) => (interaction.deferred ? interaction.editReply(payload) : interaction.reply(payload));
+// Bans longer than this are refused (a huge number would give an invalid unban date).
+const MAX_BAN_MS = 5 * 365 * 24 * 3600 * 1000;
 
 function denyPermission(interaction, permName) {
   return fail(interaction, `Для этого действия нужно право **${permName}**.`);
@@ -79,10 +90,12 @@ module.exports = {
     const settings = await GuildSettings.findOne({ where: { guildId: guild.id } });
 
     // Base command permission is ModerateMembers; some actions need a stronger permission.
-    if (sub === 'kick' && !memberHasPermission(interaction.member, 'KickMembers')) return denyPermission(interaction, 'Kick Members');
-    if ((sub === 'ban' || sub === 'unban') && !memberHasPermission(interaction.member, 'BanMembers')) return denyPermission(interaction, 'Ban Members');
-    if (sub === 'clear' && !memberHasPermission(interaction.member, 'ManageMessages')) return denyPermission(interaction, 'Manage Messages');
-    if (['slowmode', 'lock', 'unlock'].includes(sub) && !memberHasPermission(interaction.member, 'ManageChannels')) return denyPermission(interaction, 'Manage Channels');
+    if (sub === 'kick' && !memberHasPermission(interaction.member, 'KickMembers')) return denyPermission(interaction, 'Выгонять участников');
+    if ((sub === 'ban' || sub === 'unban') && !memberHasPermission(interaction.member, 'BanMembers')) return denyPermission(interaction, 'Банить участников');
+    if (sub === 'clear' && !memberHasPermission(interaction.member, 'ManageMessages')) return denyPermission(interaction, 'Управлять сообщениями');
+    if (['slowmode', 'lock', 'unlock'].includes(sub) && !memberHasPermission(interaction.member, 'ManageChannels')) return denyPermission(interaction, 'Управлять каналами');
+    // The command may be opened to roles without the timeout right (server settings → Integrations): check it here too.
+    if ((sub === 'mute' || sub === 'unmute') && !memberHasPermission(interaction.member, 'ModerateMembers')) return denyPermission(interaction, 'давать тайм-аут участникам');
 
     // A server can demand a reason for every punishment.
     if (['warn', 'mute', 'kick', 'ban'].includes(sub) && settings?.modRequireReason && !interaction.options.getString('reason')) {
@@ -99,13 +112,15 @@ module.exports = {
       const hErr = member && hierarchyError(interaction.member, member);
       if (hErr) return fail(interaction, hErr);
       const reason = reasonOf();
+      await interaction.deferReply(); // saving, the DM and a possible automatic punishment can take longer than 3 s
       const { count, escalation } = await mod.warnMember(guild, target, { moderatorId: interaction.user.id, reason, settings });
       let text = `<@${target.id}> получил(а) предупреждение (${count}): ${reason}`;
       if (escalation) {
         const what = { mute: `мут на ${escalation.ms ? formatDuration(escalation.ms) : ''}`, kick: 'кик', ban: escalation.ms ? `бан на ${formatDuration(escalation.ms)}` : 'бан' }[escalation.action];
-        text += escalation.error ? `\n⚠️ Автоматическое наказание (${what}) не удалось: ${escalation.error}` : `\n🔔 Автоматически: ${what}`;
+        if (escalation.skipped) text += `\nℹ️ Порог предупреждений достигнут, но автоматическое наказание (${what}) не применено: у вас нет права на это действие. Решите вручную через /mod.`;
+        else text += escalation.error ? `\n⚠️ Автоматическое наказание (${what}) не удалось: ${escalation.error}` : `\n🔔 Автоматически: ${what}`;
       }
-      return interaction.reply({ embeds: [embeds.success(text)] });
+      return done(interaction, { embeds: [embeds.success(text)] });
     }
 
     if (sub === 'unwarn') {
@@ -147,21 +162,30 @@ module.exports = {
       const hErr = hierarchyError(interaction.member, member);
       if (hErr) return fail(interaction, hErr);
       const reason = reasonOf();
+      await interaction.deferReply();
       try {
         await mod.muteMember(guild, member, ms, { moderatorId: interaction.user.id, reason, settings });
       } catch (err) {
         return fail(interaction, err.message);
       }
-      return interaction.reply({ embeds: [embeds.success(`<@${target.id}> замучен(а) на ${formatDuration(ms)}: ${reason}`)] });
+      return done(interaction, { embeds: [embeds.success(`<@${target.id}> замучен(а) на ${formatDuration(ms)}: ${reason}`)] });
     }
 
     if (sub === 'unmute') {
       const target = interaction.options.getUser('user');
       const member = await memberOf(target);
       if (!member) return fail(interaction, 'Участник не найден.');
-      await member.timeout(null);
+      const hErr = hierarchyError(interaction.member, member);
+      if (hErr) return fail(interaction, hErr);
+      if (member.moderatable === false) return fail(interaction, 'Не могу размутить этого участника: его роль выше моей.');
+      await interaction.deferReply();
+      try {
+        await member.timeout(null);
+      } catch {
+        return fail(interaction, 'Не удалось снять мут: проверьте, что у бота есть право давать тайм-аут участникам.');
+      }
       await recordAndAnnounce(guild, { userId: target.id, moderatorId: interaction.user.id, action: 'unmute' });
-      return interaction.reply({ embeds: [embeds.success(`<@${target.id}> размучен(а).`)] });
+      return done(interaction, { embeds: [embeds.success(`<@${target.id}> размучен(а).`)] });
     }
 
     if (sub === 'kick') {
@@ -171,12 +195,13 @@ module.exports = {
       const hErr = hierarchyError(interaction.member, member);
       if (hErr) return fail(interaction, hErr);
       const reason = reasonOf();
+      await interaction.deferReply();
       try {
         await mod.kickMember(guild, member, { moderatorId: interaction.user.id, reason, settings });
       } catch (err) {
         return fail(interaction, err.message);
       }
-      return interaction.reply({ embeds: [embeds.success(`<@${target.id}> кикнут(а): ${reason}`)] });
+      return done(interaction, { embeds: [embeds.success(`<@${target.id}> кикнут(а): ${reason}`)] });
     }
 
     if (sub === 'ban') {
@@ -184,18 +209,20 @@ module.exports = {
       const durationText = interaction.options.getString('duration');
       const ms = durationText ? parseDuration(durationText) : null;
       if (durationText && !ms) return fail(interaction, `Не понял срок. ${DURATION_HELP}.`);
+      if (ms && ms > MAX_BAN_MS) return fail(interaction, 'Временный бан — не дольше 5 лет. Для бессрочного не указывайте срок.');
       if (target.id === interaction.user.id) return fail(interaction, 'Нельзя забанить самого себя.');
       const member = await memberOf(target);
       const hErr = hierarchyError(interaction.member, member);
       if (hErr) return fail(interaction, hErr);
       const reason = reasonOf();
       const deleteDays = interaction.options.getInteger('delete_days') || 0;
+      await interaction.deferReply();
       try {
         await mod.banUser(guild, target.id, { moderatorId: interaction.user.id, reason, ms, deleteSeconds: deleteDays * 86400, settings });
       } catch (err) {
         return fail(interaction, err.message);
       }
-      return interaction.reply({ embeds: [embeds.success(`<@${target.id}> забанен(а) ${ms ? `на ${formatDuration(ms)}` : 'навсегда'}: ${reason}`)] });
+      return done(interaction, { embeds: [embeds.success(`<@${target.id}> забанен(а) ${ms ? `на ${formatDuration(ms)}` : 'навсегда'}: ${reason}`)] });
     }
 
     if (sub === 'unban') {

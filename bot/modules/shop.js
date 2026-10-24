@@ -89,9 +89,19 @@ function purchaseItem({ guild, member, itemId }) {
       if (role.managed || !role.editable) return { ok: false, error: 'Бот не может выдать эту роль: администрации нужно поднять роль бота выше.' };
     }
 
-    // The money goes FIRST and atomically ("take only if enough"): this is the real check, so nobody can pay twice with the same coins.
+    // A piece of a limited item is reserved atomically first ("take one only if any is left"): the panel may have changed the
+    // stock since it was read. Then the money, also atomically ("take only if enough"), so nobody pays twice with the same coins.
+    const limited = item.stock !== null && item.stock !== undefined;
+    const putBack = () => (limited ? ShopItem.increment('stock', { by: 1, where: { id: item.id } }).catch(() => {}) : null);
+    if (limited) {
+      const [[, reserved]] = await ShopItem.decrement('stock', { by: 1, where: { id: item.id, enabled: true, stock: { [Op.gt]: 0 } } });
+      if (!reserved) return { ok: false, error: 'Товар закончился.' };
+    }
     const balanceAfter = await spend(guild.id, member.id, field, item.price);
-    if (balanceAfter === null) return { ok: false, error: `Не хватает: нужно ${fmt(item.price)} ${cName}.` };
+    if (balanceAfter === null) {
+      await putBack();
+      return { ok: false, error: `Не хватает: нужно ${fmt(item.price)} ${cName}.` };
+    }
 
     if (item.type === 'role') {
       try {
@@ -99,13 +109,11 @@ function purchaseItem({ guild, member, itemId }) {
       } catch (err) {
         logger.error('Shop: could not give role:', err);
         await credit(guild.id, member.id, field, item.price); // give the money back
+        await putBack();
         return { ok: false, error: 'Не удалось выдать роль. С вас ничего не списано.' };
       }
     }
 
-    if (item.stock !== null && item.stock !== undefined) {
-      await ShopItem.decrement('stock', { by: 1, where: { id: item.id, stock: { [Op.gt]: 0 } } });
-    }
     const status = item.type === 'role' || item.deliveryMessage ? 'done' : 'pending';
     const purchase = await Purchase.create({
       guildId: guild.id,

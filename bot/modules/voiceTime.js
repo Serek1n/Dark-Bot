@@ -64,7 +64,7 @@ function seedFromGuilds(client) {
       startSession(guild.id, state.id);
     }
   }
-  const timer = setInterval(() => flushAll().catch((err) => logger.error('voice flush failed', err)), FLUSH_MS);
+  const timer = setInterval(() => flushAll(client).catch((err) => logger.error('voice flush failed', err)), FLUSH_MS);
   timer.unref?.();
   const xpTimer = setInterval(() => xpTick(client).catch((err) => logger.error('voice xp tick failed', err)), XP_TICK_MS);
   xpTimer.unref?.();
@@ -133,12 +133,17 @@ async function xpTick(client) {
 }
 
 /** Saves time of everyone currently in voice and restarts their windows (so a restart loses < 5 min). */
-async function flushAll() {
+async function flushAll(client = null) {
   const now = Date.now();
   const entries = [];
   for (const [k, started] of [...sessions]) {
     const [guildId, userId] = k.split(':');
-    sessions.set(k, now);
+    // A missed "left voice" event (gateway reconnect, the bot removed from the server) must not count forever:
+    // whoever is no longer in a voice channel gets this last window and the session is closed.
+    const guild = client?.guilds?.cache?.get(guildId);
+    const stillIn = !client || Boolean(guild?.voiceStates?.cache?.get(userId)?.channelId);
+    if (stillIn) sessions.set(k, now);
+    else sessions.delete(k);
     entries.push([guildId, userId, Math.floor((now - started) / 1000)]);
   }
   await addSecondsBatch(entries);

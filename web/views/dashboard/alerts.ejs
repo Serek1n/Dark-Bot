@@ -32,7 +32,7 @@
         <div>
           <label>Канал Discord для публикации</label>
           <select name="channelId" required>
-            <% channels.filter(c => c.type === 0).forEach(c => { %>
+            <% channels.filter(c => [0, 5].includes(c.type)).forEach(c => { %>
               <option value="<%= c.id %>">#<%= c.name %></option>
             <% }) %>
           </select>

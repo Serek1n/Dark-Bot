@@ -4,11 +4,14 @@ const { getGuildChannels, getGuildRoles, getGuild, botApi } = require('../../dis
 const { ReactionRole } = require('../../../db');
 const { snowflake, saved } = require('../../utils/common');
 
+const { roleGuard } = require('../../utils/roles');
+
 const router = express.Router();
 
 // ---- Reaction roles ----
 router.get('/:guildId/reaction-roles', ensureGuildAccess, async (req, res) => {
-  const [guild, channels, roles] = await Promise.all([getGuild(req.params.guildId), getGuildChannels(req.params.guildId), getGuildRoles(req.params.guildId)]);
+  const [guild, channels, allRoles, guard] = await Promise.all([getGuild(req.params.guildId), getGuildChannels(req.params.guildId), getGuildRoles(req.params.guildId), roleGuard(req.params.guildId, req.user?.id)]);
+  const roles = guard.annotate(allRoles);
   const reactionRoles = await ReactionRole.findAll({ where: { guildId: req.params.guildId } });
   res.render('dashboard/reaction-roles', { guild, channels, roles, reactionRoles, flag: req.query, active: 'reaction-roles' });
 });
@@ -29,6 +32,7 @@ router.post('/:guildId/reaction-roles', ensureGuildAccess, async (req, res) => {
   if (!channels.some((c) => c.id === channelId)) return res.redirect(saved(guildId, 'reaction-roles', 'invalid'));
   const roles = await getGuildRoles(guildId);
   if (!roles.some((r) => r.id === roleId)) return res.redirect(saved(guildId, 'reaction-roles', 'invalid'));
+  if ((await roleGuard(guildId, req.user?.id)).check(roleId)) return res.redirect(saved(guildId, 'reaction-roles', 'rolenotallowed'));
   const found = await botApi.get(`/channels/${channelId}/messages/${messageId}`).then(() => true).catch(() => false);
   if (!found) return res.redirect(saved(guildId, 'reaction-roles', 'nomessage'));
 

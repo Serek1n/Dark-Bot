@@ -78,18 +78,23 @@ async function finishGiveaway(client, giveaway, { reroll = false } = {}) {
     let ids = entries.map((e) => e.userId);
     if (reroll) ids = ids.filter((id) => !parseWinners(giveaway).includes(id));
 
-    // Only people who are still on the server (and still have the required role) can win.
-    const eligible = [];
-    for (const id of ids) {
+    // Only people who are still on the server (and still have the required role) can win. Entries are drawn in
+    // random order and checked one by one until there are enough winners: with thousands of entries only a handful
+    // of members are asked from Discord, not every one of them.
+    const winnerIds = [];
+    for (const id of pickWinners(ids, ids.length)) {
+      if (winnerIds.length >= giveaway.winnersCount) break;
       const member = guild ? await guild.members.fetch(id).catch(() => null) : null;
       if (!member) continue;
       if (giveaway.requiredRoleId && !member.roles?.cache?.has?.(giveaway.requiredRoleId)) continue;
-      eligible.push(id);
+      winnerIds.push(id);
     }
-    const winnerIds = pickWinners(eligible, giveaway.winnersCount);
 
     giveaway.ended = true;
     giveaway.winners = JSON.stringify(winnerIds);
+    const pendingEdit = counterEdits.get(giveaway.id); // no counter refresh after the end
+    if (pendingEdit?.timer) clearTimeout(pendingEdit.timer);
+    counterEdits.delete(giveaway.id);
     await giveaway.save();
 
     const channel = await client.channels.fetch(giveaway.channelId).catch(() => null);
@@ -122,11 +127,30 @@ async function handleGiveawayButton(interaction) {
   const existing = await GiveawayEntry.findOne({ where });
   if (existing) await existing.destroy();
   else await GiveawayEntry.findOrCreate({ where });
-  const count = await GiveawayEntry.count({ where: { giveawayId: giveaway.id } });
 
   await reply(existing ? embeds.info('Вы вышли из розыгрыша.') : embeds.success('Вы участвуете в розыгрыше. Удачи!'));
-  // The counter on the button; skipped quietly if Discord says "slow down".
-  await interaction.message?.edit?.({ embeds: [giveawayEmbed(giveaway, { count })], components: [joinRow(giveaway, count)] }).catch(() => {});
+  scheduleCounterEdit(giveaway, interaction.message);
+}
+
+// The counter on the button is refreshed at most once per 5 s per giveaway: hundreds of clicks must not mean
+// hundreds of message edits (Discord would start refusing them).
+const COUNTER_EDIT_MS = 5000;
+const counterEdits = new Map(); // giveaway id -> { timer, lastAt }
+function scheduleCounterEdit(giveaway, message) {
+  if (!message?.edit) return;
+  const state = counterEdits.get(giveaway.id) || { timer: null, lastAt: 0 };
+  counterEdits.set(giveaway.id, state);
+  if (state.timer) return; // an edit is already planned; it will read the fresh count
+  const run = async () => {
+    state.timer = null;
+    state.lastAt = Date.now();
+    const count = await GiveawayEntry.count({ where: { giveawayId: giveaway.id } }).catch(() => null);
+    if (count !== null) await message.edit({ embeds: [giveawayEmbed(giveaway, { count })], components: [joinRow(giveaway, count)] }).catch(() => {});
+  };
+  const wait = Math.max(0, state.lastAt + COUNTER_EDIT_MS - Date.now());
+  if (!wait) return run();
+  state.timer = setTimeout(run, wait);
+  state.timer.unref?.();
 }
 
 async function tick(client) {

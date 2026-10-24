@@ -38,9 +38,8 @@ router.post('/:guildId/temp-voice/panel', ensureGuildAccess, async (req, res) =>
     await settings.save();
     res.redirect(saved(guildId, 'temp-voice', 'vpanel'));
   } catch (err) {
-    const code = err.response?.data?.code;
-    const text = code === 50001 || code === 50013 || err.response?.status === 403 ? 'У бота нет прав в этом канале: нужны «Просмотр канала», «Отправлять сообщения» и «Встраивать ссылки».' : 'Не удалось разместить панель. Попробуйте ещё раз.';
-    res.redirect(`/dashboard/${guildId}/temp-voice?whfail=1&msg=${encodeURIComponent(text)}`);
+    const { errorKey } = require('../../../bot/utils/discordErrors');
+    res.redirect(`/dashboard/${guildId}/temp-voice?whfail=1&reason=${errorKey(err) === 'perm' ? 'panelperm' : 'panel'}`);
   }
 });
 

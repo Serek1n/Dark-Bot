@@ -168,7 +168,7 @@ function formatVoice(totalSeconds) {
   return `${Math.floor(s / 60)} мин`;
 }
 
-async function renderRankCard(data) {
+async function drawRankCard(data) {
   ensureFonts();
   const W = 900;
   const H = 360;
@@ -273,6 +273,23 @@ async function renderRankCard(data) {
  * Renders the server leaderboard as a PNG buffer.
  * @param {{ title: string, rows: Array<{ rank: number, name: string, avatarURL?: string, level: number, xp: number }> }} data
  */
+// The same card is asked for again and again (people look at their own profile, others look at it too). The finished picture is kept for a minute,
+// keyed by everything that is drawn on it; the voice time is counted in whole minutes so it does not make every request different.
+const CARD_TTL_MS = 60_000;
+const CARD_MAX = 100;
+const cardCache = new Map(); // key -> { promise, expires }
+
+function renderRankCard(data) {
+  const key = JSON.stringify({ ...data, voiceSeconds: Math.floor((Number(data.voiceSeconds) || 0) / 60) });
+  const hit = cardCache.get(key);
+  if (hit && hit.expires > Date.now()) return hit.promise;
+  const promise = drawRankCard(data);
+  cardCache.set(key, { promise, expires: Date.now() + CARD_TTL_MS });
+  promise.catch(() => cardCache.delete(key)); // a failed drawing is not remembered
+  if (cardCache.size > CARD_MAX) for (const [k, v] of cardCache) if (v.expires < Date.now() || cardCache.size > CARD_MAX) cardCache.delete(k);
+  return promise;
+}
+
 async function renderLeaderboard(data) {
   ensureFonts();
   const rows = data.rows.slice(0, 10);

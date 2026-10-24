@@ -35,7 +35,7 @@
         <button class="btn" type="submit">Сохранить</button>
       </form>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/temp-voice/panel" class="card">
+      <form method="post" action="/dashboard/<%= guild.id %>/temp-voice/panel" class="card" data-no-guard>
         <h2>Панель управления комнатами</h2>
         <div class="hint">Сообщение с кнопками для владельцев комнат: название и лимит, доступ (открыть, закрыть, скрыть), доверенные, приглашение, выгнать, регион, бан и разбан, удаление. Разместите его в отдельном канале, например «панель-управления». Кнопки управляют той комнатой, в которой сидит нажавший (или его собственной). Те же действия есть в команде <code>/voice</code>.</div>
         <div>

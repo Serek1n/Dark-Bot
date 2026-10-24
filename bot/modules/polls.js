@@ -1,3 +1,4 @@
+const { Routes } = require('discord.js');
 // Timed polls: when the time is up the bot counts the reactions and posts the result.
 const { Op } = require('sequelize');
 const { Poll } = require('../../db');
@@ -26,8 +27,14 @@ async function finish(client, poll) {
   const options = parseOptions(poll);
   const channel = await client.channels.fetch(poll.channelId).catch(() => null);
   const message = channel ? await channel.messages.fetch(poll.messageId).catch(() => null) : null;
-  const counts = options.map(() => 0);
-  if (message) {
+  // The reaction cache is switched off (bot/index.js), so the counts come from the message itself over REST.
+  // `count` includes the bot's own reaction (`me`), which is taken off.
+  const raw = message && client.rest?.get ? await client.rest.get(Routes.channelMessage(poll.channelId, poll.messageId)).catch(() => null) : null;
+  const counts = options.map((o) => {
+    const r = (raw?.reactions || []).find((x) => (x.emoji?.id ? String(o.emoji).includes(x.emoji.id) : x.emoji?.name === o.emoji));
+    return r ? Math.max(0, Number(r.count || 0) - (r.me ? 1 : 0)) : 0;
+  });
+  if (message && !raw) {
     for (const [i, o] of options.entries()) {
       const reaction = message.reactions?.cache?.get(o.emoji);
       if (!reaction) continue;

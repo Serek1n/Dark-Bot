@@ -50,7 +50,8 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
   const ix = (w, kind, customId, member, extra = {}) => { const out = { replies: [], updates: [], modals: [], follow: [] }; const i = { customId, guild: w.guild, member, user: member.user, replied: false, deferred: false,
     isButton: () => kind === 'button', isStringSelectMenu: () => kind === 'select', isUserSelectMenu: () => kind === 'user', isModalSubmit: () => kind === 'modal',
     values: extra.values, fields: { getTextInputValue: (k) => (extra.fields || {})[k] ?? '' },
-    reply: async (p) => { out.replies.push(p); }, update: async (p) => { out.updates.push(p); }, showModal: async (m) => { out.modals.push(m); }, followUp: async (p) => { out.follow.push(p); } }; i.out = out; return i; };
+    reply: async (p) => { out.replies.push(p); }, update: async (p) => { out.updates.push(p); }, showModal: async (m) => { out.modals.push(m); }, followUp: async (p) => { out.follow.push(p); },
+    deferUpdate: async () => { i.deferred = 'update'; }, deferReply: async () => { i.deferred = 'reply'; }, editReply: async (p) => { (i.deferred === 'update' ? out.updates : out.replies).push(p); } }; i.out = out; return i; };
   const press = async (w, member, customId, extra) => { const kind = customId.startsWith('vr:m:') ? 'modal' : customId.startsWith('vr:u:') ? 'user' : customId.startsWith('vr:s:') || customId.startsWith('vr:l:') ? 'select' : 'button'; const i = ix(w, kind, customId, member, extra); await room.handleVoiceRoomComponent(i); return i.out; };
   const said = (o) => txt([o.replies, o.updates, o.follow]);
   const flags = (w, id) => { const e = w.ow.get(id); return e ? { allow: e.allow.has(P.Connect), deny: e.deny.has(P.Connect), viewAllow: e.allow.has(P.ViewChannel), viewDeny: e.deny.has(P.ViewChannel) } : null; };
@@ -210,7 +211,7 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
   await test('web page: a voice channel or unknown channel is refused; missing rights give a readable message', async () => {
     const n0 = posted.length; assert((await post({ channelId: '123456789012345679' })).headers.get('location').includes('invalid=1'), 'voice channel'); assert((await post({ channelId: 'abc' })).headers.get('location').includes('invalid=1'), 'junk'); assert(posted.length === n0, 'nothing posted');
     postFail = Object.assign(new Error('x'), { response: { status: 403, data: { code: 50013 } } }); const loc = decodeURIComponent((await post({ channelId: '123456789012345678' })).headers.get('location')); postFail = null;
-    assert(loc.includes('whfail=1') && loc.includes('нет прав'), loc);
+    assert(loc.includes('whfail=1') && loc.includes('reason=panelperm') && require('../bot/utils/discordErrors').errorText('panelperm').includes('нет прав'), loc);
   });
   server.close();
 

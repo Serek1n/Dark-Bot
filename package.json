@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node bot/index.js",
     "web": "node web/index.js",
-    "dev": "concurrently \"node bot/index.js\" \"node web/index.js\"",
+    "dev": "node --watch bot/index.js",
     "deploy-commands": "node bot/deploy-commands.js",
-    "test": "node test_harness/clean.js && node test_harness/run.js && node test_harness/run_events.js && node test_harness/run_logic.js && node test_harness/run_music.js && node test_harness/run_ytdlp.js && node test_harness/run_tracks.js && node test_harness/run_shop.js && node test_harness/run_batch.js && node test_harness/run_web.js && node test_harness/run_features.js && node test_harness/run_adjust.js && node test_harness/run_boosts.js && node test_harness/run_levelup.js && node test_harness/run_extras.js && node test_harness/run_webhook.js && node test_harness/run_webhookbot.js && node test_harness/run_optimize.js && node test_harness/run_webhook_panel.js && node test_harness/run_security.js && node test_harness/run_hardening.js && node test_harness/run_theme.js && node test_harness/run_beta.js && node test_harness/run_channel.js && node test_harness/run_released.js && node test_harness/run_wallet.js && node test_harness/run_sessions.js && node test_harness/run_voicefarm.js && node test_harness/run_oneprocess.js && node test_harness/run_migrations.js && node test_harness/run_scheduler.js && node test_harness/run_rejoin.js && node test_harness/run_voiceroom.js && node test_harness/run_logs.js && node test_harness/run_moderation.js && node test_harness/run_guilds.js && node test_harness/run_backup.js && node test_harness/run_smoke.js",
+    "test": "node test_harness/clean.js && node test_harness/run.js && node test_harness/run_events.js && node test_harness/run_logic.js && node test_harness/run_music.js && node test_harness/run_ytdlp.js && node test_harness/run_tracks.js && node test_harness/run_shop.js && node test_harness/run_batch.js && node test_harness/run_web.js && node test_harness/run_features.js && node test_harness/run_adjust.js && node test_harness/run_boosts.js && node test_harness/run_levelup.js && node test_harness/run_extras.js && node test_harness/run_webhook.js && node test_harness/run_webhookbot.js && node test_harness/run_optimize.js && node test_harness/run_webhook_panel.js && node test_harness/run_security.js && node test_harness/run_hardening.js && node test_harness/run_theme.js && node test_harness/run_beta.js && node test_harness/run_channel.js && node test_harness/run_released.js && node test_harness/run_customcache.js && node test_harness/run_crypto.js && node test_harness/run_review.js && node test_harness/run_wallet.js && node test_harness/run_sessions.js && node test_harness/run_voicefarm.js && node test_harness/run_oneprocess.js && node test_harness/run_migrations.js && node test_harness/run_scheduler.js && node test_harness/run_rejoin.js && node test_harness/run_voiceroom.js && node test_harness/run_logs.js && node test_harness/run_moderation.js && node test_harness/run_guilds.js && node test_harness/run_backup.js && node test_harness/run_smoke.js",
     "lint": "eslint ."
   },
   "license": "MIT",
@@ -34,7 +34,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
-    "concurrently": "^8.2.2",
     "eslint": "^9.39.5",
     "globals": "^17.13.0"
   },
@@ -43,5 +42,13 @@
   },
   "optionalDependencies": {
     "@discordjs/opus": "^0.10.0"
+  },
+  "overrides": {
+    "@discordjs/node-pre-gyp": {
+      "tar": "^7.5.22"
+    },
+    "sequelize": {
+      "uuid": "^11.1.1"
+    }
   }
 }

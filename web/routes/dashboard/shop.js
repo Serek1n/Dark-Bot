@@ -4,6 +4,8 @@ const { getGuildChannels, getGuildRoles, getGuild, getUsers } = require('../../d
 const { ShopItem, Purchase } = require('../../../db');
 const { clampInt, snowflake, saved, getSettings } = require('../../utils/common');
 
+const { roleGuard } = require('../../utils/roles');
+
 const router = express.Router();
 
 // ---- Shop: editable items, purchase history ----
@@ -26,10 +28,13 @@ const STOCK_FIELDS = (body, current = {}) => {
   };
 };
 const validItem = (f) => f.name.length > 0 && (f.type !== 'role' || f.roleId);
+// A role sold in the shop must be one this user may hand out (an unchanged role of an existing item is kept).
+const roleRefused = async (req, f, current) => f.type === 'role' && f.roleId !== current?.roleId && Boolean((await roleGuard(req.params.guildId, req.user?.id)).check(f.roleId));
 
 router.get('/:guildId/shop', ensureGuildAccess, async (req, res) => {
   const { guildId } = req.params;
-  const [guild, settings, channels, roles] = await Promise.all([getGuild(guildId), getSettings(guildId), getGuildChannels(guildId), getGuildRoles(guildId)]);
+  const [guild, settings, channels, allRoles, guard] = await Promise.all([getGuild(guildId), getSettings(guildId), getGuildChannels(guildId), getGuildRoles(guildId), roleGuard(guildId, req.user?.id)]);
+  const roles = guard.annotate(allRoles);
   const items = await ShopItem.findAll({ where: { guildId }, order: [['id', 'ASC']] });
   const purchases = await Purchase.findAll({ where: { guildId }, order: [['createdAt', 'DESC'], ['id', 'DESC']], limit: 30 });
   const users = await getUsers([...new Set(purchases.map((p) => p.userId))]);
@@ -50,6 +55,7 @@ router.post('/:guildId/shop/items', ensureGuildAccess, async (req, res) => {
   const fields = STOCK_FIELDS(req.body);
   if (!validItem(fields)) return res.redirect(saved(guildId, 'shop', 'invalid'));
   if ((await ShopItem.count({ where: { guildId } })) >= SHOP_MAX_ITEMS) return res.redirect(saved(guildId, 'shop', 'invalid'));
+  if (await roleRefused(req, fields)) return res.redirect(saved(guildId, 'shop', 'rolenotallowed'));
   await ShopItem.create({ guildId, ...fields });
   res.redirect(saved(guildId, 'shop'));
 });
@@ -60,6 +66,7 @@ router.post('/:guildId/shop/items/:id', ensureGuildAccess, async (req, res) => {
   if (!item) return res.redirect(saved(guildId, 'shop', 'invalid'));
   const fields = STOCK_FIELDS(req.body, item);
   if (!validItem(fields)) return res.redirect(saved(guildId, 'shop', 'invalid'));
+  if (await roleRefused(req, fields, item)) return res.redirect(saved(guildId, 'shop', 'rolenotallowed'));
   await item.update(fields);
   res.redirect(saved(guildId, 'shop'));
 });

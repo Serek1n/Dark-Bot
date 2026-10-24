@@ -148,6 +148,7 @@ async function rename(ctx, name, limit) {
       const now = Date.now(); const recent = (renames.get(ctx.channel.id) || []).filter((t) => now - t < 10 * 60_000);
       if (recent.length >= 2) fail(`Discord разрешает менять название комнаты не чаще двух раз за 10 минут. Подождите ${Math.ceil((recent[0] + 10 * 60_000 - now) / 60_000)} мин.`);
       await ctx.channel.setName(text, 'Владелец комнаты изменил название');
+      for (const [id, times] of renames) if (times.every((t) => now - t >= 10 * 60_000)) renames.delete(id); // forget rooms renamed long ago (or deleted)
       renames.set(ctx.channel.id, [...recent, now]); changes.push(`название: **${text}**`);
     }
   }
@@ -319,6 +320,7 @@ async function handleVoiceRoomComponent(interaction) {
   const replaceMenu = !interaction.isModalSubmit?.() && interaction.customId.split(':').length > 2 && typeof interaction.update === 'function';
   const answer = (text, ok = true) => {
     const payload = { content: '', embeds: [ok ? embeds.success(text) : embeds.error(text)], components: [] };
+    if (interaction.deferred) return interaction.editReply(payload);
     return replaceMenu ? interaction.update(payload) : interaction.reply({ ...payload, ...ephemeral });
   };
   try {
@@ -330,6 +332,9 @@ async function handleVoiceRoomComponent(interaction) {
     if (parts.length === 1) return await showMenu(interaction, parts[0], await findRoom(guild, member));
 
     const [type, kind, channelId] = parts;
+    // Changing permissions for several roles or people takes more than Discord's 3 seconds: acknowledge first.
+    if (replaceMenu) await interaction.deferUpdate();
+    else await interaction.deferReply(ephemeral);
     return await withLock(`voiceroom:${channelId}`, async () => {
       const ctx = await roomById(guild, member, channelId);
       const ids = interaction.values || [];
@@ -350,7 +355,8 @@ async function handleVoiceRoomComponent(interaction) {
   } catch (err) {
     if (!(err instanceof RoomError)) logger.error('Voice room action failed:', err);
     const text = err instanceof RoomError ? err.message : 'Не получилось выполнить действие. Проверьте, что у бота есть права «Управлять каналами», «Управлять ролями» и «Перемещать участников».';
-    if (interaction.replied || interaction.deferred) return interaction.followUp({ embeds: [embeds.error(text)], ...ephemeral }).catch(() => {});
+    if (interaction.deferred) return answer(text, false).catch(() => {});
+    if (interaction.replied) return interaction.followUp({ embeds: [embeds.error(text)], ...ephemeral }).catch(() => {});
     return answer(text, false).catch(() => {});
   }
 }

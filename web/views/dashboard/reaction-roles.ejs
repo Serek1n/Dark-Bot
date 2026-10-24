@@ -31,7 +31,7 @@
           <label>Роль</label>
           <select name="roleId" required>
             <% roles.forEach(r => { %>
-              <option value="<%= r.id %>">@<%= r.name %></option>
+              <option value="<%= r.id %>" <%= r.blocked ? 'disabled' : '' %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option>
             <% }) %>
           </select>
         </div>

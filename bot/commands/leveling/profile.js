@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, AttachmentBuilder } = require('discord.js');
 const { MemberProfile } = require('../../../db');
 const { Op } = require('sequelize');
-const { getOrCreateProfile, getOrCreateSettings, xpForLevel, getLeaderboard } = require('../../modules/leveling');
+const { getOrCreateProfile, getOrCreateSettings, xpForLevel } = require('../../modules/leveling');
 const { renderRankCard } = require('../../modules/rankCard');
 const { buildTopPage } = require('../../modules/leaderboardPage');
 const embeds = require('../../utils/embeds');

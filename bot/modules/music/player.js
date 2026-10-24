@@ -264,9 +264,7 @@ class GuildQueue {
       let resource;
       if (next.source === 'youtube' || next.source === 'soundcloud') {
         // Both go through yt-dlp: it keeps up with the sites, play-dl's SoundCloud needs a key that expires.
-        const { proc, stream } = spawnYtDlpAudio(next.url, (reason) =>
-          this.textChannel?.send(`⚠️ Не удалось воспроизвести **${next.title}**${reason ? ': ' + reason : ''}.`).catch(() => {})
-        );
+        const { proc, stream } = spawnYtDlpAudio(next.url, (reason) => this._warnSkip(next.title, reason));
         this.currentProcess = proc;
         resource = createAudioResource(stream, {
           inputType: StreamType.Arbitrary,
@@ -288,8 +286,8 @@ class GuildQueue {
     } catch (err) {
       this._killCurrentProcess();
       logger.error('Failed to start track', next.url, err);
-      this.textChannel?.send(`⚠️ Не удалось воспроизвести **${next.title}**, пропускаю.`).catch(() => {});
-      this.playNext(interaction);
+      this._warnSkip(next.title);
+      this.playNext(interaction).catch((e) => logger.error('Failed to continue the queue', e));
     }
   }
 
@@ -327,11 +325,26 @@ class GuildQueue {
     }
   }
 
+  /**
+   * Tells the channel a track was skipped, at most once per 15 s: a playlist of broken links must not
+   * flood the chat (the skipped ones in between are counted in the next message).
+   */
+  _warnSkip(title, reason) {
+    const now = Date.now();
+    if (now - (this._lastWarnAt || 0) < 15000) { this._silentSkips = (this._silentSkips || 0) + 1; return; }
+    const extra = this._silentSkips ? ` Ещё пропущено треков: ${this._silentSkips}.` : '';
+    this._lastWarnAt = now;
+    this._silentSkips = 0;
+    this.textChannel?.send(`⚠️ Не удалось воспроизвести **${title}**${reason ? ': ' + reason : ''}, пропускаю.${extra}`).catch(() => {});
+  }
+
   stopAndDestroy(note = 'Воспроизведение остановлено.') {
     this._clearIdleTimer();
     this.retirePanel(note);
     this.tracks = [];
-    this.player.stop();
+    // force: without a voice connection the player would sit in AutoPaused forever and never leave the
+    // library's global list of players (a leak per stopped session).
+    this.player.stop(true);
     this._killCurrentProcess();
     try { this.connection?.destroy(); } catch (_) { /* already destroyed */ }
   }

@@ -3,7 +3,7 @@ const { GuildSettings } = require('../../../db');
 const embeds = require('../../utils/embeds');
 
 module.exports = {
-  data: new ContextMenuCommandBuilder().setName('Report message').setType(ApplicationCommandType.Message),
+  data: new ContextMenuCommandBuilder().setName('Report message').setNameLocalizations({ ru: 'Пожаловаться' }).setType(ApplicationCommandType.Message),
   async execute(interaction) {
     const settings = await GuildSettings.findOne({ where: { guildId: interaction.guild.id } });
     if (!settings?.reportChannelId) {

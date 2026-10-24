@@ -1,6 +1,12 @@
 const { MemberProfile } = require('../../db');
 const { xpForLevel, totalXpForLevel, levelFromXp } = require('./leveling');
 
+// Numbers from an uploaded file are clamped: a value like 1e400 must not reach the database or the level loop.
+const MAX_XP_PART = totalXpForLevel(500);
+const MAX_MONEY = 1e12;
+const MAX_COUNT = 1e9;
+const num = (v, max) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.max(0, Math.min(max, n)) : 0; };
+
 /**
  * Imports an export from another leveling bot (Lacuna format: array of users with
  * activities.levels[] / activities.wallets[]). Only rows of the given guild are used.
@@ -20,20 +26,20 @@ async function importLacuna(guildId, users) {
       continue;
     }
     const level = Math.max(0, Math.min(500, Math.trunc(Number(row.experience?.level) || 0)));
-    const progress = Math.max(0, Number(row.experience?.current) || 0);
+    const progress = num(row.experience?.current, MAX_XP_PART);
     const xp = Math.round(totalXpForLevel(level) + Math.min(progress, xpForLevel(level) - 1));
     const wallet = user.activities?.wallets?.find((w) => String(w.guild_id) === String(guildId));
-    const money = Math.round(Number(wallet?.currencies?.find((c) => c.id === 'DEFAULT')?.amount) || 0);
-    const messages = Math.max(0, Math.trunc(Number(row.activity?.total_messages) || 0));
-    const voice = Math.max(0, Math.trunc(Number(row.activity?.total_voice_time) || 0));
+    const money = num(wallet?.currencies?.find((c) => c.id === 'DEFAULT')?.amount, MAX_MONEY);
+    const messages = num(row.activity?.total_messages, MAX_COUNT);
+    const voice = num(row.activity?.total_voice_time, MAX_COUNT);
 
     const [profile] = await MemberProfile.findOrCreate({ where: { guildId, userId } });
     const dark = user.dark && typeof user.dark === 'object' ? user.dark : null;
     if (dark) {
       // Export of this bot: both directions are restored exactly (never lowered).
-      profile.chatXp = Math.max(Number(profile.chatXp), Math.max(0, Math.round(Number(dark.chatXp) || 0)));
-      profile.voiceXp = Math.max(Number(profile.voiceXp), Math.max(0, Math.round(Number(dark.voiceXp) || 0)));
-      profile.crystals = Math.max(Number(profile.crystals), Math.max(0, Math.round(Number(dark.crystals) || 0)));
+      profile.chatXp = Math.max(Number(profile.chatXp), num(dark.chatXp, MAX_XP_PART));
+      profile.voiceXp = Math.max(Number(profile.voiceXp), num(dark.voiceXp, MAX_XP_PART));
+      profile.crystals = Math.max(Number(profile.crystals), num(dark.crystals, MAX_MONEY));
     } else if (xp > Number(profile.xp)) {
       // Other bots keep one XP number: it cannot be split, so it counts as chat progress.
       profile.chatXp = Number(profile.chatXp) + (xp - Number(profile.xp));

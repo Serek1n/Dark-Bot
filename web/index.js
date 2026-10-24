@@ -38,6 +38,7 @@ function assetVersion() {
 app.locals.assetV = assetVersion();
 app.locals.betaBuild = require('../bot/utils/channel').isBetaBuild(); // the beta build shows a tag next to the name
 app.locals.betaPages = require('../bot/utils/features').betaPages; // menu items of features still in testing
+app.locals.errorTexts = require('../bot/utils/discordErrors').ERROR_TEXT; // texts for error codes carried in links
 
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '7d',
@@ -100,6 +101,9 @@ app.use('/dashboard', dashboardRoutes);
 
 app.use((req, res, next) => res.status(404).render('error', { message: 'Страница не найдена.' }));
 app.use((err, req, res, next) => {
+  // Form problems (too large, unreadable) are the visitor's, not the server's: say what happened with the right status.
+  if (err.type === 'entity.too.large') return res.status(413).render('error', { message: 'Слишком много данных в форме. Сократите текст или список и попробуйте снова.' });
+  if (err.status >= 400 && err.status < 500 && err.expose) return res.status(err.status).render('error', { message: 'Не удалось прочитать отправленную форму. Обновите страницу и повторите.' });
   logger.error('Web error:', err.isAxiosError ? `${err.message} (${err.response?.status || 'нет ответа'})` : err); // an axios error holds request URLs, which can contain webhook tokens
   const isDiscordApiError = err.isAxiosError || err.response?.status;
   const message = isDiscordApiError

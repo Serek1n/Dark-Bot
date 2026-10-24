@@ -121,6 +121,8 @@
 <script>
   (function () {
     var params = new URLSearchParams(location.search);
+    // Error texts by code; the link only carries the code, so it cannot be used to show someone else's words.
+    var reasons = <%- JSON.stringify(locals.errorTexts || {}).replace(/</g, '\\u003c') %>;
     var kinds = {
       saved: ['Изменения сохранены', false],
       deleted: ['Удалено', false],
@@ -128,6 +130,10 @@
       started: ['Выдача ролей запущена', false],
       running: ['Выдача ролей уже идёт', true],
       nomessage: ['Сообщение не найдено в выбранном канале', true],
+      rolenotallowed: ['Эту роль выдавать нельзя: она управляется интеграцией, выше роли бота или вашей, либо даёт права модерации', true],
+      toomany: ['Достигнут предел записей для сервера', true],
+      badchannel: ['Выберите канал этого сервера', true],
+      badlogin: ['Неверный логин Twitch: латиница, цифры и _, от 3 до 25 символов', true],
       granted: ['Баланс участника обновлён', false],
       adjusted: ['Уровень участника изменён', false],
       baduser: ['Укажите корректный ID участника', true],
@@ -140,7 +146,7 @@
       wpanel: ['Панель управления вебхуками размещена', false],
       vpanel: ['Панель управления комнатами размещена', false],
       whsent: ['Сообщение отправлено', false],
-      whfail: [params.get('msg') || 'Не удалось выполнить действие с вебхуком', true],
+      whfail: [reasons[params.get('reason')] || 'Не удалось выполнить действие', true],
       logfail: ['Не удалось создать темы. Проверьте права бота в этом форуме', true]
     };
     for (var key in kinds) {
@@ -174,15 +180,28 @@
     var forms = Array.prototype.filter.call(document.querySelectorAll('.content form[method=post]'), function (f) {
       return f.querySelector('input:not([type=hidden]):not([type=file]), select, textarea') && !f.hasAttribute('data-no-guard');
     });
-    var dirty = null, submitting = false;
-    function mark(f) { dirty = f; bar.classList.add('show'); }
+    // Every edited form is remembered: saving one block must not silently drop changes made in another.
+    var dirty = [], submitting = false;
+    function mark(f) { if (dirty.indexOf(f) < 0) dirty.push(f); bar.classList.add('show'); }
+    function post(f) { return fetch(f.action || location.href, { method: 'POST', body: new URLSearchParams(new FormData(f)), credentials: 'same-origin' }); }
+    // Saves the other edited forms in the background, then submits this one normally.
+    function submitAll(main) {
+      var others = dirty.filter(function (f) { return f !== main; });
+      submitting = true;
+      Promise.all(others.map(post)).catch(function () {}).then(function () { main.requestSubmit ? main.requestSubmit() : main.submit(); });
+    }
     forms.forEach(function (f) {
       f.addEventListener('input', function () { mark(f); });
       f.addEventListener('change', function () { mark(f); });
-      f.addEventListener('submit', function () { submitting = true; });
+      f.addEventListener('submit', function (e) {
+        if (submitting) return;
+        var others = dirty.filter(function (x) { return x !== f; });
+        if (others.length && confirm('В другом блоке на этой странице есть несохранённые изменения. Сохранить их тоже?')) { e.preventDefault(); submitAll(f); return; }
+        submitting = true;
+      });
     });
-    document.getElementById('sbSave').addEventListener('click', function () { if (dirty) { submitting = true; dirty.requestSubmit ? dirty.requestSubmit() : dirty.submit(); } });
+    document.getElementById('sbSave').addEventListener('click', function () { if (dirty.length) submitAll(dirty[dirty.length - 1]); });
     document.getElementById('sbReset').addEventListener('click', function () { submitting = true; location.reload(); });
-    window.addEventListener('beforeunload', function (e) { if (dirty && !submitting) { e.preventDefault(); e.returnValue = ''; } });
+    window.addEventListener('beforeunload', function (e) { if (dirty.length && !submitting) { e.preventDefault(); e.returnValue = ''; } });
   });
 </script>

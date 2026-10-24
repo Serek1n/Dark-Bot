@@ -15,10 +15,14 @@ function totalXpForLevel(level) {
   return total;
 }
 
+// Hard ceiling: protects the level loop from huge or infinite XP values (a broken import, a typo in the panel).
+const MAX_LEVEL = 1000;
+const MAX_XP = totalXpForLevel(MAX_LEVEL);
+
 function levelFromXp(xp) {
   let level = 0;
-  let remaining = xp;
-  while (remaining >= xpForLevel(level)) {
+  let remaining = Number.isNaN(Number(xp)) ? 0 : Math.min(Number(xp), MAX_XP);
+  while (level < MAX_LEVEL && remaining >= xpForLevel(level)) {
     remaining -= xpForLevel(level);
     level += 1;
   }
@@ -93,7 +97,6 @@ function boostFor(settings, ids) {
 const scale = (value, multiplier) => Math.max(0, Math.round(value * multiplier));
 
 const TRACKS = ['chat', 'voice'];
-const MAX_LEVEL = 1000;
 
 /**
  * Manual level change by an admin (web panel). mode: 'add' | 'remove' | 'set'.

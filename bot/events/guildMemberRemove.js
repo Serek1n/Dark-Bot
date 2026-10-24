@@ -1,4 +1,3 @@
-const { GuildSettings } = require('../../db');
 const { getOrCreateSettings } = require('../modules/leveling');
 const { fillTemplate } = require('./guildMemberAdd');
 const { saveSnapshot } = require('../modules/memberRestore');

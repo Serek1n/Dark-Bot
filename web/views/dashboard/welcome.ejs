@@ -39,7 +39,7 @@
           <select name="autoRoleId">
             <option value="">— не выбрано —</option>
             <% roles.forEach(r => { %>
-              <option value="<%= r.id %>" <%= settings.autoRoleId === r.id ? 'selected' : '' %>>@<%= r.name %></option>
+              <option value="<%= r.id %>" <%= settings.autoRoleId === r.id ? 'selected' : (r.blocked ? 'disabled' : '') %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option>
             <% }) %>
           </select>
         </div>

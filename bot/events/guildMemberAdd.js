@@ -1,6 +1,5 @@
 const { AttachmentBuilder } = require('discord.js');
 const { getOrCreateSettings } = require('../modules/leveling');
-const { GuildSettings } = require('../../db');
 const logger = require('../utils/logger');
 const { renderWelcomeCard } = require('../modules/welcomeCard');
 const { restoreMember } = require('../modules/memberRestore');

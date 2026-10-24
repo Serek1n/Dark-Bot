@@ -17,6 +17,10 @@ module.exports = {
     if (interaction.isChatInputCommand() || interaction.isContextMenuCommand()) {
       const command = interaction.client.commands.get(interaction.commandName);
       if (!command) return;
+      // Everything works on a server; a command opened in the bot's DMs gets a short note instead of an error.
+      if (typeof interaction.inGuild === 'function' && !interaction.inGuild() && !command.dmAllowed) {
+        return interaction.reply({ embeds: [embeds.info('Эта команда работает только на сервере.')], flags: MessageFlags.Ephemeral }).catch(() => {});
+      }
 
       try {
         // Features an admin switched off in the panel answer with a short note instead of running.

@@ -23,7 +23,7 @@ const FEATURES = [
   { key: 'reminders', field: 'remindersEnabled', title: 'Напоминания', desc: 'Команда /remind: бот упомянет вас через заданное время', commands: ['remind'], page: null },
   { key: 'fun', field: 'funEnabled', title: 'Мини-игры', desc: 'Кубик, монетка, шар предсказаний, камень-ножницы-бумага: /dice, /coinflip, /8ball, /rps', commands: ['dice', 'coinflip', '8ball', 'rps'], page: null },
   { key: 'webhooks', field: 'webhooksEnabled', title: 'Вебхуки', desc: 'Команда /webhook: создание вебхуков и отправка сообщений через них (нужно право «Управлять вебхуками»)', commands: ['webhook'], page: 'webhooks' },
-  { key: 'report', field: 'reportEnabled', title: 'Жалобы', desc: 'Меню «Report message» для жалоб на сообщения', commands: ['Report message'], page: 'moderation' }
+  { key: 'report', field: 'reportEnabled', title: 'Жалобы', desc: 'Пункт «Пожаловаться» в меню сообщения', commands: ['Report message'], page: 'moderation' }
 ];
 
 const byCommand = new Map(FEATURES.flatMap((f) => f.commands.map((c) => [c, f])));
