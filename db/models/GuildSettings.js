@@ -119,6 +119,21 @@ module.exports = (sequelize) => {
 
       // Channel bonuses: JSON { "<channel or category id>": { xp: 2, coins: 1.5 } }, see bot/modules/leveling.js
       channelBoosts: { type: DataTypes.TEXT, defaultValue: '{}' },
+      // Role multipliers (bot/modules/xpBoosts.js): { roleId: { xp, coins } }, how roles combine and how they meet the channel bonus.
+      roleBoosts: { type: DataTypes.TEXT, defaultValue: '{}' },
+      roleBoostMode: { type: DataTypes.STRING, defaultValue: 'largest' },
+      boostStacking: { type: DataTypes.STRING, defaultValue: 'multiply' },
+      // The level-up message: where it goes (auto | current | dm | off), its own text (null = the standard one), framed or plain,
+      // only every N-th level until level X (0 = always), only on levels that give a role.
+      levelUpDestination: { type: DataTypes.STRING, defaultValue: 'auto' },
+      levelUpMessage: { type: DataTypes.TEXT, allowNull: true },
+      levelUpEmbed: { type: DataTypes.BOOLEAN, defaultValue: true },
+      levelUpEvery: { type: DataTypes.INTEGER, defaultValue: 1 },
+      levelUpEveryUntil: { type: DataTypes.INTEGER, defaultValue: 0 },
+      levelUpRewardOnly: { type: DataTypes.BOOLEAN, defaultValue: false },
+      // The leaderboard page anyone can open by its link, and the level from which members appear there.
+      leaderboardPublic: { type: DataTypes.BOOLEAN, defaultValue: false },
+      leaderboardMinLevel: { type: DataTypes.INTEGER, defaultValue: 0 },
 
       // Temp voice ("join to create")
       tempVoiceJoinChannelId: { type: DataTypes.STRING, allowNull: true },

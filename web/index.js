@@ -28,7 +28,7 @@ app.disable('x-powered-by');
 const fs = require('fs');
 function assetVersion() {
   let newest = 0;
-  for (const f of ['css/style.css', 'css/fonts.css', 'js/theme.js', 'js/ui.js']) {
+  for (const f of ['css/style.css', 'css/fonts.css', 'js/theme.js', 'js/ui.js', 'js/public-top.js']) {
     try {
       newest = Math.max(newest, fs.statSync(path.join(__dirname, 'public', f)).mtimeMs);
     } catch (_) { /* missing file: ignore */ }
@@ -85,6 +85,10 @@ app.use(passport.session());
 app.use((req, res, next) => {
   res.locals.user = req.user || null;
   res.locals.baseUrl = process.env.WEB_BASE_URL || '';
+  // Versions of the bot and the panel, shown at the bottom of the side menu and on the overview page.
+  const { systemInfo, buildLine } = require('./utils/systemInfo');
+  res.locals.sys = systemInfo();
+  res.locals.sysLine = buildLine(res.locals.sys);
   next();
 });
 
@@ -98,6 +102,7 @@ app.use('/auth/callback', loginLimit);
 app.use('/dashboard', (req, res, next) => (req.method === 'GET' || req.method === 'HEAD' ? next() : changeLimit(req, res, next)));
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/top', require('./routes/publicTop')); // public leaderboards (only where the admins switched them on)
 
 app.use((req, res, next) => res.status(404).render('error', { message: 'Страница не найдена.' }));
 app.use((err, req, res, next) => {

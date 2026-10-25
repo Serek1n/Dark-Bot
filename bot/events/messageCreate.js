@@ -32,7 +32,7 @@ module.exports = {
       // Where the message was written, for the channel bonuses: the channel, its category (or, in a thread, the parent channel and its category)
       const ch = message.channel;
       const where = [message.channelId, ch?.parentId, ch?.parent?.parentId].filter(Boolean);
-      const result = await grantMessageXp(message.guild.id, message.author.id, where);
+      const result = await grantMessageXp(message.guild.id, message.author.id, where, message.member);
       if (result && message.member) await applyLevelRoles(message.member, result.levels, settings.levelRolesReplace);
       if (result?.leveledUp) {
         const { channel, fallback } = await levelUpTarget({ guild: message.guild, member: message.member, settings, fallback: message.channel });
@@ -41,6 +41,9 @@ module.exports = {
           user: message.author,
           displayName: message.member?.displayName,
           level: result.newLevel,
+          oldLevel: result.previousLevel,
+          settings,
+          member: message.member,
           channel: channel || message.channel,
           fallback,
           crystals: result.crystals,

@@ -28,9 +28,16 @@ router.post('/:guildId/level-roles', ensureGuildAccess, async (req, res) => {
   const track = 'total';
   // One role per (direction, level): saving the same pair again replaces the role.
   const existing = await LevelRole.findOne({ where: { guildId, level, track } });
-  if (existing) await existing.update({ roleId });
-  else await LevelRole.create({ guildId, level, roleId, track });
+  const keep = req.body.keep === 'on';
+  if (existing) await existing.update({ roleId, keep });
+  else await LevelRole.create({ guildId, level, roleId, track, keep });
   res.redirect(saved(guildId, 'level-roles'));
+});
+
+// "Keep": the role stays even in "only the highest role" mode.
+router.post('/:guildId/level-roles/keep/:id', ensureGuildAccess, async (req, res) => {
+  await LevelRole.update({ keep: req.body.keep === 'on' }, { where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId: req.params.guildId } });
+  res.redirect(saved(req.params.guildId, 'level-roles'));
 });
 
 router.post('/:guildId/level-roles/mode', ensureGuildAccess, async (req, res) => {
@@ -56,7 +63,7 @@ router.post('/:guildId/level-roles/sync', ensureGuildAccess, async (req, res) =>
 
   (async () => {
     const { computeTrackRoleChanges } = require('../../../bot/modules/levelRoles');
-    const levelRoles = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId, track: r.track }));
+    const levelRoles = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId, track: r.track, keep: Boolean(r.keep) }));
     if (!levelRoles.length) return;
     const profiles = await MemberProfile.findAll({ where: { guildId } });
     const levels = new Map(profiles.map((p) => [p.userId, { total: p.level }]));

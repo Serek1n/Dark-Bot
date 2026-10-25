@@ -33,9 +33,9 @@
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M12.4 7.6C12 6.9 11.1 6.5 10 6.5C8.6 6.5 7.6 7.2 7.6 8.2C7.6 10.3 12.4 9.2 12.4 11.8C12.4 12.8 11.4 13.5 10 13.5C8.8 13.5 7.9 13.1 7.5 12.3M10 5V6.5M10 13.5V15"/></svg>
         <span class="nl"><b>Экономика<% if (typeof betaPages !== 'undefined' && betaPages.includes('economy')) { %> <em class="beta-tag">бета</em><% } %></b><small>Монеты и кристаллы</small></span>
       </a>
-      <a href="/dashboard/<%= guild.id %>/channel-boosts" class="<%= active === 'channel-boosts' ? 'active' : '' %>" title="Бонусы каналов — Множители опыта по каналам">
+      <a href="/dashboard/<%= guild.id %>/channel-boosts" class="<%= active === 'channel-boosts' ? 'active' : '' %>" title="Множители — бонусы каналов и ролей">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z"/></svg>
-        <span class="nl"><b>Бонусы каналов<% if (typeof betaPages !== 'undefined' && betaPages.includes('channel-boosts')) { %> <em class="beta-tag">бета</em><% } %></b><small>Множители опыта по каналам</small></span>
+        <span class="nl"><b>Множители<% if (typeof betaPages !== 'undefined' && betaPages.includes('channel-boosts')) { %> <em class="beta-tag">бета</em><% } %></b><small>Бонусы каналов и ролей</small></span>
       </a>
       <a href="/dashboard/<%= guild.id %>/shop" class="<%= active === 'shop' ? 'active' : '' %>" title="Магазин — Товары и покупки">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7H16L15.2 16H4.8L4 7Z"/><path d="M7.5 7V6C7.5 4.6 8.6 3.5 10 3.5C11.4 3.5 12.5 4.6 12.5 6V7"/></svg>
@@ -94,6 +94,11 @@
     </div>
   </nav>
   <div class="sidebar-footer">
+    <% if (locals.sys) { %>
+      <a class="sidebar-version rl" href="/dashboard/<%= guild.id %>#system" title="<%= sysLine %>">
+        <span>Бот <b>v<%= sys.bot %></b></span><span>Панель <b>v<%= sys.panel %></b></span><% if (sys.channel === 'beta') { %><em class="beta-tag">бета</em><% } %>
+      </a>
+    <% } %>
     <button type="button" class="rail-btn" data-theme-toggle aria-label="Сменить тему" title="Сменить тему">
       <svg class="ic-sun" width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.5"/><path d="M10 2.500v2M10 15.500v2M2.500 10h2M15.500 10h2M4.700 4.700l1.400 1.400M13.900 13.900l1.400 1.400M4.700 15.300l1.400-1.400M13.900 6.100l1.400-1.400"/></svg>
       <svg class="ic-moon" width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.500 11.500A6.500 6.500 0 118.500 3.500a5.200 5.200 0 008 8z"/></svg>

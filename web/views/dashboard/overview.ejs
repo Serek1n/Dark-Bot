@@ -131,6 +131,21 @@
         </div>
         <p>Префикс своих текстовых команд: <code><%= settings.prefix %></code></p>
       </div>
+
+      <% if (locals.sys) { %>
+      <div class="card" id="system" style="margin-top:18px;">
+        <h2>
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 9V14M10 6.2V6.3"/></svg>
+          О версии
+        </h2>
+        <div class="sys-grid">
+          <div><small>Бот</small><b>v<%= sys.bot %></b><span class="sys-state <%= sys.botOnline ? 'on' : 'off' %>"><%= sys.botOnline ? 'в сети' + (sys.ping !== null ? ' · ' + sys.ping + ' мс' : '') : 'не в сети' %></span></div>
+          <div><small>Веб-панель</small><b>v<%= sys.panel %></b><span class="sys-state on">работает <%= sys.uptime %></span></div>
+          <div><small>Сборка</small><b><%= sys.channel === 'beta' ? 'Бета' : 'Релиз' %></b><span><%= sys.commit ? (sys.branch ? sys.branch + ' · ' : '') + sys.commit : 'без git' %><%= sys.builtAt ? ' · ' + sys.builtAt : '' %></span></div>
+          <div><small>Платформа</small><b>Node.js <%= sys.node %></b><span>discord.js <%= sys.discordJs || '—' %><%= sys.guildCount !== null ? ' · серверов: ' + sys.guildCount : '' %></span></div>
+        </div>
+      </div>
+      <% } %>
     </div>
   </div>
 </body>

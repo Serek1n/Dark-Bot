@@ -147,6 +147,7 @@ function applyGain(profile, track, xp, coins, settings) {
   return {
     leveledUp: profile.level > previousLevel,
     newLevel: profile.level,
+    previousLevel,
     levels: levelsOf(profile),
     gained: xp,
     coins,
@@ -174,6 +175,7 @@ async function settleLevel(row, xp, coins, settings, transaction) {
   return {
     leveledUp: crystals > 0 || level > previousLevel,
     newLevel: level,
+    previousLevel,
     levels: { total: level },
     gained: xp,
     coins,
@@ -205,8 +207,8 @@ async function addGain(guildId, userId, { track, xp, coins, settings, message = 
  * Award XP for an eligible message (chat direction). Returns the result of applyGain,
  * or null if on cooldown / the direction is switched off.
  */
-function grantMessageXp(guildId, userId, where = []) {
-  return withLock(`xp:${guildId}:${userId}`, () => grantMessageXpUnlocked(guildId, userId, where));
+function grantMessageXp(guildId, userId, where = [], member = null) {
+  return withLock(`xp:${guildId}:${userId}`, () => grantMessageXpUnlocked(guildId, userId, where, member));
 }
 
 // Last time each member got message XP. Most messages fall inside the cooldown, and those are
@@ -214,11 +216,12 @@ function grantMessageXp(guildId, userId, where = []) {
 const lastXpGrant = new Map();
 
 // `where`: ids of the channel, its category and so on (see boostFor); only used for the bonuses.
-async function grantMessageXpUnlocked(guildId, userId, where = []) {
+// `member` (optional): the guild member, for the role multipliers.
+async function grantMessageXpUnlocked(guildId, userId, where = [], member = null) {
   const settings = await getOrCreateSettings(guildId);
   if (!settings.levelingEnabled || !settings.chatEnabled) return null;
-  const boost = boostFor(settings, where);
-  if (boost.xp === 0 && boost.coins === 0) return null; // a channel that pays nothing
+  const boost = require('./xpBoosts').totalBoost(settings, boostFor(settings, where), member);
+  if (boost.xp === 0 && boost.coins === 0) return null; // a channel or a role that pays nothing
 
   const memKey = `${guildId}:${userId}`;
   const seen = lastXpGrant.get(memKey);

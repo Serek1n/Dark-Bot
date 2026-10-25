@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('partials/head', { title: 'Рейтинг ' + guild.name }) %></head>
+<body>
+  <div class="night-sky"></div>
+  <main class="public-top">
+    <header class="pt-head">
+      <% if (guild.icon) { %><img class="pt-icon" src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png?size=128" alt="" /><% } else { %><div class="pt-icon pt-letter"><%= (guild.name || '?').trim().charAt(0).toUpperCase() %></div><% } %>
+      <div>
+        <h1><%= guild.name %></h1>
+        <p class="page-intro">Рейтинг участников по опыту<%= minLevel > 0 ? ' · с ' + minLevel + '-го уровня' : '' %></p>
+      </div>
+    </header>
+    <div class="card">
+      <% if (!rows.length) { %>
+        <p class="empty-state">Пока никто не попал в рейтинг.</p>
+      <% } else { %>
+        <div class="toolbar">
+          <input type="text" class="search" id="lbSearch" placeholder="Найти участника по имени" autocomplete="off" />
+          <span class="count" id="lbCount"><%= rows.length %> в рейтинге</span>
+        </div>
+        <div class="lb-list">
+          <% rows.forEach(r => { %>
+            <div class="lb-row <%= r.place <= 3 ? 'top-' + r.place : '' %>" data-name="<%= r.user.name.toLowerCase() %>">
+              <div class="lb-rank"><%= r.place %></div>
+              <div class="person"><% if (r.user.avatar) { %><img src="<%= r.user.avatar %>" alt="" loading="lazy" /><% } %><span class="nm"><%= r.user.name %></span></div>
+              <div class="lb-xp">
+                <div class="bar"><i style="width: <%= Math.min(100, Math.round(r.into / Math.max(1, r.need) * 100)) %>%"></i></div>
+                <div class="num"><%= r.xp.toLocaleString('ru-RU') %> XP</div>
+              </div>
+              <div class="lb-level"><b><%= r.level %></b><small>уровень</small></div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+    <p class="hint" style="text-align:center;">Обновляется раз в минуту · Dark</p>
+  </main>
+  <script src="/js/public-top.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
+</body>
+</html>

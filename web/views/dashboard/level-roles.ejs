@@ -25,6 +25,10 @@
           </select>
           <div class="hint">Роль бота должна стоять в списке ролей выше выдаваемой, иначе Discord не даст её выдать.</div>
         </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="newKeep" name="keep" />
+          <label for="newKeep">Оставлять эту роль и в режиме «только самая высокая»</label>
+        </div>
         <button class="btn" type="submit">Добавить</button>
       </form>
 
@@ -33,14 +37,20 @@
           <p class="empty-state">Наград пока нет.</p>
         <% } else { %>
           <div class="table-scroll"><table>
-            <thead><tr><th>Уровень</th><th>Роль</th><th></th></tr></thead>
+            <thead><tr><th>Уровень</th><th>Роль</th><th class="nowrap">Оставлять</th><th></th></tr></thead>
             <tbody>
               <% levelRoles.forEach(lr => {
                 const role = roles.find(r => r.id === lr.roleId);
               %>
                 <tr>
                   <td><%= lr.level %></td>
-                  <td>@<%= role ? role.name : lr.roleId + ' (роль удалена)' %></td>
+                  <td class="nowrap">@<%= role ? role.name : lr.roleId + ' (роль удалена)' %></td>
+                  <td class="nowrap">
+                    <form method="post" action="/dashboard/<%= guild.id %>/level-roles/keep/<%= lr.id %>" data-no-guard style="display:inline;">
+                      <input type="hidden" name="keep" value="<%= lr.keep ? '' : 'on' %>" />
+                      <button class="btn btn-secondary" type="submit" title="Роль остаётся у участника, даже когда он получает следующую (в режиме «только самая высокая»)"><%= lr.keep ? '✓ да' : 'нет' %></button>
+                    </form>
+                  </td>
                   <td>
                     <form method="post" action="/dashboard/<%= guild.id %>/level-roles/delete/<%= lr.id %>">
                       <button class="btn btn-danger" type="submit">Удалить</button>

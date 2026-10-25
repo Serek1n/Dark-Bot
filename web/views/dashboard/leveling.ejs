@@ -85,7 +85,37 @@
 
         <div class="card">
           <h2>Объявления</h2>
+          <label>Куда отправлять поздравление</label>
+          <select name="levelUpDestination">
+            <option value="auto" <%= (settings.levelUpDestination || 'auto') === 'auto' ? 'selected' : '' %>>В чат: канал ниже или там, где набран уровень</option>
+            <option value="dm" <%= settings.levelUpDestination === 'dm' ? 'selected' : '' %>>В личные сообщения участнику</option>
+            <option value="off" <%= settings.levelUpDestination === 'off' ? 'selected' : '' %>>Не поздравлять</option>
+          </select>
+          <label style="margin-top:14px;">Свой текст поздравления (пусто — стандартный)</label>
+          <textarea name="levelUpMessage" maxlength="1500" rows="3" placeholder="{user} теперь {level} уровня! 🎉"><%= settings.levelUpMessage || '' %></textarea>
+          <div class="hint">Можно использовать: <code>{user}</code> — упоминание, <code>{name}</code> — имя, <code>{level}</code> — новый уровень, <code>{oldLevel}</code> — прежний, <code>{role}</code> — роль за этот уровень, <code>{crystals}</code> — сколько выдано кристаллов, <code>{server}</code> — сервер.</div>
           <div class="rules">
+            <label class="rule">
+              <span class="rule-text"><b>Своё поздравление — в рамке</b><span>Выключите, чтобы бот писал обычным сообщением (тогда <code>{user}</code> упомянет участника).</span></span>
+              <input type="checkbox" name="levelUpEmbed" <%= settings.levelUpEmbed !== false ? 'checked' : '' %> />
+            </label>
+            <label class="rule">
+              <span class="rule-text"><b>Только на уровнях с ролью</b><span>Поздравлять, только когда участник получает роль за уровень.</span></span>
+              <input type="checkbox" name="levelUpRewardOnly" <%= settings.levelUpRewardOnly ? 'checked' : '' %> />
+            </label>
+          </div>
+          <div class="two-col" style="margin-top:14px;">
+            <div>
+              <label>Поздравлять каждый N-й уровень</label>
+              <input type="number" name="levelUpEvery" value="<%= settings.levelUpEvery || 1 %>" min="1" max="100" />
+            </div>
+            <div>
+              <label>…до уровня (0 — всегда)</label>
+              <input type="number" name="levelUpEveryUntil" value="<%= settings.levelUpEveryUntil || 0 %>" min="0" max="1000" />
+            </div>
+          </div>
+          <div class="hint">Например, 5 и 30: до 30-го уровня бот поздравляет только с 5-м, 10-м, 15-м…, а с 30-го — с каждым. Первые уровни набираются быстро, так меньше спама.</div>
+          <div class="rules" style="margin-top:14px;">
             <label class="rule">
               <span class="rule-text"><b>Участнику в голосовом канале писать в чат этого канала</b><span>Если участник сидит в голосовом канале, поздравление придёт в чат этого канала, где бы он ни набрал уровень. Если писать туда нельзя, бот использует обычный канал ниже.</span></span>
               <input type="checkbox" name="levelUpInVoice" <%= settings.levelUpInVoice !== false ? 'checked' : '' %> />

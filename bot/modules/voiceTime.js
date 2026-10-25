@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const { grantVoiceXpBatch, getOrCreateSettings, boostFor } = require('./leveling');
 const { announceLevelUp, levelUpTarget } = require('../utils/levelUp');
 const { applyLevelRoles } = require('./levelRoles');
+const { totalBoost } = require('./xpBoosts');
 
 // userId+guildId -> timestamp (ms) when the current counting window started.
 const sessions = new Map();
@@ -93,11 +94,16 @@ async function xpTick(client) {
       // one real person plus a muted second account would otherwise farm voice income for free.
       const humans = [...channel.members.values()].filter((m) => !m.user.bot && !(skipMuted && isMuted(m)));
       if (humans.length < minMembers) continue;
-      const boost = boostFor(settings, [channel.id, channel.parentId]);
-      if (boost.xp === 0 && boost.coins === 0) continue;
-      const k = `${boost.xp}|${boost.coins}`;
-      if (!groups.has(k)) groups.set(k, { ...boost, members: [] });
-      for (const member of humans) if (!member.voice?.deaf) groups.get(k).members.push(member);
+      const channelBoost = boostFor(settings, [channel.id, channel.parentId]);
+      if (channelBoost.xp === 0 && channelBoost.coins === 0) continue;
+      for (const member of humans) {
+        if (member.voice?.deaf) continue;
+        const boost = totalBoost(settings, channelBoost, member); // the member's roles can raise, lower or cancel it
+        if (boost.xp === 0 && boost.coins === 0) continue;
+        const k = `${boost.xp}|${boost.coins}`;
+        if (!groups.has(k)) groups.set(k, { ...boost, members: [] });
+        groups.get(k).members.push(member);
+      }
     }
 
     for (const { xp, coins, members: earners } of groups.values()) {
@@ -120,6 +126,9 @@ async function xpTick(client) {
               user: member.user,
               displayName: member.displayName,
               level: result.newLevel,
+              oldLevel: result.previousLevel,
+              settings,
+              member,
               channel,
               fallback,
               crystals: result.crystals,
