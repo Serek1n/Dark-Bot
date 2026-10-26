@@ -5,6 +5,8 @@ const { Alert } = require('../../../db');
 const { snowflake, saved } = require('../../utils/common');
 
 const router = express.Router();
+const MAX_ALERTS = 25;
+const ALERT_CHANNEL_TYPES = [0, 5];
 
 // ---- Alerts (YouTube / Twitch) ----
 router.get('/:guildId/alerts', ensureGuildAccess, async (req, res) => {
@@ -21,8 +23,21 @@ router.post('/:guildId/alerts', ensureGuildAccess, async (req, res) => {
   if (platform === 'youtube' && !/^UC[\w-]{20,}$/.test(target)) {
     return res.redirect(saved(req.params.guildId, 'alerts', 'invalid'));
   }
+  if (platform === 'twitch' && !/^[a-z0-9_]{3,25}$/.test(target)) {
+    return res.redirect(saved(req.params.guildId, 'alerts', 'badlogin'));
+  }
   if (!['youtube', 'twitch'].includes(platform) || !target || !snowflake(channelId)) {
     return res.redirect(saved(req.params.guildId, 'alerts', 'invalid'));
+  }
+  // Only a text or announcement channel of this server.
+  const channels = await getGuildChannels(req.params.guildId);
+  if (!channels.some((c) => c.id === channelId && ALERT_CHANNEL_TYPES.includes(c.type))) {
+    return res.redirect(saved(req.params.guildId, 'alerts', 'badchannel'));
+  }
+  // A limit per server: every subscription costs requests to YouTube/Twitch that all servers share.
+  const exists = await Alert.findOne({ where: { guildId: req.params.guildId, platform, targetId: target } });
+  if (!exists && (await Alert.count({ where: { guildId: req.params.guildId } })) >= MAX_ALERTS) {
+    return res.redirect(saved(req.params.guildId, 'alerts', 'toomany'));
   }
   await Alert.upsert({
     guildId: req.params.guildId,

@@ -116,6 +116,20 @@ const { makeUser, makeInteraction } = require('./mock');
     assert(ban.active === true && ban.expiresAt && Math.abs(new Date(ban.expiresAt) - (Date.now() + 86400000)) < 5000, 'temp ban stored');
     world.bans.delete('V3'); await ban.update({ active: false });
   });
+  await test('escalation "only with the right": a moderator without the permission cannot punish through the counter', async () => {
+    const { PermissionFlagsBits } = require('discord.js');
+    reset(); await Warning.destroy({ where: { guildId: 'G1' } });
+    await setS({ modEscalateNeedsPerm: true, modWarnThresholds: JSON.stringify([{ count: 1, action: 'ban', minutes: 0 }]) });
+    members.set('MOD', { id: 'MOD', permissions: { has: () => false } });
+    const a = await run('warn', { user: makeUser('V7'), reason: 'x' });
+    assert(world.banCalls.length === 0 && text(a).includes('не применено'), text(a));
+    assert(await ModLog.count({ where: { guildId: 'G1', userId: 'V7', action: 'warn' } }) === 1, 'the warning itself is still given');
+    members.get('MOD').permissions.has = (f) => f === PermissionFlagsBits.BanMembers; await Warning.destroy({ where: { guildId: 'G1', userId: 'V7' } });
+    const b = await run('warn', { user: makeUser('V7'), reason: 'y' });
+    assert(world.banCalls.length === 1 && text(b).includes('Автоматически'), text(b));
+    assert(await modSvc.moderatorCan(G, 'OWNER', 'kick') === true && await modSvc.moderatorCan(G, 'NOBODY', 'mute') === false, 'owner can, unknown cannot');
+    members.delete('MOD'); await setS({ modEscalateNeedsPerm: false }); world.bans.delete('V7');
+  });
   await test('escalation: kick rule; failure (role too high) is reported, the warning itself stays', async () => {
     reset(); await Warning.destroy({ where: { guildId: 'G1', userId: 'V1' } });
     await setS({ modWarnThresholds: JSON.stringify([{ count: 1, action: 'kick', minutes: 0 }]) });
@@ -261,7 +275,7 @@ const { makeUser, makeInteraction } = require('./mock');
     assert(text(await run('unlock', {}, { channel })).includes('открыт'), 'unlock');
     assert(JSON.stringify(calls) === JSON.stringify([['slow', 30], ['slow', 0], ['perm', 'everyone', { SendMessages: false }], ['perm', 'everyone', { SendMessages: null }]]), JSON.stringify(calls));
     const weak = { ...modMember, permissions: { has: (f) => f !== require('discord.js').PermissionsBitField.Flags.ManageChannels } };
-    assert(text(await run('lock', {}, { channel, member: weak })).includes('Manage Channels'), 'permission');
+    assert(text(await run('lock', {}, { channel, member: weak })).includes('Управлять каналами'), 'permission');
   });
 
   // ================= automod =================

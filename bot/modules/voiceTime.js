@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const { grantVoiceXpBatch, getOrCreateSettings, boostFor } = require('./leveling');
 const { announceLevelUp, levelUpTarget } = require('../utils/levelUp');
 const { applyLevelRoles } = require('./levelRoles');
+const { totalBoost } = require('./xpBoosts');
 
 // userId+guildId -> timestamp (ms) when the current counting window started.
 const sessions = new Map();
@@ -64,7 +65,7 @@ function seedFromGuilds(client) {
       startSession(guild.id, state.id);
     }
   }
-  const timer = setInterval(() => flushAll().catch((err) => logger.error('voice flush failed', err)), FLUSH_MS);
+  const timer = setInterval(() => flushAll(client).catch((err) => logger.error('voice flush failed', err)), FLUSH_MS);
   timer.unref?.();
   const xpTimer = setInterval(() => xpTick(client).catch((err) => logger.error('voice xp tick failed', err)), XP_TICK_MS);
   xpTimer.unref?.();
@@ -93,11 +94,16 @@ async function xpTick(client) {
       // one real person plus a muted second account would otherwise farm voice income for free.
       const humans = [...channel.members.values()].filter((m) => !m.user.bot && !(skipMuted && isMuted(m)));
       if (humans.length < minMembers) continue;
-      const boost = boostFor(settings, [channel.id, channel.parentId]);
-      if (boost.xp === 0 && boost.coins === 0) continue;
-      const k = `${boost.xp}|${boost.coins}`;
-      if (!groups.has(k)) groups.set(k, { ...boost, members: [] });
-      for (const member of humans) if (!member.voice?.deaf) groups.get(k).members.push(member);
+      const channelBoost = boostFor(settings, [channel.id, channel.parentId]);
+      if (channelBoost.xp === 0 && channelBoost.coins === 0) continue;
+      for (const member of humans) {
+        if (member.voice?.deaf) continue;
+        const boost = totalBoost(settings, channelBoost, member); // the member's roles can raise, lower or cancel it
+        if (boost.xp === 0 && boost.coins === 0) continue;
+        const k = `${boost.xp}|${boost.coins}`;
+        if (!groups.has(k)) groups.set(k, { ...boost, members: [] });
+        groups.get(k).members.push(member);
+      }
     }
 
     for (const { xp, coins, members: earners } of groups.values()) {
@@ -120,6 +126,9 @@ async function xpTick(client) {
               user: member.user,
               displayName: member.displayName,
               level: result.newLevel,
+              oldLevel: result.previousLevel,
+              settings,
+              member,
               channel,
               fallback,
               crystals: result.crystals,
@@ -133,12 +142,17 @@ async function xpTick(client) {
 }
 
 /** Saves time of everyone currently in voice and restarts their windows (so a restart loses < 5 min). */
-async function flushAll() {
+async function flushAll(client = null) {
   const now = Date.now();
   const entries = [];
   for (const [k, started] of [...sessions]) {
     const [guildId, userId] = k.split(':');
-    sessions.set(k, now);
+    // A missed "left voice" event (gateway reconnect, the bot removed from the server) must not count forever:
+    // whoever is no longer in a voice channel gets this last window and the session is closed.
+    const guild = client?.guilds?.cache?.get(guildId);
+    const stillIn = !client || Boolean(guild?.voiceStates?.cache?.get(userId)?.channelId);
+    if (stillIn) sessions.set(k, now);
+    else sessions.delete(k);
     entries.push([guildId, userId, Math.floor((now - started) / 1000)]);
   }
   await addSecondsBatch(entries);

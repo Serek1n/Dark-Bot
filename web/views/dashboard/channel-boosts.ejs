@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><%- include('../partials/head', { title: guild.name + ' — Бонусы каналов' }) %></head>
+<head><%- include('../partials/head', { title: guild.name + ' — Множители' }) %></head>
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <div class="content">
       <div class="page-header">
-        <h1>Бонусы каналов</h1>
-        <p class="page-intro">Сделайте так, чтобы в нужных каналах опыт и монеты начислялись больше (или не начислялись совсем). Работает и для текстовых, и для голосовых каналов.</p>
+        <h1>Множители</h1>
+        <p class="page-intro">Сделайте так, чтобы в нужных каналах или у нужных ролей опыт и монеты начислялись больше (или не начислялись совсем). Работает и в чате, и в голосовых каналах.</p>
       </div>
 
       <% if (!settings.levelingEnabled) { %>
@@ -15,7 +15,7 @@
       <% } %>
 
       <form method="post" class="card">
-        <h2>Добавить бонус<span class="sub">Если для канала уже есть бонус, он заменится</span></h2>
+        <h2>Бонус канала<span class="sub">Если для канала уже есть бонус, он заменится</span></h2>
         <div>
           <label>Канал или категория</label>
           <select name="channelId" required>
@@ -40,7 +40,7 @@
       </form>
 
       <div class="card">
-        <h2>Сейчас действуют</h2>
+        <h2>Бонусы каналов</h2>
         <% if (!rows.length) { %>
           <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg>Бонусов пока нет: везде начисляется как обычно.</p>
         <% } else { %>
@@ -66,6 +66,64 @@
           </table></div>
         <% } %>
       </div>
+
+      <form method="post" action="/dashboard/<%= guild.id %>/channel-boosts/roles" class="card">
+        <h2>Бонус роли<span class="sub">Например, бустерам ×1,5, а роли «Мут» ×0</span></h2>
+        <div>
+          <label>Роль</label>
+          <select name="roleId" required>
+            <option value="" disabled selected>— выберите —</option>
+            <% roles.filter(r => r.id !== guild.id).forEach(r => { %><option value="<%= r.id %>">@<%= r.name %></option><% }) %>
+          </select>
+        </div>
+        <div class="two-col">
+          <div><label>Множитель опыта</label><input type="text" name="xp" inputmode="decimal" value="1,5" placeholder="1" /></div>
+          <div><label>Множитель монет</label><input type="text" name="coins" inputmode="decimal" value="1" placeholder="1" /></div>
+        </div>
+        <div class="hint">От 0 до <%= MAX_BOOST %>. <b>0</b> у роли или канала всегда побеждает: участник с такой ролью (или в таком канале) ничего не получает.</div>
+        <button class="btn" type="submit">Добавить</button>
+      </form>
+
+      <div class="card">
+        <h2>Бонусы ролей</h2>
+        <% if (!roleRows.length) { %>
+          <p class="empty-state">Бонусов ролей пока нет.</p>
+        <% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Роль</th><th class="nowrap">Опыт</th><th class="nowrap">Монеты</th><th></th></tr></thead>
+            <tbody>
+              <% roleRows.forEach(r => { %>
+                <tr>
+                  <td><% if (r.role) { %>@<%= r.role.name %><% } else { %><span class="hint" style="margin:0;">роль удалена (<%= r.id %>)</span><% } %></td>
+                  <td class="nowrap"><span class="badge <%= r.xp === 0 ? 'badge-ban' : r.xp > 1 ? 'badge-unban' : 'badge-mute' %>">×<%= String(r.xp).replace('.', ',') %></span></td>
+                  <td class="nowrap"><span class="badge <%= r.coins === 0 ? 'badge-ban' : r.coins > 1 ? 'badge-unban' : 'badge-mute' %>">×<%= String(r.coins).replace('.', ',') %></span></td>
+                  <td class="nowrap" style="text-align:right;">
+                    <form method="post" action="/dashboard/<%= guild.id %>/channel-boosts/roles/delete/<%= r.id %>" data-no-guard style="display:inline;">
+                      <button class="btn btn-secondary" type="submit">Убрать</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+
+      <form method="post" action="/dashboard/<%= guild.id %>/channel-boosts/modes" class="card">
+        <h2>Как множители складываются</h2>
+        <% const roleModeText = { largest: 'Самый большой из ролей участника', smallest: 'Самый маленький из ролей', highest: 'У самой высокой роли с бонусом', add: 'Сумма: каждая роль добавляет свой бонус сверх ×1 (×1,5 и ×2 = ×2,5)', multiply: 'Произведение (×1,5 и ×2 = ×3)' }; %>
+        <% const stackText = { multiply: 'Перемножаются (канал ×2 и роль ×1,5 = ×3)', add: 'Складываются (канал ×2 и роль ×1,5 = ×2,5)', largest: 'Действует больший из двух', channel: 'Бонус канала важнее: роль считается только там, где у канала бонуса нет', role: 'Бонус роли важнее: канал считается только у тех, у кого нет бонусной роли' }; %>
+        <div>
+          <label>Если у участника несколько ролей с бонусом</label>
+          <select name="roleBoostMode"><% ROLE_MODES.forEach(m => { %><option value="<%= m %>" <%= (settings.roleBoostMode || 'largest') === m ? 'selected' : '' %>><%= roleModeText[m] %></option><% }) %></select>
+        </div>
+        <div>
+          <label>Бонус роли и бонус канала вместе</label>
+          <select name="boostStacking"><% STACK_MODES.forEach(m => { %><option value="<%= m %>" <%= (settings.boostStacking || 'multiply') === m ? 'selected' : '' %>><%= stackText[m] %></option><% }) %></select>
+        </div>
+        <div class="hint">Итог не больше ×20. Множители действуют и на сообщения, и на голосовые каналы.</div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
     </div>
   </div>
 </body>

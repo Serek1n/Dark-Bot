@@ -34,10 +34,10 @@ async function saveSnapshot(member) {
     const nickname = member.nickname || null;
     const until = member.communicationDisabledUntilTimestamp > Date.now() ? new Date(member.communicationDisabledUntilTimestamp) : null;
     if (!roleIds.length && !nickname && !until) return void (await MemberSnapshot.destroy({ where: key }));
-    await withLock(`snapshot:${key.guildId}:${key.userId}`, async () => {
-      await MemberSnapshot.destroy({ where: key });
-      await MemberSnapshot.create({ ...key, roleIds: JSON.stringify(roleIds), nickname, mutedUntil: until, leftAt: new Date() });
-    });
+    // ONE statement (insert or replace the row of this member): a crash can no longer land between "delete" and "create" and lose the snapshot.
+    await withLock(`snapshot:${key.guildId}:${key.userId}`, () =>
+      MemberSnapshot.upsert({ ...key, roleIds: JSON.stringify(roleIds), nickname, mutedUntil: until, leftAt: new Date() })
+    );
   } catch (err) {
     logger.warn('Member snapshot failed:', err.message);
   }

@@ -3,7 +3,7 @@ const { Giveaway } = require('../../../db');
 const embeds = require('../../utils/embeds');
 const { parseDuration, formatDuration } = require('../../utils/duration');
 const { isAdmin } = require('../../utils/permissions');
-const { startGiveaway, finishGiveaway, parseWinners } = require('../../modules/giveaways');
+const { startGiveaway, finishGiveaway } = require('../../modules/giveaways');
 
 const MIN_MS = 10_000;
 const MAX_MS = 60 * 24 * 60 * 60 * 1000;

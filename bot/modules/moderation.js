@@ -1,8 +1,9 @@
 // The moderation core, shared by /mod, the automod and the web panel: warnings with automatic
 // escalation, temporary bans that lift themselves, DMs to the punished member.
 const { Op } = require('sequelize');
+const { PermissionFlagsBits } = require('discord.js');
 const { getOrCreateSettings } = require('./leveling');
-const { Warning, ModLog, GuildSettings } = require('../../db');
+const { Warning, ModLog } = require('../../db');
 const { recordAndAnnounce } = require('../utils/modlog');
 const { formatDuration, MAX_TIMEOUT, MINUTE } = require('../utils/duration');
 const { withLock } = require('../utils/lock');
@@ -116,8 +117,26 @@ async function warnMember(guild, user, { moderatorId, reason, settings }) {
 
   const rule = parseThresholds(settings?.modWarnThresholds).find((t) => t.count === count);
   let escalation = null;
-  if (rule) escalation = await escalate(guild, user.id, rule, count, settings);
+  if (rule) {
+    // With "only with the right" on, a moderator cannot get past his own rights through the warning counter (the bot's own warnings, e.g. from automod, always count).
+    if (settings?.modEscalateNeedsPerm && moderatorId !== guild.client.user.id && !(await moderatorCan(guild, moderatorId, rule.action))) {
+      escalation = { action: rule.action, ms: rule.action === 'kick' ? undefined : rule.minutes > 0 ? rule.minutes * MINUTE : undefined, skipped: true };
+    } else {
+      escalation = await escalate(guild, user.id, rule, count, settings);
+    }
+  }
   return { warning, count, entry, escalation };
+}
+
+const NEEDED_PERMISSION = { mute: PermissionFlagsBits.ModerateMembers, kick: PermissionFlagsBits.KickMembers, ban: PermissionFlagsBits.BanMembers };
+
+/** Does this person have the server permission that the punishment `action` (mute | kick | ban) needs? */
+async function moderatorCan(guild, moderatorId, action) {
+  const flag = NEEDED_PERMISSION[action];
+  if (!flag) return false;
+  if (guild.ownerId === moderatorId) return true;
+  const member = await guild.members.fetch(moderatorId).catch(() => null);
+  return Boolean(member?.permissions?.has(flag));
 }
 
 async function escalate(guild, userId, rule, count, settings) {
@@ -174,5 +193,5 @@ function startModScheduler(client) {
 
 module.exports = {
   parseThresholds, activeWarnings, activeWarningsWhere, dmMember, muteMember, kickMember, banUser, unbanUser,
-  warnMember, escalate, liftExpiredBans, startModScheduler, ESCALATION_ACTIONS, MAX_THRESHOLDS
+  warnMember, escalate, liftExpiredBans, startModScheduler, moderatorCan, ESCALATION_ACTIONS, MAX_THRESHOLDS
 };

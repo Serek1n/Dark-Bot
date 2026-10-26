@@ -1,4 +1,4 @@
-const { ModLog, GuildSettings } = require('../../db');
+const { ModLog } = require('../../db');
 const { getOrCreateSettings } = require('../modules/leveling');
 const embeds = require('./embeds');
 const serverLog = require('../modules/serverLog');

@@ -34,7 +34,7 @@
               <label for="f_<%= f.key %>">
                 <span class="feature-title"><%= f.title %><% if (f.beta) { %> <em class="beta-tag">бета</em><% } %></span>
                 <span class="feature-desc"><%= f.desc %></span>
-                <% if (f.commands.length) { %><span class="feature-cmds"><% f.commands.forEach(c => { %><code><%= c.includes(' ') ? c : '/' + c %></code> <% }) %></span><% } %>
+                <% if (f.commands.length) { %><span class="feature-cmds"><% const menuName = { 'Profile': 'меню «Профиль»', 'Report message': 'меню «Пожаловаться»' }; f.commands.forEach(c => { %><code><%= menuName[c] || (c.includes(' ') ? c : '/' + c) %></code> <% }) %></span><% } %>
               </label>
               <% if (f.page) { %><a class="feature-link" href="/dashboard/<%= guild.id %>/<%= f.page %>">Настроить</a><% } %>
               <input type="checkbox" id="f_<%= f.key %>" name="<%= f.field %>" <%= settings[f.field] ? 'checked' : '' %> />

@@ -42,7 +42,7 @@
         <button class="btn" type="submit">Создать</button>
       </form>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/webhooks/panel" class="card">
+      <form method="post" action="/dashboard/<%= guild.id %>/webhooks/panel" class="card" data-no-guard>
         <h2>Панель управления в Discord</h2>
         <div class="hint">Сообщение с кнопками (создать, список, отправить, изменить, удалить), как у личных комнат. Нажимать их могут только те, у кого есть право «Управлять вебхуками».</div>
         <label>Канал</label>
@@ -73,7 +73,7 @@
                 </details>
                 <details>
                   <summary>Отправить сообщение</summary>
-                  <form method="post" action="/dashboard/<%= guild.id %>/webhooks/<%= h.id %>/send">
+                  <form method="post" action="/dashboard/<%= guild.id %>/webhooks/<%= h.id %>/send" data-no-guard>
                     <label>Оформление</label>
                     <select name="style">
                       <option value="frame" selected>В рамке (как сообщения бота)</option>

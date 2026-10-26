@@ -28,7 +28,7 @@ app.disable('x-powered-by');
 const fs = require('fs');
 function assetVersion() {
   let newest = 0;
-  for (const f of ['css/style.css', 'css/fonts.css', 'js/theme.js', 'js/ui.js']) {
+  for (const f of ['css/style.css', 'css/fonts.css', 'js/theme.js', 'js/ui.js', 'js/public-top.js']) {
     try {
       newest = Math.max(newest, fs.statSync(path.join(__dirname, 'public', f)).mtimeMs);
     } catch (_) { /* missing file: ignore */ }
@@ -38,6 +38,7 @@ function assetVersion() {
 app.locals.assetV = assetVersion();
 app.locals.betaBuild = require('../bot/utils/channel').isBetaBuild(); // the beta build shows a tag next to the name
 app.locals.betaPages = require('../bot/utils/features').betaPages; // menu items of features still in testing
+app.locals.errorTexts = require('../bot/utils/discordErrors').ERROR_TEXT; // texts for error codes carried in links
 
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '7d',
@@ -84,6 +85,10 @@ app.use(passport.session());
 app.use((req, res, next) => {
   res.locals.user = req.user || null;
   res.locals.baseUrl = process.env.WEB_BASE_URL || '';
+  // Versions of the bot and the panel, shown at the bottom of the side menu and on the overview page.
+  const { systemInfo, buildLine } = require('./utils/systemInfo');
+  res.locals.sys = systemInfo();
+  res.locals.sysLine = buildLine(res.locals.sys);
   next();
 });
 
@@ -97,9 +102,13 @@ app.use('/auth/callback', loginLimit);
 app.use('/dashboard', (req, res, next) => (req.method === 'GET' || req.method === 'HEAD' ? next() : changeLimit(req, res, next)));
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/top', require('./routes/publicTop')); // public leaderboards (only where the admins switched them on)
 
 app.use((req, res, next) => res.status(404).render('error', { message: 'Страница не найдена.' }));
 app.use((err, req, res, next) => {
+  // Form problems (too large, unreadable) are the visitor's, not the server's: say what happened with the right status.
+  if (err.type === 'entity.too.large') return res.status(413).render('error', { message: 'Слишком много данных в форме. Сократите текст или список и попробуйте снова.' });
+  if (err.status >= 400 && err.status < 500 && err.expose) return res.status(err.status).render('error', { message: 'Не удалось прочитать отправленную форму. Обновите страницу и повторите.' });
   logger.error('Web error:', err.isAxiosError ? `${err.message} (${err.response?.status || 'нет ответа'})` : err); // an axios error holds request URLs, which can contain webhook tokens
   const isDiscordApiError = err.isAxiosError || err.response?.status;
   const message = isDiscordApiError

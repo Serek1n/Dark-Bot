@@ -20,7 +20,7 @@
 <div><label>Роль (для типа «Роль»)</label>
   <select name="roleId">
     <option value="">—</option>
-    <% roles.forEach(r => { %><option value="<%= r.id %>" <%= it.roleId === r.id ? 'selected' : '' %>>@<%= r.name %></option><% }) %>
+    <% roles.forEach(r => { %><option value="<%= r.id %>" <%= it.roleId === r.id ? 'selected' : (r.blocked ? 'disabled' : '') %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option><% }) %>
   </select>
 </div>
 <div class="two-col">

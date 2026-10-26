@@ -7,9 +7,12 @@ const logger = require('../utils/logger');
  * levelRoles: [{ level, roleId }], current: array of role IDs the member already has.
  * Default: the member keeps every role up to their level. With `replace`, only the highest one.
  */
+// In "replace" mode the member has only the highest reached role, plus every reached role marked "keep" (Polaris idea).
+const pick = (reached, replace) => (replace ? reached.filter((r, i) => r.keep || i === reached.length - 1) : reached);
+
 function computeRoleChanges(levelRoles, level, current, replace) {
   const reached = levelRoles.filter((r) => r.level <= level).sort((a, b) => a.level - b.level);
-  const wanted = replace ? reached.slice(-1) : reached;
+  const wanted = pick(reached, replace);
   const wantedIds = new Set(wanted.map((r) => r.roleId));
   const have = new Set(current);
   const add = [...wantedIds].filter((id) => !have.has(id));
@@ -25,7 +28,7 @@ function computeRoleChanges(levelRoles, level, current, replace) {
 function computeAdjustRoleChanges(levelRoles, level, current, replace, allowRemove) {
   const rows = levelRoles.filter((r) => (r.track || 'total') === 'total');
   const reached = rows.filter((r) => r.level <= level).sort((a, b) => a.level - b.level);
-  const wanted = new Set((replace ? reached.slice(-1) : reached).map((r) => r.roleId));
+  const wanted = new Set(pick(reached, replace).map((r) => r.roleId));
   const managed = new Set(rows.map((r) => r.roleId));
   const have = new Set(current);
   return {
@@ -37,10 +40,12 @@ function computeAdjustRoleChanges(levelRoles, level, current, replace, allowRemo
 // Level roles are read for every XP message, so keep them in memory for a short while.
 const cache = new Map();
 const TTL_MS = 60 * 1000;
+// A change in the panel (same process) is used at once, not after the minute.
+['afterCreate', 'afterUpdate', 'afterDestroy', 'afterBulkCreate', 'afterBulkUpdate', 'afterBulkDestroy'].forEach((hook) => LevelRole.addHook(hook, () => cache.clear()));
 async function getLevelRoles(guildId) {
   const hit = cache.get(guildId);
   if (hit && hit.expires > Date.now()) return hit.rows;
-  const rows = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId, track: r.track || 'total' }));
+  const rows = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId, track: r.track || 'total', keep: Boolean(r.keep) }));
   cache.set(guildId, { rows, expires: Date.now() + TTL_MS });
   return rows;
 }
@@ -58,7 +63,7 @@ function computeTrackRoleChanges(levelRoles, levels, current, replace) {
     const rows = levelRoles.filter((r) => (r.track || 'total') === track);
     rows.forEach((r) => managed.add(r.roleId));
     const reached = rows.filter((r) => r.level <= lv[track]).sort((x, y) => x.level - y.level);
-    (replace ? reached.slice(-1) : reached).forEach((r) => wanted.add(r.roleId));
+    pick(reached, replace).forEach((r) => wanted.add(r.roleId));
   }
   const have = new Set(current);
   const add = [...wanted].filter((id) => !have.has(id));

@@ -35,7 +35,8 @@ const axios = require('axios');
     const out = { replies: [], updates: [], modals: [], follow: [] };
     const i = { guild: g, member: member(can), user: { id: 'U', username: 'neya' }, client: { user: { displayAvatarURL: () => 'https://cdn/bot.png' } }, customId, values, replied: false, deferred: false,
       fields: { getTextInputValue: (n) => fields[n] ?? '' },
-      reply: async (x) => { out.replies.push(x); i.replied = true; }, update: async (x) => out.updates.push(x), showModal: async (m) => out.modals.push(m.toJSON()), followUp: async (x) => out.follow.push(x) };
+      reply: async (x) => { out.replies.push(x); i.replied = true; }, update: async (x) => out.updates.push(x), showModal: async (m) => out.modals.push(m.toJSON()), followUp: async (x) => out.follow.push(x),
+      deferReply: async (x) => { i.deferred = true; out.replies.push(x); }, editReply: async (x) => { out.replies.push(x); } };
     await wp.handleWebhookComponent(i); return out;
   };
   const said = (o) => txt([o.replies, o.updates, o.follow]);

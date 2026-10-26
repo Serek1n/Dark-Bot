@@ -32,6 +32,7 @@ router.post('/:guildId/moderation/rules', ensureGuildAccess, async (req, res) =>
   const settings = await getSettings(req.params.guildId);
   settings.modDmEnabled = req.body.modDmEnabled === 'on';
   settings.modRequireReason = req.body.modRequireReason === 'on';
+  settings.modEscalateNeedsPerm = req.body.modEscalateNeedsPerm === 'on';
   settings.modWarnExpireDays = clampInt(req.body.modWarnExpireDays, 0, 365, settings.modWarnExpireDays);
   const list = (v) => [].concat(v ?? []);
   const counts = list(req.body.thrCount), acts = list(req.body.thrAction), mins = list(req.body.thrMinutes);

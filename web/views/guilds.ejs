@@ -26,6 +26,7 @@
           </a>
       <% }) %>
     </div>
+    <% if (locals.sys) { %><p class="picker-version" title="<%= sysLine %>">Бот v<%= sys.bot %> · Панель v<%= sys.panel %><%= sys.channel === 'beta' ? ' · бета' : '' %></p><% } %>
   </div>
 </body>
 </html>

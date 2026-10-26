@@ -9,8 +9,9 @@ function csrfGuard(req, res, next) {
       const from = new URL(source);
       const host = String(req.get('host') || '');
       const ownHost = (() => { try { return new URL(process.env.WEB_BASE_URL).host; } catch (_) { return null; } })();
-      // Behind nginx with "proxy_set_header Host $host" the port is stripped from Host: also accept the same hostname.
-      if (from.host === host || (ownHost && from.host === ownHost) || from.hostname === host.split(':')[0]) return next();
+      // Host and port must both match (another service on this machine, e.g. :8080, is a different site). Behind nginx that
+      // strips the port from Host, the address in WEB_BASE_URL is the one accepted.
+      if (from.host === host || (ownHost && from.host === ownHost)) return next();
     } catch (_) { /* unreadable address: refuse below */ }
   }
   return res.status(403).render('error', { message: 'Запрос отклонён: он не похож на отправленный с этого сайта. Обновите страницу и повторите.' });

@@ -31,12 +31,7 @@ const frame = (title, text) => ({ color: 0xe3a857, ...(title ? { title: String(t
 const send = (hook, { content, username, avatarUrl, framed, title }) =>
   axios.post(`https://discord.com/api/v10/webhooks/${hook.id}/${hook.token}`, { ...(framed ? { embeds: [frame(title, content)] } : { content }), ...(username ? { username } : {}), ...(avatarUrl ? { avatar_url: avatarUrl } : {}), allowed_mentions: { parse: [] } }, { timeout: 10000 });
 
-const explain = (err) => {
-  const m = err.response?.data?.message || err.message || '';
-  const code = err.response?.data?.code;
-  if (code === 30007 || /Maximum number of webhooks/i.test(m)) return 'В этом канале уже 15 вебхуков — предел Discord.';
-  if (code === 50013 || code === 50001 || err.response?.status === 403) return 'У бота нет права «Управлять вебхуками» в этом канале.';
-  return m || 'Discord отказал.';
-};
+// Russian text for a Discord error; `explainKey` gives the short code used in links.
+const { errorKey: explainKey, errorText: explain } = require('../bot/utils/discordErrors');
 
-module.exports = { listOwn, create, remove, send, fetchAvatar, explain, isPrivateIp, safeLookup };
+module.exports = { listOwn, create, remove, send, fetchAvatar, explain, explainKey, isPrivateIp, safeLookup };

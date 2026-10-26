@@ -13,7 +13,8 @@ const { rateLimit } = require('../../middleware/rateLimit');
 const webhookLimit = rateLimit({ windowMs: 60_000, max: 10, message: 'Слишком много действий с вебхуками. Подождите минуту.' });
 const BOT_ID = () => process.env.DISCORD_CLIENT_ID;
 const WEBHOOK_CHANNEL_TYPES = [0, 2, 5, 13, 15, 16];
-const webhookPage = (guildId, flag, text) => `/dashboard/${guildId}/webhooks?${flag}=1${text ? '&msg=' + encodeURIComponent(text.slice(0, 200)) : ''}`;
+// Errors travel as a short code (`reason`), turned into text by the page: a link cannot carry arbitrary words to show.
+const webhookPage = (guildId, flag, reason) => `/dashboard/${guildId}/webhooks?${flag}=1${reason ? '&reason=' + reason : ''}`;
 
 router.get('/:guildId/webhooks', ensureGuildAccess, async (req, res) => {
   const guildId = req.params.guildId;
@@ -22,7 +23,7 @@ router.get('/:guildId/webhooks', ensureGuildAccess, async (req, res) => {
   const settings = await GuildSettings.findByPk(guildId);
   let hooks = []; let error = null;
   try { hooks = await webhooks.listOwn(guildId, BOT_ID(), settings?.logWebhookId); } catch (err) { error = webhooks.explain(err); }
-  res.render('dashboard/webhooks', { guild, channels, settings, hooks, error, featureOff: !isEnabled(settings, 'webhooks'), disabledNote: disabledText(settings, 'webhooks'), active: 'webhooks', msg: String(req.query.msg || '').slice(0, 200) });
+  res.render('dashboard/webhooks', { guild, channels, settings, hooks, error, featureOff: !isEnabled(settings, 'webhooks'), disabledNote: disabledText(settings, 'webhooks'), active: 'webhooks' });
 });
 
 router.post('/:guildId/webhooks', webhookLimit, ensureGuildAccess, async (req, res) => {
@@ -36,7 +37,7 @@ router.post('/:guildId/webhooks', webhookLimit, ensureGuildAccess, async (req, r
     await webhooks.create(channelId, name, String(req.body.avatarUrl || '').trim() || null, `Создан через веб-панель (${req.user?.username || req.session?.user?.username || 'админ'})`);
     res.redirect(webhookPage(guildId, 'created'));
   } catch (err) {
-    res.redirect(webhookPage(guildId, 'whfail', webhooks.explain(err)));
+    res.redirect(webhookPage(guildId, 'whfail', webhooks.explainKey(err)));
   }
 });
 
@@ -57,9 +58,7 @@ router.post('/:guildId/webhooks/panel', webhookLimit, ensureGuildAccess, async (
     await settings.save();
     res.redirect(saved(guildId, 'webhooks', 'wpanel'));
   } catch (err) {
-    const code = err.response?.data?.code;
-    const text = code === 50001 || code === 50013 || err.response?.status === 403 ? 'У бота нет прав в этом канале: нужны «Просмотр канала», «Отправлять сообщения» и «Встраивать ссылки».' : 'Не удалось разместить панель. Попробуйте ещё раз.';
-    res.redirect(webhookPage(guildId, 'whfail', text));
+    res.redirect(webhookPage(guildId, 'whfail', webhooks.explainKey(err) === 'perm' ? 'panelperm' : 'panel'));
   }
 });
 
@@ -72,7 +71,7 @@ router.post('/:guildId/webhooks/:id/delete', webhookLimit, ensureGuildAccess, as
     await webhooks.remove(hook.id, 'Удалён через веб-панель');
     res.redirect(saved(guildId, 'webhooks', 'deleted'));
   } catch (err) {
-    res.redirect(webhookPage(guildId, 'whfail', webhooks.explain(err)));
+    res.redirect(webhookPage(guildId, 'whfail', webhooks.explainKey(err)));
   }
 });
 
@@ -88,7 +87,7 @@ router.post('/:guildId/webhooks/:id/send', webhookLimit, ensureGuildAccess, asyn
     await webhooks.send(hook, { content, framed, title: String(req.body.title || '').trim().slice(0, 256), username: String(req.body.username || '').trim().slice(0, 80) || null });
     res.redirect(webhookPage(guildId, 'whsent'));
   } catch (err) {
-    res.redirect(webhookPage(guildId, 'whfail', webhooks.explain(err)));
+    res.redirect(webhookPage(guildId, 'whfail', webhooks.explainKey(err)));
   }
 });
 

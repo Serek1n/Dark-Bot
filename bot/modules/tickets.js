@@ -37,7 +37,8 @@ async function openTicket(interaction) {
   const reply = (embed) => interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   if (!isEnabled(settings, 'tickets')) return reply(embeds.info('Обращения на этом сервере отключены.'));
 
-  return withLock(`ticket-open:${guild.id}:${user.id}`, async () => {
+  // One lock per server: the next number is max + 1, so two people opening at once must not get the same one.
+  return withLock(`ticket-open:${guild.id}`, async () => {
     const existing = await Ticket.findOne({ where: { guildId: guild.id, userId: user.id, status: 'open' } });
     if (existing && guild.channels.cache?.get?.(existing.channelId)) return reply(embeds.info(`У вас уже есть открытое обращение: <#${existing.channelId}>.`));
     if (existing) { existing.status = 'closed'; existing.closedAt = new Date(); await existing.save(); } // its channel is gone
@@ -155,4 +156,18 @@ async function changeAccess(interaction, member, grant) {
   return interaction.reply({ embeds: [embeds.success(grant ? `<@${member.id}> добавлен в обращение.` : `<@${member.id}> убран из обращения.`)], allowedMentions: { parse: [] } });
 }
 
-module.exports = { OPEN, CLOSE, isTicketButton, handleTicketButton, openTicket, closeTicket, panelPayload, changeAccess, canManage, pad };
+/**
+ * After a restart: channels of tickets closed earlier are deleted (the delayed deletion lives only in memory and is lost
+ * when the bot stops within those seconds).
+ */
+async function sweepClosedTickets(client) {
+  const { Op } = require('sequelize');
+  const since = new Date(Date.now() - 24 * 3600 * 1000);
+  const closed = await Ticket.findAll({ where: { status: 'closed', closedAt: { [Op.gte]: since } }, limit: 200 }).catch(() => []);
+  for (const t of closed) {
+    const channel = client.guilds.cache.get(t.guildId)?.channels?.cache?.get(t.channelId);
+    if (channel) await channel.delete(`Обращение №${pad(t.number)} закрыто`).catch(() => {});
+  }
+}
+
+module.exports = { sweepClosedTickets, OPEN, CLOSE, isTicketButton, handleTicketButton, openTicket, closeTicket, panelPayload, changeAccess, canManage, pad };

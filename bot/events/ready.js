@@ -20,6 +20,8 @@ module.exports = {
     startReminderScheduler(client); // sends due reminders
     startPollScheduler(client); // posts the results of timed polls
     startRestoreCleanup(); // forgets old data of members who left
+    require('../modules/tickets').sweepClosedTickets(client).catch(() => {}); // closed tickets whose channel outlived a restart
+    require('../modules/updates').announceUpdates(client).catch(() => {}); // "what's new" into the chosen channels after an update
     client.user.setActivity('/help | Dark', { type: ActivityType.Watching });
   }
 };

@@ -33,7 +33,7 @@
               <option value="<%= c.id %>" <%= settings.reportChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
           </select>
-          <div class="hint">Участник нажимает на сообщение правой кнопкой → «Приложения» → «Report message», жалоба приходит сюда.</div>
+          <div class="hint">Участник нажимает на сообщение правой кнопкой → «Приложения» → «Пожаловаться», жалоба приходит сюда.</div>
         </div>
         <button class="btn" type="submit">Сохранить каналы</button>
       </form>
@@ -48,6 +48,10 @@
           <label class="rule">
             <span class="rule-text"><b>Причина обязательна</b><span>Предупреждение, мут, кик и бан без причины будут отклонены.</span></span>
             <input type="checkbox" name="modRequireReason" <%= settings.modRequireReason ? 'checked' : '' %> />
+          </label>
+          <label class="rule">
+            <span class="rule-text"><b>Автонаказание только если есть право</b><span>Мут, кик или бан по счётчику предупреждений применяются, только если у модератора, выдавшего предупреждение, есть право на это наказание (тайм-аут, кик, бан). Предупреждения от автомодерации действуют всегда.</span></span>
+            <input type="checkbox" name="modEscalateNeedsPerm" <%= settings.modEscalateNeedsPerm ? 'checked' : '' %> />
           </label>
           <div class="rule">
             <span class="rule-text"><b>Предупреждения сгорают</b><span>Старые предупреждения перестают считаться. 0 — не сгорают никогда.</span></span>

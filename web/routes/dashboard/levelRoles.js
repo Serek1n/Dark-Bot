@@ -4,13 +4,16 @@ const { getGuildRoles, getGuild, botApi } = require('../../discordApi');
 const { MemberProfile, LevelRole } = require('../../../db');
 const { clampInt, snowflake, saved, getSettings } = require('../../utils/common');
 
+const { roleGuard } = require('../../utils/roles');
+
 const router = express.Router();
 
 // ---- Level roles ----
 const syncStatus = new Map(); // guildId -> { running, done, total, error }
 
 router.get('/:guildId/level-roles', ensureGuildAccess, async (req, res) => {
-  const [guild, settings, roles] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildRoles(req.params.guildId)]);
+  const [guild, settings, allRoles, guard] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildRoles(req.params.guildId), roleGuard(req.params.guildId, req.user?.id)]);
+  const roles = guard.annotate(allRoles);
   const levelRoles = await LevelRole.findAll({ where: { guildId: req.params.guildId, track: 'total' }, order: [['level', 'ASC']] });
   res.render('dashboard/level-roles', { guild, settings, roles, levelRoles, sync: syncStatus.get(req.params.guildId) || null, active: 'level-roles' });
 });
@@ -21,12 +24,20 @@ router.post('/:guildId/level-roles', ensureGuildAccess, async (req, res) => {
   const roleId = snowflake(req.body.roleId);
   const roles = await getGuildRoles(guildId);
   if (!level || !roleId || !roles.some((r) => r.id === roleId)) return res.redirect(saved(guildId, 'level-roles', 'invalid'));
+  if ((await roleGuard(guildId, req.user?.id)).check(roleId)) return res.redirect(saved(guildId, 'level-roles', 'rolenotallowed'));
   const track = 'total';
   // One role per (direction, level): saving the same pair again replaces the role.
   const existing = await LevelRole.findOne({ where: { guildId, level, track } });
-  if (existing) await existing.update({ roleId });
-  else await LevelRole.create({ guildId, level, roleId, track });
+  const keep = req.body.keep === 'on';
+  if (existing) await existing.update({ roleId, keep });
+  else await LevelRole.create({ guildId, level, roleId, track, keep });
   res.redirect(saved(guildId, 'level-roles'));
+});
+
+// "Keep": the role stays even in "only the highest role" mode.
+router.post('/:guildId/level-roles/keep/:id', ensureGuildAccess, async (req, res) => {
+  await LevelRole.update({ keep: req.body.keep === 'on' }, { where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId: req.params.guildId } });
+  res.redirect(saved(req.params.guildId, 'level-roles'));
 });
 
 router.post('/:guildId/level-roles/mode', ensureGuildAccess, async (req, res) => {
@@ -52,7 +63,7 @@ router.post('/:guildId/level-roles/sync', ensureGuildAccess, async (req, res) =>
 
   (async () => {
     const { computeTrackRoleChanges } = require('../../../bot/modules/levelRoles');
-    const levelRoles = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId, track: r.track }));
+    const levelRoles = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId, track: r.track, keep: Boolean(r.keep) }));
     if (!levelRoles.length) return;
     const profiles = await MemberProfile.findAll({ where: { guildId } });
     const levels = new Map(profiles.map((p) => [p.userId, { total: p.level }]));
@@ -80,7 +91,11 @@ router.post('/:guildId/level-roles/sync', ensureGuildAccess, async (req, res) =>
       status.done++;
     }
   })()
-    .catch((err) => { status.error = err.message; })
+    .catch((err) => {
+      // Shown on the page: Russian words, the raw error goes to the log only.
+      require('../../../bot/utils/logger').warn(`Level role sync failed on ${guildId}: ${err.message}`);
+      status.error = err.response?.status === 403 ? 'Discord не отдал список участников: включите боту «Server Members Intent» на портале разработчика и проверьте его права.' : require('../../../bot/utils/discordErrors').errorText(err);
+    })
     .finally(() => { status.running = false; });
 });
 

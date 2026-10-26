@@ -7,7 +7,7 @@
 const { isBetaBuild } = require('./channel');
 
 const FEATURES = [
-  { key: 'leveling', field: 'levelingEnabled', title: 'Уровни', desc: 'Опыт за чат и голос, команды /profile и /top', commands: ['profile', 'top'], page: 'leveling' },
+  { key: 'leveling', field: 'levelingEnabled', title: 'Уровни', desc: 'Опыт за чат и голос, команды /profile, /top, /calc и /level', commands: ['profile', 'top', 'calc', 'level', 'Profile'], page: 'leveling' },
   { key: 'economy', field: 'economyEnabled', title: 'Экономика', desc: 'Ежедневная награда, баланс и переводы: /daily, /balance, /pay', commands: ['daily', 'balance', 'pay'], page: 'economy' },
   { key: 'shop', field: 'shopEnabled', title: 'Магазин', desc: 'Покупка ролей и предметов за валюту: /shop', commands: ['shop'], page: 'shop' },
   { key: 'music', field: 'musicEnabled', title: 'Музыка', desc: 'Команда /play. Уже играющая музыка продолжит играть, пока её не остановят кнопкой', commands: ['play'], page: null },
@@ -23,7 +23,7 @@ const FEATURES = [
   { key: 'reminders', field: 'remindersEnabled', title: 'Напоминания', desc: 'Команда /remind: бот упомянет вас через заданное время', commands: ['remind'], page: null },
   { key: 'fun', field: 'funEnabled', title: 'Мини-игры', desc: 'Кубик, монетка, шар предсказаний, камень-ножницы-бумага: /dice, /coinflip, /8ball, /rps', commands: ['dice', 'coinflip', '8ball', 'rps'], page: null },
   { key: 'webhooks', field: 'webhooksEnabled', title: 'Вебхуки', desc: 'Команда /webhook: создание вебхуков и отправка сообщений через них (нужно право «Управлять вебхуками»)', commands: ['webhook'], page: 'webhooks' },
-  { key: 'report', field: 'reportEnabled', title: 'Жалобы', desc: 'Меню «Report message» для жалоб на сообщения', commands: ['Report message'], page: 'moderation' }
+  { key: 'report', field: 'reportEnabled', title: 'Жалобы', desc: 'Пункт «Пожаловаться» в меню сообщения', commands: ['Report message'], page: 'moderation' }
 ];
 
 const byCommand = new Map(FEATURES.flatMap((f) => f.commands.map((c) => [c, f])));

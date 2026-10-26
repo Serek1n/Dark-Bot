@@ -1,14 +1,59 @@
-const { SlashCommandBuilder, AttachmentBuilder } = require('discord.js');
+const { SlashCommandBuilder, AttachmentBuilder, MessageFlags } = require('discord.js');
 const { MemberProfile } = require('../../../db');
 const { Op } = require('sequelize');
-const { getOrCreateProfile, getOrCreateSettings, xpForLevel, getLeaderboard } = require('../../modules/leveling');
+const { getOrCreateProfile, getOrCreateSettings, xpForLevel, totalXpForLevel, MAX_LEVEL } = require('../../modules/leveling');
+const { roleBoostFor } = require('../../modules/xpBoosts');
 const { renderRankCard } = require('../../modules/rankCard');
 const { buildTopPage } = require('../../modules/leaderboardPage');
 const embeds = require('../../utils/embeds');
 const { pendingSeconds, formatDuration } = require('../../modules/voiceTime');
 const logger = require('../../utils/logger');
 
+const num = (n) => Math.round(Number(n) || 0).toLocaleString('ru-RU');
+
+/** How far a member is from a level, and how much chatting or sitting in voice that takes (Polaris' /calculate). */
+async function calc(interaction) {
+  const target = interaction.options.getUser('user') || interaction.user;
+  const level = Math.min(MAX_LEVEL, interaction.options.getInteger('level'));
+  const settings = await getOrCreateSettings(interaction.guild.id);
+  const profile = await getOrCreateProfile(interaction.guild.id, target.id);
+  const xp = Number(profile.xp) || 0;
+  const goal = totalXpForLevel(level);
+  const remaining = Math.max(0, goal - xp);
+  const embed = embeds.baseEmbed().setAuthor({ name: target.globalName || target.username, iconURL: target.displayAvatarURL?.() }).setTitle(`До ${level}-го уровня`);
+  const lines = [
+    `**Сейчас:** ${profile.level} уровень, ${num(xp)} XP`,
+    `**Нужно для ${level}-го:** ${num(goal)} XP`,
+    `\`${embeds.progressBar(Math.min(xp, goal), goal || 1)}\` ${goal ? Math.min(100, Math.floor((xp / goal) * 100)) : 100}%`
+  ];
+  if (!remaining) {
+    lines.push('', '🎉 Этот уровень уже достигнут!');
+    return interaction.reply({ embeds: [embed.setDescription(lines.join('\n'))] });
+  }
+  lines.push(`**Осталось:** ${num(remaining)} XP`);
+
+  const member = target.id === interaction.user.id ? interaction.member : await interaction.guild.members.fetch(target.id).catch(() => null);
+  const boost = roleBoostFor(settings, member).xp;
+  if (boost !== 1) lines.push(`**Множитель ролей:** ×${String(boost).replace('.', ',')}`);
+  lines.push('');
+  if (settings.chatEnabled !== false) {
+    const avg = ((Number(settings.xpPerMessageMin) + Number(settings.xpPerMessageMax)) / 2) * boost;
+    if (avg > 0) {
+      const messages = Math.ceil(remaining / avg);
+      const seconds = messages * (Number(settings.xpCooldownSeconds) || 0);
+      lines.push(`💬 **Сообщений:** около ${num(messages)}` + (seconds ? ` (не быстрее чем за ${formatDuration(seconds)}: опыт даётся раз в ${num(settings.xpCooldownSeconds)} с)` : ''));
+    }
+  }
+  if (settings.voiceEnabled !== false) {
+    const perMinute = (Number(settings.voiceXpPerMinute) || 0) * boost;
+    if (perMinute > 0) lines.push(`🎙️ **В голосовом канале:** около ${formatDuration(Math.ceil(remaining / perMinute) * 60)}`);
+  }
+  if (boost === 0) lines.push('Сейчас опыт не начисляется: у участника роль с множителем ×0.');
+  return interaction.reply({ embeds: [embed.setDescription(lines.join('\n'))] });
+}
+
 module.exports = {
+  calc,
   // Registered as flat commands /profile and /top (the grouped `data` below is kept for tests only).
   variants: [
     {
@@ -29,6 +74,14 @@ module.exports = {
             .setDescription('По какому опыту (по умолчанию — общий)')
             .addChoices({ name: 'Общий', value: 'total' }, { name: 'Голос', value: 'voice' })
         )
+    },
+    {
+      sub: 'calc',
+      data: new SlashCommandBuilder()
+        .setName('calc')
+        .setDescription('Сколько опыта, сообщений и времени нужно до уровня')
+        .addIntegerOption((opt) => opt.setName('level').setDescription('Желаемый уровень').setMinValue(1).setMaxValue(1000).setRequired(true))
+        .addUserOption((opt) => opt.setName('user').setDescription('Для кого посчитать (по умолчанию — для вас)'))
     }
   ],
   data: new SlashCommandBuilder()
@@ -68,7 +121,7 @@ module.exports = {
       let xpIntoLevel = Number(profile.xp);
       for (let l = 0; l < profile.level; l++) xpIntoLevel -= xpForLevel(l);
 
-      await interaction.deferReply();
+      await interaction.deferReply(interaction.privateAnswer ? { flags: MessageFlags.Ephemeral } : undefined);
 
       try {
         const rank = (await MemberProfile.count({ where: { guildId: interaction.guild.id, xp: { [Op.gt]: profile.xp } } })) + 1;
@@ -112,6 +165,8 @@ module.exports = {
         return interaction.editReply({ embeds: [embed] });
       }
     }
+
+    if (sub === 'calc') return calc(interaction);
 
     if (sub === 'top') {
       await interaction.deferReply();

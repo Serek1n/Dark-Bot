@@ -1,4 +1,5 @@
 const { DataTypes, Model } = require('sequelize');
+const { encrypt, decrypt } = require('../crypto');
 
 module.exports = (sequelize) => {
   class GuildSettings extends Model {}
@@ -19,7 +20,13 @@ module.exports = (sequelize) => {
       // Forum "Логи": a webhook posts into one thread per event kind (see bot/utils/logCategories.js)
       logForumChannelId: { type: DataTypes.STRING, allowNull: true },
       logWebhookId: { type: DataTypes.STRING, allowNull: true },
-      logWebhookToken: { type: DataTypes.STRING, allowNull: true },
+      // stored encrypted (db/crypto.js); reads give the plain token, an old plain value still works
+      logWebhookToken: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        get() { return decrypt(this.getDataValue('logWebhookToken')); },
+        set(value) { this.setDataValue('logWebhookToken', encrypt(value)); }
+      },
       logThreads: { type: DataTypes.TEXT, defaultValue: '{}' }, // JSON { category: threadId }
       logDisabled: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON [category] switched off
 
@@ -107,10 +114,29 @@ module.exports = (sequelize) => {
       modDmEnabled: { type: DataTypes.BOOLEAN, defaultValue: true }, // tell the member about a punishment in DMs
       modRequireReason: { type: DataTypes.BOOLEAN, defaultValue: false },
       modWarnExpireDays: { type: DataTypes.INTEGER, defaultValue: 0 }, // 0 = warnings never expire
+      modEscalateNeedsPerm: { type: DataTypes.BOOLEAN, defaultValue: false }, // an automatic punishment only if the moderator who warned has the right for it
       modWarnThresholds: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON [{ count, action: mute|kick|ban, minutes }]
 
       // Channel bonuses: JSON { "<channel or category id>": { xp: 2, coins: 1.5 } }, see bot/modules/leveling.js
       channelBoosts: { type: DataTypes.TEXT, defaultValue: '{}' },
+      // Role multipliers (bot/modules/xpBoosts.js): { roleId: { xp, coins } }, how roles combine and how they meet the channel bonus.
+      roleBoosts: { type: DataTypes.TEXT, defaultValue: '{}' },
+      roleBoostMode: { type: DataTypes.STRING, defaultValue: 'largest' },
+      boostStacking: { type: DataTypes.STRING, defaultValue: 'multiply' },
+      // The level-up message: where it goes (auto | current | dm | off), its own text (null = the standard one), framed or plain,
+      // only every N-th level until level X (0 = always), only on levels that give a role.
+      levelUpDestination: { type: DataTypes.STRING, defaultValue: 'auto' },
+      levelUpMessage: { type: DataTypes.TEXT, allowNull: true },
+      levelUpEmbed: { type: DataTypes.BOOLEAN, defaultValue: true },
+      levelUpEvery: { type: DataTypes.INTEGER, defaultValue: 1 },
+      levelUpEveryUntil: { type: DataTypes.INTEGER, defaultValue: 0 },
+      levelUpRewardOnly: { type: DataTypes.BOOLEAN, defaultValue: false },
+      // The leaderboard page anyone can open by its link, and the level from which members appear there.
+      leaderboardPublic: { type: DataTypes.BOOLEAN, defaultValue: false },
+      leaderboardMinLevel: { type: DataTypes.INTEGER, defaultValue: 0 },
+      // "What's new" notes after an update: the channel, and the release (bot/panel versions) already posted there.
+      updatesChannelId: { type: DataTypes.STRING, allowNull: true },
+      updatesLastPosted: { type: DataTypes.STRING, allowNull: true },
 
       // Temp voice ("join to create")
       tempVoiceJoinChannelId: { type: DataTypes.STRING, allowNull: true },

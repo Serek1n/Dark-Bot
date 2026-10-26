@@ -65,9 +65,9 @@ const express = require('express');
   });
   await test('create: Discord errors turn into a readable message on the page', async () => {
     botApi.failWith = Object.assign(new Error('x'), { response: { status: 400, data: { code: 30007, message: 'Maximum number of webhooks reached (15)' } } });
-    assert(decodeURIComponent(loc(await post('', { channelId: CH, name: 'x' }))).includes('уже 15'), 'limit');
+    assert(loc(await post('', { channelId: CH, name: 'x' })).includes('reason=webhooklimit'), 'limit');
     botApi.failWith = Object.assign(new Error('x'), { response: { status: 403, data: { code: 50013, message: 'Missing Permissions' } } });
-    assert(decodeURIComponent(loc(await post('', { channelId: CH, name: 'x' }))).includes('нет права'), 'perm');
+    assert(loc(await post('', { channelId: CH, name: 'x' })).includes('reason=perm'), 'perm');
     botApi.failWith = null;
   });
   await test('delete: own webhook is removed; foreign, log and unknown ones are refused', async () => {

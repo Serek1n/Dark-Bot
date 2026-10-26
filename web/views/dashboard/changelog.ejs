@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Обновления' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <div class="page-header">
+        <h1>Обновления</h1>
+        <p class="page-intro">Что нового в боте и веб-панели. Бот может сам писать об обновлениях в канал вашего сервера.</p>
+      </div>
+
+      <form method="post" action="/dashboard/<%= guild.id %>/changelog/channel" class="card">
+        <h2>Новости об обновлениях<span class="sub">После каждого обновления бот пришлёт короткий список изменений</span></h2>
+        <label>Канал</label>
+        <select name="updatesChannelId">
+          <option value="">— не присылать —</option>
+          <% channels.forEach(c => { %><option value="<%= c.id %>" <%= settings.updatesChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+        </select>
+        <div class="hint">Боту нужны права «Просмотр канала», «Отправлять сообщения» и «Встраивать ссылки». Старые записи при выборе канала не отправляются — только новые.</div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+
+      <% if (settings.updatesChannelId && latest) { %>
+        <form method="post" action="/dashboard/<%= guild.id %>/changelog/send" class="card" data-no-guard>
+          <h2>Отправить сейчас</h2>
+          <p style="margin-top:0">Пришлёт в канал запись о текущей версии — бот v<%= latest.bot %> · панель v<%= latest.panel %>.</p>
+          <button class="btn btn-secondary" type="submit">Отправить в канал</button>
+        </form>
+      <% } %>
+
+      <div class="card">
+        <h2>Что нового</h2>
+        <% if (!releases.length) { %>
+          <p class="empty-state">Записей пока нет.</p>
+        <% } %>
+        <div class="releases">
+          <% releases.forEach((r, i) => { %>
+            <div class="release <%= i === 0 ? 'current' : '' %>">
+              <div class="release-head">
+                <span class="rv">Бот <b>v<%= r.bot %></b></span>
+                <span class="rv">Панель <b>v<%= r.panel %></b></span>
+                <% if (i === 0) { %><span class="badge badge-unban">сейчас</span><% } %>
+                <span class="rdate"><%= r.date ? new Date(r.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '' %></span>
+              </div>
+              <div class="release-body">
+                <% if (r.botChanges.length) { %><div><h3>Бот</h3><ul><% r.botChanges.forEach(x => { %><li><%= x %></li><% }) %></ul></div><% } %>
+                <% if (r.panelChanges.length) { %><div><h3>Веб-панель</h3><ul><% r.panelChanges.forEach(x => { %><li><%= x %></li><% }) %></ul></div><% } %>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

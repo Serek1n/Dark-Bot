@@ -66,17 +66,16 @@ function listEmbed(hooks) {
   return embeds.baseEmbed().setTitle(`Вебхуки бота (${hooks.length})`).setDescription(lines.join('\n\n').slice(0, 3900) + more);
 }
 
-/** Turns a Discord error into words the person can act on. */
+/** Turns a Discord error into words the person can act on (never Discord's raw English text). */
 function explain(err) {
-  const m = err?.message || '';
-  if (/Maximum number of webhooks/i.test(m)) return 'В этом канале уже 15 вебхуков — это предел Discord. Удалите ненужные.';
-  if (/Missing (Permissions|Access)/i.test(m)) return 'У бота не хватает прав в этом канале (нужно «Управлять вебхуками» и «Просмотр канала»).';
-  return `Discord отказал: ${m}`;
+  return require('../utils/discordErrors').errorText(err);
 }
 
 const isWebhookComponent = (i) => typeof i.customId === 'string' && i.customId.startsWith(PREFIX);
 const rowOf = (c) => new ActionRowBuilder().addComponents(c);
-const reply = (i, text, ok = false) => i.reply({ embeds: [ok ? embeds.success(text) : embeds.error(text)], ...ephemeral });
+// After deferReply the answer goes into the (already private) deferred reply.
+const respond = (i, payload) => (i.deferred ? i.editReply(payload) : i.reply({ ...payload, ...ephemeral }));
+const reply = (i, text, ok = false) => respond(i, { embeds: [ok ? embeds.success(text) : embeds.error(text)] });
 
 /** Checks who pressed the button and that the feature is on; returns what the actions need. */
 async function gate(i) {
@@ -148,7 +147,7 @@ async function createHook(i, ctx, channelId) {
   let avatar;
   if (url) { try { avatar = await fetchAvatar(url); } catch (e) { fail(e.message); } }
   const hook = await channel.createWebhook({ name, avatar: avatar || i.client.user.displayAvatarURL({ extension: 'png', size: 256 }), reason: `Создал ${who(i)} через панель вебхуков` });
-  return i.reply({ embeds: [createdEmbed(hook, channel.id)], ...ephemeral });
+  return respond(i, { embeds: [createdEmbed(hook, channel.id)] });
 }
 
 async function sendThrough(i, ctx, id) {
@@ -188,6 +187,8 @@ async function handleWebhookComponent(i) {
     const parts = i.customId.slice(PREFIX.length).split(':'); // button: [kind]; follow-up: [type, kind, id]
     if (parts.length === 1) return await showStep(i, parts[0], ctx);
     const [type, kind, id] = parts;
+    // A window's answer may download a picture (up to 10 s) and call Discord: acknowledge within the 3 seconds first.
+    if (type === 'm') await i.deferReply(ephemeral);
     if (type === 'c' && kind === 'create') { // channel chosen: ask for the name and the picture
       const channelId = (i.values || [])[0];
       if (!channelId) fail('Выберите канал.');
@@ -205,7 +206,8 @@ async function handleWebhookComponent(i) {
     if (!(err instanceof WebhookError)) logger.error('Webhook panel action failed:', err);
     const text = err instanceof WebhookError ? err.message : explain(err);
     const payload = { embeds: [embeds.error(text)], ...ephemeral };
-    if (i.replied || i.deferred) return i.followUp(payload).catch(() => {});
+    if (i.deferred) return i.editReply({ embeds: payload.embeds }).catch(() => {});
+    if (i.replied) return i.followUp(payload).catch(() => {});
     return i.reply(payload).catch(() => {});
   }
 }

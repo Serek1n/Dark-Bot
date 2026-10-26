@@ -47,7 +47,7 @@ router.post('/:guildId/leveling/adjust', ensureGuildAccess, async (req, res) => 
   let roles = 'none';
   try {
     const settings = await getSettings(guildId);
-    const levelRoles = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId, track: r.track }));
+    const levelRoles = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId, track: r.track, keep: Boolean(r.keep) }));
     if (levelRoles.length) {
       const { computeAdjustRoleChanges } = require('../../../bot/modules/levelRoles');
       const member = await botApi.get(`/guilds/${guildId}/members/${userId}`).then((r) => r.data).catch(() => null);
@@ -86,6 +86,13 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   settings.crystalsPerLevel = clampInt(req.body.crystalsPerLevel, 0, 10000, settings.crystalsPerLevel);
   settings.levelUpChannelId = snowflake(req.body.levelUpChannelId);
   settings.levelUpInVoice = req.body.levelUpInVoice === 'on';
+  const { DESTINATIONS } = require('../../../bot/utils/levelUp');
+  settings.levelUpDestination = DESTINATIONS.includes(req.body.levelUpDestination) ? req.body.levelUpDestination : 'auto';
+  settings.levelUpMessage = String(req.body.levelUpMessage || '').trim().slice(0, 1500) || null;
+  settings.levelUpEmbed = req.body.levelUpEmbed === 'on';
+  settings.levelUpRewardOnly = req.body.levelUpRewardOnly === 'on';
+  settings.levelUpEvery = clampInt(req.body.levelUpEvery, 1, 100, 1);
+  settings.levelUpEveryUntil = clampInt(req.body.levelUpEveryUntil, 0, 1000, 0);
   await settings.save();
   res.redirect(saved(req.params.guildId, 'leveling'));
 });
@@ -158,7 +165,18 @@ router.get('/:guildId/leaderboard', ensureGuildAccess, async (req, res) => {
   const where = track === 'total' ? { guildId: req.params.guildId } : { guildId: req.params.guildId, [xpField]: { [Op.gt]: 0 } };
   const top = await MemberProfile.findAll({ where, order: [[xpField, 'DESC']], limit: 50 });
   const users = await getUsers(top.map((p) => p.userId));
-  res.render('dashboard/leaderboard', { guild, top, users, track, xpField, levelField, active: 'leaderboard' });
+  const settings = await getSettings(req.params.guildId);
+  const publicUrl = `${(process.env.WEB_BASE_URL || '').replace(/\/+$/, '')}/top/${req.params.guildId}`;
+  res.render('dashboard/leaderboard', { guild, top, users, track, xpField, levelField, settings, publicUrl, active: 'leaderboard' });
+});
+
+// The public leaderboard page: on/off and the level from which members appear there.
+router.post('/:guildId/leaderboard/public', ensureGuildAccess, async (req, res) => {
+  const settings = await getSettings(req.params.guildId);
+  settings.leaderboardPublic = req.body.leaderboardPublic === 'on';
+  settings.leaderboardMinLevel = clampInt(req.body.leaderboardMinLevel, 0, 1000, 0);
+  await settings.save();
+  res.redirect(`/dashboard/${req.params.guildId}/leaderboard?saved=1`);
 });
 
 module.exports = router;

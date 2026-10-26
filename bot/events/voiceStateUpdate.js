@@ -1,6 +1,6 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { getOrCreateSettings } = require('../modules/leveling');
-const { GuildSettings, TempVoiceChannel } = require('../../db');
+const { TempVoiceChannel } = require('../../db');
 const logger = require('../utils/logger');
 const { getQueue, destroyQueue } = require('../modules/music/player');
 const { trackVoiceState } = require('../modules/voiceTime');
@@ -63,7 +63,12 @@ module.exports = {
           ]
         });
         await TempVoiceChannel.create({ guildId: guild.id, channelId: channel.id, ownerId: newState.member.id });
-        await newState.setChannel(channel).catch(() => {});
+        // The member may already have left the trigger channel: then the new room would stay empty forever.
+        const moved = await newState.setChannel(channel).then(() => true).catch(() => false);
+        if (!moved) {
+          await channel.delete('Владелец вышел до переноса в комнату').catch(() => {});
+          await TempVoiceChannel.destroy({ where: { channelId: channel.id } }).catch(() => {});
+        }
       } catch (err) {
         logger.error('Failed to create temp voice channel:', err);
       }

@@ -47,6 +47,12 @@ router.post('/:guildId/logs', ensureGuildAccess, async (req, res) => {
     await settings.save();
     return back('saved');
   }
+  // Only a forum of this very server: the bot would otherwise retag and post into someone else's forum.
+  const forums = (await getGuildChannels(guildId)).filter((c) => c.type === 15);
+  if (!forums.some((c) => c.id === forumId)) {
+    await settings.save();
+    return back(forumId === settings.logForumChannelId ? 'saved' : 'lognoforum');
+  }
   const sameForum = forumId === settings.logForumChannelId;
   if (sameForum && req.body.action !== 'setup' && settings.logWebhookId) {
     await settings.save();
