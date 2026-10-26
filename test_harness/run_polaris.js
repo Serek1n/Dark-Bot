@@ -16,7 +16,7 @@ stub('discordApi.js', {
   getGuildRoles: async () => [{ id: R1, name: 'Бустер', position: 3 }, { id: R2, name: 'VIP', position: 2 }, { id: MUTE, name: 'Мут', position: 1 }],
   getGuild: async (id) => ({ id, name: 'Тёмный клуб', icon: null }),
   getUsers: async (ids) => Object.fromEntries(ids.map((id) => [id, { id, name: 'u' + id.slice(-2), avatar: '' }])),
-  botApi: { get: async () => ({ data: {} }), post: async () => ({ data: {} }), put: async () => ({}), delete: async () => ({}) }
+  botApi: { get: require('./ownerGuild').ownerGet(G, [MUTE, R2, R1]), post: async () => ({ data: {} }), put: async () => ({}), delete: async () => ({}) }
 });
 
 const results = []; let failed = 0;
@@ -143,7 +143,7 @@ const roleMember = (ids, positions = {}) => ({ roles: { cache: new Map(ids.map((
   const express = require('express');
   const app = express(); app.set('view engine', 'ejs'); app.set('views', path.join(__dirname, '..', 'web', 'views'));
   app.use(express.urlencoded({ extended: true }));
-  app.use((q, r, n) => { q.user = { id: 'ADMIN', username: 'x' }; r.locals.user = q.user; n(); });
+  app.use((q, r, n) => { q.user = { id: 'OWNER', username: 'x' }; r.locals.user = q.user; n(); });
   app.use('/dashboard', require('../web/routes/dashboard'));
   app.use('/top', require('../web/routes/publicTop'));
   const server = app.listen(0); const root = `http://127.0.0.1:${server.address().port}`; const base = `${root}/dashboard/${G}`;

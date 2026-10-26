@@ -23,7 +23,7 @@ const isStaffRole = (role) => Boolean(role.permissions?.any?.(STAFF_PERMISSIONS)
 async function saveSnapshot(member) {
   try {
     if (!member?.guild || member.user?.bot) return;
-    const settings = await GuildSettings.findOne({ where: { guildId: member.guild.id } });
+    const settings = await require('./leveling').getOrCreateSettings(member.guild.id);
     if (!isOn(settings)) return;
     if (member.partial || !member.roles?.cache) return; // roles unknown: an older snapshot, if any, stays
     // A banned member comes back (after an unban) with nothing: the punishment is not undone by roles.
@@ -53,7 +53,7 @@ async function restoreMember(member) {
   try {
     if (!member?.guild || member.user?.bot) return null;
     const guild = member.guild;
-    const settings = await GuildSettings.findOne({ where: { guildId: guild.id } });
+    const settings = await require('./leveling').getOrCreateSettings(guild.id);
     if (!isOn(settings)) return null;
     const key = { guildId: guild.id, userId: member.id };
     const snap = await MemberSnapshot.findOne({ where: key });

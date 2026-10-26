@@ -78,6 +78,7 @@ function seedFromGuilds(client) {
  */
 async function xpTick(client) {
   for (const guild of client.guilds.cache.values()) {
+    if (guild.voiceStates?.cache && !guild.voiceStates.cache.size) continue; // nobody in voice: no need to read the settings
     const settings = await getOrCreateSettings(guild.id);
     if (!settings || !settings.levelingEnabled || !settings.voiceEnabled) continue;
     const xpPerMinute = Math.max(0, Number(settings.voiceXpPerMinute) || 0);

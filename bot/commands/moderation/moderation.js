@@ -127,6 +127,10 @@ module.exports = {
       const id = interaction.options.getInteger('number');
       const warning = await Warning.findOne({ where: { id, guildId: guild.id } });
       if (!warning) return fail(interaction, 'Предупреждение с таким номером не найдено.');
+      if (warning.userId === interaction.user.id) return fail(interaction, 'Свои предупреждения снимает другой модератор.');
+      const owner = await memberOf({ id: warning.userId });
+      const ownerErr = owner && hierarchyError(interaction.member, owner);
+      if (ownerErr) return fail(interaction, ownerErr);
       await warning.destroy();
       await recordAndAnnounce(guild, { userId: warning.userId, moderatorId: interaction.user.id, action: 'unwarn', reason: `Снято предупреждение #${id}` });
       return interaction.reply({ embeds: [embeds.success(`Предупреждение #${id} снято.`)] });
@@ -134,6 +138,10 @@ module.exports = {
 
     if (sub === 'clearwarns') {
       const target = interaction.options.getUser('user');
+      if (target.id === interaction.user.id) return fail(interaction, 'Свои предупреждения снимает другой модератор.');
+      const targetMember = await memberOf(target);
+      const tErr = targetMember && hierarchyError(interaction.member, targetMember);
+      if (tErr) return fail(interaction, tErr);
       const removed = await Warning.destroy({ where: { guildId: guild.id, userId: target.id } });
       if (!removed) return interaction.reply({ embeds: [embeds.info(`У <@${target.id}> нет предупреждений.`)] });
       await recordAndAnnounce(guild, { userId: target.id, moderatorId: interaction.user.id, action: 'unwarn', reason: `Сняты все предупреждения (${removed})` });

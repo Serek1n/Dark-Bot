@@ -3,6 +3,8 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
+    environment:
+      WEB_HOST: 0.0.0.0 # inside the container; the port is published to 127.0.0.1 only (below)
     ports:
       - "127.0.0.1:3000:3000" # only this machine; put nginx (HTTPS) in front, X-Forwarded-For is trusted
     volumes:

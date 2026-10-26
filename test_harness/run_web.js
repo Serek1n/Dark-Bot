@@ -10,7 +10,7 @@ stub('middleware/ensureGuildAccess.js', { ensureGuildAccess: (q, s, n) => n() })
 stub('discordApi.js', {
   getBotGuildIds: async () => [], getGuildChannels: async () => [{ id: '123456789012345678', name: 'chat', type: 0 }],
   getGuildRoles: async () => [{ id: '223456789012345678', name: 'Role' }], getGuild: async (id) => ({ id, name: 'T', icon: null }),
-  getUsers: async (ids) => Object.fromEntries(ids.map((i) => [i, { name: 'n' + i, avatar: '' }])), botApi: {}
+  getUsers: async (ids) => Object.fromEntries(ids.map((i) => [i, { name: 'n' + i, avatar: '' }])), botApi: { get: require('./ownerGuild').ownerGet('777000000000000001', ['223456789012345678']) }
 });
 const express = require('express');
 
@@ -19,6 +19,7 @@ const express = require('express');
   const app = express();
   app.set('view engine', 'ejs'); app.set('views', path.join(__dirname, '..', 'web', 'views'));
   app.use(express.urlencoded({ extended: true }));
+  app.use(require('./ownerGuild').asOwner);
   app.use('/dashboard', require('../web/routes/dashboard'));
   app.use((err, req, res, next) => res.status(500).send(String(err.stack)));
   const server = app.listen(0);

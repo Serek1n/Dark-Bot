@@ -130,7 +130,7 @@ async function forEach(ctx, ids, action, opts) {
   for (const id of [...new Set(ids)].slice(0, 25)) {
     const t = await target(ctx, id, opts);
     if (t.skip) { skipped.push(`<@${id}> — ${t.skip}`); continue; }
-    try { const note = await action(t.member, id); done.push(`<@${id}>`); if (note) skipped.push(`<@${id}> — ${note}`); } catch (err) { logger.warn(`Voice room action failed for ${id}: ${err.message}`); skipped.push(`<@${id}> — Discord отказал (проверьте права бота)`); }
+    try { const note = await action(t.member, id); if (note?.skip) { skipped.push(`<@${id}> — ${note.skip}`); continue; } done.push(`<@${id}>`); if (note) skipped.push(`<@${id}> — ${note}`); } catch (err) { logger.warn(`Voice room action failed for ${id}: ${err.message}`); skipped.push(`<@${id}> — Discord отказал (проверьте права бота)`); }
   }
   return { done, skipped };
 }
@@ -188,7 +188,15 @@ async function untrust(ctx, ids) {
   return summary('Больше не доверенные', await forEach(ctx, ids, (m, id) => ctx.channel.permissionOverwrites.delete(id, 'Владелец убрал доверие'), { needInServer: false }));
 }
 
+// Invitations send DMs from the bot: at most one batch per room owner a minute, so the button cannot be used to spam.
+const lastInvite = new Map(); // userId -> time
+const isStaff = (m) => Boolean(m?.permissions?.has?.(P.Administrator) || m?.permissions?.has?.(P.ModerateMembers) || m?.permissions?.has?.(P.MoveMembers));
+
 async function invite(ctx, ids) {
+  const wait = (lastInvite.get(ctx.member.id) || 0) + 60_000 - Date.now();
+  if (wait > 0) fail(`Приглашать можно раз в минуту. Подождите ${Math.ceil(wait / 1000)} с.`);
+  lastInvite.set(ctx.member.id, Date.now());
+  if (lastInvite.size > 5000) lastInvite.clear();
   const inviteUrl = `https://discord.com/channels/${ctx.guild.id}/${ctx.channel.id}`;
   return summary('Приглашены', await forEach(ctx, ids, async (m, id) => {
     await ctx.channel.permissionOverwrites.edit(id, { ViewChannel: true, Connect: true }, { reason: 'Владелец пригласил в комнату' });
@@ -201,12 +209,14 @@ async function invite(ctx, ids) {
 async function kick(ctx, ids) {
   return summary('Выгнаны', await forEach(ctx, ids, async (m) => {
     if (m.voice?.channelId !== ctx.channel.id) return 'он не в этой комнате';
+    if (isStaff(m)) return { skip: 'это модератор сервера' };
     await m.voice.disconnect('Владелец комнаты выгнал участника');
   }));
 }
 
 async function ban(ctx, ids) {
   return summary('Забанены в комнате', await forEach(ctx, ids, async (m) => {
+    if (isStaff(m)) return { skip: 'это модератор сервера' };
     await ctx.channel.permissionOverwrites.edit(m.id, { ViewChannel: false, Connect: false }, { reason: 'Владелец забанил участника в комнате' });
     if (m.voice?.channelId === ctx.channel.id) await m.voice.disconnect('Забанен в комнате').catch(() => {});
     return m.permissions?.has?.(P.Administrator) ? 'у него права администратора, запрет на него не действует' : null;
@@ -363,5 +373,5 @@ async function handleVoiceRoomComponent(interaction) {
 
 module.exports = {
   PREFIX, ACCESS, REGIONS, BUTTONS, RoomError, panelPayload, isVoiceRoomComponent, handleVoiceRoomComponent,
-  findRoom, roomById, rename, setAccess, trust, untrust, invite, kick, ban, unban, setRegion, transfer, claim, removeRoom, describe, trustedIds, bannedIds, renames
+  findRoom, roomById, rename, setAccess, trust, untrust, invite, kick, ban, unban, setRegion, transfer, claim, removeRoom, describe, trustedIds, bannedIds, renames, lastInvite
 };

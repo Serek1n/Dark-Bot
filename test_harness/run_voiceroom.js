@@ -113,10 +113,11 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
     await press(w, w.owner, `vr:l:untrust:${w.channel.id}`, { values: ['B'] }); assert(!w.ow.get('B'), 'untrusted'); await press(w, w.owner, `vr:l:unban:${w.channel.id}`, { values: ['A', 'C'] }); assert(!w.ow.get('A') && !w.ow.get('C'), 'unbanned');
     assert(said(await press(w, w.owner, 'vr:untrust')).includes('Доверенных пока нет') && said(await press(w, w.owner, 'vr:unban')).includes('никто не забанен'), 'empty lists');
   });
-  await test('nobody wrong can be targeted: yourself, the owner, bots, people who are not on the server; admins get a warning', async () => {
+  await test('nobody wrong can be targeted: yourself, the owner, bots, people who are not on the server, moderators', async () => {
     const w = await world(); const mod = w.person('MOD', { staff: true, inRoom: true }); w.person('BOTX', { bot: true }); w.person('ADM', { admin: true });
     const out = await press(w, mod, `vr:u:ban:${w.channel.id}`, { values: ['MOD', 'OWNER', 'BOTX', 'GHOST', 'ADM'] });
-    const t = said(out); assert(t.includes('это вы сами') && t.includes('владелец') && t.includes('это бот') && t.includes('нет на сервере') && t.includes('права администратора'), t);
+    const t = said(out); assert(t.includes('это вы сами') && t.includes('владелец') && t.includes('это бот') && t.includes('нет на сервере') && t.includes('<@ADM> — это модератор сервера') && !/Забанены в комнате: [^\n]*ADM/.test(t), t);
+    assert(!w.ow.get('ADM') || !flags(w, 'ADM').deny, 'a moderator is not banned from a room');
     assert(!w.ow.get('OWNER') || !flags(w, 'OWNER').deny, 'the owner is never banned');
   });
   await test('kick removes only people sitting in this room; invite gives access and sends a message with a link; closed DMs are noted', async () => {
@@ -127,6 +128,7 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
     assert(flags(w, 'OUT').allow && flags(w, 'SHY').allow && w.guild.members.cache.get('OUT')._dmCount === undefined, 'access given'); assert(said(inv).includes('личные сообщения'), 'DM note for the shy one');
   });
   await test('invite: the message holds a link to the room', async () => {
+    room.lastInvite.clear(); // the one-a-minute limit of the previous test
     const w = await world(); const o = w.person('OUT'); await press(w, w.owner, `vr:u:invite:${w.channel.id}`, { values: ['OUT'] });
     assert(w.log.dms.length === 1 && txt(w.log.dms[0].components[0].toJSON()).includes(`discord.com/channels/${w.guild.id}/${w.channel.id}`), 'link');
   });

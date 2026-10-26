@@ -39,7 +39,10 @@ function hasManageAccess(guild) {
   return (perms & BigInt(MANAGE_GUILD)) === BigInt(MANAGE_GUILD) || (perms & BigInt(ADMINISTRATOR)) === BigInt(ADMINISTRATOR);
 }
 
+// A plain read first: findOrCreate opens a transaction on every page of the panel, which only a new server needs.
 async function getSettings(guildId) {
+  const found = await GuildSettings.findByPk(guildId);
+  if (found) return found;
   const [settings] = await GuildSettings.findOrCreate({ where: { guildId } });
   return settings;
 }

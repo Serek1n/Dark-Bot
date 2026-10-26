@@ -21,6 +21,9 @@ module.exports = {
 
   async execute(interaction) {
     if (!interaction.guild) return interaction.reply({ embeds: [embeds.error('Голосования работают только на сервере.')], flags: MessageFlags.Ephemeral });
+    // The poll is posted by the bot into this channel: only where the person may write himself.
+    const perms = interaction.channel?.permissionsFor?.(interaction.user);
+    if (perms && !perms.has(['ViewChannel', 'SendMessages'])) return interaction.reply({ embeds: [embeds.error('В этом канале вы не можете писать — создайте голосование там, где можно.')], flags: MessageFlags.Ephemeral });
     const question = interaction.options.getString('question', true).trim();
     const options = parseOptions(interaction.options.getString('options'));
     if (options.length === 1 || options.length > NUMBERS.length) {

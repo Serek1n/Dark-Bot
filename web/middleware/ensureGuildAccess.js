@@ -37,7 +37,8 @@ async function ensureGuildAccess(req, res, next) {
     return res.status(404).render('error', { message: 'Бот не добавлен на этот сервер.' });
   }
 
-  req.guildAccess = { manageable: true };
+  // Kept for pages that need more than "Manage Server" (webhooks: "Manage Webhooks").
+  req.guildAccess = { manageable: true, owner: Boolean(guild.owner), permissions: String(guild.permissions || '0') };
   next();
 }
 

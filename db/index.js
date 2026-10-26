@@ -27,6 +27,8 @@ sequelize.connectionManager.getConnection = async function getConnection(options
   if (connection && !patched.has(connection)) {
     patched.add(connection);
     try { connection.configure('busyTimeout', 5000); } catch { /* not a sqlite3 handle */ }
+    // The same speed settings as the main connection: without them every transaction's commit waits for a full fsync.
+    try { connection.exec('PRAGMA synchronous = NORMAL; PRAGMA cache_size = -8000; PRAGMA temp_store = MEMORY;'); } catch { /* not a sqlite3 handle */ }
   }
   return connection;
 };

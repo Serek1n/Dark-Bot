@@ -100,7 +100,7 @@ const { makeUser, makeInteraction } = require('./mock');
   });
   await test('escalation: 3 warnings -> mute 60 min, 5 -> temporary ban 1 day (by the bot, with a reason)', async () => {
     reset(); await Warning.destroy({ where: { guildId: 'G1' } });
-    await setS({ modWarnThresholds: JSON.stringify([{ count: 3, action: 'mute', minutes: 60 }, { count: 5, action: 'ban', minutes: 1440 }]) });
+    await setS({ modEscalateNeedsPerm: false, modWarnThresholds: JSON.stringify([{ count: 3, action: 'mute', minutes: 60 }, { count: 5, action: 'ban', minutes: 1440 }]) });
     await run('warn', { user: makeUser('V3'), reason: 'a' }); await run('warn', { user: makeUser('V3'), reason: 'b' });
     assert(world.timeouts.length === 0, 'too early');
     const third = await run('warn', { user: makeUser('V3'), reason: 'c' });

@@ -25,7 +25,7 @@ const axios = require('axios');
     const db = require('../db'); await db.init();
     const [rows] = await db.sequelize.query("SELECT name FROM sqlite_master WHERE type='index'");
     const names = rows.map((r) => r.name);
-    for (const n of ['member_profiles_guild_xp', 'member_profiles_guild_chat', 'member_profiles_guild_voicexp', 'temp_voice_guild_owner', 'mod_logs_guild_created', 'warnings_guild_user']) assert(names.includes(n), 'missing ' + n);
+    for (const n of ['member_profiles_guild_xp', 'member_profiles_guild_chat', 'member_profiles_guild_voicexp', 'temp_voice_guild_owner', 'mod_logs_guild_created', 'warnings_guild_user_created', 'mod_logs_guild_user_created', 'reaction_roles_guild', 'tickets_status_closed']) assert(names.includes(n), 'missing ' + n);
   });
   await test('static files: fonts are cached for a year, other files for a week', async () => {
     const express = require('express'); const path = require('path'); const http = require('http');

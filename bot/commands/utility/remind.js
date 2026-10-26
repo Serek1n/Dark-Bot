@@ -26,7 +26,10 @@ module.exports = {
       if (!ms || ms < MIN_MS || ms > MAX_MS) return reply(embeds.error('Укажите срок от 10 секунд до года, например: 30m, 2h, 1d.'));
       if ((await Reminder.count({ where: { userId } })) >= MAX_PENDING) return reply(embeds.error(`У вас уже ${MAX_PENDING} напоминаний. Отмените ненужные: \`/remind cancel\`.`));
       const text = interaction.options.getString('text', true).trim().replace(/@(everyone|here)/g, '@​$1');
-      const row = await Reminder.create({ userId, guildId: interaction.guild?.id || null, channelId: interaction.channelId || null, text, remindAt: new Date(Date.now() + ms) });
+      // The reminder is posted later in this channel: only if the person may write here himself, otherwise it comes to DMs
+      // (a read-only channel like #news must not get someone's text through the bot).
+      const canWrite = Boolean(interaction.channel?.permissionsFor?.(interaction.user)?.has?.(['ViewChannel', 'SendMessages']));
+      const row = await Reminder.create({ userId, guildId: interaction.guild?.id || null, channelId: canWrite ? interaction.channelId : null, text, remindAt: new Date(Date.now() + ms) });
       require('../../utils/scheduler').poke('reminders');
       return reply(embeds.success(`Напомню через ${formatDuration(ms)} (<t:${unix(row.remindAt)}:f>). Номер напоминания: ${row.id}.`));
     }

@@ -27,13 +27,22 @@ setInterval(() => {
   for (const [key, t] of lastPunished) if (t < cutoff) lastPunished.delete(key);
 }, 5 * 60 * 1000).unref();
 
+// Lists from the settings are parsed once per distinct text (every message would otherwise parse them again).
+const parsedLists = new Map();
 const json = (text) => {
+  const key = text || '[]';
+  const hit = parsedLists.get(key);
+  if (hit) return hit;
+  let v;
   try {
-    const v = JSON.parse(text || '[]');
-    return Array.isArray(v) ? v : [];
+    v = JSON.parse(key);
+    v = Array.isArray(v) ? v : [];
   } catch {
-    return [];
+    v = [];
   }
+  if (parsedLists.size > 500) parsedLists.clear();
+  parsedLists.set(key, v);
+  return v;
 };
 
 function checkSpam(settings, guildId, userId) {

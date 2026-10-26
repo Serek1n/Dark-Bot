@@ -7,7 +7,7 @@ router.use(ensureAuth);
 
 for (const page of [
   'overview', 'leveling', 'features', 'economy', 'shop', 'moderation', 'logs', 'automod', 'channelBoosts', 'welcome',
-  'levelRoles', 'reactionRoles', 'customCommands', 'tempVoice', 'alerts', 'webhooks', 'changelog'
+  'levelRoles', 'reactionRoles', 'customCommands', 'tempVoice', 'alerts', 'webhooks', 'changelog', 'starboard'
 ]) {
   router.use(require('./' + page));
 }

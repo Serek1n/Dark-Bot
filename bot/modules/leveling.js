@@ -227,9 +227,10 @@ async function grantMessageXpUnlocked(guildId, userId, where = [], member = null
   const seen = lastXpGrant.get(memKey);
   if (seen !== undefined && (Date.now() - seen) / 1000 < settings.xpCooldownSeconds) return null;
 
-  const profile = await getOrCreateProfile(guildId, userId);
   const now = Date.now();
-  if (profile.lastXpAt) {
+  // Memory already knows the last grant and the cooldown is over: no need to read the profile (one query less per message).
+  const profile = seen === undefined ? await getOrCreateProfile(guildId, userId) : null;
+  if (profile?.lastXpAt) {
     const elapsed = (now - new Date(profile.lastXpAt).getTime()) / 1000;
     if (elapsed < settings.xpCooldownSeconds) {
       lastXpGrant.set(memKey, new Date(profile.lastXpAt).getTime());

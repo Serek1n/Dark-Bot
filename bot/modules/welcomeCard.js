@@ -39,7 +39,7 @@ async function renderWelcomeCard({ username, avatarURL, serverName, memberCount 
     ctx.font = '20px CardSans';
     ctx.fillText(`Вы наш участник № ${memberCount}`, left, 236);
   }
-  return canvas.toBuffer('image/png');
+  return canvas.encode('png'); // encoded off the main thread: a join must not freeze the bot and the panel
 }
 
 module.exports = { renderWelcomeCard };
