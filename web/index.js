@@ -129,12 +129,21 @@ async function start({ client = null, standalone = false } = {}) {
     return null;
   }
   // The database and session files hold tokens: keep them readable for this user only (best effort).
-  for (const f of ['', 'dark.sqlite']) { try { fs.chmodSync(path.join(__dirname, '..', 'data', f), f ? 0o600 : 0o700); } catch (_) { /* not there or not allowed */ } }
+  {
+    const dbFile = path.resolve(process.cwd(), process.env.DATABASE_PATH || './data/dark.sqlite');
+    const dataDir = path.join(__dirname, '..', 'data');
+    const files = [dbFile, dbFile + '-wal', dbFile + '-shm', path.join(dataDir, 'sessions.sqlite')];
+    try { fs.chmodSync(dataDir, 0o700); } catch (_) { /* not there or not allowed */ }
+    for (const f of files) { try { fs.chmodSync(f, 0o600); } catch (_) { /* not there or not allowed */ } }
+  }
   require('./botBridge').setClient(client);
-  await init();
+  if (!client) await init(); // inside the bot the database is already prepared
   const port = process.env.WEB_PORT || 3000;
   return new Promise((resolve) => {
-    const server = app.listen(port, () => {
+    // Only this machine by default: the panel is reached through nginx (HTTPS). Open to the network, it could be called
+    // past nginx with a forged X-Forwarded-For (rate limits) and over plain HTTP. WEB_HOST=0.0.0.0 for Docker.
+    const host = process.env.WEB_HOST || '127.0.0.1';
+    const server = app.listen(port, host, () => {
       logger.info(`Веб-панель запущена: http://localhost:${port}${client ? ' (в одном процессе с ботом)' : ''}`);
       resolve(server);
     });

@@ -12,11 +12,29 @@ const { isEnabled, disabledText } = require('../../../bot/utils/features');
 const { rateLimit } = require('../../middleware/rateLimit');
 const webhookLimit = rateLimit({ windowMs: 60_000, max: 10, message: 'Слишком много действий с вебхуками. Подождите минуту.' });
 const BOT_ID = () => process.env.DISCORD_CLIENT_ID;
+
+// The page shows webhook links (whoever has one can post as that webhook) and creates webhooks in any channel, hidden ones
+// included: "Manage Server" is not enough, it takes "Manage Webhooks" or administrator rights, like in Discord itself.
+const MANAGE_WEBHOOKS = 1n << 29n;
+const ADMINISTRATOR = 1n << 3n;
+function needWebhookRights(req, res, next) {
+  const a = req.guildAccess || {};
+  let perms = 0n;
+  try { perms = BigInt(a.permissions || '0'); } catch { perms = 0n; }
+  if (a.viaOwnerOverride || a.owner || (perms & (MANAGE_WEBHOOKS | ADMINISTRATOR)) !== 0n) return next();
+  return res.status(403).render('error', { message: 'Для раздела «Вебхуки» нужно право «Управлять вебхуками» на этом сервере.' });
+}
+// Changes are refused while the feature is switched off on the "Функции" page.
+async function needFeatureOn(req, res, next) {
+  const settings = await GuildSettings.findByPk(req.params.guildId);
+  if (!isEnabled(settings, 'webhooks')) return res.redirect(saved(req.params.guildId, 'webhooks', 'invalid'));
+  return next();
+}
 const WEBHOOK_CHANNEL_TYPES = [0, 2, 5, 13, 15, 16];
 // Errors travel as a short code (`reason`), turned into text by the page: a link cannot carry arbitrary words to show.
 const webhookPage = (guildId, flag, reason) => `/dashboard/${guildId}/webhooks?${flag}=1${reason ? '&reason=' + reason : ''}`;
 
-router.get('/:guildId/webhooks', ensureGuildAccess, async (req, res) => {
+router.get('/:guildId/webhooks', ensureGuildAccess, needWebhookRights, async (req, res) => {
   const guildId = req.params.guildId;
   const guild = await getGuild(guildId);
   const channels = (await getGuildChannels(guildId)).filter((c) => WEBHOOK_CHANNEL_TYPES.includes(c.type));
@@ -26,7 +44,7 @@ router.get('/:guildId/webhooks', ensureGuildAccess, async (req, res) => {
   res.render('dashboard/webhooks', { guild, channels, settings, hooks, error, featureOff: !isEnabled(settings, 'webhooks'), disabledNote: disabledText(settings, 'webhooks'), active: 'webhooks' });
 });
 
-router.post('/:guildId/webhooks', webhookLimit, ensureGuildAccess, async (req, res) => {
+router.post('/:guildId/webhooks', webhookLimit, ensureGuildAccess, needWebhookRights, needFeatureOn, async (req, res) => {
   const guildId = req.params.guildId;
   const channelId = snowflake(req.body.channelId);
   const name = String(req.body.name || '').trim().slice(0, 32);
@@ -41,7 +59,7 @@ router.post('/:guildId/webhooks', webhookLimit, ensureGuildAccess, async (req, r
   }
 });
 
-router.post('/:guildId/webhooks/panel', webhookLimit, ensureGuildAccess, async (req, res) => {
+router.post('/:guildId/webhooks/panel', webhookLimit, ensureGuildAccess, needWebhookRights, needFeatureOn, async (req, res) => {
   const guildId = req.params.guildId;
   const channelId = snowflake(req.body.channelId);
   const channels = await getGuildChannels(guildId);
@@ -62,7 +80,7 @@ router.post('/:guildId/webhooks/panel', webhookLimit, ensureGuildAccess, async (
   }
 });
 
-router.post('/:guildId/webhooks/:id/delete', webhookLimit, ensureGuildAccess, async (req, res) => {
+router.post('/:guildId/webhooks/:id/delete', webhookLimit, ensureGuildAccess, needWebhookRights, needFeatureOn, async (req, res) => {
   const guildId = req.params.guildId;
   const settings = await GuildSettings.findByPk(guildId);
   try {
@@ -75,7 +93,7 @@ router.post('/:guildId/webhooks/:id/delete', webhookLimit, ensureGuildAccess, as
   }
 });
 
-router.post('/:guildId/webhooks/:id/send', webhookLimit, ensureGuildAccess, async (req, res) => {
+router.post('/:guildId/webhooks/:id/send', webhookLimit, ensureGuildAccess, needWebhookRights, needFeatureOn, async (req, res) => {
   const guildId = req.params.guildId;
   const framed = req.body.style !== 'plain';
   const content = String(req.body.content || '').trim().slice(0, framed ? 4000 : 2000);

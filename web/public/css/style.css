@@ -1188,3 +1188,23 @@ tbody tr:hover { background: var(--soft); }
 .release-body h3 { margin: 6px 0 4px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ember); }
 .release-body ul { margin: 0; padding-left: 18px; }
 .release-body li { font-size: 14px; line-height: 1.5; color: var(--paper); }
+
+/* ---- Quick jump (Ctrl+K) ---- */
+.qj { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-start; justify-content: center; padding: 12vh 16px 16px; background: rgba(5, 6, 10, .55); backdrop-filter: blur(3px); }
+.qj[hidden] { display: none; }
+.qj-panel { width: 100%; max-width: 560px; background: var(--panel-raised, var(--panel)); border: 1px solid var(--hairline); border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,.45); overflow: hidden; }
+.qj-input { width: 100%; box-sizing: border-box; border: 0; border-bottom: 1px solid var(--hairline-soft); background: transparent; color: var(--paper); font: inherit; font-size: 16px; padding: 16px 18px; outline: none; }
+.qj-list { max-height: 50vh; overflow-y: auto; padding: 6px; }
+.qj-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--paper); text-decoration: none; }
+.qj-item svg { flex: none; color: var(--fog); }
+.qj-item span { display: flex; flex-direction: column; min-width: 0; }
+.qj-item b { font-weight: 600; font-size: 14px; }
+.qj-item small { font-size: 12.5px; color: var(--fog); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qj-item.sel, .qj-item:hover { background: var(--ember-tint); }
+.qj-item.sel svg { color: var(--ember); }
+.qj-empty { padding: 18px; text-align: center; color: var(--fog); font-size: 14px; }
+.qj-hint { padding: 9px 14px; border-top: 1px solid var(--hairline-soft); font-size: 12px; color: var(--fog); }
+.qj-hint kbd, .qj-kbd { font: 11px var(--font-mono); padding: 2px 6px; border-radius: 6px; border: 1px solid var(--hairline); background: var(--soft); color: var(--fog); }
+.qj-kbd { margin-left: auto; }
+html.qj-open { overflow: hidden; }
+@media (max-width: 760px) { .qj { padding-top: 8vh; } .qj-hint { display: none; } }

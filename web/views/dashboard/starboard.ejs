@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Доска почёта' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <div class="page-header">
+        <h1>Доска почёта</h1>
+        <p class="page-intro">Сообщения, которые участники отметили реакцией (по умолчанию ⭐), бот копирует в отдельный канал. Так лучшие шутки, мемы и новости не теряются в чате.</p>
+      </div>
+
+      <% if (settings.starboardEnabled === false) { %>
+        <div class="callout" style="margin-bottom:18px;">Доска почёта <b>выключена</b>. Включить: <a href="/dashboard/<%= guild.id %>/features" style="color:var(--ember);">страница «Функции»</a>.</div>
+      <% } %>
+
+      <form method="post" class="card">
+        <h2>Настройки</h2>
+        <label>Канал доски</label>
+        <select name="starboardChannelId">
+          <option value="">— выключено —</option>
+          <% channels.forEach(c => { %><option value="<%= c.id %>" <%= settings.starboardChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+        </select>
+        <div class="hint">Лучше отдельный канал, где участники только читают. Боту нужны права «Просмотр канала», «Отправлять сообщения» и «Встраивать ссылки».</div>
+        <div class="two-col" style="margin-top:12px;">
+          <div>
+            <label>Реакция</label>
+            <input type="text" name="starboardEmoji" value="<%= settings.starboardEmoji || '⭐' %>" maxlength="64" placeholder="⭐" />
+            <div class="hint">Обычный эмодзи или свой в виде <code>&lt;:имя:ID&gt;</code>.</div>
+          </div>
+          <div>
+            <label>Сколько реакций нужно</label>
+            <input type="number" name="starboardThreshold" value="<%= settings.starboardThreshold || 3 %>" min="1" max="100" />
+          </div>
+        </div>
+        <div class="rules" style="margin-top:12px;">
+          <label class="rule">
+            <span class="rule-text"><b>Считать реакцию автора</b><span>Выключено: своё сообщение звездой не поднять. Реакции ботов не считаются никогда.</span></span>
+            <input type="checkbox" name="starboardSelfStar" <%= settings.starboardSelfStar ? 'checked' : '' %> />
+          </label>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+
+      <div class="card">
+        <h2>Лучшие сообщения</h2>
+        <% if (!top.length) { %>
+          <p class="empty-state">Пока ни одно сообщение не попало на доску.</p>
+        <% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Автор</th><th>Канал</th><th class="nowrap">Реакций</th><th></th></tr></thead>
+            <tbody>
+              <% top.forEach(t => { const u = users[t.authorId] || { name: t.authorId || '—' }; const ch = allChannels.find(c => c.id === t.channelId); %>
+                <tr>
+                  <td><%= u.name %></td>
+                  <td class="nowrap"><%= ch ? '#' + ch.name : 'канал удалён' %></td>
+                  <td class="nowrap"><b><%= settings.starboardEmoji || '⭐' %> <%= t.count %></b></td>
+                  <td class="nowrap" style="text-align:right;"><a class="btn btn-secondary" href="https://discord.com/channels/<%= guild.id %>/<%= t.channelId %>/<%= t.messageId %>" target="_blank" rel="noopener">Открыть</a></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

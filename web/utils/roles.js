@@ -17,11 +17,12 @@ const REASONS = {
 
 /**
  * Returns { check(roleId) -> null | reason text, annotate(roles) -> roles with `blocked` }.
- * When the bot is not running in this process the check cannot be made and nothing is blocked.
+ * Without the bot in this process the rules are checked over REST (see restGuard).
  */
 async function roleGuard(guildId, userId) {
+  if (!userId) { const no = () => 'нет пользователя'; return { check: no, annotate: (roles) => roles.map((r) => ({ ...r, blocked: no() })) }; }
   const guild = getClient()?.guilds.cache.get(guildId);
-  if (!guild) return { check: () => null, annotate: (roles) => roles };
+  if (!guild) return restGuard(guildId, userId);
   const owners = (process.env.BOT_OWNER_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
   const isOwner = guild.ownerId === userId || owners.includes(userId);
   const member = isOwner ? null : await guild.members.fetch(userId).catch(() => null);
@@ -39,6 +40,42 @@ async function roleGuard(guildId, userId) {
     return null;
   };
   return { check, annotate: (roles) => roles.map((r) => ({ ...r, blocked: check(r.id) })) };
+}
+
+/**
+ * The same rules when the bot is not in this process (the panel started on its own): roles and members are read over REST.
+ * If Discord cannot be asked, every role is refused — a failed check must never let anything through.
+ */
+async function restGuard(guildId, userId) {
+  const { botApi } = require('../discordApi');
+  const get = (url) => botApi.get(url).then((r) => r.data);
+  let guild, me, member;
+  try {
+    guild = await get(`/guilds/${guildId}`);
+    me = await get(`/guilds/${guildId}/members/${process.env.DISCORD_CLIENT_ID}`);
+    member = userId ? await get(`/guilds/${guildId}/members/${userId}`).catch(() => null) : null;
+  } catch {
+    const no = () => 'не удалось проверить права — попробуйте позже';
+    return { check: no, annotate: (roles) => roles.map((r) => ({ ...r, blocked: no() })) };
+  }
+  const roles = new Map((guild.roles || []).map((r) => [r.id, r]));
+  const top = (ids) => Math.max(0, ...(ids || []).map((id) => roles.get(id)?.position ?? 0));
+  const owners = (process.env.BOT_OWNER_IDS || '').split(',').map((x) => x.trim()).filter(Boolean);
+  const isOwner = guild.owner_id === userId || owners.includes(userId);
+  const perms = (ids) => (ids || []).reduce((acc, id) => acc | BigInt(roles.get(id)?.permissions || 0), BigInt(roles.get(guildId)?.permissions || 0));
+  const isAdmin = isOwner || (member && (perms(member.roles) & P.Administrator) !== 0n);
+  const botTop = top(me.roles);
+  const userTop = isOwner ? Infinity : top(member?.roles);
+  const check = (roleId) => {
+    const role = roles.get(String(roleId));
+    if (!role || role.id === guildId) return 'роль не найдена';
+    if (role.managed) return REASONS.managed;
+    if (role.position >= botTop) return REASONS.bot;
+    if (role.position >= userTop) return REASONS.you;
+    if (!isAdmin && (BigInt(role.permissions || 0) & DANGEROUS) !== 0n) return REASONS.danger;
+    return null;
+  };
+  return { check, annotate: (list) => list.map((r) => ({ ...r, blocked: check(r.id) })) };
 }
 
 module.exports = { roleGuard, DANGEROUS };

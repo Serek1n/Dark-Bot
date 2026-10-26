@@ -9,11 +9,11 @@ const web = path.join(__dirname, '..', 'web');
   const assert = (c, m) => { if (!c) throw new Error(m); };
   const render = (active) => ejs.renderFile(path.join(web, 'views/partials/sidebar.ejs'), { guild: { id: '123456789012345678', name: 'Т', icon: null }, active, user: { id: '1', username: 'a', avatar: null } });
 
-  await test('menu: 18 links, each with a name and a description, the current page is marked', async () => {
+  await test('menu: 19 links, each with a name and a description, the current page is marked', async () => {
     const html = await render('webhooks');
     const links = html.match(/<a href="\/dashboard\/123456789012345678[^"]*" class="[^"]*" title="[^"]+"/g) || [];
-    assert(links.length === 18, 'links ' + links.length);
-    assert((html.match(/<small>[^<]+<\/small>/g) || []).length === 18, 'descriptions');
+    assert(links.length === 19, 'links ' + links.length);
+    assert((html.match(/<small>[^<]+<\/small>/g) || []).length === 19, 'descriptions');
     assert(/href="\/dashboard\/123456789012345678\/webhooks" class="active"/.test(html) && (html.match(/class="active"/g) || []).length === 1, 'one active');
     assert(html.includes('data-rail-pin') && html.includes('data-theme-toggle'), 'pin and theme buttons');
   });

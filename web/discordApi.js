@@ -92,6 +92,9 @@ function getGuild(guildId) {
  * Resolves user IDs to { id, name, avatar } for the leaderboard / mod log.
  * Cached for 10 minutes; a failed lookup falls back to the bare ID instead of breaking the page.
  */
+const failedUsers = new Map(); // user id -> time until which it is not asked again
+const fallbackUser = (id) => ({ id, name: id, avatar: 'https://cdn.discordapp.com/embed/avatars/0.png' });
+
 async function getUsers(ids) {
   const unique = [...new Set(ids)];
   const out = {};
@@ -104,8 +107,16 @@ async function getUsers(ids) {
         out[id] = { id, name: known.globalName || known.username, avatar: known.displayAvatarURL({ extension: 'png', size: 64 }) };
         continue;
       }
+      const miss = failedUsers.get(id);
+      if (miss && miss > Date.now()) { out[id] = fallbackUser(id); continue; }
       try {
         out[id] = await cached(`user:${id}`, 10 * 60_000, async () => {
+          // Through the bot when it runs here: discord.js respects Discord's rate limits and keeps the user in its cache.
+          const client = getClient();
+          if (client?.users?.fetch) {
+            const u = await client.users.fetch(id);
+            return { id, name: u.globalName || u.username, avatar: u.displayAvatarURL({ extension: 'png', size: 64 }) };
+          }
           const { data } = await botApi.get(`/users/${id}`);
           const avatar = data.avatar
             ? `https://cdn.discordapp.com/avatars/${id}/${data.avatar}.png?size=64`
@@ -113,7 +124,10 @@ async function getUsers(ids) {
           return { id, name: data.global_name || data.username, avatar };
         });
       } catch {
-        out[id] = { id, name: id, avatar: 'https://cdn.discordapp.com/embed/avatars/0.png' };
+        // A deleted account or a hiccup: remembered for 10 minutes, so every page load does not ask Discord again.
+        if (failedUsers.size > 5000) failedUsers.clear();
+        failedUsers.set(id, Date.now() + 10 * 60_000);
+        out[id] = fallbackUser(id);
       }
     }
   }

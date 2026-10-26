@@ -2,6 +2,8 @@
 // never showed up until the user logged in again. Here it is re-read from Discord with the user's own
 // token (refreshed when it expires) and kept in the session; on any failure the saved list is used.
 const axios = require('axios');
+const { encrypt, decrypt } = require('../../db/crypto');
+const slimGuilds = (guilds) => guilds.map((g) => ({ id: g.id, name: g.name, icon: g.icon, owner: Boolean(g.owner), permissions: g.permissions }));
 
 const MIN_INTERVAL = 20_000; // do not ask Discord more often than this per user
 const MAX_STALE = 60 * 60_000; // if the list could not be refreshed for an hour, the saved rights are no longer trusted
@@ -11,12 +13,12 @@ async function refreshAccessToken(user) {
   if (!user.refreshToken) return null;
   const { data } = await api.post(
     '/oauth2/token',
-    new URLSearchParams({ client_id: process.env.DISCORD_CLIENT_ID, client_secret: process.env.DISCORD_CLIENT_SECRET, grant_type: 'refresh_token', refresh_token: user.refreshToken }).toString(),
+    new URLSearchParams({ client_id: process.env.DISCORD_CLIENT_ID, client_secret: process.env.DISCORD_CLIENT_SECRET, grant_type: 'refresh_token', refresh_token: decrypt(user.refreshToken) }).toString(),
     { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
   );
-  user.accessToken = data.access_token;
-  if (data.refresh_token) user.refreshToken = data.refresh_token;
-  return user.accessToken;
+  user.accessToken = encrypt(data.access_token); // kept encrypted in the session
+  if (data.refresh_token) user.refreshToken = encrypt(data.refresh_token);
+  return data.access_token;
 }
 
 const fetchGuilds = (token) => api.get('/users/@me/guilds', { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.data);
@@ -29,13 +31,13 @@ async function refreshUserGuilds(req, { force = false } = {}) {
   try {
     let guilds;
     try {
-      guilds = await fetchGuilds(user.accessToken);
+      guilds = await fetchGuilds(decrypt(user.accessToken));
     } catch (err) {
       if (err?.response?.status !== 401) throw err;
       guilds = await fetchGuilds(await refreshAccessToken(user)); // the token expired: renew it once
     }
     if (Array.isArray(guilds)) {
-      user.guilds = guilds;
+      user.guilds = slimGuilds(guilds);
       user.guildsAt = Date.now();
       user.guildsOkAt = Date.now();
     }

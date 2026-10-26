@@ -128,7 +128,7 @@ const express = require('express');
   const G = '777000000000000001'; const U = '555000000000000001';
   const gr = express(); errorView(gr); gr.use(express.urlencoded({ extended: true }));
   stub('middleware/ensureAuth.js', { ensureAuth: (q, s, n) => n() });
-  stub('middleware/ensureGuildAccess.js', { ensureGuildAccess: (q, s, n) => n() });
+  stub('middleware/ensureGuildAccess.js', { ensureGuildAccess: (q, s, n) => { q.guildAccess = q.headers['x-test-rights'] === 'manage-only' ? { permissions: String(1 << 5) } : { owner: true }; n(); } });
   for (const k of Object.keys(require.cache)) if (k.includes(require('path').join('web', 'routes', 'dashboard'))) delete require.cache[k]; // the index and every page file, so they pick up the stubs above
   gr.use('/dashboard', require('../web/routes/dashboard'));
   gr.use((err, q, s, n) => s.status(500).send(String(err.stack)));
@@ -159,6 +159,10 @@ const express = require('express');
     const r = await post('/leveling/adjust', { userId: U, mode: 'set', amount: '3' });
     MemberProfile.update = realUpdate;
     assert(r.headers.get('location').includes('adjusted=1') && (await MemberProfile.findOne({ where: { guildId: G, userId: U } })).level === 3, r.headers.get('location'));
+  });
+  await test('webhooks: "Manage Server" alone is not enough (links and hidden channels), "Manage Webhooks" or admin is needed', async () => {
+    const r = await fetch(gbase + '/webhooks', { headers: { 'x-test-rights': 'manage-only' } });
+    assert(r.status === 403 && (await r.text()).includes('Управлять вебхуками'), String(r.status));
   });
   await test('webhook actions are limited to 10 a minute per user', async () => {
     const codes = []; for (let i = 0; i < 13; i++) codes.push((await post('/webhooks', { channelId: 'bad', name: '' })).status);

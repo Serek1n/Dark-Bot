@@ -96,7 +96,7 @@ async function log(guildId, key, build) {
 }
 
 // ---- Message memory: edits and deletions do not carry the old text, so recent messages are kept here ----
-const MAX_MESSAGES = 10_000;
+const MAX_MESSAGES = 3_000; // about 10 MB at most: enough for the edits and deletions of the last hours on a busy server
 const messageCache = new Map(); // id -> { content, authorId, channelId, webhookId, attachments }
 
 function remember(message) {

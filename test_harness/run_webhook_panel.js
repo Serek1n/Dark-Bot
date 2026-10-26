@@ -12,7 +12,7 @@ const botApi = {
   delete: async (u) => { calls.push(['DELETE', u]); hooks = hooks.filter((h) => !u.endsWith('/' + h.id)); return {}; }
 };
 stub('middleware/ensureAuth.js', { ensureAuth: (q, s, n) => n() });
-stub('middleware/ensureGuildAccess.js', { ensureGuildAccess: (q, s, n) => n() });
+stub('middleware/ensureGuildAccess.js', { ensureGuildAccess: (q, s, n) => { q.guildAccess = { owner: true }; n(); } });
 stub('discordApi.js', {
   getBotGuildIds: async () => [], getGuildChannels: async () => [{ id: '123456789012345678', name: 'новости', type: 0 }, { id: '123456789012345679', name: 'категория', type: 4 }],
   getGuildRoles: async () => [], getGuild: async (id) => ({ id, name: 'T', icon: null }), getUsers: async () => ({}), botApi

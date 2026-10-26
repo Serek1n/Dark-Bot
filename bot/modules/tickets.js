@@ -151,6 +151,9 @@ async function changeAccess(interaction, member, grant) {
   if (!ticket) return deny('Эта команда работает только в канале открытого обращения.');
   if (!canManage(interaction.member, ticket, settings)) return deny('Это могут делать автор обращения и команда сервера.');
   if (member.id === ticket.userId) return deny('Автора обращения нельзя убрать из его обращения.');
+  // The bot keeps its own access (it closes the ticket and writes the log), and staff are not removed by the author.
+  if (!grant && member.id === interaction.client.user?.id) return deny('Бота нельзя убрать из обращения.');
+  if (!grant && (member.id === settings.ticketSupportRoleId || (member.roles?.cache?.has?.(settings.ticketSupportRoleId)) || member.permissions?.has?.('ManageChannels'))) return deny('Команду сервера нельзя убрать из обращения.');
   if (grant) await interaction.channel.permissionOverwrites.edit(member.id, Object.fromEntries(['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles'].map((p) => [p, true])));
   else await interaction.channel.permissionOverwrites.delete(member.id);
   return interaction.reply({ embeds: [embeds.success(grant ? `<@${member.id}> добавлен в обращение.` : `<@${member.id}> убран из обращения.`)], allowedMentions: { parse: [] } });

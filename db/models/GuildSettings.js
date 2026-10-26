@@ -114,7 +114,7 @@ module.exports = (sequelize) => {
       modDmEnabled: { type: DataTypes.BOOLEAN, defaultValue: true }, // tell the member about a punishment in DMs
       modRequireReason: { type: DataTypes.BOOLEAN, defaultValue: false },
       modWarnExpireDays: { type: DataTypes.INTEGER, defaultValue: 0 }, // 0 = warnings never expire
-      modEscalateNeedsPerm: { type: DataTypes.BOOLEAN, defaultValue: false }, // an automatic punishment only if the moderator who warned has the right for it
+      modEscalateNeedsPerm: { type: DataTypes.BOOLEAN, defaultValue: true }, // an automatic punishment only if the moderator who warned has the right for it
       modWarnThresholds: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON [{ count, action: mute|kick|ban, minutes }]
 
       // Channel bonuses: JSON { "<channel or category id>": { xp: 2, coins: 1.5 } }, see bot/modules/leveling.js
@@ -137,6 +137,12 @@ module.exports = (sequelize) => {
       // "What's new" notes after an update: the channel, and the release (bot/panel versions) already posted there.
       updatesChannelId: { type: DataTypes.STRING, allowNull: true },
       updatesLastPosted: { type: DataTypes.STRING, allowNull: true },
+      // "Доска почёта": messages with enough reactions are copied into this channel.
+      starboardEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      starboardChannelId: { type: DataTypes.STRING, allowNull: true },
+      starboardEmoji: { type: DataTypes.STRING, defaultValue: '⭐' },
+      starboardThreshold: { type: DataTypes.INTEGER, defaultValue: 3 },
+      starboardSelfStar: { type: DataTypes.BOOLEAN, defaultValue: false },
 
       // Temp voice ("join to create")
       tempVoiceJoinChannelId: { type: DataTypes.STRING, allowNull: true },

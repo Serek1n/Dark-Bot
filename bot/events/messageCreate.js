@@ -5,6 +5,8 @@ const { announceLevelUp, levelUpTarget } = require('../utils/levelUp');
 const { applyLevelRoles } = require('../modules/levelRoles');
 const logger = require('../utils/logger');
 
+const commandCooldown = new Map(); // "channel:user" -> time until which a custom command is not answered again
+
 module.exports = {
   name: 'messageCreate',
   async execute(message) {
@@ -60,9 +62,14 @@ module.exports = {
       const trigger = message.content.slice(prefix.length).trim().split(/\s+/)[0]?.toLowerCase();
       if (trigger) {
         const response = await findCustomResponse(message.guild.id, trigger);
-        if (response !== null) {
+        // Users may be mentioned, roles and @everyone never: anyone can call a command, and a command with a role in it would
+        // let them ping that role as often as they like. One answer per person per channel every 3 seconds.
+        const key = `${message.channelId}:${message.author.id}`;
+        if (response !== null && !(commandCooldown.get(key) > Date.now())) {
+          if (commandCooldown.size > 5000) commandCooldown.clear();
+          commandCooldown.set(key, Date.now() + 3000);
           message.channel
-            .send({ content: response, allowedMentions: { parse: ['users', 'roles'] } })
+            .send({ content: response, allowedMentions: { parse: ['users'] } })
             .catch(() => {});
         }
       }

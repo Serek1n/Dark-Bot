@@ -65,7 +65,7 @@ router.post('/:guildId/level-roles/sync', ensureGuildAccess, async (req, res) =>
     const { computeTrackRoleChanges } = require('../../../bot/modules/levelRoles');
     const levelRoles = (await LevelRole.findAll({ where: { guildId } })).map((r) => ({ level: r.level, roleId: r.roleId, track: r.track, keep: Boolean(r.keep) }));
     if (!levelRoles.length) return;
-    const profiles = await MemberProfile.findAll({ where: { guildId } });
+    const profiles = await MemberProfile.findAll({ where: { guildId }, attributes: ['userId', 'level'], raw: true });
     const levels = new Map(profiles.map((p) => [p.userId, { total: p.level }]));
 
     // All server members with their roles (paged by 1000).
