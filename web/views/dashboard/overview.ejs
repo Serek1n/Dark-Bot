@@ -144,6 +144,7 @@
           <div><small>Сборка</small><b><%= sys.channel === 'beta' ? 'Бета' : 'Релиз' %></b><span><%= sys.commit ? (sys.branch ? sys.branch + ' · ' : '') + sys.commit : 'без git' %><%= sys.builtAt ? ' · ' + sys.builtAt : '' %></span></div>
           <div><small>Платформа</small><b>Node.js <%= sys.node %></b><span>discord.js <%= sys.discordJs || '—' %><%= sys.guildCount !== null ? ' · серверов: ' + sys.guildCount : '' %></span></div>
         </div>
+        <a class="card-link" href="/dashboard/<%= guild.id %>/changelog">Что нового →</a>
       </div>
       <% } %>
     </div>

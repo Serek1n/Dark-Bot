@@ -134,6 +134,9 @@ module.exports = (sequelize) => {
       // The leaderboard page anyone can open by its link, and the level from which members appear there.
       leaderboardPublic: { type: DataTypes.BOOLEAN, defaultValue: false },
       leaderboardMinLevel: { type: DataTypes.INTEGER, defaultValue: 0 },
+      // "What's new" notes after an update: the channel, and the release (bot/panel versions) already posted there.
+      updatesChannelId: { type: DataTypes.STRING, allowNull: true },
+      updatesLastPosted: { type: DataTypes.STRING, allowNull: true },
 
       // Temp voice ("join to create")
       tempVoiceJoinChannelId: { type: DataTypes.STRING, allowNull: true },

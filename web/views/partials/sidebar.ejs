@@ -91,11 +91,15 @@
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="14" r="2.3"/><circle cx="14" cy="14" r="2.3"/><circle cx="10" cy="5.5" r="2.3"/><path d="M10 7.8L7.2 12M8.3 14H11.7M10 7.8L12.8 12"/></svg>
         <span class="nl"><b>Вебхуки<% if (typeof betaPages !== 'undefined' && betaPages.includes('webhooks')) { %> <em class="beta-tag">бета</em><% } %></b><small>Сообщения от имени вебхука</small></span>
       </a>
+      <a href="/dashboard/<%= guild.id %>/changelog" class="<%= active === 'changelog' ? 'active' : '' %>" title="Обновления — Что нового в боте и панели">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5L11.8 7.2L16.8 7.5L12.9 10.6L14.2 15.5L10 12.8L5.8 15.5L7.1 10.6L3.2 7.5L8.2 7.2Z"/></svg>
+        <span class="nl"><b>Обновления</b><small>Что нового в боте и панели</small></span>
+      </a>
     </div>
   </nav>
   <div class="sidebar-footer">
     <% if (locals.sys) { %>
-      <a class="sidebar-version rl" href="/dashboard/<%= guild.id %>#system" title="<%= sysLine %>">
+      <a class="sidebar-version rl" href="/dashboard/<%= guild.id %>/changelog" title="<%= sysLine %>">
         <span>Бот <b>v<%= sys.bot %></b></span><span>Панель <b>v<%= sys.panel %></b></span><% if (sys.channel === 'beta') { %><em class="beta-tag">бета</em><% } %>
       </a>
     <% } %>
@@ -135,6 +139,7 @@
       started: ['Выдача ролей запущена', false],
       running: ['Выдача ролей уже идёт', true],
       nomessage: ['Сообщение не найдено в выбранном канале', true],
+      notesent: ['Запись об обновлении отправлена в канал', false],
       rolenotallowed: ['Эту роль выдавать нельзя: она управляется интеграцией, выше роли бота или вашей, либо даёт права модерации', true],
       toomany: ['Достигнут предел записей для сервера', true],
       badchannel: ['Выберите канал этого сервера', true],
