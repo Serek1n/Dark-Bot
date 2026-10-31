@@ -1,10 +1,4 @@
-const { ReactionRole } = require('../../db');
 const { getOrCreateSettings } = require('../modules/leveling');
-const logger = require('../utils/logger');
-
-function emojiKey(emoji) {
-  return emoji.id ? emoji.id : emoji.name;
-}
 
 module.exports = {
   name: 'messageReactionRemove',
@@ -15,15 +9,6 @@ module.exports = {
     await require('../modules/starboard').handleStarReaction(reaction, user); // "Доска почёта"; reaction roles below
     if (!(await getOrCreateSettings(reaction.message.guild.id)).reactionRolesEnabled) return;
 
-    const rr = await ReactionRole.findOne({
-      where: { messageId: reaction.message.id, emoji: emojiKey(reaction.emoji) }
-    });
-    if (!rr) return;
-
-    const member = await reaction.message.guild.members.fetch(user.id).catch(() => null);
-    const role = reaction.message.guild.roles.cache.get(rr.roleId);
-    if (member && role) {
-      member.roles.remove(role).catch((err) => logger.warn('reaction-role remove failed:', err.message));
-    }
+    await require('../modules/reactionRoles').handleReactionRole(reaction, user, false);
   }
 };

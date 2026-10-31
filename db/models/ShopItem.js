@@ -14,6 +14,7 @@ module.exports = (sequelize) => {
       roleId: { type: DataTypes.STRING, allowNull: true }, // for type "role": given on purchase
       stock: { type: DataTypes.INTEGER, allowNull: true }, // null = unlimited
       minLevel: { type: DataTypes.INTEGER, defaultValue: 0 },
+      durationSeconds: { type: DataTypes.INTEGER, allowNull: true }, // type "role": the role is taken away after this time; null = forever
       deliveryMessage: { type: DataTypes.TEXT, defaultValue: '' }, // shown to the buyer (e.g. a code or instructions)
       enabled: { type: DataTypes.BOOLEAN, defaultValue: true }
     },

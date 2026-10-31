@@ -64,6 +64,20 @@ module.exports = {
       return;
     }
 
+    if (require('../modules/reports').isReportComponent(interaction)) {
+      try { await require('../modules/reports').handleReportComponent(interaction); } catch (err) { logger.error('Report action failed:', err); }
+      return;
+    }
+    if (interaction.isModalSubmit?.() && interaction.customId?.startsWith('repmodal:')) {
+      try { await require('../commands/moderation/reportUser').handleModal(interaction); } catch (err) { logger.error('Report window failed:', err); }
+      return;
+    }
+
+    if (require('../modules/interactive').isInteractive(interaction)) {
+      await require('../modules/interactive').handleInteractive(interaction); // answers its own errors
+      return;
+    }
+
     if (isVoiceRoomComponent(interaction)) {
       await handleVoiceRoomComponent(interaction); // answers its own errors
       return;

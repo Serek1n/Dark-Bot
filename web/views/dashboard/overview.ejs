@@ -141,7 +141,7 @@
         <div class="sys-grid">
           <div><small>Бот</small><b>v<%= sys.bot %></b><span class="sys-state <%= sys.botOnline ? 'on' : 'off' %>"><%= sys.botOnline ? 'в сети' + (sys.ping !== null ? ' · ' + sys.ping + ' мс' : '') : 'не в сети' %></span></div>
           <div><small>Веб-панель</small><b>v<%= sys.panel %></b><span class="sys-state on">работает <%= sys.uptime %></span></div>
-          <div><small>Сборка</small><b><%= sys.channel === 'beta' ? 'Бета' : 'Релиз' %></b><span><%= sys.commit ? (sys.branch ? sys.branch + ' · ' : '') + sys.commit : 'без git' %><%= sys.builtAt ? ' · ' + sys.builtAt : '' %></span></div>
+          <div><small>Сборка</small><b><%= sys.commit || 'без git' %></b><span><%= sys.builtAt || 'дата неизвестна' %></span></div>
           <div><small>Платформа</small><b>Node.js <%= sys.node %></b><span>discord.js <%= sys.discordJs || '—' %><%= sys.guildCount !== null ? ' · серверов: ' + sys.guildCount : '' %></span></div>
         </div>
         <a class="card-link" href="/dashboard/<%= guild.id %>/changelog">Что нового →</a>

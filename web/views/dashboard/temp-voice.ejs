@@ -30,7 +30,8 @@
         </div>
         <div>
           <label>Шаблон имени канала (доступен {user})</label>
-          <input type="text" name="tempVoiceNameTemplate" value="<%= settings.tempVoiceNameTemplate %>" />
+          <input type="text" name="tempVoiceNameTemplate" id="tempVoiceName" value="<%= settings.tempVoiceNameTemplate %>" />
+          <%- include('../partials/replacers-help', { target: 'tempVoiceName' }) %>
         </div>
         <button class="btn" type="submit">Сохранить</button>
       </form>
@@ -49,6 +50,42 @@
         <% if (settings.tempVoicePanelMessageId) { %><div class="hint">Панель уже размещена. Если разместить заново, старое сообщение будет удалено.</div><% } %>
         <div class="hint">Боту нужны в этом канале права «Просмотр канала», «Отправлять сообщения» и «Встраивать ссылки», а для работы кнопок — «Управлять каналами», «Управлять ролями» и «Перемещать участников».</div>
         <button class="btn" type="submit"><%= settings.tempVoicePanelMessageId ? 'Разместить заново' : 'Разместить панель' %></button>
+      </form>
+
+      <form method="post" action="/dashboard/<%= guild.id %>/voice-roles" class="card">
+        <h2>Голосовые роли<span class="sub">Роль выдаётся, пока участник в голосовом канале, и снимается, когда он выходит</span></h2>
+        <div class="two-col">
+          <div>
+            <label>Роль</label>
+            <select name="roleId" required>
+              <option value="" disabled selected>— выберите —</option>
+              <% roles.forEach(r => { %><option value="<%= r.id %>" <%= r.blocked ? 'disabled' : '' %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option><% }) %>
+            </select>
+          </div>
+          <div>
+            <label>Канал</label>
+            <select name="channelId">
+              <option value="">Любой голосовой канал</option>
+              <% channels.filter(c => c.type === 2 || c.type === 13).forEach(c => { %><option value="<%= c.id %>">🔊 <%= c.name %></option><% }) %>
+            </select>
+          </div>
+        </div>
+        <div class="hint">Например, роль «В голосе» открывает текстовый канал для тех, кто сейчас разговаривает. В AFK-канале роль не выдаётся.</div>
+        <button class="btn" type="submit">Добавить</button>
+        <% if (voiceRoles.length) { %>
+          <div class="table-scroll" style="margin-top:14px;"><table>
+            <thead><tr><th>Роль</th><th>Канал</th><th></th></tr></thead>
+            <tbody>
+              <% voiceRoles.forEach(v => { const r = roles.find(x => x.id === v.roleId); const c = channels.find(x => x.id === v.channelId); %>
+                <tr>
+                  <td>@<%= r ? r.name : 'роль удалена' %></td>
+                  <td><%= v.channelId ? (c ? '🔊 ' + c.name : 'канал удалён') : 'любой' %></td>
+                  <td style="text-align:right;"><button class="btn btn-secondary" type="submit" formaction="/dashboard/<%= guild.id %>/voice-roles/<%= v.id %>/delete" formnovalidate>Убрать</button></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
       </form>
     </div>
   </div>

@@ -996,9 +996,6 @@ form.plain > .btn[type=submit] { margin: 2px 0 28px; }
   .sidebar, .rail-slot, .rl, .nl { transition: none; }
 }
 
-/* "бета" tag next to features that are still in testing */
-.beta-tag { font-style: normal; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 1px 7px; margin-left: 6px; border-radius: 999px; background: var(--ember-tint); color: var(--ember); vertical-align: 2px; }
-.beta-row { border-left: 3px solid var(--ember); }
 
 /* ============================================================
    Polish pass: depth, hierarchy, calmer forms (loaded last on purpose)
@@ -1149,8 +1146,6 @@ tbody tr:hover { background: var(--soft); }
 .rail-thumb { position: absolute; top: 0; right: 3px; width: 3px; border-radius: 3px; background: var(--fog-dim); opacity: 0; transition: opacity 0.25s ease; pointer-events: none; z-index: 2; }
 @media (max-width: 760px) { .rail-thumb { display: none; } .sidebar nav.can-up, .sidebar nav.can-down { -webkit-mask-image: none; mask-image: none; } }
 
-.beta-off { background: var(--soft); border: 1px dashed var(--hairline); border-radius: 12px; padding: 14px 16px; }
-.beta-off .feature-info { display: flex; flex-direction: column; gap: 4px; }
 
 /* ---- Public leaderboard (/top/<server>) ---- */
 .public-top { position: relative; max-width: 860px; margin: 0 auto; padding: 32px 16px 48px; }
@@ -1208,3 +1203,25 @@ tbody tr:hover { background: var(--soft); }
 .qj-kbd { margin-left: auto; }
 html.qj-open { overflow: hidden; }
 @media (max-width: 760px) { .qj { padding-top: 8vh; } .qj-hint { display: none; } }
+
+/* ---- Template help under text fields ---- */
+.tpl-help { margin: 8px 0 4px; border: 1px solid var(--hairline-soft); border-radius: 10px; background: var(--soft); }
+.tpl-help > summary { cursor: pointer; padding: 8px 12px; font-size: 13px; color: var(--ember); list-style: none; }
+.tpl-help > summary::-webkit-details-marker { display: none; }
+.tpl-help > summary::before { content: '{ }'; font-family: var(--font-mono); margin-right: 8px; opacity: .8; }
+.tpl-body { padding: 0 12px 12px; }
+.tpl-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.tpl-chip { font: 12px var(--font-mono); padding: 4px 8px; border-radius: 7px; border: 1px solid var(--hairline); background: var(--panel); color: var(--paper); cursor: pointer; }
+.tpl-chip:hover { border-color: var(--ember); color: var(--ember); }
+.tpl-chip.fn { color: var(--ember); }
+.tpl-preview { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: var(--panel); border: 1px dashed var(--hairline); white-space: pre-wrap; font-size: 14px; }
+
+/* ---- Interactive messages form ---- */
+.im-items-title { margin: 18px 0 8px; font-size: 14px; }
+.im-items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.im-item { display: grid; grid-template-columns: 70px 1fr 1.3fr 130px; gap: 8px; }
+.im-item:has(.im-select-only:not([hidden])) { grid-template-columns: 70px 1fr 1.3fr 1.3fr; }
+.im-item[hidden] { display: none; }
+@media (max-width: 760px) { .im-item, .im-item:has(.im-select-only:not([hidden])) { grid-template-columns: 60px 1fr; } .im-item select, .im-item .im-select-only { grid-column: 1 / -1; } }
+[data-role-only][hidden] { display: none; }
+.btn-row > .btn-danger { padding: 10px 20px; font-size: 14.5px; } /* same height as the main button next to it */

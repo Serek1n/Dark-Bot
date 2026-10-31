@@ -14,7 +14,8 @@ module.exports = (sequelize) => {
       price: { type: DataTypes.INTEGER, allowNull: false },
       currency: { type: DataTypes.STRING, allowNull: false },
       // pending = the owner still has to hand it over, done = delivered, refunded = money returned
-      status: { type: DataTypes.STRING, defaultValue: 'done' }
+      status: { type: DataTypes.STRING, defaultValue: 'done' },
+      expiresAt: { type: DataTypes.DATE, allowNull: true } // a role bought for a while: until when
     },
     { sequelize, modelName: 'Purchase', tableName: 'purchases', indexes: [{ fields: ['guildId', 'userId'] }, { fields: ['guildId', 'createdAt'] }] }
   );

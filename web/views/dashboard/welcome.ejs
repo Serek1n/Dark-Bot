@@ -20,8 +20,9 @@
           </select>
         </div>
         <div>
-          <label>Текст приветствия — доступны {user}, {name}, {server} и {count} (сколько людей на сервере), поддерживается **жирный** текст</label>
+          <label>Текст приветствия — доступны {user}, {name}, {server} и {count} (сколько людей на сервере), поддерживается **жирный** текст и заменители (ниже)</label>
           <textarea name="welcomeMessage" id="welcomeMessage" maxlength="1800"><%= settings.welcomeMessage %></textarea>
+          <%- include('../partials/replacers-help', { target: 'welcomeMessage' }) %>
         </div>
         <div>
           <label>Как это увидят в Discord</label>
@@ -55,7 +56,8 @@
         </div>
         <div>
           <label>Текст прощания — доступны {user} (имя без упоминания), {server} и {count}</label>
-          <textarea name="leaveMessage" maxlength="1800"><%= settings.leaveMessage %></textarea>
+          <textarea name="leaveMessage" id="leaveMessage" maxlength="1800"><%= settings.leaveMessage %></textarea>
+          <%- include('../partials/replacers-help', { target: 'leaveMessage' }) %>
         </div>
         <h2 style="margin-top:8px">Возвращение участника</h2>
         <div class="hint">Если человек вышел с сервера и зашёл снова, он получит обратно роли и никнейм. Его уровень, опыт, монеты, кристаллы, покупки и предупреждения никогда не удаляются при выходе — они продолжаются сами.</div>

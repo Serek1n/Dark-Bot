@@ -32,11 +32,16 @@ router.post('/:guildId/reaction-roles', ensureGuildAccess, async (req, res) => {
   if (!channels.some((c) => c.id === channelId)) return res.redirect(saved(guildId, 'reaction-roles', 'invalid'));
   const roles = await getGuildRoles(guildId);
   if (!roles.some((r) => r.id === roleId)) return res.redirect(saved(guildId, 'reaction-roles', 'invalid'));
-  if ((await roleGuard(guildId, req.user?.id)).check(roleId)) return res.redirect(saved(guildId, 'reaction-roles', 'rolenotallowed'));
+  // up to 4 more roles for the same reaction, and the mode (normal | single | reverse)
+  const extra = [...new Set([].concat(req.body.extraRoleId || []).map(snowflake).filter((id) => id && id !== roleId))].slice(0, 4);
+  if (extra.some((id) => !roles.some((r) => r.id === id))) return res.redirect(saved(guildId, 'reaction-roles', 'invalid'));
+  const guard = await roleGuard(guildId, req.user?.id);
+  if ([roleId, ...extra].some((id) => guard.check(id))) return res.redirect(saved(guildId, 'reaction-roles', 'rolenotallowed'));
+  const mode = require('../../../bot/modules/reactionRoles').MODES.includes(req.body.mode) ? req.body.mode : 'normal';
   const found = await botApi.get(`/channels/${channelId}/messages/${messageId}`).then(() => true).catch(() => false);
   if (!found) return res.redirect(saved(guildId, 'reaction-roles', 'nomessage'));
 
-  await ReactionRole.upsert({ guildId, channelId, messageId, emoji, roleId });
+  await ReactionRole.upsert({ guildId, channelId, messageId, emoji, roleId, extraRoleIds: extra.length ? JSON.stringify(extra) : null, mode });
   // Put the reaction under the message so people can click it (best effort).
   const reactionPath = custom ? `${custom[1]}:${custom[2]}` : encodeURIComponent(emoji);
   await botApi.put(`/channels/${channelId}/messages/${messageId}/reactions/${reactionPath}/@me`).catch(() => {});

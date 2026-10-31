@@ -23,6 +23,8 @@ router.post('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   settings.modLogChannelId = snowflake(req.body.modLogChannelId);
   settings.reportChannelId = snowflake(req.body.reportChannelId);
+  settings.reportDailyLimit = clampInt(req.body.reportDailyLimit, 1, 50, 5);
+  settings.reportJoinAlert = req.body.reportJoinAlert === 'on';
   await settings.save();
   res.redirect(saved(req.params.guildId, 'moderation'));
 });

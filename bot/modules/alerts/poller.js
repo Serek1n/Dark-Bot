@@ -65,7 +65,7 @@ async function checkYouTube(alert, client) {
   if (!channel) return;
 
   const url = `https://www.youtube.com/watch?v=${videoId}`;
-  const text = alert.message.replaceAll('{name}', channelTitle).replaceAll('{url}', url);
+  const text = require('../../utils/replacers').render(alert.message, { subs: { name: channelTitle, title: latest.snippet?.title || '', link: url } }, { name: channelTitle, url });
   channel.send({ content: text, allowedMentions: { parse: [] } }).catch(() => {});
 }
 
@@ -94,7 +94,7 @@ async function checkTwitch(alert, client) {
     const channel = await alertChannel(client, alert);
     if (!channel) return;
     const url = `https://twitch.tv/${alert.targetId}`;
-    const text = alert.message.replaceAll('{name}', stream.user_name).replaceAll('{url}', url);
+    const text = require('../../utils/replacers').render(alert.message, { subs: { name: stream.user_name, title: stream.title || '', link: url } }, { name: stream.user_name, url });
     channel.send({ content: text, allowedMentions: { parse: [] } }).catch(() => {});
   }
 }

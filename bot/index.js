@@ -20,6 +20,9 @@ const client = new Client({
     GatewayIntentBits.GuildModeration
   ],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.GuildMember],
+  // Default for every message: only user mentions ping. Text from outside (track titles, nicknames, feed titles) can't
+  // ping @everyone or a role; the few messages that should ping a role say so themselves (tickets).
+  allowedMentions: { parse: ['users'], repliedUser: true },
   // The bot never reads old messages, reactions or presences from the cache (events carry what they
   // need), so storing them only costs memory. Members and channels stay cached: voice XP needs them.
   makeCache: Options.cacheWithLimits({

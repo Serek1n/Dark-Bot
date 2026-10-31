@@ -68,8 +68,15 @@ module.exports = {
         if (response !== null && !(commandCooldown.get(key) > Date.now())) {
           if (commandCooldown.size > 5000) commandCooldown.clear();
           commandCooldown.set(key, Date.now() + 3000);
+          // Templates: { member.* }, { guild.* }, { message.args.0 }, functions — only worked out when the text has them.
+          let content = response;
+          if (/\{\s*[a-z_]+\.|\{-/.test(response)) {
+            const { render, buildContext } = require('../utils/replacers');
+            const level = response.includes('level.') ? await require('../modules/leveling').levelContext(message.guild.id, message.author.id).catch(() => null) : null;
+            content = render(response, buildContext({ member: message.member || { id: message.author.id, user: message.author }, guild: message.guild, message, level })).slice(0, 2000);
+          }
           message.channel
-            .send({ content: response, allowedMentions: { parse: ['users'] } })
+            .send({ content, allowedMentions: { parse: ['users'] } })
             .catch(() => {});
         }
       }

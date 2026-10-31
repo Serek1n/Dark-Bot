@@ -1,4 +1,5 @@
 const { LevelRole } = require('../../db');
+const { canSelfGive } = require('../utils/safeRole');
 const warnedAt = new Map(); // guildId -> time of the last "role too high" warning
 const logger = require('../utils/logger');
 
@@ -83,7 +84,7 @@ async function applyLevelRoles(member, levels, replace) {
       const role = member.guild.roles.cache.get(id);
       return role && !role.managed && role.editable;
     };
-    const toAdd = add.filter(usable);
+    const toAdd = add.filter((id) => usable(id) && canSelfGive(member.guild.roles.cache.get(id), member.guild));
     const toRemove = remove.filter(usable);
     if (toAdd.length) await member.roles.add(toAdd, 'Роль за уровень');
     if (toRemove.length) await member.roles.remove(toRemove, 'Роль за уровень');

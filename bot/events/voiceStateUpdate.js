@@ -13,6 +13,8 @@ module.exports = {
     if (oldState.channelId === newState.channelId) return;
     await trackVoiceState(oldState, newState).catch((err) => logger.error('Voice time error:', err));
     const guild = newState.guild || oldState.guild;
+    const who = newState.member || oldState.member;
+    if (who) await require('../modules/voiceRoles').syncMember(who, newState.channelId).catch((err) => logger.warn(`Voice roles: ${err.message}`));
 
     // Music cleanup: the bot itself was moved/kicked out of its channel, or the last
     // listener left it. Without this the old queue lingers and blocks /music play
@@ -51,7 +53,8 @@ module.exports = {
     // User joined the "join to create" channel -> spawn a new temp channel and move them into it
     if (newState.channelId === settings.tempVoiceJoinChannelId) {
       try {
-        const name = settings.tempVoiceNameTemplate.replaceAll('{user}', newState.member.displayName).slice(0, 100) || 'Комната';
+        const { render, buildContext } = require('../utils/replacers');
+        const name = render(settings.tempVoiceNameTemplate, buildContext({ member: newState.member }), { user: newState.member.displayName }).replace(/<[@#&!]+\d+>/g, '').trim().slice(0, 100) || 'Комната';
         const channel = await guild.channels.create({
           name,
           type: ChannelType.GuildVoice,

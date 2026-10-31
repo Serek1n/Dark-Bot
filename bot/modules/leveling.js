@@ -299,7 +299,18 @@ async function getLeaderboard(guildId, limit = 10, track = 'total') {
   });
 }
 
+/** Level numbers of a member for templates ({ member.level.* }): read only when a template asks for them. */
+async function levelContext(guildId, userId) {
+  const p = await MemberProfile.findOne({ where: { guildId, userId }, raw: true });
+  if (!p) return { level: 0, total_xp: 0, current_xp: 0, need_xp: xpForLevel(0), remaining_xp: xpForLevel(0), total_messages: 0, voice_time: 0, rank: null };
+  const into = Math.max(0, Number(p.xp) - totalXpForLevel(p.level));
+  const need = xpForLevel(p.level);
+  const rank = (await MemberProfile.count({ where: { guildId, xp: { [require('sequelize').Op.gt]: p.xp } } })) + 1;
+  return { level: p.level, total_xp: Number(p.xp), current_xp: into, need_xp: need, remaining_xp: Math.max(0, need - into), total_messages: Number(p.messageCount || 0), voice_time: Number(p.voiceSeconds || 0), rank, coins: Number(p.balance || 0), crystals: Number(p.crystals || 0) };
+}
+
 module.exports = {
+  levelContext,
   xpForLevel,
   totalXpForLevel,
   levelFromXp,

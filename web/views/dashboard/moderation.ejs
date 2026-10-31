@@ -33,7 +33,16 @@
               <option value="<%= c.id %>" <%= settings.reportChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
           </select>
-          <div class="hint">Участник нажимает на сообщение правой кнопкой → «Приложения» → «Пожаловаться», жалоба приходит сюда.</div>
+          <div class="hint">Жалобу отправляют командой <code>/report</code>, через «Приложения» → «Пожаловаться» на сообщении или «Пожаловаться на участника» в его меню. Под жалобой — кнопки для модераторов: предупредить, мут, кик, бан, отклонить.</div>
+        </div>
+        <div class="two-col">
+          <div>
+            <label>Жалоб в сутки от одного участника</label>
+            <input type="number" name="reportDailyLimit" min="1" max="50" value="<%= settings.reportDailyLimit || 5 %>" />
+          </div>
+          <div class="rules" style="align-self:end;">
+            <label class="rule"><span class="rule-text"><b>Предупреждать о входе участника с жалобами</b></span><input type="checkbox" name="reportJoinAlert" <%= settings.reportJoinAlert !== false ? 'checked' : '' %> /></label>
+          </div>
         </div>
         <button class="btn" type="submit">Сохранить каналы</button>
       </form>

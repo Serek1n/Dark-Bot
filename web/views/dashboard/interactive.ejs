@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Интерактивные сообщения' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <div class="page-header">
+        <h1>Интерактивные сообщения</h1>
+        <p class="page-intro">Бот публикует сообщение с кнопками или выпадающим списком. Нажатие выдаёт, снимает или переключает роль тому, кто нажал, — без реакций и без команд.</p>
+      </div>
+
+      <form method="post" class="card" id="imForm">
+        <h2>Новое сообщение<span class="sub">До <%= max %> сообщений на сервер, до <%= maxItems %> пунктов в каждом</span></h2>
+        <label>Канал</label>
+        <select name="channelId" required>
+          <option value="" disabled selected>— выберите —</option>
+          <% channels.forEach(c => { %><option value="<%= c.id %>">#<%= c.name %></option><% }) %>
+        </select>
+        <label style="margin-top:12px;">Текст сообщения</label>
+        <textarea name="content" maxlength="2000" rows="3" required placeholder="Выберите роли, которые вам интересны:"></textarea>
+        <div class="two-col" style="margin-top:12px;">
+          <div>
+            <label>Вид</label>
+            <select name="kind" id="imKind"><option value="buttons">Кнопки</option><option value="select">Выпадающий список</option></select>
+          </div>
+          <div>
+            <label>Что делает нажатие</label>
+            <select name="mode"><option value="toggle">Выдать, а при повторном нажатии снять</option><option value="add">Только выдать</option><option value="remove">Только снять</option></select>
+          </div>
+        </div>
+        <div class="im-select-only" hidden>
+          <label style="margin-top:12px;">Подсказка в списке</label>
+          <input type="text" name="placeholder" maxlength="150" placeholder="Выберите роль" />
+        </div>
+        <div class="rules" style="margin-top:12px;">
+          <label class="rule"><span class="rule-text"><b>Только одна роль из этого сообщения</b><span>Выбрал новую — предыдущая снимается (цвета ника, команды, регионы).</span></span><input type="checkbox" name="exclusive" /></label>
+        </div>
+        <h3 class="im-items-title">Пункты</h3>
+        <div class="im-items">
+          <% for (let i = 0; i < maxItems; i++) { %>
+            <div class="im-item" <%= i >= 3 ? 'hidden' : '' %>>
+              <input type="text" name="emoji" maxlength="64" placeholder="🎮" class="im-emoji" aria-label="Эмодзи" />
+              <input type="text" name="label" maxlength="80" placeholder="Название" aria-label="Название" />
+              <select name="role" aria-label="Роль">
+                <option value="">— роль —</option>
+                <% roles.forEach(r => { %><option value="<%= r.id %>" <%= r.blocked ? 'disabled' : '' %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option><% }) %>
+              </select>
+              <select name="style" class="im-buttons-only" aria-label="Цвет кнопки"><option value="secondary">Серая</option><option value="primary">Синяя</option><option value="success">Зелёная</option><option value="danger">Красная</option></select>
+              <input type="text" name="description" maxlength="100" placeholder="Описание (для списка)" class="im-select-only" hidden aria-label="Описание" />
+            </div>
+          <% } %>
+        </div>
+        <button type="button" class="btn btn-secondary" id="imMore">+ Ещё пункт</button>
+        <div class="hint">Пустые пункты (без роли) пропускаются. Эмодзи — обычный или свой в виде <code>&lt;:имя:ID&gt;</code>. Роль бота должна быть выше выдаваемых ролей.</div>
+        <button class="btn" type="submit">Опубликовать</button>
+      </form>
+
+      <div class="card">
+        <h2>Опубликованные</h2>
+        <% if (!messages.length) { %>
+          <p class="empty-state">Пока нет ни одного.</p>
+        <% } else { %>
+          <div class="releases">
+            <% messages.forEach(m => { const ch = allChannels.find(c => c.id === m.channelId); %>
+              <div class="release">
+                <div class="release-head">
+                  <span class="rv"><b><%= ch ? '#' + ch.name : 'канал удалён' %></b></span>
+                  <span class="rv"><%= m.kind === 'select' ? 'список' : 'кнопки' %> · <%= { toggle: 'переключение', add: 'выдача', remove: 'снятие' }[m.mode] %><%= m.exclusive ? ' · одна роль' : '' %></span>
+                  <span class="rdate">
+                    <% if (m.messageId) { %><a class="btn btn-secondary" href="https://discord.com/channels/<%= guild.id %>/<%= m.channelId %>/<%= m.messageId %>" target="_blank" rel="noopener">Открыть</a><% } %>
+                    <form method="post" action="/dashboard/<%= guild.id %>/interactive/<%= m.id %>/delete" data-no-guard style="display:inline;" onsubmit="return confirm('Удалить сообщение и его кнопки?')"><button class="btn btn-danger" type="submit">Удалить</button></form>
+                  </span>
+                </div>
+                <p style="margin:8px 0 6px;white-space:pre-wrap;"><%= m.content.length > 200 ? m.content.slice(0, 200) + '…' : m.content %></p>
+                <div class="tpl-chips">
+                  <% m.items.forEach(it => { const r = roles.find(x => x.id === (it.roleIds || [])[0]); %><span class="tpl-chip"><%= it.emoji %> <%= it.label || '' %> → @<%= r ? r.name : 'роль удалена' %></span><% }) %>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+  <script src="/js/interactive.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
+</body>
+</html>

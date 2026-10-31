@@ -3,7 +3,6 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { channel } = require('./channel');
 
 const ROOT = path.join(__dirname, '..', '..');
 const startedAt = new Date();
@@ -45,7 +44,6 @@ function versionInfo() {
     cached = {
       bot: v.bot || pkg.version || '0.0.0',
       panel: v.panel || pkg.version || '0.0.0',
-      channel: channel(), // 'release' | 'beta'
       ...gitInfo(),
       node: process.versions.node,
       discordJs: dep('discord.js'),

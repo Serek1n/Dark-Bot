@@ -5,26 +5,30 @@ const { renderWelcomeCard } = require('../modules/welcomeCard');
 const { restoreMember } = require('../modules/memberRestore');
 
 /** {user} {name} {server} {count} -> text. `mention` is false for people who already left (no ping). */
+/** Welcome / goodbye text: the old short forms plus the full set of templates ({ member.* }, { guild.* }, functions). */
 function fillTemplate(template, member, mention = true) {
   const name = member.displayName || member.user?.username || 'участник';
-  return String(template || '')
-    .replaceAll('{user}', mention ? `<@${member.id}>` : name)
-    .replaceAll('{name}', name)
-    .replaceAll('{server}', member.guild.name)
-    .replaceAll('{count}', String(member.guild.memberCount ?? ''));
+  const { render, buildContext } = require('../utils/replacers');
+  return render(template, buildContext({ member, guild: member.guild }), {
+    user: mention ? `<@${member.id}>` : name,
+    name,
+    server: member.guild?.name,
+    count: member.guild?.memberCount ?? ''
+  });
 }
 
 module.exports = {
   name: 'guildMemberAdd',
   fillTemplate,
   async execute(member) {
+    require('../modules/reports').joinAlert(member).catch(() => {}); // someone with reports joined: a note for the moderators
     await restoreMember(member); // returning member: roles and nickname come back (works even when the welcome message is off)
     const settings = await getOrCreateSettings(member.guild.id);
     if (!settings || !settings.welcomeEnabled) return;
 
     if (settings.autoRoleId) {
       const role = member.guild.roles.cache.get(settings.autoRoleId);
-      if (role) member.roles.add(role).catch((err) => logger.warn('Failed to add autorole:', err.message));
+      if (role && require('../utils/safeRole').canSelfGive(role, member.guild)) member.roles.add(role).catch((err) => logger.warn('Failed to add autorole:', err.message));
     }
 
     if (settings.welcomeChannelId) {

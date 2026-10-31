@@ -35,6 +35,25 @@
             <% }) %>
           </select>
         </div>
+        <div class="two-col">
+          <% for (let k = 0; k < 2; k++) { %>
+          <div>
+            <label>Ещё роль (необязательно)</label>
+            <select name="extraRoleId">
+              <option value="">—</option>
+              <% roles.forEach(r => { %><option value="<%= r.id %>" <%= r.blocked ? 'disabled' : '' %>>@<%= r.name %></option><% }) %>
+            </select>
+          </div>
+          <% } %>
+        </div>
+        <div>
+          <label>Режим</label>
+          <select name="mode">
+            <option value="normal">Обычный: реакция выдаёт роли, снятие реакции — забирает</option>
+            <option value="single">Одна из сообщения: новая реакция снимает роли других реакций этого сообщения</option>
+            <option value="reverse">Обратный: реакция забирает роли, снятие реакции — возвращает</option>
+          </select>
+        </div>
         <button class="btn" type="submit">Добавить</button>
       </form>
       <div class="card">
@@ -52,7 +71,7 @@
                   <td>#<%= channel ? channel.name : rr.channelId %></td>
                   <td><%= rr.messageId %></td>
                   <td><%= rr.emoji %></td>
-                  <td>@<%= role ? role.name : rr.roleId %></td>
+                  <td>@<%= role ? role.name : rr.roleId %><% let ex = []; try { ex = JSON.parse(rr.extraRoleIds || '[]'); } catch (e) {} ex.forEach(id => { const x = roles.find(r => r.id === id); %>, @<%= x ? x.name : id %><% }) %><% if (rr.mode && rr.mode !== 'normal') { %> <span class="badge badge-mute"><%= rr.mode === 'single' ? 'одна из сообщения' : 'обратный' %></span><% } %></td>
                   <td>
                     <form method="post" action="/dashboard/<%= guild.id %>/reaction-roles/delete/<%= rr.id %>">
                       <button class="btn btn-danger" type="submit">Удалить</button>

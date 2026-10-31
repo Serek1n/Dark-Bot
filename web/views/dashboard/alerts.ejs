@@ -39,7 +39,8 @@
         </div>
         <div>
           <label>Текст сообщения — доступны {name} и {url}</label>
-          <input type="text" name="message" placeholder="{name} только что опубликовал(а) новое видео! {url}" />
+          <input type="text" name="message" id="alertMessage" placeholder="{name} только что опубликовал(а) новое видео! {url}" />
+          <%- include('../partials/replacers-help', { target: 'alertMessage' }) %>
         </div>
         <button class="btn" type="submit">Добавить</button>
       </form>

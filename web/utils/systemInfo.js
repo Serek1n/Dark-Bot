@@ -17,9 +17,9 @@ function systemInfo() {
   };
 }
 
-/** One line for tooltips: "release · main@abc1234 · запущен 3 ч 5 мин назад". */
+/** One line for tooltips: "main@abc1234 · работает 3 ч 5 мин". */
 function buildLine(i) {
-  return [i.channel === 'beta' ? 'бета' : 'релиз', i.commit ? `${i.branch || 'commit'}@${i.commit}` : null, `работает ${i.uptime}`].filter(Boolean).join(' · ');
+  return [i.commit ? `${i.branch || 'commit'}@${i.commit}` : null, `работает ${i.uptime}`].filter(Boolean).join(' · ');
 }
 
 module.exports = { systemInfo, buildLine };

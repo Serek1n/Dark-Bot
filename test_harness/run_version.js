@@ -19,7 +19,7 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     const v = ver.versionInfo();
     assert(/^\d+\.\d+\.\d+$/.test(v.bot) && /^\d+\.\d+\.\d+$/.test(v.panel) && v.bot === file.bot && v.panel === file.panel);
     assert.strictEqual(require('../package.json').version, file.bot, 'package.json version = bot version');
-    assert(['release', 'beta'].includes(v.channel) && v.node === process.versions.node && v.discordJs);
+    assert(!('channel' in v) && v.node === process.versions.node && v.discordJs);
   });
   await test('uptime in words', async () => {
     assert.strictEqual(ver.formatUptime(30), '1 мин'); assert.strictEqual(ver.formatUptime(3 * 3600 + 5 * 60), '3 ч 5 мин'); assert.strictEqual(ver.formatUptime(2 * 86400 + 3 * 3600), '2 д 3 ч');
@@ -28,14 +28,14 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'ver-'));
     // a fake checkout: reuse the module with ROOT pointing at it by copying the files it needs
     fs.mkdirSync(path.join(tmp, 'bot', 'utils'), { recursive: true }); fs.mkdirSync(path.join(tmp, '.git', 'refs', 'heads'), { recursive: true });
-    for (const f of ['version.js', 'channel.js']) fs.copyFileSync(path.join(__dirname, '..', 'bot', 'utils', f), path.join(tmp, 'bot', 'utils', f));
+    for (const f of ['version.js']) fs.copyFileSync(path.join(__dirname, '..', 'bot', 'utils', f), path.join(tmp, 'bot', 'utils', f));
     fs.writeFileSync(path.join(tmp, 'version.json'), '{"bot":"9.1.0","panel":"9.2.0"}');
-    fs.writeFileSync(path.join(tmp, '.git', 'HEAD'), 'ref: refs/heads/beta\n');
-    fs.writeFileSync(path.join(tmp, '.git', 'refs', 'heads', 'beta'), 'abcdef1234567890\n');
+    fs.writeFileSync(path.join(tmp, '.git', 'HEAD'), 'ref: refs/heads/main\n');
+    fs.writeFileSync(path.join(tmp, '.git', 'refs', 'heads', 'main'), 'abcdef1234567890\n');
     const realPath = process.env.PATH; process.env.PATH = '/nonexistent'; // no git command
     const v = require(path.join(tmp, 'bot', 'utils', 'version.js')).versionInfo();
     process.env.PATH = realPath;
-    assert(v.bot === '9.1.0' && v.panel === '9.2.0' && v.branch === 'beta' && v.commit === 'abcdef1' && v.channel === 'beta', JSON.stringify(v));
+    assert(v.bot === '9.1.0' && v.panel === '9.2.0' && v.branch === 'main' && v.commit === 'abcdef1', JSON.stringify(v));
   });
 
   const express = require('express');

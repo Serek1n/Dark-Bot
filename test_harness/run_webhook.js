@@ -1,6 +1,4 @@
 // /webhook: create, list, delete and send through webhooks.
-process.env.BOT_CHANNEL = 'beta'; // these tests are about the beta build
-require('./betaFeature'); // treat the webhooks as a beta feature in this test
 process.env.DATABASE_PATH = './data/test_webhook.sqlite';
 const fs = require('fs');
 fs.mkdirSync('./data', { recursive: true });
@@ -72,11 +70,12 @@ const { PermissionFlagsBits } = require('discord.js');
   });
 
   // feature switch exists and is registered
-  await test('the feature switch is registered; it is a beta feature, so it works once the server switches beta on', async () => {
+  await test('the feature switch is registered and follows its own switch', async () => {
     const { featureForCommand, isEnabled } = require('../bot/utils/features');
     const row = await db.GuildSettings.findByPk('WG1');
-    assert(featureForCommand('webhook')?.key === 'webhooks' && !isEnabled(row, 'webhooks'), 'beta: off by default');
-    row.betaEnabled = true; assert(isEnabled(row, 'webhooks'), 'on with beta');
+    assert(featureForCommand('webhook')?.key === 'webhooks');
+    row.webhooksEnabled = true; assert(isEnabled(row, 'webhooks'), 'on');
+    row.webhooksEnabled = false; assert(!isEnabled(row, 'webhooks'), 'off');
   });
 
   results.forEach((r) => console.log(r.ok ? '✅' : '❌', r.l, r.ok ? '' : '\n   ' + r.e));

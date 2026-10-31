@@ -32,16 +32,12 @@ const DESTINATIONS = ['auto', 'dm', 'off'];
 const DEFAULT_TEXT = 'Твой уровень повышен до {level}-го!';
 
 /** The text of a level-up message with its {placeholders} filled in. */
-function fillLevelUpText(template, v) {
-  return String(template || DEFAULT_TEXT)
-    .replaceAll('{user}', `<@${v.userId}>`)
-    .replaceAll('{name}', v.name)
-    .replaceAll('{level}', String(v.level))
-    .replaceAll('{oldLevel}', String(v.oldLevel ?? Math.max(0, v.level - 1)))
-    .replaceAll('{server}', v.server)
-    .replaceAll('{crystals}', String(v.crystals || 0))
-    .replaceAll('{role}', v.roleName || '')
-    .slice(0, 2000);
+function fillLevelUpText(template, v, ctx = {}) {
+  const { render } = require('./replacers');
+  return render(template || DEFAULT_TEXT, ctx, {
+    user: `<@${v.userId}>`, name: v.name, level: v.level, oldLevel: v.oldLevel ?? Math.max(0, v.level - 1),
+    server: v.server, crystals: v.crystals || 0, role: v.roleName || ''
+  }).slice(0, 2000);
 }
 
 /**
@@ -69,7 +65,13 @@ async function announceLevelUp({ guild, user, displayName, level, oldLevel, chan
   const reward = rewards.find((r) => r.level === level);
   const roleName = reward ? guild.roles?.cache?.get?.(reward.roleId)?.name || '' : '';
   const custom = settings?.levelUpMessage && String(settings.levelUpMessage).trim();
-  const text = fillLevelUpText(custom || DEFAULT_TEXT, { userId: user.id, name: displayName || user.username, level, oldLevel, server: guild.name, crystals, roleName });
+  let ctx = {};
+  if (custom && /\{\s*[a-z_]+\.|\{-/.test(custom)) { // full templates only when the text uses them
+    const { buildContext } = require('./replacers');
+    const lvl = custom.includes('level.') ? await require('../modules/leveling').levelContext(guild.id, user.id).catch(() => null) : null;
+    ctx = buildContext({ member: member || { id: user.id, user, displayName }, guild, level: lvl });
+  }
+  const text = fillLevelUpText(custom || DEFAULT_TEXT, { userId: user.id, name: displayName || user.username, level, oldLevel, server: guild.name, crystals, roleName }, ctx);
   const framed = !custom || settings?.levelUpEmbed !== false;
 
   let payload;

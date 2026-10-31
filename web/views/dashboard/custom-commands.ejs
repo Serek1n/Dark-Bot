@@ -27,7 +27,8 @@
         </div>
         <div>
           <label>Ответ бота</label>
-          <textarea name="response" placeholder="Правила сервера: ..." required></textarea>
+          <textarea name="response" id="ccResponse" placeholder="Правила сервера: ..." required></textarea>
+          <%- include('../partials/replacers-help', { target: 'ccResponse' }) %>
         </div>
         <button class="btn" type="submit">Добавить / обновить</button>
       </form>

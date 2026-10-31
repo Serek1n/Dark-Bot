@@ -6,13 +6,14 @@
 const { PermissionFlagsBits: P } = require('discord.js');
 const { getClient } = require('../botBridge');
 
-const DANGEROUS = P.Administrator | P.ManageGuild | P.ManageRoles | P.ManageChannels | P.ManageWebhooks | P.BanMembers | P.KickMembers | P.ModerateMembers | P.ManageMessages | P.MentionEveryone;
+const { DANGEROUS, CRITICAL } = require('../../bot/utils/safeRole');
 
 const REASONS = {
   managed: 'управляется интеграцией',
   bot: 'выше роли бота',
   you: 'не ниже вашей высшей роли',
-  danger: 'с правами модерации — только для администраторов'
+  danger: 'с правами модерации — только для администраторов',
+  critical: 'даёт управление сервером — бот такие роли сам не выдаёт'
 };
 
 /**
@@ -36,6 +37,7 @@ async function roleGuard(guildId, userId) {
     if (role.managed) return REASONS.managed;
     if (role.position >= botTop) return REASONS.bot;
     if (role.position >= userTop) return REASONS.you;
+    if ((BigInt(role.permissions?.bitfield ?? 0n) & CRITICAL) !== 0n) return REASONS.critical;
     if (!isAdmin && (BigInt(role.permissions?.bitfield ?? 0n) & DANGEROUS) !== 0n) return REASONS.danger;
     return null;
   };
@@ -72,10 +74,11 @@ async function restGuard(guildId, userId) {
     if (role.managed) return REASONS.managed;
     if (role.position >= botTop) return REASONS.bot;
     if (role.position >= userTop) return REASONS.you;
+    if ((BigInt(role.permissions || 0) & CRITICAL) !== 0n) return REASONS.critical;
     if (!isAdmin && (BigInt(role.permissions || 0) & DANGEROUS) !== 0n) return REASONS.danger;
     return null;
   };
   return { check, annotate: (list) => list.map((r) => ({ ...r, blocked: check(r.id) })) };
 }
 
-module.exports = { roleGuard, DANGEROUS };
+module.exports = { roleGuard, DANGEROUS, CRITICAL };

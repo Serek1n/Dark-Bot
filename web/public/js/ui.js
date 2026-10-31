@@ -19,6 +19,8 @@
     railScroll();
     revealActive();
     quickJump();
+    templateHelp();
+    typeFields();
   });
 
   // 2) The side menu scrolls without the browser's wide scrollbar: a thin thumb appears while scrolling, and the edges fade
@@ -120,5 +122,42 @@
       else if (e.key === 'Escape' && !box.hidden) close();
     });
     Array.prototype.forEach.call(document.querySelectorAll('[data-quick-jump]'), function (b) { b.addEventListener('click', open); });
+  }
+
+  // 5) Templates: click a name to insert it at the cursor; "Предпросмотр" asks the server how the text will look.
+  function templateHelp() {
+    Array.prototype.forEach.call(document.querySelectorAll('.tpl-help[data-tpl-for]'), function (box) {
+      var field = document.getElementById(box.getAttribute('data-tpl-for'));
+      if (!field) return;
+      box.addEventListener('click', function (e) {
+        var chip = e.target.closest('[data-insert]');
+        if (chip) {
+          var t = chip.getAttribute('data-insert'), a = field.selectionStart || field.value.length, b = field.selectionEnd || a;
+          field.value = field.value.slice(0, a) + t + field.value.slice(b);
+          field.focus(); field.selectionStart = field.selectionEnd = a + t.length;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+        var btn = e.target.closest('[data-preview-url]');
+        if (!btn) return;
+        var out = box.querySelector('.tpl-preview');
+        out.hidden = false; out.textContent = '…';
+        fetch(btn.getAttribute('data-preview-url'), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: field.value }) })
+          .then(function (r) { return r.json(); })
+          .then(function (j) { out.textContent = j.text || '(пусто)'; })
+          .catch(function () { out.textContent = 'Не удалось получить предпросмотр'; });
+      });
+    });
+  }
+
+  // 6) Forms with a "Тип" select: fields that only make sense for one type (data-role-only) are hidden for the others.
+  function typeFields() {
+    Array.prototype.forEach.call(document.querySelectorAll('form'), function (form) {
+      var type = form.querySelector('select[name="type"]');
+      var only = form.querySelectorAll('[data-role-only]');
+      if (!type || !only.length) return;
+      var sync = function () { Array.prototype.forEach.call(only, function (el) { el.hidden = type.value !== 'role'; }); };
+      type.addEventListener('change', sync); sync();
+    });
   }
 })();

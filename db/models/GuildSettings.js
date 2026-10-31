@@ -76,7 +76,6 @@ module.exports = (sequelize) => {
       ticketsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       remindersEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       webhooksEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
-      betaEnabled: { type: DataTypes.BOOLEAN, defaultValue: false }, // the server uses features still in testing (see bot/utils/features.js)
       // Roles and nickname come back when a member who left joins again
       restoreOnRejoin: { type: DataTypes.BOOLEAN, defaultValue: true },
       restoreDays: { type: DataTypes.INTEGER, defaultValue: 365 },
@@ -139,6 +138,11 @@ module.exports = (sequelize) => {
       updatesLastPosted: { type: DataTypes.STRING, allowNull: true },
       // "Доска почёта": messages with enough reactions are copied into this channel.
       starboardEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      interactiveEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      voiceRolesEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      // reports v2: how many reports one member may send a day, and the warning when someone with reports joins
+      reportDailyLimit: { type: DataTypes.INTEGER, defaultValue: 5 },
+      reportJoinAlert: { type: DataTypes.BOOLEAN, defaultValue: true },
       starboardChannelId: { type: DataTypes.STRING, allowNull: true },
       starboardEmoji: { type: DataTypes.STRING, defaultValue: '⭐' },
       starboardThreshold: { type: DataTypes.INTEGER, defaultValue: 3 },

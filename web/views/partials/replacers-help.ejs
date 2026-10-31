@@ -1,0 +1,16 @@
+<%# Help for templates under a text field: click a name to insert it, "Предпросмотр" shows the result for you. %>
+<% const R = locals.tplRef || { values: [], functions: [] }; %>
+<details class="tpl-help" data-tpl-for="<%= target %>">
+  <summary>Заменители и предпросмотр</summary>
+  <div class="tpl-body">
+    <p class="hint" style="margin-top:0">Пишутся в фигурных скобках: <code>{ guild.name }</code>. Запасной вариант через <code>|</code>: <code>{ member.nickname | member.username }</code> или <code>{ guild.description | "нет описания" }</code>. Функции: <code>{- ИМЯ(аргумент; аргумент) -}</code>. Нажмите, чтобы вставить:</p>
+    <div class="tpl-chips">
+      <% R.values.forEach(([v, d]) => { %><button type="button" class="tpl-chip" data-insert="{ <%= v %> }" title="<%= d %>"><%= v %></button><% }) %>
+    </div>
+    <div class="tpl-chips">
+      <% R.functions.forEach(([f, d]) => { %><button type="button" class="tpl-chip fn" data-insert="{- <%= f %> -}" title="<%= d %>"><%= f.split('(')[0] %></button><% }) %>
+    </div>
+    <button type="button" class="btn btn-secondary tpl-preview-btn" data-preview-url="/dashboard/<%= guild.id %>/replacers/preview">Предпросмотр</button>
+    <div class="tpl-preview" hidden></div>
+  </div>
+</details>

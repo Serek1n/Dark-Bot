@@ -51,7 +51,8 @@ async function test(name, fn) {
   const role = (id, position, extra = {}) => ({ id, position, managed: false, permissions: { bitfield: 0n }, ...extra });
   const roles = new Map([
     [G, role(G, 0)], ['R_OK', role('R_OK', 2)], ['R_MANAGED', role('R_MANAGED', 2, { managed: true })], ['R_HIGH', role('R_HIGH', 9)],
-    ['R_MINE', role('R_MINE', 5)], ['R_ADMIN', role('R_ADMIN', 3, { permissions: { bitfield: P.Administrator } })], ['R_BAN', role('R_BAN', 3, { permissions: { bitfield: P.BanMembers } })]
+    ['R_MINE', role('R_MINE', 5)], ['R_ADMIN', role('R_ADMIN', 3, { permissions: { bitfield: P.Administrator } })], ['R_BAN', role('R_BAN', 3, { permissions: { bitfield: P.BanMembers } })],
+    ['R_MUTE', role('R_MUTE', 3, { permissions: { bitfield: P.ModerateMembers | P.ManageMessages } })]
   ]);
   const members = { MOD: { permissions: { has: () => false }, roles: { highest: { position: 5 } } }, ADMIN: { permissions: { has: (p) => p === P.Administrator }, roles: { highest: { position: 8 } } } };
   const guild = { id: G, ownerId: 'OWNER', roles: { cache: roles }, members: { me: { roles: { highest: { position: 8 } } }, fetch: async (id) => { if (!members[id]) throw new Error('unknown'); return members[id]; } } };
@@ -64,9 +65,10 @@ async function test(name, fn) {
     assert(g.check('R_MANAGED') && g.check('R_HIGH') && g.check('R_MINE') && g.check('R_ADMIN') && g.check('R_BAN') && g.check(G) && g.check('NOPE'));
     const a = g.annotate([{ id: 'R_OK' }, { id: 'R_ADMIN' }]); assert(!a[0].blocked && a[1].blocked);
   });
-  await test('role guard: an administrator may give moderation roles below his own; the owner anything below the bot', async () => {
-    const a = await roleGuard(G, 'ADMIN'); assert(a.check('R_ADMIN') === null && a.check('R_BAN') === null && a.check('R_MINE') === null && a.check('R_HIGH'));
-    const o = await roleGuard(G, 'OWNER'); assert(o.check('R_ADMIN') === null && o.check('R_HIGH') && o.check('R_MANAGED'));
+  await test('role guard: an administrator may give moderation roles below his own; roles that run the server — nobody', async () => {
+    const a = await roleGuard(G, 'ADMIN'); assert(a.check('R_MUTE') === null && a.check('R_MINE') === null && a.check('R_HIGH'));
+    assert(/управление сервером/.test(a.check('R_ADMIN')) && /управление сервером/.test(a.check('R_BAN')), 'admin/ban roles are never self-service');
+    const o = await roleGuard(G, 'OWNER'); assert(o.check('R_MUTE') === null && o.check('R_OK') === null && o.check('R_ADMIN') && o.check('R_HIGH') && o.check('R_MANAGED'));
   });
 
   // ---- panel routes ----
@@ -87,8 +89,9 @@ async function test(name, fn) {
     assert((await post('/level-roles', { level: '5', roleId: '123456789012345672' })).includes('saved'), 'ordinary role ok');
     assert((await post('/shop/items', { name: 'A', type: 'role', roleId: '123456789012345671', price: '5', enabled: 'on' })).includes('rolenotallowed'), 'shop');
     assert((await post('/welcome', { autoRoleId: '123456789012345671' })).includes('rolenotallowed'), 'autorole');
-    who = 'OWNER'; assert((await post('/welcome', { autoRoleId: '123456789012345671' })).includes('saved'), 'the owner may'); who = 'MOD';
-    assert((await post('/welcome', { autoRoleId: '123456789012345671' })).includes('saved'), 'an unchanged autorole stays');
+    who = 'OWNER'; assert((await post('/welcome', { autoRoleId: '123456789012345671' })).includes('rolenotallowed'), 'not even the owner: an admin role for every newcomer');
+    assert((await post('/welcome', { autoRoleId: '123456789012345672' })).includes('saved'), 'the owner may set an ordinary role'); who = 'MOD';
+    assert((await post('/welcome', { autoRoleId: '123456789012345672' })).includes('saved'), 'an unchanged autorole stays');
     const page = await (await fetch(base + '/level-roles')).text();
     assert(/<option value="123456789012345671" disabled>@admin — /.test(page), 'blocked role shown disabled with the reason');
   });

@@ -1,33 +1,13 @@
+// "Пожаловаться" on a message: the report goes to the moderators with the message text and a link (reports v2).
 const { ContextMenuCommandBuilder, ApplicationCommandType, MessageFlags } = require('discord.js');
-const { GuildSettings } = require('../../../db');
 const embeds = require('../../utils/embeds');
+const { fileReport } = require('../../modules/reports');
 
 module.exports = {
   data: new ContextMenuCommandBuilder().setName('Report message').setNameLocalizations({ ru: 'Пожаловаться' }).setType(ApplicationCommandType.Message),
   async execute(interaction) {
-    const settings = await GuildSettings.findOne({ where: { guildId: interaction.guild.id } });
-    if (!settings?.reportChannelId) {
-      return interaction.reply({ embeds: [embeds.error('Канал для жалоб не настроен. Обратитесь к администрации или настройте его в веб-панели.')], flags: MessageFlags.Ephemeral });
-    }
-
-    const channel = await interaction.guild.channels.fetch(settings.reportChannelId).catch(() => null);
-    if (!channel) {
-      return interaction.reply({ embeds: [embeds.error('Канал для жалоб недоступен.')], flags: MessageFlags.Ephemeral });
-    }
-
     const message = interaction.targetMessage;
-    const embed = embeds
-      .baseEmbed(0xfee75c)
-      .setTitle('🚩 Новая жалоба')
-      .addFields(
-        { name: 'От', value: `<@${interaction.user.id}>`, inline: true },
-        { name: 'На', value: `<@${message.author.id}>`, inline: true },
-        { name: 'Канал', value: `<#${message.channelId}>`, inline: true },
-        { name: 'Содержание', value: message.content?.slice(0, 1000) || '*(вложение/embed без текста)*' },
-        { name: 'Ссылка', value: message.url }
-      );
-
-    await channel.send({ embeds: [embed] });
-    await interaction.reply({ embeds: [embeds.success('Жалоба отправлена модераторам.')], flags: MessageFlags.Ephemeral });
+    const r = await fileReport(interaction.guild, { reporter: interaction.user, target: message.author, category: 'other', message });
+    return interaction.reply({ embeds: [r.ok ? embeds.success(r.text) : embeds.error(r.text)], flags: MessageFlags.Ephemeral });
   }
 };

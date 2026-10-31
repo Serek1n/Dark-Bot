@@ -34,17 +34,16 @@
             <summary>
               <strong><%= it.name %></strong>
               — <%= n(it.price) %> <%= cn(it.currency) %>
-              <span class="muted"> · <%= it.type === 'role' ? 'роль' : 'предмет' %><%= it.stock !== null ? ' · осталось ' + it.stock : '' %><%= it.enabled ? '' : ' · скрыт' %></span>
+              <span class="muted"> · <%= it.type === 'role' ? 'роль' + (it.durationSeconds ? ' на ' + termText(it.durationSeconds * 1000) : '') : 'предмет' %><%= it.stock !== null ? ' · осталось ' + it.stock : '' %><%= it.enabled ? '' : ' · скрыт' %></span>
             </summary>
             <form method="post" action="/dashboard/<%= guild.id %>/shop/items/<%= it.id %>" data-no-guard>
               <%- include('../partials/shop-fields', { it, roles, settings }) %>
               <div class="btn-row">
                 <button class="btn" type="submit">Сохранить товар</button>
+                <button class="btn btn-danger" type="submit" form="shopdel-<%= it.id %>">Удалить</button>
               </div>
             </form>
-            <form method="post" action="/dashboard/<%= guild.id %>/shop/items/<%= it.id %>/delete" data-no-guard onsubmit="return confirm('Удалить товар «<%= it.name.replace(/['"\\]/g, '') %>»?')">
-              <button class="btn danger" type="submit">Удалить</button>
-            </form>
+            <form id="shopdel-<%= it.id %>" method="post" action="/dashboard/<%= guild.id %>/shop/items/<%= it.id %>/delete" data-no-guard onsubmit="return confirm('Удалить товар «<%= it.name.replace(/['"\\]/g, '') %>»?')"></form>
           </details>
         <% }) %>
       </div>
@@ -52,10 +51,37 @@
       <% if (items.length < maxItems) { %>
       <form method="post" action="/dashboard/<%= guild.id %>/shop/items" class="card" data-no-guard>
         <h2>Новый товар</h2>
-        <%- include('../partials/shop-fields', { it: { name: '', description: '', price: 100, currency: 'coins', type: 'item', roleId: null, stock: null, minLevel: 0, deliveryMessage: '', enabled: true }, roles, settings }) %>
+        <%- include('../partials/shop-fields', { it: { name: '', description: '', price: 100, currency: 'coins', type: 'item', roleId: null, durationSeconds: null, stock: null, minLevel: 0, deliveryMessage: '', enabled: true }, roles, settings }) %>
         <button class="btn" type="submit">Добавить</button>
       </form>
       <% } %>
+
+      <div class="card">
+        <h2>Роли на время <% if (terms.length) { %><span class="muted">· <%= terms.length %><%= terms.length >= 100 ? '+' : '' %></span><% } %></h2>
+        <p class="hint" style="margin-top:0">Купленные в магазине на срок и выданные командой <code>/temprole</code>. Когда срок выйдет, бот снимет роль сам.</p>
+        <% if (!terms.length) { %>
+          <p class="empty-state">Сейчас ни у кого нет ролей на время.</p>
+        <% } else { %>
+          <div class="table-wrap"><div class="table-scroll"><table>
+            <thead><tr><th>Участник</th><th>Роль</th><th>Откуда</th><th>До</th><th></th></tr></thead>
+            <tbody>
+              <% terms.forEach(t => { const u = users[t.userId] || { name: t.userId }; const r = roles.find(x => x.id === t.roleId); const end = new Date(t.expiresAt); const shopId = String(t.givenBy || '').startsWith('shop:') ? Number(String(t.givenBy).slice(5)) : null; const it = shopId ? items.find(x => x.id === shopId) : null; %>
+                <tr>
+                  <td><%= u.name %></td>
+                  <td><%= r ? '@' + r.name : t.roleId %></td>
+                  <td><%= shopId ? 'магазин' + (it ? ': ' + it.name : '') : '/temprole' %></td>
+                  <td><time datetime="<%= end.toISOString() %>" title="<%= end.toISOString() %>"><%= end.toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %></time></td>
+                  <td>
+                    <form method="post" action="/dashboard/<%= guild.id %>/shop/terms/<%= t.id %>/revoke" data-no-guard onsubmit="return confirm('Снять роль сейчас, не дожидаясь конца срока?')">
+                      <button class="btn btn-danger" type="submit"<%= r && r.blocked ? ' disabled title="' + r.blocked + '"' : '' %>>Снять</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div></div>
+        <% } %>
+      </div>
 
       <div class="card">
         <h2>Покупки <% if (pending) { %><span class="muted">· ждут выдачи: <%= pending %></span><% } %></h2>

@@ -28,7 +28,7 @@ app.disable('x-powered-by');
 const fs = require('fs');
 function assetVersion() {
   let newest = 0;
-  for (const f of ['css/style.css', 'css/fonts.css', 'js/theme.js', 'js/ui.js', 'js/public-top.js']) {
+  for (const f of ['css/style.css', 'css/fonts.css', 'js/theme.js', 'js/ui.js', 'js/public-top.js', 'js/interactive.js']) {
     try {
       newest = Math.max(newest, fs.statSync(path.join(__dirname, 'public', f)).mtimeMs);
     } catch (_) { /* missing file: ignore */ }
@@ -36,9 +36,9 @@ function assetVersion() {
   return Math.floor(newest).toString(36);
 }
 app.locals.assetV = assetVersion();
-app.locals.betaBuild = require('../bot/utils/channel').isBetaBuild(); // the beta build shows a tag next to the name
-app.locals.betaPages = require('../bot/utils/features').betaPages; // menu items of features still in testing
 app.locals.errorTexts = require('../bot/utils/discordErrors').ERROR_TEXT; // texts for error codes carried in links
+app.locals.termText = require('../bot/utils/duration').formatTerm; // "10 д" in the shop form
+app.locals.tplRef = require('../bot/utils/replacers').REFERENCE; // the names offered under template fields
 
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '7d',

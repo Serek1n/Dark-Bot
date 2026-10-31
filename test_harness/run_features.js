@@ -1,5 +1,4 @@
 // Feature switches: the registry, the command gate, events that must stay silent, and the panel page.
-process.env.BOT_CHANNEL = 'beta'; // these tests are about the beta build
 process.env.DATABASE_PATH = './data/test_features.sqlite';
 const fs = require('fs'); const path = require('path');
 fs.mkdirSync('./data', { recursive: true });
@@ -28,9 +27,9 @@ const express = require('express');
     FEATURES.forEach((f) => assert(f.field in s.dataValues, 'no column ' + f.field));
     assert(FEATURES.length === new Set(FEATURES.map((f) => f.field)).size, 'fields are unique');
   });
-  await test('defaults: everything on except automod and the beta features (they wait for the beta switch)', async () => {
+  await test('defaults: everything on except automod', async () => {
     const s = await L.getOrCreateSettings(G);
-    FEATURES.forEach((f) => assert(isEnabled(s, f.key) === (f.key !== 'automod' && !f.beta), f.key));
+    FEATURES.forEach((f) => assert(isEnabled(s, f.key) === (f.key !== 'automod'), f.key));
   });
 
   const ic = require('../bot/events/interactionCreate');

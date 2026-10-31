@@ -77,6 +77,66 @@ const { makeInteraction, makeGuild, makeUser } = require('./mock');
     r = await shop.purchaseItem({ guild, member: mkMember('r', [], true), itemId: it.id });
     assert(!r.ok, 'api failure'); assert((await reload('r')).balance === 200, 'only the first purchase was charged');
   });
+  await test('role for a while: given with a term, bought again = prolonged from the end, a role held for good is refused', async () => {
+    const { TempRole } = db;
+    await wallet('t', 1000);
+    const it = await mk({ type: 'role', roleId: 'R1', durationSeconds: 10 * 86400 });
+    const t0 = Date.now();
+    let r = await shop.purchaseItem({ guild, member: mkMember('t'), itemId: it.id });
+    assert(r.ok && !r.extended, 'bought ' + r.error);
+    const row = await TempRole.findOne({ where: { guildId: G, userId: 't', roleId: 'R1' } });
+    const end1 = new Date(row.expiresAt).getTime();
+    assert(Math.abs(end1 - (t0 + 10 * 86400e3)) < 5000, 'term 10 days');
+    assert(r.purchase.expiresAt && Math.abs(new Date(r.purchase.expiresAt).getTime() - end1) < 5, 'purchase keeps the end');
+    const receipt = JSON.stringify(shop.purchaseReceipt(r).toJSON());
+    assert(receipt.includes('выдана до <t:') && receipt.includes('снимется сама'), receipt);
+    r = await shop.purchaseItem({ guild, member: mkMember('t', ['R1']), itemId: it.id });
+    assert(r.ok && r.extended, 'prolonged ' + r.error);
+    await row.reload(); assert(Math.abs(new Date(row.expiresAt).getTime() - (end1 + 10 * 86400e3)) < 5, 'from the old end');
+    assert(JSON.stringify(shop.purchaseReceipt(r).toJSON()).includes('продлена до'), 'receipt says prolonged');
+    assert((await reload('t')).balance === 1000 - 200, 'paid twice');
+    const forever = await mk({ type: 'role', roleId: 'R1' });
+    await wallet('p', 1000);
+    r = await shop.purchaseItem({ guild, member: mkMember('p', ['R1']), itemId: it.id });
+    assert(!r.ok && r.error.includes('уже есть'), 'held for good: not sold on a term');
+    r = await shop.purchaseItem({ guild, member: mkMember('t', ['R1']), itemId: forever.id });
+    assert(!r.ok && r.error.includes('уже есть'), 'the permanent item is not sold to a holder either');
+    r = await shop.purchaseItem({ guild, member: mkMember('f', [], true), itemId: it.id });
+    assert(!r.ok && !(await TempRole.findOne({ where: { guildId: G, userId: 'f' } })), 'Discord refused: no term stored');
+  });
+
+  await test('the term ends: the role is taken away; a term prolonged meanwhile is kept', async () => {
+    const { TempRole } = db;
+    const tr = require('../bot/modules/tempRoles');
+    const removed = [];
+    const member = { roles: { cache: { has: () => true }, remove: async (id) => removed.push(id) } };
+    const client = { guilds: { cache: new Map([[G, { members: { fetch: async () => member } }]]) } };
+    await TempRole.create({ guildId: G, userId: 'e1', roleId: 'R1', expiresAt: new Date(Date.now() - 1000), givenBy: 'shop:1' });
+    await tr.tick(client);
+    assert(removed.length === 1 && !(await TempRole.findOne({ where: { userId: 'e1' } })), 'taken away');
+    const due = await TempRole.create({ guildId: G, userId: 'e2', roleId: 'R1', expiresAt: new Date(Date.now() - 1000) });
+    // the list of due rows is read, then someone prolongs the term before the role is taken away (reload goes to the real findAll)
+    const realFindAll = TempRole.findAll; let first = true;
+    TempRole.findAll = async function (...a) { if (!first) return realFindAll.apply(this, a); first = false; await TempRole.update({ expiresAt: new Date(Date.now() + 86400e3) }, { where: { id: due.id } }); return [due]; };
+    try { await tr.tick(client); } finally { TempRole.findAll = realFindAll; }
+    assert(removed.length === 1 && (await TempRole.findByPk(due.id)), 'prolonged role stays');
+  });
+
+  await test('panel: the term field reads 10д / 12 ч / 1мес, empty = forever, nonsense and too long are refused', async () => {
+    const { termSeconds } = require('../web/routes/dashboard/shop');
+    assert(termSeconds('') === null && termSeconds('  ') === null, 'empty');
+    assert(termSeconds('10д') === 864000 && termSeconds('12 ч') === 43200 && termSeconds('1мес') === 30 * 86400, 'units');
+    assert(termSeconds('abc') === undefined && termSeconds('2 года') === undefined && termSeconds('10s') === undefined, 'refused');
+    const { formatTerm, parseDuration } = require('../bot/utils/duration');
+    assert(formatTerm(864000e3) === '10 д' && formatTerm(36 * 3600e3) === '36 ч' && formatTerm(90 * 60e3) === '90 мин', 'shown back');
+    [864000e3, 36 * 3600e3, 90 * 60e3].forEach((ms) => assert(parseDuration(formatTerm(ms)) === ms, 'round trip ' + ms));
+    const ejs = require('ejs'); const path = require('path');
+    const html = await ejs.renderFile(path.join(__dirname, '..', 'web/views/partials/shop-fields.ejs'), { it: { name: 'VPN', price: 5000, currency: 'coins', type: 'role', roleId: 'R1', durationSeconds: 864000, stock: null, minLevel: 0, deliveryMessage: '', enabled: true }, roles: [], settings: { currencyName: 'монеты', crystalName: 'кристаллы' }, termText: formatTerm });
+    assert(html.includes('name="duration" value="10 д"') && html.includes('Срок действия роли'), 'form field');
+    const line = JSON.stringify((await shop.buildShopPanel({ id: G }, 'x')));
+    assert(line.includes('на 10 д'), 'the shop list shows the term');
+  });
+
   await test('disabled item, other server item, and shop switched off', async () => {
     await wallet('s', 500);
     const off = await mk({ enabled: false }); const other = await ShopItem.create({ guildId: 'g2', name: 'O', price: 1 });
