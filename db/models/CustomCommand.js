@@ -7,7 +7,8 @@ module.exports = (sequelize) => {
     {
       guildId: { type: DataTypes.STRING, allowNull: false },
       trigger: { type: DataTypes.STRING, allowNull: false },
-      response: { type: DataTypes.TEXT, allowNull: false },
+      response: { type: DataTypes.TEXT, allowNull: false }, // may be '' when the answer is only an embed
+      embed: { type: DataTypes.TEXT, allowNull: true }, // message editor: the embed part
       createdBy: { type: DataTypes.STRING, allowNull: false }
     },
     {

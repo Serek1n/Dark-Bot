@@ -13,7 +13,10 @@ module.exports = {
     if (!channel) return;
     // Nobody to ping: the member is already gone, so the name goes in as plain text.
     const name = member.displayName || member.user?.username || 'участник';
-    const text = fillTemplate(settings.leaveMessage, { id: member.id, displayName: name, user: member.user, guild: member.guild }, false);
-    channel.send({ content: text, allowedMentions: { parse: [] } }).catch(() => {});
+    const who = { id: member.id, displayName: name, user: member.user, guild: member.guild };
+    const { buildMessage } = require('../utils/messageBuilder');
+    const images = { avatar: member.user?.displayAvatarURL?.({ extension: 'png', size: 256 }), icon: member.guild.iconURL?.({ extension: 'png', size: 256 }) };
+    const built = buildMessage({ text: settings.leaveMessage, embed: settings.leaveEmbed, fill: (t) => fillTemplate(t, who, false), images });
+    if (built.content || built.embeds.length) channel.send({ ...built, allowedMentions: { parse: [] } }).catch(() => {});
   }
 };

@@ -1,6 +1,6 @@
-const { findCustomResponse } = require('../modules/customCommands');
+const { findCustomCommand } = require('../modules/customCommands');
 const { grantMessageXp, getOrCreateSettings } = require('../modules/leveling');
-const { evaluateMessage, handleViolation } = require('../modules/automod');
+const { evaluate, handleViolation } = require('../modules/automod');
 const { announceLevelUp, levelUpTarget } = require('../utils/levelUp');
 const { applyLevelRoles } = require('../modules/levelRoles');
 const logger = require('../utils/logger');
@@ -20,9 +20,9 @@ module.exports = {
 
     // Automod
     try {
-      const violation = await evaluateMessage(settings, message);
+      const violation = await evaluate(settings, message);
       if (violation) {
-        await handleViolation(settings, message, violation);
+        await handleViolation(settings, message, violation.reason, violation.key);
         return; // don't process leveling/custom commands for deleted messages
       }
     } catch (err) {
@@ -61,23 +61,30 @@ module.exports = {
     if (settings.customCommandsEnabled && message.content.startsWith(prefix)) {
       const trigger = message.content.slice(prefix.length).trim().split(/\s+/)[0]?.toLowerCase();
       if (trigger) {
-        const response = await findCustomResponse(message.guild.id, trigger);
+        const cmd = await findCustomCommand(message.guild.id, trigger);
         // Users may be mentioned, roles and @everyone never: anyone can call a command, and a command with a role in it would
         // let them ping that role as often as they like. One answer per person per channel every 3 seconds.
         const key = `${message.channelId}:${message.author.id}`;
-        if (response !== null && !(commandCooldown.get(key) > Date.now())) {
+        if (cmd && !(commandCooldown.get(key) > Date.now())) {
           if (commandCooldown.size > 5000) commandCooldown.clear();
           commandCooldown.set(key, Date.now() + 3000);
           // Templates: { member.* }, { guild.* }, { message.args.0 }, functions — only worked out when the text has them.
-          let content = response;
-          if (/\{\s*[a-z_]+\.|\{-/.test(response)) {
+          const { buildMessage, usesTemplates } = require('../utils/messageBuilder');
+          const uses = usesTemplates(cmd.response, cmd.embed);
+          let fill = (t) => t;
+          if (uses.full) {
             const { render, buildContext } = require('../utils/replacers');
-            const level = response.includes('level.') ? await require('../modules/leveling').levelContext(message.guild.id, message.author.id).catch(() => null) : null;
-            content = render(response, buildContext({ member: message.member || { id: message.author.id, user: message.author }, guild: message.guild, message, level })).slice(0, 2000);
+            const level = uses.level ? await require('../modules/leveling').levelContext(message.guild.id, message.author.id).catch(() => null) : null;
+            const ctx = buildContext({ member: message.member || { id: message.author.id, user: message.author }, guild: message.guild, message, level });
+            fill = (t) => render(t, ctx);
           }
-          message.channel
-            .send({ content, allowedMentions: { parse: ['users'] } })
-            .catch(() => {});
+          const images = { avatar: message.author.displayAvatarURL?.({ extension: 'png', size: 256 }), icon: message.guild.iconURL?.({ extension: 'png', size: 256 }) };
+          const built = buildMessage({ text: cmd.response, embed: cmd.embed, fill, images });
+          if (built.content || built.embeds.length) {
+            message.channel
+              .send({ ...built, allowedMentions: { parse: ['users'] } })
+              .catch(() => {});
+          }
         }
       }
     }

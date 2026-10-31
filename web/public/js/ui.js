@@ -21,6 +21,7 @@
     quickJump();
     templateHelp();
     typeFields();
+    embedEditors();
   });
 
   // 2) The side menu scrolls without the browser's wide scrollbar: a thin thumb appears while scrolling, and the edges fade
@@ -158,6 +159,31 @@
       if (!type || !only.length) return;
       var sync = function () { Array.prototype.forEach.call(only, function (el) { el.hidden = type.value !== 'role'; }); };
       type.addEventListener('change', sync); sync();
+    });
+  }
+
+  // 7) Message editor: the embed fields show up with the switch, and the preview follows what is typed.
+  function embedEditors() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-embed-editor]'), function (box) {
+      var toggle = box.querySelector('[data-embed-toggle]'), fields = box.querySelector('.embed-fields');
+      var get = function (k) { return box.querySelector('[data-ef="' + k + '"]'); };
+      var pv = { bar: box.querySelector('.ep-bar'), title: box.querySelector('.ep-title'), desc: box.querySelector('.ep-desc'), image: box.querySelector('.ep-image'), footer: box.querySelector('.ep-footer'), thumb: box.querySelector('.ep-thumb') };
+      var draw = function () {
+        fields.hidden = !toggle.checked;
+        pv.bar.style.background = get('color').value || '#8b7cf6';
+        pv.title.textContent = get('title').value;
+        var d = get('description').value;
+        pv.desc.textContent = d || (get('title').value ? '' : 'Пустой эмбед не отправится — напишите заголовок или текст');
+        pv.desc.classList.toggle('ep-empty', !d && !get('title').value);
+        var foot = get('footer').value + (get('timestamp').checked ? (get('footer').value ? ' • ' : '') + 'сегодня в 12:00' : '');
+        pv.footer.textContent = foot; pv.footer.hidden = !foot;
+        var img = get('image').value.trim();
+        pv.image.hidden = !img;
+        if (/^https:\/\//i.test(img)) { pv.image.style.backgroundImage = 'url("' + img.replace(/["\\]/g, '') + '")'; pv.image.textContent = ''; } else { pv.image.style.backgroundImage = ''; pv.image.textContent = img ? 'картинка: ' + img : ''; }
+        var th = get('thumbnail').value;
+        pv.thumb.hidden = !th; pv.thumb.textContent = th === 'avatar' ? 'аватар' : th === 'icon' ? 'иконка' : '';
+      };
+      box.addEventListener('input', draw); box.addEventListener('change', draw); draw();
     });
   }
 })();

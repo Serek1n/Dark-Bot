@@ -34,6 +34,8 @@ module.exports = (sequelize) => {
       welcomeChannelId: { type: DataTypes.STRING, allowNull: true },
       welcomeMessage: { type: DataTypes.STRING, defaultValue: 'Добро пожаловать, {user}, на сервере **{server}**!' },
       autoRoleId: { type: DataTypes.STRING, allowNull: true },
+      welcomeEmbed: { type: DataTypes.TEXT, allowNull: true }, // message editor: the embed part (bot/utils/messageBuilder.js)
+      leaveEmbed: { type: DataTypes.TEXT, allowNull: true },
       welcomeCard: { type: DataTypes.BOOLEAN, defaultValue: false }, // attach a picture card to the welcome message
       leaveChannelId: { type: DataTypes.STRING, allowNull: true }, // farewell message when a member leaves
       leaveMessage: { type: DataTypes.STRING, defaultValue: '**{user}** покинул(а) сервер. Нас осталось {count}.' },
@@ -107,6 +109,10 @@ module.exports = (sequelize) => {
       automodProfanity: { type: DataTypes.BOOLEAN, defaultValue: false }, // the built-in list of obscene words
       automodZalgo: { type: DataTypes.BOOLEAN, defaultValue: false }, // "z̷a̸l̶g̵o̷" text with piles of combining marks
       automodIgnoredChannels: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON array of channel ids
+      automodRules: { type: DataTypes.TEXT, defaultValue: '{}' }, // per filter: { action, muteMinutes, ignoredChannels, ignoredRoles } (automod.js)
+      automodNicknames: { type: DataTypes.BOOLEAN, defaultValue: false }, // check names of members: bad words, invites, zalgo
+      automodDehoist: { type: DataTypes.BOOLEAN, defaultValue: false }, // names starting with "!" etc. to sit on top of the list
+      automodNickReplacement: { type: DataTypes.STRING, defaultValue: 'Ник скрыт' },
       automodIgnoredRoles: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON array of role ids
 
       // Moderation (/mod): see bot/modules/moderation.js
@@ -127,6 +133,7 @@ module.exports = (sequelize) => {
       levelUpDestination: { type: DataTypes.STRING, defaultValue: 'auto' },
       levelUpMessage: { type: DataTypes.TEXT, allowNull: true },
       levelUpEmbed: { type: DataTypes.BOOLEAN, defaultValue: true },
+      levelUpEmbedData: { type: DataTypes.TEXT, allowNull: true }, // own embed design for the level-up message (overrides the standard frame)
       levelUpEvery: { type: DataTypes.INTEGER, defaultValue: 1 },
       levelUpEveryUntil: { type: DataTypes.INTEGER, defaultValue: 0 },
       levelUpRewardOnly: { type: DataTypes.BOOLEAN, defaultValue: false },
@@ -151,6 +158,8 @@ module.exports = (sequelize) => {
       // Temp voice ("join to create")
       tempVoiceJoinChannelId: { type: DataTypes.STRING, allowNull: true },
       tempVoiceCategoryId: { type: DataTypes.STRING, allowNull: true },
+      tempVoiceUserLimit: { type: DataTypes.INTEGER, defaultValue: 0 }, // 0 = no limit
+      tempVoiceTriggers: { type: DataTypes.TEXT, defaultValue: '[]' }, // more "join to create" channels: [{ channelId, categoryId, name, limit }]
       tempVoiceNameTemplate: { type: DataTypes.STRING, defaultValue: 'Комната {user}' },
       tempVoicePanelChannelId: { type: DataTypes.STRING, allowNull: true }, // where the room control panel (buttons) was posted
       tempVoicePanelMessageId: { type: DataTypes.STRING, allowNull: true },

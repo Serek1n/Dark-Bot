@@ -10,7 +10,7 @@
         <p class="page-intro">Бот проверяет каждое сообщение. Если оно нарушает включённое правило, оно удаляется, а автору при желании выдаётся предупреждение или мут.</p>
       </div>
       <nav class="jump" aria-label="Разделы страницы">
-        <a href="#rules">Правила</a><a href="#words">Слова и сайты</a><a href="#action">Наказание</a><a href="#skip">Исключения</a>
+        <a href="#rules">Правила</a><a href="#words">Слова и сайты</a><a href="#action">Наказание</a><a href="#per-rule">Для каждого правила</a><a href="#names">Ники</a><a href="#skip">Исключения</a>
       </nav>
 
       <form method="post" class="plain">
@@ -100,6 +100,59 @@
             </div>
           </div>
           <div class="callout">Предупреждения автомодерации считаются вместе с остальными. Что бот сделает после нескольких предупреждений (мут, кик, бан), задаётся на странице <a href="/dashboard/<%= guild.id %>/moderation#rules" style="color:var(--ember);">«Наказания и журнал»</a>. Один нарушитель получает не больше одного наказания за 8 секунд, даже если продолжает писать.</div>
+        </div>
+
+        <div class="card" id="per-rule">
+          <h2>Для каждого правила отдельно<span class="sub">Необязательно: без настроек правило наказывает как указано выше</span></h2>
+          <% const textCh2 = channels.filter(c => c.type === 0 || c.type === 5); const actName = { '': 'как обычно', delete: 'только удалить', warn: 'предупреждение', mute: 'мут' }; %>
+          <div class="rule-cfgs">
+          <% filters.forEach(f => { const r = ruleCfg[f.key] || {}; const chN = (r.ch || []).length, roN = (r.roles || []).length; %>
+            <details class="rule-cfg">
+              <summary><b><%= f.title %></b><span class="muted"> — <%= actName[r.action || ''] %><%= r.action === 'mute' && r.mute ? ' ' + r.mute + ' мин' : '' %><%= chN ? ' · не в ' + chN + ' кан.' : '' %><%= roN ? ' · не для ' + roN + ' рол.' : '' %></span></summary>
+              <div class="two-col">
+                <div>
+                  <label>Наказание за это правило</label>
+                  <select name="rule_<%= f.key %>_action">
+                    <option value="" <%= !r.action ? 'selected' : '' %>>Как обычно (выше)</option>
+                    <option value="delete" <%= r.action === 'delete' ? 'selected' : '' %>>Только удалить сообщение</option>
+                    <option value="warn" <%= r.action === 'warn' ? 'selected' : '' %>>Удалить и предупредить</option>
+                    <option value="mute" <%= r.action === 'mute' ? 'selected' : '' %>>Удалить и замутить</option>
+                  </select>
+                </div>
+                <div><label>Срок мута, минут (пусто — как обычно)</label><input type="number" name="rule_<%= f.key %>_mute" value="<%= r.mute || '' %>" min="1" max="40320" /></div>
+              </div>
+              <label>Каналы, где это правило не действует</label>
+              <div class="pick">
+                <% if (!textCh2.length) { %><span class="pick-empty">Текстовых каналов не найдено</span><% } %>
+                <% textCh2.forEach(c => { %><label><input type="checkbox" name="rule_<%= f.key %>_ch" value="<%= c.id %>" <%= (r.ch || []).includes(c.id) ? 'checked' : '' %> /><span>#<%= c.name %></span></label><% }) %>
+              </div>
+              <label>Роли, на которые это правило не действует</label>
+              <div class="pick">
+                <% roles.forEach(ro => { %><label><input type="checkbox" name="rule_<%= f.key %>_roles" value="<%= ro.id %>" <%= (r.roles || []).includes(ro.id) ? 'checked' : '' %> /><span><%= ro.name %></span></label><% }) %>
+              </div>
+            </details>
+          <% }) %>
+          </div>
+          <div class="hint">Например: ссылки разрешены в #медиа, за мат — сразу мут на час, а за КАПС — только удаление.</div>
+        </div>
+
+        <div class="card" id="names">
+          <h2>Ники участников<span class="sub">Проверяются при входе на сервер и при смене ника</span></h2>
+          <div class="rules">
+            <label class="rule">
+              <span class="rule-text"><b>Проверять ники</b><span>Запрещённые слова, мат (если включён выше), Zalgo и приглашения в нике — ник заменяется, запись попадает в журнал.</span></span>
+              <input type="checkbox" name="automodNicknames" <%= settings.automodNicknames ? 'checked' : '' %> />
+            </label>
+            <label class="rule">
+              <span class="rule-text"><b>Убирать знаки в начале ника</b><span>«!!!Вася» станет «Вася»: никто не поднимется в начало списка участников символами.</span></span>
+              <input type="checkbox" name="automodDehoist" <%= settings.automodDehoist ? 'checked' : '' %> />
+            </label>
+          </div>
+          <div>
+            <label>Чем заменить недопустимый ник</label>
+            <input type="text" name="automodNickReplacement" maxlength="32" value="<%= settings.automodNickReplacement || 'Ник скрыт' %>" />
+            <div class="hint">Ники модераторов (право «Управлять никнеймами»), ролей-исключений ниже и тех, кто выше роли бота, не меняются.</div>
+          </div>
         </div>
 
         <div class="card" id="skip">

@@ -90,6 +90,7 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   settings.levelUpDestination = DESTINATIONS.includes(req.body.levelUpDestination) ? req.body.levelUpDestination : 'auto';
   settings.levelUpMessage = String(req.body.levelUpMessage || '').trim().slice(0, 1500) || null;
   settings.levelUpEmbed = req.body.levelUpEmbed === 'on';
+  settings.levelUpEmbedData = require('../../utils/embedForm').embedFromBody(req.body, 'levelUpEmbedData');
   settings.levelUpRewardOnly = req.body.levelUpRewardOnly === 'on';
   settings.levelUpEvery = clampInt(req.body.levelUpEvery, 1, 100, 1);
   settings.levelUpEveryUntil = clampInt(req.body.levelUpEveryUntil, 0, 1000, 0);

@@ -5,13 +5,15 @@ const { VoiceRole } = require('../../../db');
 const { roleGuard } = require('../../utils/roles');
 const { snowflake, saved, getSettings } = require('../../utils/common');
 
+const { extraTriggers, MAX_EXTRA } = require('../../../bot/utils/voiceTriggers');
+
 const router = express.Router();
 
 // ---- Temp voice ----
 router.get('/:guildId/temp-voice', ensureGuildAccess, async (req, res) => {
   const [guild, settings, channels, allRoles, guard] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId), getGuildRoles(req.params.guildId), roleGuard(req.params.guildId, req.user?.id)]);
   const voiceRoles = await VoiceRole.findAll({ where: { guildId: req.params.guildId }, order: [['id', 'ASC']] });
-  res.render('dashboard/temp-voice', { guild, settings, channels, roles: guard.annotate(allRoles), voiceRoles, active: 'temp-voice' });
+  res.render('dashboard/temp-voice', { guild, settings, channels, roles: guard.annotate(allRoles), voiceRoles, triggers: extraTriggers(settings), maxTriggers: MAX_EXTRA, active: 'temp-voice' });
 });
 
 router.post('/:guildId/temp-voice', ensureGuildAccess, async (req, res) => {
@@ -19,6 +21,19 @@ router.post('/:guildId/temp-voice', ensureGuildAccess, async (req, res) => {
   settings.tempVoiceJoinChannelId = snowflake(req.body.tempVoiceJoinChannelId);
   settings.tempVoiceCategoryId = snowflake(req.body.tempVoiceCategoryId);
   settings.tempVoiceNameTemplate = (req.body.tempVoiceNameTemplate || '').trim().slice(0, 90) || settings.tempVoiceNameTemplate;
+  settings.tempVoiceUserLimit = Math.max(0, Math.min(99, parseInt(req.body.tempVoiceUserLimit, 10) || 0));
+  // More trigger channels: rows trig_channel[], trig_category[], trig_name[], trig_limit[] (an empty channel drops the row)
+  const col = (k) => [].concat(req.body[k] ?? []);
+  const chs = col('trig_channel'), cats = col('trig_category'), names = col('trig_name'), limits = col('trig_limit');
+  const seen = new Set([settings.tempVoiceJoinChannelId].filter(Boolean));
+  const extra = [];
+  chs.forEach((c, i) => {
+    const channelId = snowflake(c);
+    if (!channelId || seen.has(channelId) || extra.length >= MAX_EXTRA) return;
+    seen.add(channelId);
+    extra.push({ channelId, categoryId: snowflake(cats[i]) || null, name: String(names[i] || '').trim().slice(0, 90), limit: Math.max(0, Math.min(99, parseInt(limits[i], 10) || 0)) });
+  });
+  settings.tempVoiceTriggers = JSON.stringify(extra);
   await settings.save();
   res.redirect(saved(req.params.guildId, 'temp-voice'));
 });

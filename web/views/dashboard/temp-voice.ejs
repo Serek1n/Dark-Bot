@@ -33,6 +33,33 @@
           <input type="text" name="tempVoiceNameTemplate" id="tempVoiceName" value="<%= settings.tempVoiceNameTemplate %>" />
           <%- include('../partials/replacers-help', { target: 'tempVoiceName' }) %>
         </div>
+        <div>
+          <label>Лимит участников в комнате (0 — без лимита)</label>
+          <input type="number" name="tempVoiceUserLimit" min="0" max="99" value="<%= settings.tempVoiceUserLimit || 0 %>" />
+        </div>
+        <h2 style="margin-top:8px">Ещё каналы-создатели <span class="muted">(до <%= maxTriggers %>)</span></h2>
+        <div class="hint" style="margin-top:0">Например, «➕ Дуо» с лимитом 2 и «➕ Игры» в категории «Игры». Пустое имя — как в шаблоне выше. Чтобы убрать канал, выберите «— убрать —».</div>
+        <% const vcs = channels.filter(c => c.type === 2), cats = channels.filter(c => c.type === 4); const rows = triggers.concat(triggers.length < maxTriggers ? [{ channelId: '', categoryId: '', name: '', limit: 0 }] : []); %>
+        <div class="trig-list">
+        <% rows.forEach((t, i) => { %>
+          <div class="trig-row">
+            <div><label>Канал</label>
+              <select name="trig_channel">
+                <option value=""><%= t.channelId ? '— убрать —' : '— добавить канал —' %></option>
+                <% vcs.forEach(c => { %><option value="<%= c.id %>" <%= t.channelId === c.id ? 'selected' : '' %>>🔊 <%= c.name %></option><% }) %>
+              </select>
+            </div>
+            <div><label>Категория</label>
+              <select name="trig_category">
+                <option value="">— как у канала —</option>
+                <% cats.forEach(c => { %><option value="<%= c.id %>" <%= t.categoryId === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>
+              </select>
+            </div>
+            <div><label>Имя комнаты</label><input type="text" name="trig_name" maxlength="90" value="<%= t.name %>" placeholder="как в шаблоне" /></div>
+            <div><label>Лимит</label><input type="number" name="trig_limit" min="0" max="99" value="<%= t.limit || 0 %>" /></div>
+          </div>
+        <% }) %>
+        </div>
         <button class="btn" type="submit">Сохранить</button>
       </form>
 

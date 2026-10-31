@@ -3,6 +3,8 @@ const { ensureGuildAccess } = require('../../middleware/ensureGuildAccess');
 const { getGuildChannels, getGuildRoles, getGuild } = require('../../discordApi');
 const { clampInt, parseWords, snowflake, saved, getSettings } = require('../../utils/common');
 
+const { FILTERS, ACTIONS } = require('../../../bot/modules/automod');
+
 const router = express.Router();
 
 // ---- Automod ----
@@ -14,6 +16,7 @@ router.get('/:guildId/automod', ensureGuildAccess, async (req, res) => {
     linkWhitelist: parseWords(settings.automodLinkWhitelist),
     ignoredChannels: parseWords(settings.automodIgnoredChannels),
     ignoredRoles: parseWords(settings.automodIgnoredRoles),
+    filters: FILTERS, ruleCfg: (() => { try { const v = JSON.parse(settings.automodRules || '{}'); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; } catch { return {}; } })(),
     active: 'automod'
   });
 });
@@ -41,6 +44,20 @@ router.post('/:guildId/automod', ensureGuildAccess, async (req, res) => {
   // What to do with the author
   settings.automodAction = ['delete', 'warn', 'mute'].includes(req.body.automodAction) ? req.body.automodAction : 'delete';
   settings.automodMuteMinutes = clampInt(req.body.automodMuteMinutes, 1, 40320, settings.automodMuteMinutes);
+  // Each rule: its own punishment ('' = the common one) and its own exceptions
+  const rules = {};
+  for (const f of FILTERS) {
+    const action = ACTIONS.includes(req.body[`rule_${f.key}_action`]) ? req.body[`rule_${f.key}_action`] : '';
+    const mute = clampInt(req.body[`rule_${f.key}_mute`], 0, 40320, 0);
+    const ch = ids(req.body[`rule_${f.key}_ch`]);
+    const roles = ids(req.body[`rule_${f.key}_roles`]);
+    if (action || mute || ch.length || roles.length) rules[f.key] = { ...(action ? { action } : {}), ...(mute ? { mute } : {}), ...(ch.length ? { ch } : {}), ...(roles.length ? { roles } : {}) };
+  }
+  settings.automodRules = JSON.stringify(rules);
+  // Names
+  settings.automodNicknames = req.body.automodNicknames === 'on';
+  settings.automodDehoist = req.body.automodDehoist === 'on';
+  settings.automodNickReplacement = String(req.body.automodNickReplacement || '').trim().slice(0, 32) || 'Ник скрыт';
   // Exceptions
   settings.automodIgnoredChannels = JSON.stringify(ids(req.body.ignoredChannels));
   settings.automodIgnoredRoles = JSON.stringify(ids(req.body.ignoredRoles));

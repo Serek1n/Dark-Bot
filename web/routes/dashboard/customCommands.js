@@ -30,11 +30,13 @@ router.post('/:guildId/custom-commands', ensureGuildAccess, async (req, res) => 
   if (settings.prefix && trigger.startsWith(settings.prefix.toLowerCase())) trigger = trigger.slice(settings.prefix.length);
   trigger = trigger.slice(0, 32);
   const response = (req.body.response || '').trim().slice(0, 2000);
-  if (!trigger || !response) return res.redirect(saved(req.params.guildId, 'custom-commands', 'invalid'));
+  const embed = require('../../utils/embedForm').embedFromBody(req.body, 'ccEmbed');
+  const { hasBody, parseEmbed } = require('../../../bot/utils/messageBuilder');
+  if (!trigger || (!response && !hasBody(parseEmbed(embed)))) return res.redirect(saved(req.params.guildId, 'custom-commands', 'invalid'));
   // Up to 100 commands per server (the bot keeps them in memory); editing an existing one is always allowed.
   const exists = await CustomCommand.findOne({ where: { guildId: req.params.guildId, trigger } });
   if (!exists && (await CustomCommand.count({ where: { guildId: req.params.guildId } })) >= 100) return res.redirect(saved(req.params.guildId, 'custom-commands', 'toomany'));
-  await CustomCommand.upsert({ guildId: req.params.guildId, trigger, response, createdBy: req.user.id });
+  await CustomCommand.upsert({ guildId: req.params.guildId, trigger, response, embed, createdBy: req.user.id });
   res.redirect(saved(req.params.guildId, 'custom-commands'));
 });
 

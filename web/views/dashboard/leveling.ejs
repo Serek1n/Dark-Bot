@@ -100,6 +100,11 @@
               <span class="rule-text"><b>Своё поздравление — в рамке</b><span>Выключите, чтобы бот писал обычным сообщением (тогда <code>{user}</code> упомянет участника).</span></span>
               <input type="checkbox" name="levelUpEmbed" <%= settings.levelUpEmbed !== false ? 'checked' : '' %> />
             </label>
+          </div>
+          <div style="margin-top:14px">
+            <%- include('../partials/embed-editor', { prefix: 'levelUpEmbedData', data: settings.levelUpEmbedData, hint: 'Свой дизайн вместо стандартной рамки. Текст поздравления выше пойдёт над эмбедом; в полях работают те же {user}, {level}, {role}…' }) %>
+          </div>
+          <div class="rules">
             <label class="rule">
               <span class="rule-text"><b>Только на уровнях с ролью</b><span>Поздравлять, только когда участник получает роль за уровень.</span></span>
               <input type="checkbox" name="levelUpRewardOnly" <%= settings.levelUpRewardOnly ? 'checked' : '' %> />

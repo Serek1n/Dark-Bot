@@ -48,17 +48,20 @@ module.exports = {
     }
 
     const settings = await getOrCreateSettings(guild.id);
-    if (!settings?.tempVoiceJoinChannelId || !settings.tempVoiceEnabled) return;
+    const { triggerFor, hasTriggers } = require('../utils/voiceTriggers');
+    if (!settings?.tempVoiceEnabled || !hasTriggers(settings)) return;
 
-    // User joined the "join to create" channel -> spawn a new temp channel and move them into it
-    if (newState.channelId === settings.tempVoiceJoinChannelId) {
+    // User joined a "join to create" channel -> spawn a new temp channel and move them into it
+    const trigger = triggerFor(settings, newState.channelId);
+    if (trigger && newState.member) {
       try {
         const { render, buildContext } = require('../utils/replacers');
-        const name = render(settings.tempVoiceNameTemplate, buildContext({ member: newState.member }), { user: newState.member.displayName }).replace(/<[@#&!]+\d+>/g, '').trim().slice(0, 100) || 'Комната';
+        const name = render(trigger.name, buildContext({ member: newState.member }), { user: newState.member.displayName }).replace(/<[@#&!]+\d+>/g, '').trim().slice(0, 100) || 'Комната';
         const channel = await guild.channels.create({
           name,
           type: ChannelType.GuildVoice,
-          parent: settings.tempVoiceCategoryId || newState.channel.parentId,
+          parent: trigger.categoryId || newState.channel.parentId,
+          ...(trigger.limit ? { userLimit: trigger.limit } : {}),
           // The category's rules, plus the owner: he can always see and enter his room, even when he closes it.
           permissionOverwrites: [
             ...(newState.channel.parent?.permissionOverwrites?.cache ? [...newState.channel.parent.permissionOverwrites.cache.values()] : []),

@@ -24,6 +24,7 @@ module.exports = {
     require('../modules/reports').joinAlert(member).catch(() => {}); // someone with reports joined: a note for the moderators
     await restoreMember(member); // returning member: roles and nickname come back (works even when the welcome message is off)
     const settings = await getOrCreateSettings(member.guild.id);
+    if (settings?.automodEnabled && (settings.automodNicknames || settings.automodDehoist)) await require('../modules/automod').checkMemberName(member, settings);
     if (!settings || !settings.welcomeEnabled) return;
 
     if (settings.autoRoleId) {
@@ -34,7 +35,10 @@ module.exports = {
     if (settings.welcomeChannelId) {
       const channel = await member.guild.channels.fetch(settings.welcomeChannelId).catch(() => null);
       if (channel) {
-        const payload = { content: fillTemplate(settings.welcomeMessage, member), allowedMentions: { users: [member.id] } };
+        const { buildMessage } = require('../utils/messageBuilder');
+        const images = { avatar: member.user?.displayAvatarURL?.({ extension: 'png', size: 256 }), icon: member.guild.iconURL?.({ extension: 'png', size: 256 }) };
+        const built = buildMessage({ text: settings.welcomeMessage, embed: settings.welcomeEmbed, fill: (t) => fillTemplate(t, member), images, attachmentImage: settings.welcomeCard ? 'attachment://welcome.png' : null });
+        const payload = { ...built, allowedMentions: { users: [member.id] } };
         if (settings.welcomeCard) {
           try {
             const png = await renderWelcomeCard({
@@ -48,7 +52,7 @@ module.exports = {
             logger.warn('Welcome card failed:', err.message); // the text still goes out
           }
         }
-        channel.send(payload).catch(() => {});
+        if (payload.content || payload.embeds.length || payload.files) channel.send(payload).catch(() => {});
       }
     }
   }

@@ -65,17 +65,26 @@ async function announceLevelUp({ guild, user, displayName, level, oldLevel, chan
   const reward = rewards.find((r) => r.level === level);
   const roleName = reward ? guild.roles?.cache?.get?.(reward.roleId)?.name || '' : '';
   const custom = settings?.levelUpMessage && String(settings.levelUpMessage).trim();
+  const { parseEmbed, buildMessage, hasBody, usesTemplates } = require('./messageBuilder');
+  const own = parseEmbed(settings?.levelUpEmbedData);
+  const ownEmbed = own && hasBody(own) ? own : null; // the server designed its own frame
+  const uses = usesTemplates(custom, ownEmbed);
   let ctx = {};
-  if (custom && /\{\s*[a-z_]+\.|\{-/.test(custom)) { // full templates only when the text uses them
+  if (uses.full) { // full templates only when the text uses them
     const { buildContext } = require('./replacers');
-    const lvl = custom.includes('level.') ? await require('../modules/leveling').levelContext(guild.id, user.id).catch(() => null) : null;
+    const lvl = uses.level ? await require('../modules/leveling').levelContext(guild.id, user.id).catch(() => null) : null;
     ctx = buildContext({ member: member || { id: user.id, user, displayName }, guild, level: lvl });
   }
   const text = fillLevelUpText(custom || DEFAULT_TEXT, { userId: user.id, name: displayName || user.username, level, oldLevel, server: guild.name, crystals, roleName }, ctx);
   const framed = !custom || settings?.levelUpEmbed !== false;
 
+  const vars = { userId: user.id, name: displayName || user.username, level, oldLevel, server: guild.name, crystals, roleName };
   let payload;
-  if (framed) {
+  if (ownEmbed) {
+    const images = { avatar: user.displayAvatarURL?.({ extension: 'png', size: 256 }), icon: guild.iconURL?.({ extension: 'png', size: 256 }) };
+    const built = buildMessage({ text: custom || '', embed: ownEmbed, fill: (t) => fillLevelUpText(t, vars, ctx), images });
+    payload = { ...built, allowedMentions: { users: [user.id] } };
+  } else if (framed) {
     const embed = embeds
       .baseEmbed()
       .setTimestamp(null)

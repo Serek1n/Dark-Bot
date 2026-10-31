@@ -9,7 +9,53 @@ const { withLock } = require('../utils/lock');
 const { isEnabled } = require('../utils/features');
 const { getOrCreateSettings } = require('./leveling');
 
+const { credit } = require('./wallet');
+const { canSelfGive } = require('../utils/safeRole');
+const { formatTerm } = require('../utils/duration');
+
 const PREFIX = 'gw:';
+const fmt = (n) => Math.trunc(Number(n) || 0).toLocaleString('ru-RU').replace(/\s/g, ' ');
+const parseIds = (text) => { try { const v = JSON.parse(text || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+
+/** "1 000 монет", "роль @VIP на 7 д" — what the bot gives each winner, or null. Names come from the server's settings. */
+function rewardText(giveaway, settings = {}) {
+  if (giveaway.rewardType === 'coins') return `${fmt(giveaway.rewardAmount)} ${settings.currencyName || 'монет'}`;
+  if (giveaway.rewardType === 'crystals') return `${fmt(giveaway.rewardAmount)} ${settings.crystalName || 'кристаллов'}`;
+  if (giveaway.rewardType === 'role') return `роль <@&${giveaway.rewardRoleId}>${giveaway.rewardSeconds ? ` на ${formatTerm(giveaway.rewardSeconds * 1000)}` : ''}`;
+  return null;
+}
+
+/**
+ * Hands the prize to the winners who have not got it yet. Returns { given: [ids], failed: [ids] }. Never throws.
+ * A role is checked at this moment again (it may have got admin rights since the start) and is given for a while when set.
+ */
+async function grantRewards(guild, giveaway, winnerIds) {
+  const out = { given: [], failed: [] };
+  if (!giveaway.rewardType || !winnerIds.length) return out;
+  const done = new Set(parseIds(giveaway.rewarded));
+  const role = giveaway.rewardType === 'role' ? guild?.roles?.cache?.get(giveaway.rewardRoleId) : null;
+  for (const id of winnerIds) {
+    if (done.has(id)) continue;
+    try {
+      if (giveaway.rewardType === 'coins' || giveaway.rewardType === 'crystals') {
+        await credit(giveaway.guildId, id, giveaway.rewardType === 'coins' ? 'balance' : 'crystals', giveaway.rewardAmount);
+      } else if (giveaway.rewardType === 'role') {
+        if (!role || !canSelfGive(role, guild)) throw new Error('роль недоступна');
+        const member = await guild.members.fetch(id);
+        const reason = `Приз розыгрыша №${giveaway.id}`;
+        if (giveaway.rewardSeconds > 0) await require('./tempRoles').giveOrExtend(guild, member, role.id, giveaway.rewardSeconds * 1000, `giveaway:${giveaway.id}`, reason);
+        else await member.roles.add(role, reason);
+      } else continue;
+      done.add(id); out.given.push(id);
+    } catch (err) {
+      logger.warn(`Giveaway ${giveaway.id} prize for ${id}: ${err.message}`);
+      out.failed.push(id);
+    }
+  }
+  giveaway.rewarded = JSON.stringify([...done]);
+  await giveaway.save().catch(() => {});
+  return out;
+}
 const parseWinners = (g) => { try { const v = JSON.parse(g.winners || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
 const unix = (d) => Math.floor(new Date(d).getTime() / 1000);
 
@@ -24,7 +70,7 @@ function joinRow(giveaway, count = 0, disabled = false) {
   );
 }
 
-function giveawayEmbed(giveaway, { count = 0, winnerIds = null } = {}) {
+function giveawayEmbed(giveaway, { count = 0, winnerIds = null, settings = {} } = {}) {
   const ended = Boolean(giveaway.ended);
   const embed = embeds.baseEmbed(ended ? embeds.COLORS.neutral : embeds.COLORS.primary).setTitle(`🎉 ${giveaway.prize}`);
   const lines = [];
@@ -36,6 +82,8 @@ function giveawayEmbed(giveaway, { count = 0, winnerIds = null } = {}) {
     lines.push(`Закончится: <t:${unix(giveaway.endsAt)}:R> (<t:${unix(giveaway.endsAt)}:f>)`);
   }
   lines.push(`Победителей: **${giveaway.winnersCount}**`);
+  const reward = rewardText(giveaway, settings);
+  if (reward) lines.push(`Приз выдаётся сразу: **${reward}** каждому победителю`);
   if (giveaway.requiredRoleId) lines.push(`Нужна роль: <@&${giveaway.requiredRoleId}>`);
   lines.push(`Организатор: <@${giveaway.hostId}>`);
   if (!ended && count) lines.push(`Участников: **${count}**`);
@@ -50,17 +98,23 @@ function pickWinners(ids, n) {
   return out;
 }
 
-async function startGiveaway(interaction, { prize, durationMs, winners, roleId }) {
+async function startGiveaway(interaction, { prize, durationMs, winners, roleId, reward = null, channel = null }) {
+  const target = channel || interaction.channel;
   const giveaway = await Giveaway.create({
     guildId: interaction.guild.id,
-    channelId: interaction.channelId,
+    channelId: target.id || interaction.channelId,
     hostId: interaction.user.id,
     prize,
     winnersCount: winners,
     requiredRoleId: roleId || null,
-    endsAt: new Date(Date.now() + durationMs)
+    endsAt: new Date(Date.now() + durationMs),
+    rewardType: reward?.type || null,
+    rewardAmount: reward?.amount || null,
+    rewardRoleId: reward?.roleId || null,
+    rewardSeconds: reward?.seconds || null
   });
-  const message = await interaction.channel.send({ embeds: [giveawayEmbed(giveaway)], components: [joinRow(giveaway)], allowedMentions: { parse: [] } });
+  const settings = reward ? await getOrCreateSettings(interaction.guild.id).catch(() => ({})) : {};
+  const message = await target.send({ embeds: [giveawayEmbed(giveaway, { settings })], components: [joinRow(giveaway)], allowedMentions: { parse: [] } });
   giveaway.messageId = message.id;
   await giveaway.save();
   pokeScheduler('giveaways'); // wake the scheduler: this one may end sooner than anything it was waiting for
@@ -97,13 +151,17 @@ async function finishGiveaway(client, giveaway, { reroll = false } = {}) {
     counterEdits.delete(giveaway.id);
     await giveaway.save();
 
+    const settings = giveaway.rewardType ? await getOrCreateSettings(giveaway.guildId).catch(() => ({})) : {};
+    const paid = await grantRewards(guild, giveaway, winnerIds);
     const channel = await client.channels.fetch(giveaway.channelId).catch(() => null);
     if (channel) {
       const original = giveaway.messageId ? await channel.messages?.fetch?.(giveaway.messageId).catch(() => null) : null;
-      await original?.edit?.({ embeds: [giveawayEmbed(giveaway, { winnerIds })], components: [joinRow(giveaway, 0, true)] }).catch(() => {});
-      const text = winnerIds.length
+      await original?.edit?.({ embeds: [giveawayEmbed(giveaway, { winnerIds, settings })], components: [joinRow(giveaway, 0, true)] }).catch(() => {});
+      let text = winnerIds.length
         ? `🎉 Поздравляем, ${winnerIds.map((id) => `<@${id}>`).join(', ')}! Вы выиграли **${giveaway.prize}**.`
         : `Розыгрыш «${giveaway.prize}» закончился без победителя: подходящих участников нет.`;
+      if (paid.given.length) text += `\n🎁 Уже начислено: ${rewardText(giveaway, settings)}${paid.given.length < winnerIds.length ? ` (${paid.given.map((id) => `<@${id}>`).join(', ')})` : ''}.`;
+      if (paid.failed.length) text += `\n⚠️ Не удалось выдать приз: ${paid.failed.map((id) => `<@${id}>`).join(', ')} — администрация выдаст вручную.`;
       await channel.send({ content: text, allowedMentions: { users: winnerIds }, reply: original ? { messageReference: original.id, failIfNotExists: false } : undefined }).catch(() => {});
     }
     return winnerIds;
@@ -145,7 +203,8 @@ function scheduleCounterEdit(giveaway, message) {
     state.timer = null;
     state.lastAt = Date.now();
     const count = await GiveawayEntry.count({ where: { giveawayId: giveaway.id } }).catch(() => null);
-    if (count !== null) await message.edit({ embeds: [giveawayEmbed(giveaway, { count })], components: [joinRow(giveaway, count)] }).catch(() => {});
+    const settings = giveaway.rewardType ? await getOrCreateSettings(giveaway.guildId).catch(() => ({})) : {};
+    if (count !== null) await message.edit({ embeds: [giveawayEmbed(giveaway, { count, settings })], components: [joinRow(giveaway, count)] }).catch(() => {});
   };
   const wait = Math.max(0, state.lastAt + COUNTER_EDIT_MS - Date.now());
   if (!wait) return run();
@@ -171,4 +230,4 @@ function startGiveawayScheduler(client) {
   scheduler = createScheduler({ name: 'giveaways', nextDue: () => Giveaway.min('endsAt', { where: { ended: false } }), run: () => tick(client) }).start();
 }
 
-module.exports = { startGiveaway, finishGiveaway, giveawayEmbed, pickWinners, isGiveawayButton, handleGiveawayButton, startGiveawayScheduler, tick, parseWinners };
+module.exports = { startGiveaway, finishGiveaway, giveawayEmbed, grantRewards, rewardText, pickWinners, isGiveawayButton, handleGiveawayButton, startGiveawayScheduler, tick, parseWinners };

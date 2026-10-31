@@ -145,26 +145,106 @@ function isExempt(settings, message) {
   return Boolean(ignored.length && roles && ignored.some((id) => roles.has(id)));
 }
 
-/**
- * Runs automod on a message. Returns a reason string if the message breaks a rule, otherwise null.
- */
-async function evaluateMessage(settings, message) {
+// The rules in the order they are checked. Each can have its own punishment and its own exceptions (settings.automodRules).
+const FILTERS = [
+  { key: 'words', title: 'Запрещённые слова', reason: 'запрещённое слово', test: (s, c) => checkBannedWords(s, c) },
+  { key: 'profanity', title: 'Нецензурная лексика', reason: 'нецензурная лексика', test: (s, c) => Boolean(s.automodProfanity) && containsProfanity(c) },
+  { key: 'zalgo', title: 'Zalgo-текст', reason: 'Zalgo-текст (символы друг на друге)', test: (s, c) => Boolean(s.automodZalgo) && isZalgo(c) },
+  { key: 'invites', title: 'Приглашения', reason: 'ссылка-приглашение на другой сервер', test: (s, c) => checkInvite(s, c) },
+  { key: 'links', title: 'Ссылки', reason: 'ссылки здесь запрещены', test: (s, c) => checkLinks(s, c) },
+  { key: 'mentions', title: 'Упоминания', reason: 'слишком много упоминаний', test: (s, c) => checkMentions(s, c) },
+  { key: 'caps', title: 'Заглавные буквы', reason: 'слишком много заглавных букв', test: (s, c) => checkCaps(s, c) },
+  { key: 'emoji', title: 'Эмодзи', reason: 'слишком много эмодзи', test: (s, c) => checkEmoji(s, c) },
+  { key: 'duplicates', title: 'Одинаковые сообщения', reason: 'повторяющиеся сообщения', test: (s, c, m) => checkDuplicates(s, m.guildId, m.author.id, c) },
+  { key: 'spam', title: 'Спам', reason: 'спам (слишком много сообщений подряд)', test: (s, c, m) => checkSpam(s, m.guildId, m.author.id) }
+];
+const ACTIONS = ['delete', 'warn', 'mute'];
+
+// Per-rule settings: { words: { action: 'warn', mute: 30, ch: [...], roles: [...] }, ... } (parsed once per distinct text)
+const parsedRules = new Map();
+function rulesOf(settings) {
+  const key = settings.automodRules || '{}';
+  let v = parsedRules.get(key);
+  if (!v) {
+    try { v = JSON.parse(key); } catch { v = {}; }
+    if (!v || typeof v !== 'object' || Array.isArray(v)) v = {};
+    if (parsedRules.size > 500) parsedRules.clear();
+    parsedRules.set(key, v);
+  }
+  return v;
+}
+
+/** A rule's own exceptions: channels where it is off, roles it does not apply to. */
+function skipsRule(rule, message) {
+  if (!rule) return false;
+  if (Array.isArray(rule.ch) && rule.ch.includes(message.channelId)) return true;
+  const roles = message.member?.roles?.cache;
+  return Boolean(Array.isArray(rule.roles) && rule.roles.length && roles && rule.roles.some((id) => roles.has(id)));
+}
+
+/** Runs automod on a message: { key, reason } of the first rule it breaks, or null. */
+async function evaluate(settings, message) {
   if (!settings.automodEnabled) return null;
   if (isExempt(settings, message)) return null;
   const content = message.content || '';
-
-  if (checkBannedWords(settings, content)) return 'запрещённое слово';
-  if (settings.automodProfanity && containsProfanity(content)) return 'нецензурная лексика';
-  if (settings.automodZalgo && isZalgo(content)) return 'Zalgo-текст (символы друг на друге)';
-  if (checkInvite(settings, content)) return 'ссылка-приглашение на другой сервер';
-  if (checkLinks(settings, content)) return 'ссылки здесь запрещены';
-  if (checkMentions(settings, content)) return 'слишком много упоминаний';
-  if (checkCaps(settings, content)) return 'слишком много заглавных букв';
-  if (checkEmoji(settings, content)) return 'слишком много эмодзи';
-  if (checkDuplicates(settings, message.guildId, message.author.id, content)) return 'повторяющиеся сообщения';
-  if (checkSpam(settings, message.guildId, message.author.id)) return 'спам (слишком много сообщений подряд)';
-
+  const rules = rulesOf(settings);
+  for (const f of FILTERS) {
+    if (skipsRule(rules[f.key], message)) continue;
+    if (f.test(settings, content, message)) return { key: f.key, reason: f.reason };
+  }
   return null;
+}
+
+/** The same, only the reason text (or null). */
+async function evaluateMessage(settings, message) {
+  return (await evaluate(settings, message))?.reason || null;
+}
+
+/** What to do for this rule: its own punishment, or the common one. */
+function punishmentFor(settings, key) {
+  const rule = key ? rulesOf(settings)[key] : null;
+  const action = ACTIONS.includes(rule?.action) ? rule.action : ACTIONS.includes(settings.automodAction) ? settings.automodAction : 'delete';
+  const minutes = Number(rule?.mute) > 0 ? Number(rule.mute) : Number(settings.automodMuteMinutes) || 10;
+  return { action, minutes };
+}
+
+// ---------- names ----------
+const HOIST = /^[^\p{L}\p{N}]+/u; // "!!!Вася", ".Петя" — to sit on top of the member list
+
+/** The name a member should get instead of a bad one, or null when the name is fine. Pure: no Discord calls. */
+function nameVerdict(settings, member) {
+  if (!settings?.automodEnabled || (!settings.automodNicknames && !settings.automodDehoist)) return null;
+  if (!member || member.user?.bot) return null;
+  if (member.permissions?.has?.('ManageNicknames')) return null;
+  const ignored = json(settings.automodIgnoredRoles);
+  if (ignored.length && member.roles?.cache && ignored.some((id) => member.roles.cache.has(id))) return null;
+  const name = String(member.displayName || member.nickname || member.user?.globalName || member.user?.username || '');
+  if (!name) return null;
+  const replacement = String(settings.automodNickReplacement || 'Ник скрыт').slice(0, 32);
+  if (settings.automodNicknames) {
+    const bad = checkBannedWords(settings, name) || (settings.automodProfanity && containsProfanity(name)) || isZalgo(name) || INVITE_REGEX.test(name);
+    if (bad && name !== replacement) return { nick: replacement, reason: 'недопустимый ник', log: true };
+  }
+  if (settings.automodDehoist && HOIST.test(name)) {
+    const clean = name.replace(HOIST, '').trim().slice(0, 32);
+    return { nick: clean || replacement, reason: 'ник со знаками в начале (чтобы быть выше в списке)', log: false };
+  }
+  return null;
+}
+
+/** Checks a member's name and fixes it when needed. Never throws. */
+async function checkMemberName(member, settings) {
+  try {
+    const verdict = nameVerdict(settings, member);
+    if (!verdict || member.manageable === false) return null;
+    if (verdict.nick === member.nickname) return null;
+    await member.setNickname(verdict.nick, `Автомодерация: ${verdict.reason}`);
+    if (verdict.log) await recordAndAnnounce(member.guild, { userId: member.id, moderatorId: member.client?.user?.id || '0', action: 'automod', reason: `${verdict.reason}: «${String(member.displayName || '').slice(0, 64)}»` }).catch(() => {});
+    return verdict;
+  } catch (err) {
+    logger.warn(`Automod name check: ${err.message}`);
+    return null;
+  }
 }
 
 async function logModAction(guildId, userId, moderatorId, action, reason) {
@@ -175,13 +255,13 @@ async function logModAction(guildId, userId, moderatorId, action, reason) {
  * What happens after a rule was broken: the message is deleted, then (by the server's choice)
  * the author is only noted, warned (which can escalate by the warning thresholds) or muted.
  */
-async function handleViolation(settings, message, reason) {
+async function handleViolation(settings, message, reason, ruleKey = null) {
   const guild = message.guild;
   const author = message.author;
   const botId = message.client.user.id;
   await message.delete().catch(() => {});
 
-  const action = ['warn', 'mute'].includes(settings.automodAction) ? settings.automodAction : 'delete';
+  const { action, minutes } = punishmentFor(settings, ruleKey);
   const key = `${guild.id}:${author.id}`;
   const now = Date.now();
   const cooling = action !== 'delete' && now - (lastPunished.get(key) || 0) < ACTION_COOLDOWN;
@@ -194,7 +274,7 @@ async function handleViolation(settings, message, reason) {
   } else if (action === 'mute' && !cooling) {
     lastPunished.set(key, now);
     const member = message.member || (await guild.members.fetch(author.id).catch(() => null));
-    const ms = Math.min(Math.max(Number(settings.automodMuteMinutes) || 10, 1) * MINUTE, MAX_TIMEOUT);
+    const ms = Math.min(Math.max(minutes, 1) * MINUTE, MAX_TIMEOUT);
     try {
       if (!member) throw new Error('участника нет на сервере');
       await mod.muteMember(guild, member, ms, { moderatorId: botId, reason: `Автомодерация: ${reason}` });
@@ -215,4 +295,4 @@ async function handleViolation(settings, message, reason) {
   timer.unref?.();
 }
 
-module.exports = { evaluateMessage, handleViolation, logModAction };
+module.exports = { evaluate, evaluateMessage, handleViolation, logModAction, punishmentFor, nameVerdict, checkMemberName, FILTERS, ACTIONS };

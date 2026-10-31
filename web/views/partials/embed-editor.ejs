@@ -1,0 +1,38 @@
+<%# The embed part of a message: a switch, the fields and a live preview. Locals: prefix (field names), data (stored JSON or null),
+    hint (optional text under the switch). Every text field takes the same templates as the message. %>
+<% let E = null; try { E = typeof data === 'string' ? JSON.parse(data) : data; } catch (e) { E = null; } E = E && E.on ? E : { on: false }; %>
+<div class="embed-editor" data-embed-editor="<%= prefix %>">
+  <label class="checkbox-row">
+    <input type="checkbox" name="<%= prefix %>_on" <%= E.on ? 'checked' : '' %> data-embed-toggle />
+    <span>Оформить как эмбед (рамка с заголовком, цветом и картинкой)<% if (locals.hint) { %><small class="hint" style="display:block;margin-top:2px"><%= hint %></small><% } %></span>
+  </label>
+  <div class="embed-fields" <%= E.on ? '' : 'hidden' %>>
+    <div class="two-col">
+      <div><label>Заголовок</label><input type="text" name="<%= prefix %>_title" maxlength="256" value="<%= E.title || '' %>" data-ef="title" /></div>
+      <div class="embed-color"><label>Цвет полосы</label><input type="color" name="<%= prefix %>_color" value="<%= E.color || '#8b7cf6' %>" data-ef="color" /></div>
+    </div>
+    <div><label>Текст эмбеда</label><textarea name="<%= prefix %>_description" maxlength="4000" rows="3" data-ef="description"><%= E.description || '' %></textarea></div>
+    <div class="two-col">
+      <div><label>Картинка (ссылка https://…)</label><input type="text" name="<%= prefix %>_image" maxlength="500" value="<%= E.image || '' %>" placeholder="необязательно" data-ef="image" /></div>
+      <div><label>Маленькая картинка справа</label>
+        <select name="<%= prefix %>_thumbnail" data-ef="thumbnail">
+          <option value="" <%= !E.thumbnail ? 'selected' : '' %>>нет</option>
+          <option value="avatar" <%= E.thumbnail === 'avatar' ? 'selected' : '' %>>аватар участника</option>
+          <option value="icon" <%= E.thumbnail === 'icon' ? 'selected' : '' %>>иконка сервера</option>
+        </select>
+      </div>
+    </div>
+    <div class="two-col">
+      <div><label>Подпись внизу</label><input type="text" name="<%= prefix %>_footer" maxlength="2048" value="<%= E.footer || '' %>" data-ef="footer" /></div>
+      <label class="checkbox-row" style="align-self:end"><input type="checkbox" name="<%= prefix %>_timestamp" <%= E.timestamp ? 'checked' : '' %> data-ef="timestamp" /><span>Дата и время отправки</span></label>
+    </div>
+    <div class="embed-preview" aria-label="Как будет выглядеть эмбед">
+      <div class="ep-bar"></div>
+      <div class="ep-body">
+        <div class="ep-title"></div><div class="ep-desc"></div><div class="ep-image" hidden></div><div class="ep-footer"></div>
+      </div>
+      <div class="ep-thumb" hidden></div>
+    </div>
+    <p class="hint">Заменители работают во всех полях эмбеда. В предпросмотре они показаны как есть.</p>
+  </div>
+</div>

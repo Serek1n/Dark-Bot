@@ -27,9 +27,10 @@
         </div>
         <div>
           <label>Ответ бота</label>
-          <textarea name="response" id="ccResponse" placeholder="Правила сервера: ..." required></textarea>
+          <textarea name="response" id="ccResponse" placeholder="Правила сервера: ... (можно оставить пустым, если ответ — эмбед)"></textarea>
           <%- include('../partials/replacers-help', { target: 'ccResponse' }) %>
         </div>
+        <%- include('../partials/embed-editor', { prefix: 'ccEmbed', data: null, hint: 'Чтобы изменить команду, введите тот же триггер — ответ и эмбед заменятся.' }) %>
         <button class="btn" type="submit">Добавить / обновить</button>
       </form>
 
@@ -43,7 +44,7 @@
               <% commands.forEach(c => { %>
                 <tr>
                   <td><code><%= c.trigger %></code></td>
-                  <td><%= c.response.length > 80 ? c.response.slice(0, 80) + '…' : c.response %></td>
+                  <td><%= c.response.length > 80 ? c.response.slice(0, 80) + '…' : c.response %><% if (c.embed) { %> <span class="badge badge-mute">эмбед</span><% } %></td>
                   <td>
                     <form method="post" action="/dashboard/<%= guild.id %>/custom-commands/delete/<%= c.id %>">
                       <button class="btn btn-danger" type="submit">Удалить</button>

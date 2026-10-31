@@ -21,9 +21,10 @@
         </div>
         <div>
           <label>Текст приветствия — доступны {user}, {name}, {server} и {count} (сколько людей на сервере), поддерживается **жирный** текст и заменители (ниже)</label>
-          <textarea name="welcomeMessage" id="welcomeMessage" maxlength="1800"><%= settings.welcomeMessage %></textarea>
+          <textarea name="welcomeMessage" id="welcomeMessage" maxlength="1800" placeholder="Можно оставить пустым, если включён эмбед"><%= settings.welcomeMessage %></textarea>
           <%- include('../partials/replacers-help', { target: 'welcomeMessage' }) %>
         </div>
+        <%- include('../partials/embed-editor', { prefix: 'welcomeEmbed', data: settings.welcomeEmbed, hint: 'Текст выше пойдёт над эмбедом, его можно оставить пустым. Карточка с аватаркой станет картинкой эмбеда.' }) %>
         <div>
           <label>Как это увидят в Discord</label>
           <div class="preview">
@@ -59,6 +60,7 @@
           <textarea name="leaveMessage" id="leaveMessage" maxlength="1800"><%= settings.leaveMessage %></textarea>
           <%- include('../partials/replacers-help', { target: 'leaveMessage' }) %>
         </div>
+        <%- include('../partials/embed-editor', { prefix: 'leaveEmbed', data: settings.leaveEmbed, hint: 'Текст выше пойдёт над эмбедом, его можно оставить пустым.' }) %>
         <h2 style="margin-top:8px">Возвращение участника</h2>
         <div class="hint">Если человек вышел с сервера и зашёл снова, он получит обратно роли и никнейм. Его уровень, опыт, монеты, кристаллы, покупки и предупреждения никогда не удаляются при выходе — они продолжаются сами.</div>
         <label class="checkbox-row">
