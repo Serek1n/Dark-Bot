@@ -1,5 +1,6 @@
 // "Обновления": the changelog of the bot and the panel, its page, and the notes the bot posts into a chosen channel.
 process.env.DATABASE_PATH = './data/test_changelog.sqlite';
+process.env.BOT_CHANNEL = 'release'; // the checkout may be the beta branch (CI on beta): these tests are about the release behaviour
 const fs = require('fs'); const path = require('path'); const assert = require('assert');
 fs.mkdirSync('./data', { recursive: true });
 ['', '-shm', '-wal'].forEach((x) => fs.rmSync(process.env.DATABASE_PATH + x, { force: true }));
@@ -68,7 +69,7 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     const sent = []; const channel = { send: async (p) => sent.push(p) };
     const client = { guilds: { cache: new Map([[G, { channels: { cache: new Map([[CH, channel]]) } }]]) } };
     const n = await updates.announceUpdates(client);
-    delete process.env.BOT_CHANNEL; require('../bot/utils/channel').resetChannel();
+    process.env.BOT_CHANNEL = 'release'; require('../bot/utils/channel').resetChannel();
     assert(n === 0 && sent.length === 0);
   });
   await test('a channel that is gone does not break anything and is retried later', async () => {
