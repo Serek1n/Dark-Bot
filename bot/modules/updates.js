@@ -53,6 +53,9 @@ function releaseEmbed(r, { panelUrl } = {}) {
 async function announceUpdates(client) {
   const top = latest();
   if (!top) return 0;
+  // The beta build is a test run on the same servers: the notes go out when the version reaches the release (main).
+  // The "Отправить в канал" button in the panel still works on beta.
+  if (require('../utils/channel').channel() === 'beta') return 0;
   const { GuildSettings } = require('../../db');
   const rows = await GuildSettings.findAll({ where: { updatesChannelId: { [require('sequelize').Op.ne]: null } }, attributes: ['guildId', 'updatesChannelId', 'updatesLastPosted'] }).catch(() => []);
   let posted = 0;

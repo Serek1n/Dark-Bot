@@ -62,6 +62,15 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     assert.strictEqual(sent.length, 1);
   });
 
+  await test('the beta build does not post notes by itself (they go out when the version reaches main)', async () => {
+    await db.GuildSettings.update({ updatesLastPosted: null }, { where: { guildId: G } });
+    process.env.BOT_CHANNEL = 'beta'; require('../bot/utils/channel').resetChannel();
+    const sent = []; const channel = { send: async (p) => sent.push(p) };
+    const client = { guilds: { cache: new Map([[G, { channels: { cache: new Map([[CH, channel]]) } }]]) } };
+    const n = await updates.announceUpdates(client);
+    delete process.env.BOT_CHANNEL; require('../bot/utils/channel').resetChannel();
+    assert(n === 0 && sent.length === 0);
+  });
   await test('a channel that is gone does not break anything and is retried later', async () => {
     await db.GuildSettings.update({ updatesLastPosted: null }, { where: { guildId: G } });
     const client = { guilds: { cache: new Map([[G, { channels: { cache: new Map(), fetch: async () => null } }]]) } };

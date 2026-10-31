@@ -8,11 +8,26 @@ const { startReminderScheduler } = require('../modules/reminders');
 const { startPollScheduler } = require('../modules/polls');
 const { startRestoreCleanup } = require('../modules/memberRestore');
 
+// data/status.json: proof that this exact process started and logged in. scripts/update.sh waits for it after a restart
+// and rolls back to the previous version if it never appears.
+function writeStatus(client) {
+  try {
+    const fs = require('fs'); const path = require('path');
+    const v = require('../utils/version').versionInfo();
+    const dir = path.join(__dirname, '..', '..', 'data');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'status.json'), JSON.stringify({ pid: process.pid, readyAt: Date.now(), tag: client.user?.tag, guilds: client.guilds.cache.size, bot: v.bot, panel: v.panel, channel: v.channel, branch: v.branch, commit: v.commit }, null, 2));
+  } catch (err) {
+    logger.warn(`status.json not written: ${err.message}`);
+  }
+}
+
 module.exports = {
   name: Events.ClientReady,
   once: true,
   async execute(client) {
     logger.info(`Bot logged in as ${client.user.tag} (${client.guilds.cache.size} серверов)`);
+    writeStatus(client);
     seedFromGuilds(client);
     startGuildBackup(client);
     startModScheduler(client); // lifts temporary bans when their time is up

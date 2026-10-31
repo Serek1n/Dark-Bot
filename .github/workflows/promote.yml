@@ -1,0 +1,26 @@
+# Releases the beta: after the checks pass on the beta branch, main is moved to exactly the same commit.
+# Start it on GitHub: Actions → "Выпустить бету в релиз" → Run workflow. Then on the server: bash scripts/update.sh main
+name: Выпустить бету в релиз
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: beta, fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - name: main ← beta (only forward, never overwriting changes made directly in main)
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor origin/main HEAD; then
+            echo "::error::В main есть изменения, которых нет в beta. Сначала влейте main в beta (GitHub Desktop: ветка beta → Merge into current branch → main)."
+            exit 1
+          fi
+          git push origin HEAD:main
+          echo "main = beta ($(git log -1 --format='%h %s'))"
