@@ -75,7 +75,7 @@ function giveawayEmbed(giveaway, { count = 0, winnerIds = null, settings = {} } 
   const embed = embeds.baseEmbed(ended ? embeds.COLORS.neutral : embeds.COLORS.primary).setTitle(`🎉 ${giveaway.prize}`);
   const lines = [];
   if (ended) {
-    lines.push(winnerIds?.length ? `**Победител${winnerIds.length > 1 ? 'и' : 'ь'}:** ${winnerIds.map((id) => `<@${id}>`).join(', ')}` : '**Победителя нет:** никто не участвовал.');
+    lines.push(winnerIds?.length ? `${winnerIds.length > 1 ? '**Победители:**' : '**Победитель:**'} ${winnerIds.map((id) => `<@${id}>`).join(', ')}` : '**Победителя нет:** никто не участвовал.');
     lines.push(`Завершён <t:${unix(giveaway.endsAt)}:R>`);
   } else {
     lines.push('Нажмите на кнопку ниже, чтобы участвовать. Нажмите ещё раз, чтобы выйти.');

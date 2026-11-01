@@ -4,7 +4,7 @@ const embeds = require('../../utils/embeds');
 const { fileReport } = require('../../modules/reports');
 
 module.exports = {
-  data: new ContextMenuCommandBuilder().setName('Report message').setNameLocalizations({ ru: 'Пожаловаться' }).setType(ApplicationCommandType.Message),
+  data: new ContextMenuCommandBuilder().setName('Report message').setType(ApplicationCommandType.Message),
   async execute(interaction) {
     const message = interaction.targetMessage;
     const r = await fileReport(interaction.guild, { reporter: interaction.user, target: message.author, category: 'other', message });

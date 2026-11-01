@@ -8,6 +8,8 @@ const { snowflake, saved, getSettings } = require('../../utils/common');
 const { extraTriggers, MAX_EXTRA } = require('../../../bot/utils/voiceTriggers');
 
 const router = express.Router();
+// what the bot posts goes out in the server's language
+const i18nOut = (body, guildId) => require('../../../i18n').translatePayload(body, require('../../../i18n').langOf(guildId));
 
 // ---- Temp voice ----
 router.get('/:guildId/temp-voice', ensureGuildAccess, async (req, res) => {
@@ -66,7 +68,7 @@ router.post('/:guildId/temp-voice/panel', ensureGuildAccess, async (req, res) =>
   const settings = await getSettings(guildId);
   const payload = require('../../../bot/modules/voiceRoom').panelPayload();
   try {
-    const { data } = await botApi.post(`/channels/${channelId}/messages`, { embeds: payload.embeds.map((e) => e.toJSON()), components: payload.components.map((r) => r.toJSON()), allowed_mentions: { parse: [] } });
+    const { data } = await botApi.post(`/channels/${channelId}/messages`, i18nOut({ embeds: payload.embeds.map((e) => e.toJSON()), components: payload.components.map((r) => r.toJSON()), allowed_mentions: { parse: [] } }, guildId));
     if (settings.tempVoicePanelChannelId && settings.tempVoicePanelMessageId) { // the older panel is replaced, not left next to the new one
       await botApi.delete(`/channels/${settings.tempVoicePanelChannelId}/messages/${settings.tempVoicePanelMessageId}`).catch(() => {});
     }

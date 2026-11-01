@@ -13,6 +13,18 @@ router.get('/:guildId/features', ensureGuildAccess, async (req, res) => {
   res.render('dashboard/features', { guild, settings, features: FEATURES, active: 'features' });
 });
 
+router.post('/:guildId/language', ensureGuildAccess, async (req, res) => {
+  const settings = await getSettings(req.params.guildId);
+  const lang = ['ru', 'en', 'auto'].includes(req.body.language) ? req.body.language : 'auto';
+  if (lang !== settings.language) {
+    const effective = lang === 'auto' ? null : lang;
+    if (effective) require('../../../i18n/settings').switchDefaults(settings, effective);
+    settings.language = lang;
+    await settings.save();
+  }
+  res.redirect(saved(req.params.guildId, 'features'));
+});
+
 router.post('/:guildId/features', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   FEATURES.forEach((f) => { settings[f.field] = req.body[f.field] === 'on'; });

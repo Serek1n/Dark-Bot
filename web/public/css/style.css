@@ -1256,3 +1256,10 @@ html.qj-open { overflow: hidden; }
 .trig-list { display: flex; flex-direction: column; gap: 10px; }
 .trig-row { display: grid; grid-template-columns: 1.3fr 1.1fr 1.3fr 80px; gap: 10px; align-items: end; padding: 12px; border: 1px solid var(--hairline); border-radius: 12px; }
 @media (max-width: 760px) { .trig-row { grid-template-columns: 1fr 1fr; } }
+
+/* Language switch: next to the theme button on public pages, and in the side menu */
+.fab-row { position: fixed; top: 16px; right: 16px; z-index: 40; display: flex; gap: 8px; }
+.fab-row .theme-fab { position: static; }
+.lang-fab { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px; border: 1px solid var(--hairline); background: var(--panel); color: var(--fog); border-radius: 999px; font-size: 13.5px; text-decoration: none; }
+.lang-fab:hover { color: var(--paper); }
+a.rail-btn { text-decoration: none; }

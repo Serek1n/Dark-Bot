@@ -43,7 +43,7 @@
                 <button class="btn btn-danger" type="submit" form="shopdel-<%= it.id %>">Удалить</button>
               </div>
             </form>
-            <form id="shopdel-<%= it.id %>" method="post" action="/dashboard/<%= guild.id %>/shop/items/<%= it.id %>/delete" data-no-guard onsubmit="return confirm('Удалить товар «<%= it.name.replace(/['"\\]/g, '') %>»?')"></form>
+            <form id="shopdel-<%= it.id %>" method="post" action="/dashboard/<%= guild.id %>/shop/items/<%= it.id %>/delete" data-no-guard data-confirm="Удалить товар «<%= it.name %>»?" onsubmit="return confirm(this.dataset.confirm)"></form>
           </details>
         <% }) %>
       </div>

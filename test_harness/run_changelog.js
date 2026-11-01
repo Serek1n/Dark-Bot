@@ -29,7 +29,8 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     for (let i = 1; i < list.length; i++) assert(cmp(list[i - 1].bot, list[i].bot) >= 0 && cmp(list[i - 1].panel, list[i].panel) >= 0, 'ordered');
     for (const r of list) {
       assert(/^\d{4}-\d{2}-\d{2}$/.test(r.date), 'date ' + r.id);
-      for (const x of [...r.botChanges, ...r.panelChanges]) assert(typeof x === 'string' && x.length > 0 && x.length <= 90, 'short: ' + x);
+      for (const x of [...r.botChanges, ...r.panelChanges, ...(r.en?.botChanges || []), ...(r.en?.panelChanges || [])]) assert(typeof x === 'string' && x.length > 0 && x.length <= 90, 'short: ' + x);
+      if (r.en) assert(['botChanges', 'panelChanges'].every((k) => !r.en[k] || r.en[k].length === r[k].length), 'English lists match the Russian ones: ' + r.id);
     }
     assert.strictEqual(new Set(list.map((r) => r.id)).size, list.length, 'unique versions');
   });

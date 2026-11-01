@@ -9,6 +9,20 @@
         <h1>Функции</h1>
         <p class="page-intro">Включайте только то, что нужно серверу. Выключенная функция сразу перестаёт работать, а все её настройки и данные сохраняются: после включения всё вернётся как было.</p>
       </div>
+      <form method="post" action="/dashboard/<%= guild.id %>/language" class="card lang-card" data-no-guard>
+        <h2>Язык бота на сервере</h2>
+        <div class="two-col">
+          <div>
+            <select name="language" aria-label="Язык бота на сервере">
+              <option value="auto" <%= (settings.language || 'auto') === 'auto' ? 'selected' : '' %>>Как язык сервера в Discord</option>
+              <option value="ru" <%= settings.language === 'ru' ? 'selected' : '' %>>Русский</option>
+              <option value="en" <%= settings.language === 'en' ? 'selected' : '' %>>English</option>
+            </select>
+          </div>
+          <div><button class="btn" type="submit">Сохранить язык</button></div>
+        </div>
+        <p class="hint">На этом языке бот отвечает на команды, пишет сообщения, логи и рисует карточки. Описания команд в списке «/» Discord показывает на языке клиента каждого участника. Тексты по умолчанию (приветствие, название валюты…) переключатся сами, свои тексты останутся как есть. Язык самой панели — переключатель внизу меню.</p>
+      </form>
       <form method="post">
         <div class="switch-list">
           <% features.forEach(f => { %>
@@ -16,7 +30,7 @@
               <label for="f_<%= f.key %>">
                 <span class="feature-title"><%= f.title %></span>
                 <span class="feature-desc"><%= f.desc %></span>
-                <% if (f.commands.length) { %><span class="feature-cmds"><% const menuName = { 'Profile': 'меню «Профиль»', 'Report message': 'меню «Пожаловаться»', 'Report member': 'меню «Пожаловаться на участника»' }; f.commands.forEach(c => { %><code><%= menuName[c] || (c.includes(' ') ? c : '/' + c) %></code> <% }) %></span><% } %>
+                <% if (f.commands.length) { %><span class="feature-cmds"><% const menuName = { 'Profile': 'меню «Profile»', 'Report message': 'меню «Report message»', 'Report member': 'меню «Report member»' }; f.commands.forEach(c => { %><code><%= menuName[c] || (c.includes(' ') ? c : '/' + c) %></code> <% }) %></span><% } %>
               </label>
               <% if (f.page) { %><a class="feature-link" href="/dashboard/<%= guild.id %>/<%= f.page %>">Настроить</a><% } %>
               <input type="checkbox" id="f_<%= f.key %>" name="<%= f.field %>" <%= settings[f.field] ? 'checked' : '' %> />

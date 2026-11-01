@@ -40,6 +40,8 @@ app.locals.errorTexts = require('../bot/utils/discordErrors').ERROR_TEXT; // tex
 app.locals.termText = require('../bot/utils/duration').formatTerm; // "10 д" in the shop form
 app.locals.tplRef = require('../bot/utils/replacers').REFERENCE; // the names offered under template fields
 
+const panelI18n = require('./i18n');
+app.use(panelI18n.englishScripts); // /js/*.js?v=…-en: the same scripts with English texts
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '7d',
   setHeaders: (res, file) => { if (file.endsWith('.woff2')) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); } // fonts never change under the same name
@@ -65,6 +67,9 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => { res.locals.reqPath = req.originalUrl; next(); });
+app.use(panelI18n.panelLanguage); // English pages for English viewers
+app.get('/lang/:lang', panelI18n.switchLanguage);
 app.use(csrfGuard);
 app.use(panelAudit);
 

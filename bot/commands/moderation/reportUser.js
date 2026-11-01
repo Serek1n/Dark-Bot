@@ -18,7 +18,7 @@ module.exports = {
         .addStringOption((o) => o.setName('category').setDescription('Что случилось').setRequired(true).addChoices(...Object.entries(CATEGORIES).map(([value, name]) => ({ name, value }))))
         .addStringOption((o) => o.setName('reason').setDescription('Подробности').setMaxLength(500))
     },
-    { sub: 'menu', data: new ContextMenuCommandBuilder().setName('Report member').setNameLocalizations({ ru: 'Пожаловаться на участника' }).setType(ApplicationCommandType.User) }
+    { sub: 'menu', data: new ContextMenuCommandBuilder().setName('Report member').setType(ApplicationCommandType.User) }
   ],
   async execute(interaction) {
     if (interaction.options.getSubcommand() === 'menu') {

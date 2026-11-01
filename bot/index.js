@@ -48,6 +48,7 @@ async function main() {
   logger.info(`Loaded ${client.commands.size} commands.`);
 
   loadEvents(client);
+  require('../i18n/discord').install(client); // servers set to English get everything in English
   logger.info('Events registered.');
 
   await client.login(process.env.DISCORD_TOKEN);

@@ -8,6 +8,8 @@ const im = require('../../../bot/modules/interactive');
 const { errorKey } = require('../../../bot/utils/discordErrors');
 
 const router = express.Router();
+// what the bot posts goes out in the server's language
+const i18nOut = (body, guildId) => require('../../../i18n').translatePayload(body, require('../../../i18n').langOf(guildId));
 const CHANNEL_TYPES = [0, 5];
 const MAX_PER_GUILD = 20;
 const list = (v) => (Array.isArray(v) ? v : v === undefined ? [] : [v]);
@@ -51,7 +53,7 @@ router.post('/:guildId/interactive', ensureGuildAccess, async (req, res) => {
   const rec = await InteractiveMessage.create({ guildId, channelId, content, kind, mode, exclusive: b.exclusive === 'on', placeholder: String(b.placeholder || '').trim().slice(0, 150) || null, items: JSON.stringify(items), createdBy: req.user?.id || null });
   try {
     const p = im.payloadFor(rec);
-    const { data } = await botApi.post(`/channels/${channelId}/messages`, { embeds: p.embeds.map((e) => e.toJSON()), components: p.components.map((r) => r.toJSON()), allowed_mentions: { parse: [] } });
+    const { data } = await botApi.post(`/channels/${channelId}/messages`, i18nOut({ embeds: p.embeds.map((e) => e.toJSON()), components: p.components.map((r) => r.toJSON()), allowed_mentions: { parse: [] } }, guildId));
     rec.messageId = data.id;
     await rec.save();
     return back('saved');

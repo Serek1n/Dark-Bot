@@ -1,5 +1,53 @@
 [
   {
+    "bot": "3.0.1",
+    "panel": "3.0.1",
+    "date": "2026-11-01",
+    "botChanges": [
+      "Пункты меню «Profile», «Report message», «Report member» — по-английски у всех"
+    ],
+    "panelChanges": [
+      "Подсказки упоминают пункты меню их английскими названиями"
+    ],
+    "en": {
+      "botChanges": [
+        "The Profile, Report message and Report member menu items are English for everyone"
+      ],
+      "panelChanges": [
+        "Hints name the menu items by their English names"
+      ]
+    }
+  },
+  {
+    "bot": "3.0.0",
+    "panel": "3.0.0",
+    "date": "2026-11-01",
+    "botChanges": [
+      "Английский язык: язык бота выбирается для каждого сервера",
+      "Команды в Discord с английскими описаниями для английских клиентов",
+      "Новый сервер сам говорит на языке, выбранном в Discord",
+      "Карточки профиля, топа и приветствия рисуются на языке сервера"
+    ],
+    "panelChanges": [
+      "Панель на английском: переключатель внизу меню и на главной",
+      "Язык бота на сервере — на странице «Функции»",
+      "Тексты по умолчанию переключаются вместе с языком"
+    ],
+    "en": {
+      "botChanges": [
+        "English: the bot's language is chosen per server",
+        "Commands in Discord have English descriptions for English clients",
+        "A new server speaks the language set in its Discord settings",
+        "Profile, leaderboard and welcome cards are drawn in the server's language"
+      ],
+      "panelChanges": [
+        "The panel in English: a switch at the bottom of the menu and on the home page",
+        "The bot's language on a server is on the Features page",
+        "Default texts switch together with the language"
+      ]
+    }
+  },
+  {
     "bot": "2.8.0",
     "panel": "2.6.0",
     "date": "2026-11-01",
@@ -9,7 +57,16 @@
       "Розыгрыш можно опубликовать в другом канале: опция channel",
       "Перевыбор победителей не выдаёт приз дважды"
     ],
-    "panelChanges": []
+    "panelChanges": [],
+    "en": {
+      "botChanges": [
+        "/giveaway start: the bot gives the prize itself — coins, crystals or a role",
+        "A prize role can be given for a while: reward_time 7d, 1mo",
+        "A giveaway can be posted in another channel: the channel option",
+        "Rerolling never gives the prize twice"
+      ],
+      "panelChanges": []
+    }
   },
   {
     "bot": "2.7.0",

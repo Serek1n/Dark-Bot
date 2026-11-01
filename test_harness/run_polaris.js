@@ -128,9 +128,9 @@ const roleMember = (ids, positions = {}) => ({ roles: { cache: new Map(ids.map((
     assert((await db.MemberProfile.findOne({ where: { guildId: G, userId: target.id } })).level === 7, 'refused');
   });
 
-  await test('"Профиль" menu: the profile of the clicked member, answered privately', async () => {
+  await test('"Profile" menu: the profile of the clicked member, answered privately', async () => {
     const menu = require('../bot/commands/leveling/profileMenu');
-    assert.strictEqual(menu.data.toJSON().name_localizations.ru, 'Профиль');
+    assert(menu.data.toJSON().name === 'Profile' && !menu.data.toJSON().name_localizations, 'the name is English for everyone');
     let deferred = null; let shownUser = null;
     const profile = require('../bot/commands/leveling/profile');
     const real = profile.execute; profile.execute = async (i) => { deferred = i.privateAnswer; shownUser = i.options.getUser('user'); };

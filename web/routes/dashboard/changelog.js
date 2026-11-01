@@ -6,13 +6,15 @@ const updates = require('../../../bot/modules/updates');
 const { errorKey } = require('../../../bot/utils/discordErrors');
 
 const router = express.Router();
+// what the bot posts goes out in the server's language
+const i18nOut = (body, guildId) => require('../../../i18n').translatePayload(body, require('../../../i18n').langOf(guildId));
 const NOTE_CHANNEL_TYPES = [0, 5]; // text and announcement channels
 
 // ---- "Обновления": what changed in the bot and the panel, and where the bot posts it ----
 router.get('/:guildId/changelog', ensureGuildAccess, async (req, res) => {
   const [guild, settings, channels] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId)]);
   res.render('dashboard/changelog', {
-    guild, settings, releases: updates.releases(), latest: updates.latest(),
+    guild, settings, releases: updates.releases().map((r) => updates.inLang(r, req.lang)), latest: updates.inLang(updates.latest(), req.lang),
     channels: channels.filter((c) => NOTE_CHANNEL_TYPES.includes(c.type)), active: 'changelog'
   });
 });
@@ -38,9 +40,9 @@ router.post('/:guildId/changelog/send', ensureGuildAccess, async (req, res) => {
   const top = updates.latest();
   if (!settings.updatesChannelId || !top) return res.redirect(saved(guildId, 'changelog', 'invalid'));
   const base = (process.env.WEB_BASE_URL || '').replace(/\/+$/, '');
-  const embed = updates.releaseEmbed(top, { panelUrl: base ? `${base}/dashboard/${guildId}/changelog` : null });
+  const embed = updates.releaseEmbed(top, { lang: require('../../../i18n').langOf(guildId) || 'ru', panelUrl: base ? `${base}/dashboard/${guildId}/changelog` : null });
   try {
-    await botApi.post(`/channels/${settings.updatesChannelId}/messages`, { embeds: [embed.toJSON()], allowed_mentions: { parse: [] } });
+    await botApi.post(`/channels/${settings.updatesChannelId}/messages`, i18nOut({ embeds: [embed.toJSON()], allowed_mentions: { parse: [] } }, guildId));
     settings.updatesLastPosted = top.id;
     await settings.save();
     res.redirect(saved(guildId, 'changelog', 'notesent'));

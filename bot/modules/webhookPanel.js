@@ -125,7 +125,7 @@ async function afterChoice(i, kind, id, ctx) {
       input('text', 'Текст сообщения', { paragraph: true, required: true, max: 4000 }),
       input('title', 'Заголовок рамки (необязательно)', { max: 256 }),
       input('username', 'Другое имя на этот раз (необязательно)', { max: 80 }),
-      input('frame', 'В рамке? да или нет', { max: 3, value: 'да' })));
+      input('frame', 'В рамке? да или нет', { max: 3, value: require('../../i18n').currentLang() === 'en' ? 'yes' : 'да' })));
   }
   if (kind === 'edit') {
     return i.showModal(new ModalBuilder().setCustomId(`${PREFIX}m:edit:${id}`).setTitle('Изменить вебхук').addComponents(

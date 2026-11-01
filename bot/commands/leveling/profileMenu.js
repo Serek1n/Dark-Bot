@@ -3,7 +3,7 @@ const { ContextMenuCommandBuilder, ApplicationCommandType } = require('discord.j
 const profile = require('./profile');
 
 module.exports = {
-  data: new ContextMenuCommandBuilder().setName('Profile').setNameLocalizations({ ru: 'Профиль' }).setType(ApplicationCommandType.User),
+  data: new ContextMenuCommandBuilder().setName('Profile').setType(ApplicationCommandType.User),
   async execute(interaction) {
     const target = interaction.targetUser;
     interaction.options = { ...interaction.options, getSubcommand: () => 'view', getUser: () => target };

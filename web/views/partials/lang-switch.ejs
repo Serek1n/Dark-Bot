@@ -1,0 +1,6 @@
+<%# Language of the panel: a link to the other one; the choice is remembered in the browser (cookie). %>
+<% const other = locals.lang === 'en' ? 'ru' : 'en'; const here = locals.reqPath || '/'; %>
+<a class="<%= locals.cls || 'lang-fab' %>" href="/lang/<%= other %>?next=<%= encodeURIComponent(here) %>" hreflang="<%= other %>" lang="<%= other %>" title="<%= other === 'en' ? 'English' : 'Русский' %>">
+  <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M2.5 10h15M10 2.5c2.2 2.3 3.2 4.800 3.2 7.500S12.200 15.200 10 17.500M10 2.5C7.8 4.800 6.8 7.300 6.8 10s1 5.200 3.200 7.500"/></svg>
+  <span class="<%= locals.labelCls || '' %>"><%= other === 'en' ? 'English' : 'Русский' %></span>
+</a>

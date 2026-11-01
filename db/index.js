@@ -77,6 +77,7 @@ async function init() {
   await sequelize.query('PRAGMA mmap_size = 134217728;');
   await sequelize.sync(); // creates tables that don't exist yet (it never changes existing ones)
   await runMigrations(sequelize); // everything else: new columns, indexes, data fixes (db/migrations)
+  const lang = require('../i18n/settings'); lang.attach(models); await lang.load(models.GuildSettings).catch(() => {}); // the bot's language per server
   await sequelize.query('PRAGMA optimize;').catch(() => {});
 }
 

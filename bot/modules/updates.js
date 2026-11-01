@@ -25,6 +25,13 @@ function releases() {
 
 const latest = () => releases()[0] || null;
 
+/** A release with its lists in this language (an entry may carry "en": { botChanges, panelChanges }). */
+function inLang(r, lang) {
+  if (lang !== 'en' || !r?.en) return r;
+  const pick = (k) => (Array.isArray(r.en[k]) ? r.en[k] : r[k]);
+  return { ...r, botChanges: pick('botChanges'), panelChanges: pick('panelChanges') };
+}
+
 /** Releases newer than the one with `lastId` (all of them if it is unknown), at most `max`, newest first. */
 function newerThan(lastId, max = 3) {
   const list = releases();
@@ -32,17 +39,18 @@ function newerThan(lastId, max = 3) {
   return (i === -1 ? list : list.slice(0, i)).slice(0, max);
 }
 
-const dateRu = (d) => { const t = new Date(d); return Number.isNaN(t.getTime()) ? '' : t.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }); };
+const dateRu = (d, lang = 'ru') => { const t = new Date(d); return Number.isNaN(t.getTime()) ? '' : t.toLocaleDateString(lang === 'en' ? 'en-US' : 'ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }); };
 const bullets = (list) => list.map((x) => `• ${x}`).join('\n').slice(0, 1000);
 
 /** The message about one release. */
-function releaseEmbed(r, { panelUrl } = {}) {
+function releaseEmbed(r, { panelUrl, lang = 'ru' } = {}) {
+  r = inLang(r, lang);
   const e = new EmbedBuilder().setColor(0x9a93ff).setTitle(`🌙 Dark обновлён: бот v${r.bot} · панель v${r.panel}`);
   if (r.botChanges.length) e.addFields({ name: 'Бот', value: bullets(r.botChanges) });
   if (r.panelChanges.length) e.addFields({ name: 'Веб-панель', value: bullets(r.panelChanges) });
   if (!r.botChanges.length && !r.panelChanges.length) e.setDescription('Мелкие исправления.');
   if (panelUrl) e.setURL(panelUrl);
-  if (r.date) e.setFooter({ text: dateRu(r.date) });
+  if (r.date) e.setFooter({ text: dateRu(r.date, lang) });
   return e;
 }
 
@@ -64,7 +72,8 @@ async function announceUpdates(client) {
     const base = (process.env.WEB_BASE_URL || '').replace(/\/+$/, '');
     const list = newerThan(row.updatesLastPosted).reverse(); // oldest first, so the newest ends up at the bottom
     try {
-      await channel.send({ embeds: list.map((r) => releaseEmbed(r, { panelUrl: base ? `${base}/dashboard/${row.guildId}/changelog` : null })), allowedMentions: { parse: [] } });
+      const lang = require('../../i18n').langOf(row.guildId) || 'ru';
+      await channel.send({ embeds: list.map((r) => releaseEmbed(r, { lang, panelUrl: base ? `${base}/dashboard/${row.guildId}/changelog` : null })), allowedMentions: { parse: [] } });
       await GuildSettings.update({ updatesLastPosted: top.id }, { where: { guildId: row.guildId } });
       posted++;
     } catch (err) {
@@ -78,4 +87,4 @@ async function announceUpdates(client) {
 /** For tests. */
 function resetUpdates() { cached = null; }
 
-module.exports = { releases, latest, newerThan, releaseEmbed, announceUpdates, resetUpdates };
+module.exports = { releases, latest, newerThan, releaseEmbed, announceUpdates, resetUpdates, inLang };

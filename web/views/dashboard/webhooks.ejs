@@ -89,7 +89,7 @@
                   </form>
                 </details>
               </div>
-              <form method="post" action="/dashboard/<%= guild.id %>/webhooks/<%= h.id %>/delete" onsubmit="return confirm('Удалить вебхук «<%= h.name.replace(/'/g, '') %>»? Сервисы, которые используют его ссылку, перестанут работать.')">
+              <form method="post" action="/dashboard/<%= guild.id %>/webhooks/<%= h.id %>/delete" data-confirm="Удалить вебхук «<%= h.name %>»? Сервисы, которые используют его ссылку, перестанут работать." onsubmit="return confirm(this.dataset.confirm)">
                 <button class="btn btn-danger" type="submit">Удалить</button>
               </form>
             </div>

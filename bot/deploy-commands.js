@@ -5,7 +5,8 @@ const logger = require('./utils/logger');
 
 async function main() {
   // Commands are offered only on servers (contexts: 0 = guild), so they do not show up in the bot's DMs.
-  const commands = [...loadCommands().values()].map((c) => ({ ...c.data.toJSON(), ...(c.dmAllowed ? {} : { contexts: [0] }) }));
+  const { localizeCommand } = require('../i18n/discord');
+  const commands = [...loadCommands().values()].map((c) => localizeCommand({ ...c.data.toJSON(), ...(c.dmAllowed ? {} : { contexts: [0] }) }));
   const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
   // Commands are registered globally so every server where the bot is gets the same set.

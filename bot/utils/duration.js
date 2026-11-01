@@ -46,7 +46,8 @@ function formatDuration(ms) {
   let left = Math.max(0, Math.round(ms / 1000));
   if (!left) return '0 с';
   const parts = [];
-  for (const [size, label] of [[604800, 'нед'], [86400, 'д'], [3600, 'ч'], [60, 'мин'], [1, 'с']]) {
+  const en = require('../../i18n').currentLang() === 'en';
+  for (const [size, label] of en ? [[604800, 'w'], [86400, 'd'], [3600, 'h'], [60, 'min'], [1, 's']] : [[604800, 'нед'], [86400, 'д'], [3600, 'ч'], [60, 'мин'], [1, 'с']]) {
     const n = Math.floor(left / size);
     if (n) { parts.push(`${n} ${label}`); left -= n * size; }
   }
@@ -56,9 +57,10 @@ function formatDuration(ms) {
 /** A term as one unit, for forms and shop lists: "10 д", "36 ч", "90 мин" (parseDuration reads it back). */
 function formatTerm(ms) {
   const min = Math.max(1, Math.round(ms / MINUTE));
-  if (min % 1440 === 0) return `${min / 1440} д`;
-  if (min % 60 === 0) return `${min / 60} ч`;
-  return `${min} мин`;
+  const en = require('../../i18n').currentLang() === 'en';
+  if (min % 1440 === 0) return `${min / 1440} ${en ? 'd' : 'д'}`;
+  if (min % 60 === 0) return `${min / 60} ${en ? 'h' : 'ч'}`;
+  return `${min} ${en ? 'min' : 'мин'}`;
 }
 
 module.exports = { parseDuration, formatDuration, formatTerm, MINUTE, HOUR, DAY, WEEK, MAX_TIMEOUT: 28 * DAY };
