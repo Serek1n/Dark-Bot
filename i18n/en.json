@@ -1581,7 +1581,6 @@
  "Поздравлять каждый N-й уровень": "Congratulate every Nth level",
  "…до уровня (0 — всегда)": "…until level (0 means always)",
  "Например, 5 и 30: до 30-го уровня бот поздравляет только с 5-м, 10-м, 15-м…, а с 30-го — с каждым. Первые уровни набираются быстро, так меньше спама.": "For example, 5 and 30: until level 30 the bot congratulates only on levels 5, 10, 15…, and from level 30 on every one. The first levels come fast, so there's less spam.",
- "Участнику в голосовом канале писать в чат этого канала⟦0⟧⟦1⟧Если участник сидит в голосовом канале, поздравление придёт в чат этого канала, где бы он ни набрал уровень. Если писать туда нельзя, бот использует обычный канал ниже.": "For a member in a voice channel, write to that channel's chat⟦0⟧⟦1⟧If the member is in a voice channel, the congratulation goes to its chat, wherever they reached the level. If the bot can't write there, it uses the usual channel below.",
  "Канал для объявлений о новом уровне (пусто — в том же канале)": "Channel for level-up announcements (empty means the same channel)",
  "— не выбрано —": "— not chosen —",
  "Добавьте или уберите уровни, либо задайте точный. Участник окажется в начале нужного уровня, роли за уровни обновятся сразу. Кристаллы за такое изменение не выдаются.": "Add or remove levels, or set an exact one. The member ends up at the start of that level, and level roles are updated at once. No crystals are given for such a change.",
@@ -2061,5 +2060,6 @@
  "Бот не видит канал <#{0}>: дайте его роли право «{1}» в настройках канала.": "The bot can't see <#{0}>: give its role the {1} permission in the channel settings.",
  "У бота не хватает прав{0}: {1}. Выдайте их роли бота в настройках сервера (Роли) или в настройках канала.": "The bot lacks permissions{0}: {1}. Give them to the bot's role in the server settings (Roles) or in the channel settings.",
  "Права у бота есть, но Discord отказал: роль бота должна быть выше роли участника и тех ролей, которые он выдаёт или снимает. Поднимите роль бота в списке ролей сервера.": "The bot has the permissions, but Discord refused: the bot's role must be above the member's role and the roles it gives or removes. Move the bot's role up in the server's role list.",
- "Discord отказал боту{0}. Проверьте права роли бота: {1}.": "Discord refused the bot{0}. Check the bot role's permissions: {1}."
+ "Discord отказал боту{0}. Проверьте права роли бота: {1}.": "Discord refused the bot{0}. Check the bot role's permissions: {1}.",
+ "Участнику в голосовом канале писать в чат этого канала⟦0⟧⟦1⟧Если участник сидит в голосовом канале, поздравление придёт в чат этого канала, где бы он ни набрал уровень. Если писать туда нельзя, поздравление не отправляется — в другие каналы бот его не переносит.": "For a member in a voice channel, write to that channel's chat⟦0⟧⟦1⟧If the member is in a voice channel, the congratulation goes to its chat, wherever they reached the level. If the bot can't write there, the congratulation is not sent — the bot never moves it to another channel."
 }

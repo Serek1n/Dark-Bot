@@ -58,16 +58,22 @@ const { makeGuild, makeChannel, makeMember, makeUser, makeMessage } = require('.
     const w = await world({ levelUpChannelId: 'A1' }, { voiceId: 'AFK1' }); await say(w, inVoice(w.guild, w.voice));
     assert(w.announce._sent.length === 1 && !w.voice._sent.length, 'AFK chat is not used');
   });
-  await test('no right to write in the voice chat: the usual channel is used', async () => {
+  await test('no right to write in the voice chat: nothing is sent anywhere else', async () => {
     const w = await world({ levelUpChannelId: 'A1' }, { voicePerms: 'no' }); await say(w, inVoice(w.guild, w.voice));
-    assert(w.announce._sent.length === 1 && !w.voice._sent.length, 'no permission');
+    assert(!w.announce._sent.length && !w.voice._sent.length && !w.text._sent.length, 'nothing sent');
   });
-  await test('sending to the voice chat fails (chat closed): the usual channel still gets the message', async () => {
+  await test('sending to the voice chat fails (chat closed): nothing is sent anywhere else', async () => {
     const w = await world({ levelUpChannelId: 'A1' }, { voiceSend: async () => { throw new Error('Missing Access'); } });
     await say(w, inVoice(w.guild, w.voice));
-    assert(w.announce._sent.length === 1, 'fallback received it');
+    assert(!w.announce._sent.length && !w.text._sent.length, 'no second try');
     const w2 = await world({}, { voiceSend: async () => { throw new Error('Missing Access'); } }); await say(w2, inVoice(w2.guild, w2.voice));
-    assert(w2.text._sent.length === 1, 'no configured channel: the channel of the message');
+    assert(!w2.text._sent.length, 'not in the channel of the message either');
+  });
+  await test('the chosen level-up channel is gone or closed for the bot: nothing is sent (not into the chat of the message)', async () => {
+    const w = await world({ levelUpChannelId: '800000000000000999' }); await say(w, null);
+    assert(!w.text._sent.length && !w.announce._sent.length, 'deleted channel');
+    const w2 = await world({ levelUpChannelId: 'A1' }); w2.announce.permissionsFor = () => ({ has: () => false }); await say(w2, null);
+    assert(!w2.announce._sent.length && !w2.text._sent.length, 'no rights there');
   });
   await test('voice level-up (the once-a-minute payout) is announced in the voice channel\'s chat', async () => {
     const w = await world({ levelUpChannelId: 'A1', voiceXpPerMinute: 500, voiceMinMembers: 1 });

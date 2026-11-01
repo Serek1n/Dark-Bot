@@ -1,31 +1,38 @@
 const embeds = require('./embeds');
 
 /**
- * The voice channel whose chat should get the announcement: the one the member is sitting in right now.
- * Not the AFK channel, and only when the bot can see and write there. Null otherwise.
+ * The voice channel whose chat should get the announcement: the one the member is sitting in right now (not the AFK one).
+ * Null when the member is not in voice or the server switched this off. Whether the bot may write there is checked on sending.
  */
 function voiceChatOf(guild, member, settings) {
   if (settings && settings.levelUpInVoice === false) return null;
   const voice = member?.voice?.channel;
   if (!voice || voice.id === guild.afkChannelId || !voice.send) return null;
   if (voice.isTextBased && !voice.isTextBased()) return null;
-  const perms = voice.permissionsFor?.(guild.members?.me);
-  if (perms && !perms.has(['ViewChannel', 'SendMessages'])) return null;
   return voice;
 }
 
 /**
- * Where to announce a new level. A member who is in a voice channel gets it in that channel's chat
- * (if the server did not switch that off); otherwise the server's level-up channel, otherwise `fallback`.
- * Returns { channel, fallback }: `fallback` is tried when the first one cannot be written to.
+ * The one place for the announcement: the chat of the member's voice channel (if the server keeps that on); otherwise the
+ * server's level-up channel; when none is chosen — the channel where the level was reached (`here`), or the server's system
+ * channel for levels from voice. There is no second try: if the bot can't write to that place, nothing is sent.
+ * A chosen level-up channel that was deleted means nothing is sent either.
  */
-async function levelUpTarget({ guild, member, settings, fallback = null }) {
-  const configured = settings?.levelUpChannelId
-    ? guild.channels.cache?.get(settings.levelUpChannelId) || (await guild.channels.fetch(settings.levelUpChannelId).catch(() => null))
-    : null;
-  const usual = configured || fallback;
+async function levelUpTarget({ guild, member, settings, fallback: here = null }) {
   const voice = voiceChatOf(guild, member, settings);
-  return voice ? { channel: voice, fallback: usual } : { channel: usual, fallback: null };
+  if (voice) return { channel: voice, fallback: null };
+  if (settings?.levelUpChannelId) {
+    const configured = guild.channels.cache?.get(settings.levelUpChannelId) || (await guild.channels.fetch(settings.levelUpChannelId).catch(() => null));
+    return { channel: configured || null, fallback: null };
+  }
+  return { channel: here || guild.systemChannel || null, fallback: null };
+}
+
+/** Can the bot post this message there right now? */
+function canPost(channel, guild, withEmbed) {
+  const perms = channel?.permissionsFor?.(guild.members?.me);
+  if (!perms) return Boolean(channel?.send);
+  return perms.has(['ViewChannel', 'SendMessages', ...(withEmbed ? ['EmbedLinks'] : [])]);
 }
 
 const DESTINATIONS = ['auto', 'dm', 'off'];
@@ -102,15 +109,10 @@ async function announceLevelUp({ guild, user, displayName, level, oldLevel, chan
     await target.send?.(payload).catch(() => {}); // closed DMs: nothing to do
     return;
   }
-  const target = channel || fallback || guild.systemChannel;
-  if (!target?.send) return;
-  try {
-    await target.send(payload);
-  } catch {
-    // The voice chat may be closed for the bot: use the usual channel instead of losing the message.
-    const other = fallback && fallback !== target ? fallback : guild.systemChannel && guild.systemChannel !== target ? guild.systemChannel : null;
-    if (other?.send) await other.send(payload).catch(() => {});
-  }
+  // Only the place chosen for it: if the bot can't write there, the congratulation is skipped, never sent somewhere else.
+  const target = channel;
+  if (!target?.send || !canPost(target, guild, Boolean(payload.embeds?.length))) return;
+  await target.send(payload).catch(() => {});
 }
 
-module.exports = { announceLevelUp, levelUpTarget, voiceChatOf, shouldAnnounce, fillLevelUpText, DESTINATIONS, DEFAULT_TEXT };
+module.exports = { announceLevelUp, levelUpTarget, voiceChatOf, canPost, shouldAnnounce, fillLevelUpText, DESTINATIONS, DEFAULT_TEXT };

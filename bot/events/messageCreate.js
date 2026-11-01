@@ -46,7 +46,7 @@ module.exports = {
           oldLevel: result.previousLevel,
           settings,
           member: message.member,
-          channel: channel || message.channel,
+          channel, // the one chosen place; none means nothing is sent
           fallback,
           crystals: result.crystals,
           crystalName: settings.crystalName

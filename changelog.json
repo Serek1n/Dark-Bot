@@ -1,5 +1,26 @@
 [
   {
+    "bot": "3.0.3",
+    "panel": "3.0.2",
+    "date": "2026-11-02",
+    "botChanges": [
+      "Поздравление с уровнем идёт только в свой чат: нет прав — не отправляется",
+      "Больше никаких запасных каналов: ни обычный чат, ни системный"
+    ],
+    "panelChanges": [
+      "Подсказка в «Уровнях» объясняет новое поведение"
+    ],
+    "en": {
+      "botChanges": [
+        "A level-up message goes only to its own chat: no rights there, no message",
+        "No more backup channels: neither the usual chat nor the system one"
+      ],
+      "panelChanges": [
+        "The hint on the Levels page explains the new behaviour"
+      ]
+    }
+  },
+  {
     "bot": "3.0.2",
     "panel": "3.0.1",
     "date": "2026-11-01",
