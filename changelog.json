@@ -1,5 +1,24 @@
 [
   {
+    "bot": "3.0.2",
+    "panel": "3.0.1",
+    "date": "2026-11-01",
+    "botChanges": [
+      "Нет прав — бот пишет, каких именно и в каком канале",
+      "/giveaway start проверяет права в канале до начала розыгрыша",
+      "Английские ответы с ❌ и ✅ теперь переводятся полностью"
+    ],
+    "panelChanges": [],
+    "en": {
+      "botChanges": [
+        "Missing permissions: the bot names exactly which ones and in which channel",
+        "/giveaway start checks the channel's permissions before starting",
+        "English replies starting with ❌ and ✅ are now fully translated"
+      ],
+      "panelChanges": []
+    }
+  },
+  {
     "bot": "3.0.1",
     "panel": "3.0.1",
     "date": "2026-11-01",

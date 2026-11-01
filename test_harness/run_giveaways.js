@@ -62,7 +62,7 @@ const G = '777000000000000001';
 
   await test('/giveaway start in another channel: refused where the bot cannot post', async () => {
     const r = await start({ prize: 'Пицца', channel: { id: 'CLOSED' } });
-    assert(/нет прав писать/.test(r.text) && !channelSends.length, r.text);
+    assert(/не хватает прав в <#CLOSED>: Просматривать каналы, Отправлять сообщения/.test(r.text) && !channelSends.length, r.text);
   });
 
   await test('the end: every winner gets the coins at once, the post says so; ending again pays nothing', async () => {

@@ -364,7 +364,7 @@ async function handleVoiceRoomComponent(interaction) {
     });
   } catch (err) {
     if (!(err instanceof RoomError)) logger.error('Voice room action failed:', err);
-    const text = err instanceof RoomError ? err.message : 'Не получилось выполнить действие. Проверьте, что у бота есть права «Управлять каналами», «Управлять ролями» и «Перемещать участников».';
+    const text = err instanceof RoomError ? err.message : require('../utils/missingPermissions').explainMissing(err, interaction.guild, interaction.channel) || 'Не получилось выполнить действие. Проверьте, что у бота есть права «Управлять каналами», «Управлять ролями» и «Перемещать участников».';
     if (interaction.deferred) return answer(text, false).catch(() => {});
     if (interaction.replied) return interaction.followUp({ embeds: [embeds.error(text)], ...ephemeral }).catch(() => {});
     return answer(text, false).catch(() => {});

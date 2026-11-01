@@ -11,6 +11,11 @@ const { isWebhookComponent, handleWebhookComponent } = require('../modules/webho
 const { featureForCommand, isEnabled, disabledText } = require('../utils/features');
 const { getOrCreateSettings } = require('../modules/leveling');
 
+// Discord refused for lack of rights: name the missing ones; anything else: the usual short text.
+function failureText(interaction, err, fallback) {
+  return require('../utils/missingPermissions').explainMissing(err, interaction.guild, interaction.channel) || fallback;
+}
+
 module.exports = {
   name: 'interactionCreate',
   async execute(interaction) {
@@ -32,7 +37,7 @@ module.exports = {
         await command.execute(interaction);
       } catch (err) {
         logger.error(`Command "${interaction.commandName}" failed:`, err);
-        const payload = { embeds: [embeds.error('Произошла ошибка при выполнении команды.')], flags: MessageFlags.Ephemeral };
+        const payload = { embeds: [embeds.error(failureText(interaction, err, 'Произошла ошибка при выполнении команды.'))], flags: MessageFlags.Ephemeral };
         if (interaction.replied || interaction.deferred) {
           await interaction.followUp(payload).catch(() => {});
         } else {
@@ -57,7 +62,7 @@ module.exports = {
         await handle(interaction);
       } catch (err) {
         logger.error(`${label} button failed:`, err);
-        const payload = { embeds: [embeds.error('Не получилось выполнить действие.')], flags: MessageFlags.Ephemeral };
+        const payload = { embeds: [embeds.error(failureText(interaction, err, 'Не получилось выполнить действие.'))], flags: MessageFlags.Ephemeral };
         if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
         else await interaction.reply(payload).catch(() => {});
       }
@@ -93,7 +98,7 @@ module.exports = {
         await handleShopComponent(interaction);
       } catch (err) {
         logger.error('Shop interaction failed:', err);
-        const payload = { embeds: [embeds.error('Не получилось выполнить действие.')], flags: MessageFlags.Ephemeral };
+        const payload = { embeds: [embeds.error(failureText(interaction, err, 'Не получилось выполнить действие.'))], flags: MessageFlags.Ephemeral };
         if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
         else await interaction.reply(payload).catch(() => {});
       }
@@ -105,7 +110,7 @@ module.exports = {
         await handleMusicButton(interaction);
       } catch (err) {
         logger.error('Music button failed:', err);
-        const payload = { embeds: [embeds.error('Не получилось выполнить действие.')], flags: MessageFlags.Ephemeral };
+        const payload = { embeds: [embeds.error(failureText(interaction, err, 'Не получилось выполнить действие.'))], flags: MessageFlags.Ephemeral };
         if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
         else await interaction.reply(payload).catch(() => {});
       }

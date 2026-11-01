@@ -88,12 +88,13 @@ module.exports = {
       const picked = interaction.options.getChannel('channel');
       const channel = picked ? interaction.guild.channels.cache.get(picked.id) || picked : interaction.channel;
       if (picked) {
-        const me = interaction.guild.members.me;
-        const botCan = channel.permissionsFor?.(me)?.has?.([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]);
         const userCan = channel.permissionsFor?.(interaction.member)?.has?.([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]);
         if (!userCan) return deny('Вы не можете писать в этом канале.');
-        if (!botCan) return deny(`У бота нет прав писать в <#${channel.id}> (нужны «Просматривать канал», «Отправлять сообщения» и «Встраивать ссылки»).`);
       }
+      // The bot posts the giveaway, edits it with the counter and the result, and answers under it: say what it lacks before starting.
+      const { missingIn } = require('../../utils/missingPermissions');
+      const lacks = missingIn(channel, interaction.guild.members.me, ['ViewChannel', 'SendMessages', 'EmbedLinks', 'ReadMessageHistory']);
+      if (lacks.length) return deny(`У бота не хватает прав в <#${channel.id}>: ${require('../../utils/permissionNames').list(lacks)}. Выдайте их роли бота в настройках канала или сервера.`);
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const giveaway = await startGiveaway(interaction, {
         prize: prize.slice(0, 200),

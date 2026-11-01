@@ -60,6 +60,9 @@ function translateNow(text, loose, depth) {
   const trimmed = text.trim();
   if (trimmed !== text) { const t = exact.get(trimmed); if (t !== undefined) return text.replace(trimmed, t); }
   const spaced = exact.get(' ' + text); if (spaced !== undefined) return spaced.replace(/^ /, ''); // " (только боты)" glued to a neighbour
+  // a mark in front ("❌ ", "✅ ", "🔒 ") added by the embed helpers: translate what follows it
+  const mark = text.match(/^([^\p{L}\p{N}<>*#_`(\[«"'|-]+\s)(?=[А-Яа-яЁё])/u); // not "> " (a quote of someone's words)
+  if (mark && depth < 4) { const rest = toEnglish(text.slice(mark[1].length), loose, depth + 1); if (rest !== text.slice(mark[1].length)) return mark[1] + rest; }
   if (depth < 4) {
     for (const p of patterns) {
       if (p.longest && !text.includes(p.longest)) continue;

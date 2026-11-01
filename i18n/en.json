@@ -2055,5 +2055,11 @@
  "меню «Profile»": "Profile menu",
  "меню «Report message»": "Report message menu",
  "меню «Report member»": "Report member menu",
- "Жалобу отправляют командой ⟦0⟧/report⟦1⟧, через «Приложения» → «Report message» на сообщении или «Приложения» → «Report member» на участнике. Под жалобой — кнопки для модераторов: предупредить, мут, кик, бан, отклонить.": "A report is sent with ⟦0⟧/report⟦1⟧, through Apps → Report message on a message, or Apps → Report member on a member. Under a report there are buttons for moderators: warn, mute, kick, ban, dismiss."
+ "Жалобу отправляют командой ⟦0⟧/report⟦1⟧, через «Приложения» → «Report message» на сообщении или «Приложения» → «Report member» на участнике. Под жалобой — кнопки для модераторов: предупредить, мут, кик, бан, отклонить.": "A report is sent with ⟦0⟧/report⟦1⟧, through Apps → Report message on a message, or Apps → Report member on a member. Under a report there are buttons for moderators: warn, mute, kick, ban, dismiss.",
+ "У бота не хватает прав в <#{0}>: {1}. Выдайте их роли бота в настройках канала или сервера.": "The bot lacks permissions in <#{0}>: {1}. Give them to the bot's role in the channel or server settings.",
+ " на сервере": " on the server",
+ "Бот не видит канал <#{0}>: дайте его роли право «{1}» в настройках канала.": "The bot can't see <#{0}>: give its role the {1} permission in the channel settings.",
+ "У бота не хватает прав{0}: {1}. Выдайте их роли бота в настройках сервера (Роли) или в настройках канала.": "The bot lacks permissions{0}: {1}. Give them to the bot's role in the server settings (Roles) or in the channel settings.",
+ "Права у бота есть, но Discord отказал: роль бота должна быть выше роли участника и тех ролей, которые он выдаёт или снимает. Поднимите роль бота в списке ролей сервера.": "The bot has the permissions, but Discord refused: the bot's role must be above the member's role and the roles it gives or removes. Move the bot's role up in the server's role list.",
+ "Discord отказал боту{0}. Проверьте права роли бота: {1}.": "Discord refused the bot{0}. Check the bot role's permissions: {1}."
 }
