@@ -1,5 +1,26 @@
 [
   {
+    "bot": "3.3.0",
+    "panel": "3.2.1",
+    "date": "2026-11-04",
+    "botChanges": [
+      "/top быстрее: следующая страница готовится заранее и листается мгновенно",
+      "Неизменившиеся страницы не рисуются заново, ники берутся без запросов"
+    ],
+    "panelChanges": [
+      "Публичный рейтинг собирается раз в минуту, остальные открывают его сразу"
+    ],
+    "en": {
+      "botChanges": [
+        "/top is faster: the next page is prepared ahead and flips instantly",
+        "Unchanged pages are not drawn again, names come without requests"
+      ],
+      "panelChanges": [
+        "The public leaderboard is built once a minute, everyone else opens it at once"
+      ]
+    }
+  },
+  {
     "bot": "3.2.0",
     "panel": "3.2.0",
     "date": "2026-11-04",
