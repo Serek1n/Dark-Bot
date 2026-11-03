@@ -1,5 +1,26 @@
 [
   {
+    "bot": "3.1.0",
+    "panel": "3.1.0",
+    "date": "2026-11-04",
+    "botChanges": [
+      "Магазин: товар можно сделать одноразовым — купить его можно один раз",
+      "Повторная покупка такого товара отклоняется сразу, даже для продления"
+    ],
+    "panelChanges": [
+      "У товара отметка «Только одна покупка на участника»"
+    ],
+    "en": {
+      "botChanges": [
+        "Shop: an item can be made one-time — each member can buy it once",
+        "Buying such an item again is refused at once, even to extend it"
+      ],
+      "panelChanges": [
+        "Items have an “Only one purchase per member” mark"
+      ]
+    }
+  },
+  {
     "bot": "3.0.4",
     "panel": "3.0.3",
     "date": "2026-11-04",

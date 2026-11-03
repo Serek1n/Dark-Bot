@@ -37,6 +37,7 @@ const STOCK_FIELDS = (body, current = {}) => {
     stock: stockRaw === '' ? null : clampInt(stockRaw, 0, 1000000, 0),
     minLevel: clampInt(body.minLevel, 0, 1000, 0),
     deliveryMessage: String(body.deliveryMessage || '').trim().slice(0, 500) || null,
+    oncePerUser: body.oncePerUser === 'on',
     enabled: body.enabled === 'on' || body.enabled === '1'
   };
 };

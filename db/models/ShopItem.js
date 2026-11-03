@@ -16,6 +16,7 @@ module.exports = (sequelize) => {
       minLevel: { type: DataTypes.INTEGER, defaultValue: 0 },
       durationSeconds: { type: DataTypes.INTEGER, allowNull: true }, // type "role": the role is taken away after this time; null = forever
       deliveryMessage: { type: DataTypes.TEXT, defaultValue: '' }, // shown to the buyer (e.g. a code or instructions)
+      oncePerUser: { type: DataTypes.BOOLEAN, defaultValue: false }, // each member may buy it only once (a trial)
       enabled: { type: DataTypes.BOOLEAN, defaultValue: true }
     },
     { sequelize, modelName: 'ShopItem', tableName: 'shop_items', indexes: [{ fields: ['guildId'] }] }

@@ -34,7 +34,7 @@
             <summary>
               <strong><%= it.name %></strong>
               — <%= n(it.price) %> <%= cn(it.currency) %>
-              <span class="muted"> · <%= it.type === 'role' ? 'роль' + (it.durationSeconds ? ' на ' + termText(it.durationSeconds * 1000) : '') : 'предмет' %><%= it.stock !== null ? ' · осталось ' + it.stock : '' %><%= it.enabled ? '' : ' · скрыт' %></span>
+              <span class="muted"> · <%= it.type === 'role' ? 'роль' + (it.durationSeconds ? ' на ' + termText(it.durationSeconds * 1000) : '') : 'предмет' %><%= it.stock !== null ? ' · осталось ' + it.stock : '' %><%= it.oncePerUser ? ' · один раз' : '' %><%= it.enabled ? '' : ' · скрыт' %></span>
             </summary>
             <form method="post" action="/dashboard/<%= guild.id %>/shop/items/<%= it.id %>" data-no-guard>
               <%- include('../partials/shop-fields', { it, roles, settings }) %>
@@ -51,7 +51,7 @@
       <% if (items.length < maxItems) { %>
       <form method="post" action="/dashboard/<%= guild.id %>/shop/items" class="card" data-no-guard>
         <h2>Новый товар</h2>
-        <%- include('../partials/shop-fields', { it: { name: '', description: '', price: 100, currency: 'coins', type: 'item', roleId: null, durationSeconds: null, stock: null, minLevel: 0, deliveryMessage: '', enabled: true }, roles, settings }) %>
+        <%- include('../partials/shop-fields', { it: { name: '', description: '', price: 100, currency: 'coins', type: 'item', roleId: null, durationSeconds: null, oncePerUser: false, stock: null, minLevel: 0, deliveryMessage: '', enabled: true }, roles, settings }) %>
         <button class="btn" type="submit">Добавить</button>
       </form>
       <% } %>

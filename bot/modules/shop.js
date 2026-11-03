@@ -32,6 +32,7 @@ function itemLine(item, settings) {
   if (item.description) extra.push(cut(item.description, 90));
   if (item.type === 'role' && item.durationSeconds) extra.push(`на ${formatTerm(item.durationSeconds * 1000)}`);
   if (item.minLevel > 0) extra.push(`с ${item.minLevel} уровня`);
+  if (item.oncePerUser) extra.push('можно купить один раз');
   if (item.stock !== null && item.stock !== undefined) extra.push(item.stock > 0 ? `осталось ${item.stock}` : 'закончился');
   return extra.length ? `${bits[0]}\n> ${extra.join(' · ')}` : bits[0];
 }
@@ -82,6 +83,8 @@ function purchaseItem({ guild, member, itemId }) {
 
     const profile = await getOrCreateProfile(guild.id, member.id);
     if (item.minLevel > 0 && profile.level < item.minLevel) return { ok: false, error: `Товар доступен с ${item.minLevel} уровня, у вас ${profile.level}.` };
+    // checked under the same lock as the purchase: two quick clicks can't both pass
+    if (item.oncePerUser && (await boughtBefore(guild.id, member.id, item.id))) return { ok: false, error: 'Этот товар можно купить только один раз, и вы его уже покупали.' };
 
     const field = currencyField(item.currency);
     const cName = currencyName(settings, item.currency);
@@ -141,6 +144,11 @@ function purchaseItem({ guild, member, itemId }) {
     });
     return { ok: true, item, purchase, settings, balanceAfter, currencyName: cName, extended: Boolean(term?.extended) };
   });
+}
+
+/** Has this member already bought this item (a refunded purchase does not count)? */
+function boughtBefore(guildId, userId, itemId) {
+  return Purchase.count({ where: { guildId, userId, itemId, status: { [Op.ne]: 'refunded' } } }).then((n) => n > 0);
 }
 
 /** Posts the purchase to the server's shop log channel (if one is set). Never throws. */
@@ -204,11 +212,14 @@ async function handleShopComponent(interaction) {
     const itemId = Number(interaction.values?.[0]);
     const item = await ShopItem.findOne({ where: { id: itemId, guildId: interaction.guild.id } });
     if (!item || !item.enabled) return interaction.reply({ embeds: [embeds.error('Этот товар больше недоступен.')], flags: ephemeral });
+    if (item.oncePerUser && (await boughtBefore(interaction.guild.id, interaction.user.id, item.id))) {
+      return interaction.reply({ embeds: [embeds.info('Этот товар можно купить только один раз, и вы его уже покупали.')], flags: ephemeral });
+    }
     const settings = await getOrCreateSettings(interaction.guild.id);
     const embed = embeds
       .baseEmbed()
       .setTitle('Подтвердите покупку')
-      .setDescription(`**${item.name}**${item.description ? `\n${cut(item.description, 300)}` : ''}${item.type === 'role' && item.durationSeconds ? `\nСрок: **${formatTerm(item.durationSeconds * 1000)}** — потом роль снимется (повторная покупка продлевает)` : ''}\n\nЦена: **${fmt(item.price)} ${currencyName(settings, item.currency)}**`);
+      .setDescription(`**${item.name}**${item.description ? `\n${cut(item.description, 300)}` : ''}${item.type === 'role' && item.durationSeconds ? (item.oncePerUser ? `\nСрок: **${formatTerm(item.durationSeconds * 1000)}** — потом роль снимется` : `\nСрок: **${formatTerm(item.durationSeconds * 1000)}** — потом роль снимется (повторная покупка продлевает)`) : ''}${item.oncePerUser ? '\nКупить можно только один раз.' : ''}\n\nЦена: **${fmt(item.price)} ${currencyName(settings, item.currency)}**`);
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`${PREFIX}:buy:${item.id}:${interaction.user.id}`).setLabel('Купить').setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId(`${PREFIX}:cancel:${interaction.user.id}`).setLabel('Отмена').setStyle(ButtonStyle.Secondary)
@@ -236,4 +247,4 @@ async function handleShopComponent(interaction) {
   }
 }
 
-module.exports = { buildShopPanel, purchaseItem, logPurchase, purchaseReceipt, isShopComponent, handleShopComponent, listItems, MAX_ITEMS, STATUS_RU, CURRENCIES };
+module.exports = { boughtBefore, buildShopPanel, purchaseItem, logPurchase, purchaseReceipt, isShopComponent, handleShopComponent, listItems, MAX_ITEMS, STATUS_RU, CURRENCIES };

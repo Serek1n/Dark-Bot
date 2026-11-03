@@ -33,3 +33,4 @@
 </div>
 <div><label>Сообщение при выдаче</label><textarea name="deliveryMessage" maxlength="500" rows="2" placeholder="Например, ключ или инструкция. Покажется покупателю. Если пусто — выдаёте вручную."><%= it.deliveryMessage || '' %></textarea></div>
 <label class="checkbox-row"><input type="checkbox" name="enabled" <%= it.enabled ? 'checked' : '' %> /> Товар виден в магазине</label>
+<label class="checkbox-row"><input type="checkbox" name="oncePerUser" <%= it.oncePerUser ? 'checked' : '' %> /> Только одна покупка на участника <span class="hint" style="margin:0 0 0 6px">— для пробных товаров: купивший больше не сможет купить его снова (даже чтобы продлить срок)</span></label>

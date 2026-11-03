@@ -137,6 +137,24 @@ const { makeInteraction, makeGuild, makeUser } = require('./mock');
     assert(line.includes('на 10 д'), 'the shop list shows the term');
   });
 
+  await test('a once-per-member item: bought once, then refused (also after the role was taken away); a refund lets them buy again', async () => {
+    await wallet('o1', 1000); await wallet('o2', 1000);
+    const it = await mk({ type: 'role', roleId: 'R1', durationSeconds: 864000, oncePerUser: true, price: 100 });
+    let r = await shop.purchaseItem({ guild, member: mkMember('o1'), itemId: it.id });
+    assert(r.ok, 'first purchase ' + r.error);
+    r = await shop.purchaseItem({ guild, member: mkMember('o1', ['R1']), itemId: it.id });
+    assert(!r.ok && r.error.includes('только один раз'), 'no extension: ' + r.error);
+    r = await shop.purchaseItem({ guild, member: mkMember('o1'), itemId: it.id });
+    assert(!r.ok && r.error.includes('только один раз'), 'the term is over, still once: ' + r.error);
+    assert((await reload('o1')).balance === 900, 'charged once');
+    const two = await Promise.all([1, 2].map(() => shop.purchaseItem({ guild, member: mkMember('o2'), itemId: it.id })));
+    assert(two.filter((x) => x.ok).length === 1, 'two quick clicks: one purchase');
+    await Purchase.update({ status: 'refunded' }, { where: { userId: 'o1', itemId: it.id } });
+    assert((await shop.purchaseItem({ guild, member: mkMember('o1'), itemId: it.id })).ok, 'after a refund');
+    const line = JSON.stringify(await shop.buildShopPanel({ id: G }, 'x'));
+    assert(line.includes('можно купить один раз'), 'shown in the shop');
+  });
+
   await test('disabled item, other server item, and shop switched off', async () => {
     await wallet('s', 500);
     const off = await mk({ enabled: false }); const other = await ShopItem.create({ guildId: 'g2', name: 'O', price: 1 });

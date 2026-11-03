@@ -122,6 +122,15 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     assert((await post(`/shop/terms/${other.id}/revoke`)).includes('invalid')); assert(await db.TempRole.findByPk(other.id));
   });
 
+  await test('panel: the "only one purchase per member" mark is saved and shown', async () => {
+    const it = await db.ShopItem.create({ guildId: G, name: 'Trial', price: 10, type: 'role', roleId: R1 });
+    const loc = await fetch(`${base}/shop/items/${it.id}`, { method: 'POST', body: new URLSearchParams({ name: 'Trial', price: '10', type: 'role', roleId: R1, duration: '10д', oncePerUser: 'on', enabled: 'on' }), redirect: 'manual' }).then((r) => r.headers.get('location'));
+    assert(loc.includes('saved'), loc);
+    assert.strictEqual((await db.ShopItem.findByPk(it.id)).oncePerUser, true);
+    const page = await (await fetch(base + '/shop')).text();
+    assert(page.includes('name="oncePerUser" checked') && page.includes(' · один раз'), 'shown');
+  });
+
   server.close();
   console.log(results.join('\n')); console.log(`\nИтого: ${results.length - failed}/${results.length} прошли успешно`);
   process.exit(failed ? 1 : 0);
