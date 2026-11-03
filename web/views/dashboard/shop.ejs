@@ -89,7 +89,7 @@
           <p class="empty-state">Покупок пока не было.</p>
         <% } else { %>
           <div class="table-wrap"><div class="table-scroll"><table>
-            <thead><tr><th>Участник</th><th>Товар</th><th>Цена</th><th>Статус</th><th></th></tr></thead>
+            <thead><tr><th>Участник</th><th>Товар</th><th>Цена</th><th>Статус</th><th>Срок роли</th><th></th></tr></thead>
             <tbody>
               <% purchases.forEach(p => { const u = users[p.userId] || { name: p.userId }; %>
                 <tr>
@@ -97,6 +97,7 @@
                   <td><%= p.itemName %></td>
                   <td><%= n(p.price) %> <%= cn(p.currency) %></td>
                   <td><%= { done: 'Выдано', pending: 'Ждёт выдачи', refunded: 'Возвращено' }[p.status] || p.status %></td>
+                  <td><% if (p.itemType !== 'role') { %>—<% } else if (p.expiresAt) { const e = new Date(p.expiresAt); %><span class="<%= e < new Date() ? 'muted' : '' %>">до <%= e.toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %><%= e < new Date() ? ' (истёк)' : '' %></span><% } else { %>навсегда<% } %></td>
                   <td>
                     <div class="btn-row">
                       <% if (p.status === 'pending') { %>

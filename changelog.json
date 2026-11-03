@@ -1,5 +1,20 @@
 [
   {
+    "bot": "3.0.4",
+    "panel": "3.0.3",
+    "date": "2026-11-04",
+    "botChanges": [],
+    "panelChanges": [
+      "Покупки в магазине: видно, до какого числа куплена роль, или «навсегда»"
+    ],
+    "en": {
+      "botChanges": [],
+      "panelChanges": [
+        "Shop purchases: shows until when a role was bought, or “forever”"
+      ]
+    }
+  },
+  {
     "bot": "3.0.3",
     "panel": "3.0.2",
     "date": "2026-11-02",

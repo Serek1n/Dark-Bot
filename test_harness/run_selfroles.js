@@ -102,7 +102,10 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     const item = await db.ShopItem.create({ guildId: G, name: 'NEXUS VPN', price: 5000, type: 'role', roleId: R1, durationSeconds: 864000 });
     const a = await db.TempRole.create({ guildId: G, userId: '500000000000000011', roleId: R1, expiresAt: new Date(Date.now() + 86400e3), givenBy: `shop:${item.id}` });
     await db.TempRole.create({ guildId: G, userId: '500000000000000012', roleId: R2, expiresAt: new Date(Date.now() + 2 * 86400e3), givenBy: 'MOD' });
+    await db.Purchase.create({ guildId: G, userId: '500000000000000011', itemId: item.id, itemName: 'NEXUS VPN', itemType: 'role', roleId: R1, price: 5000, currency: 'coins', status: 'done', expiresAt: new Date(Date.now() - 60000) });
+    await db.Purchase.create({ guildId: G, userId: '500000000000000012', itemId: item.id, itemName: 'Forever VIP', itemType: 'role', roleId: R2, price: 1, currency: 'coins', status: 'done' });
     const page = await (await fetch(base + '/shop')).text();
+    assert(page.includes('Срок роли') && page.includes('(истёк)') && page.includes('навсегда'), 'the purchases table shows until when a role was bought');
     assert(page.includes('Роли на время') && page.includes('магазин: NEXUS VPN') && page.includes('@VPN Trial') && page.includes('/temprole') && page.includes('Покупатель 11'), 'listed');
     assert(page.indexOf('Покупатель 11') < page.indexOf('Покупатель 12'), 'the nearest end first');
     assert(page.includes('data-role-only') && page.includes('form="shopdel-'), 'role-only fields marked; delete button sits in the row');

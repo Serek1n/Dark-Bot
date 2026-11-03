@@ -2061,5 +2061,8 @@
  "У бота не хватает прав{0}: {1}. Выдайте их роли бота в настройках сервера (Роли) или в настройках канала.": "The bot lacks permissions{0}: {1}. Give them to the bot's role in the server settings (Roles) or in the channel settings.",
  "Права у бота есть, но Discord отказал: роль бота должна быть выше роли участника и тех ролей, которые он выдаёт или снимает. Поднимите роль бота в списке ролей сервера.": "The bot has the permissions, but Discord refused: the bot's role must be above the member's role and the roles it gives or removes. Move the bot's role up in the server's role list.",
  "Discord отказал боту{0}. Проверьте права роли бота: {1}.": "Discord refused the bot{0}. Check the bot role's permissions: {1}.",
- "Участнику в голосовом канале писать в чат этого канала⟦0⟧⟦1⟧Если участник сидит в голосовом канале, поздравление придёт в чат этого канала, где бы он ни набрал уровень. Если писать туда нельзя, поздравление не отправляется — в другие каналы бот его не переносит.": "For a member in a voice channel, write to that channel's chat⟦0⟧⟦1⟧If the member is in a voice channel, the congratulation goes to its chat, wherever they reached the level. If the bot can't write there, the congratulation is not sent — the bot never moves it to another channel."
+ "Участнику в голосовом канале писать в чат этого канала⟦0⟧⟦1⟧Если участник сидит в голосовом канале, поздравление придёт в чат этого канала, где бы он ни набрал уровень. Если писать туда нельзя, поздравление не отправляется — в другие каналы бот его не переносит.": "For a member in a voice channel, write to that channel's chat⟦0⟧⟦1⟧If the member is in a voice channel, the congratulation goes to its chat, wherever they reached the level. If the bot can't write there, the congratulation is not sent — the bot never moves it to another channel.",
+ "Срок роли": "Role term",
+ " (истёк)": " (expired)",
+ "до": "until"
 }
