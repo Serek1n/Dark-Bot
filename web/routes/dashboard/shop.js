@@ -96,6 +96,27 @@ router.post('/:guildId/shop/items/:id/delete', ensureGuildAccess, async (req, re
   res.redirect(saved(guildId, 'shop', 'deleted'));
 });
 
+// Refund: the money goes back, a sold role is taken off (and its term forgotten), a limited item gets its piece back.
+// Done once: the purchase is switched to "refunded" in the same statement that checks it was not refunded yet.
+router.post('/:guildId/shop/purchases/:id/refund', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const purchase = await Purchase.findOne({ where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId } });
+  if (!purchase || purchase.status === 'refunded') return res.redirect(saved(guildId, 'shop', 'invalid'));
+  if (purchase.itemType === 'role' && purchase.roleId && (await roleGuard(guildId, req.user?.id)).check(purchase.roleId)) return res.redirect(saved(guildId, 'shop', 'rolenotallowed'));
+  const { Op } = require('sequelize');
+  const [changed] = await Purchase.update({ status: 'refunded' }, { where: { id: purchase.id, status: { [Op.ne]: 'refunded' } } });
+  if (!changed) return res.redirect(saved(guildId, 'shop', 'invalid'));
+  const { credit } = require('../../../bot/modules/wallet');
+  await credit(guildId, purchase.userId, purchase.currency === 'crystals' ? 'crystals' : 'balance', purchase.price);
+  if (purchase.itemId) await ShopItem.increment('stock', { by: 1, where: { id: purchase.itemId, guildId, stock: { [Op.ne]: null } } }).catch(() => {});
+  if (purchase.itemType === 'role' && purchase.roleId) {
+    const reason = { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Возврат покупки в панели') } };
+    await botApi.delete(`/guilds/${guildId}/members/${purchase.userId}/roles/${purchase.roleId}`, reason).catch(() => {}); // the member left or has no such role: nothing to take
+    await TempRole.destroy({ where: { guildId, userId: purchase.userId, roleId: purchase.roleId } });
+  }
+  res.redirect(saved(guildId, 'shop', 'refunded'));
+});
+
 router.post('/:guildId/shop/purchases/:id/deliver', ensureGuildAccess, async (req, res) => {
   const { guildId } = req.params;
   const purchase = await Purchase.findOne({ where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId } });

@@ -957,7 +957,7 @@ label.rule input[type=checkbox] { flex-shrink: 0; margin: 0; }
 .callout b { color: var(--paper); font-weight: 500; }
 .stat-row.six { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 760px) { .status-grid { grid-template-columns: 1fr 1fr; } .stat-box .value { font-size: 24px; } }
-@media (max-width: 420px) { .stat-row, .stat-row.four { grid-template-columns: 1fr 1fr; } .status-grid { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { .stat-row, .stat-row.four { grid-template-columns: 1fr 1fr; } .status-grid { grid-template-columns: 1fr 1fr; gap: 8px; } }
 
 form.plain { gap: 0; }
 .card h3 { font-family: var(--font-ui); font-size: 14px; font-weight: 600; color: var(--paper); margin: 0 0 10px; }
@@ -1263,3 +1263,23 @@ html.qj-open { overflow: hidden; }
 .lang-fab { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px; border: 1px solid var(--hairline); background: var(--panel); color: var(--fog); border-radius: 999px; font-size: 13.5px; text-decoration: none; }
 .lang-fab:hover { color: var(--paper); }
 a.rail-btn { text-decoration: none; }
+
+/* An avatar that failed to load: a round letter of the name, the same size as the picture */
+.avatar-initial { display: inline-grid; place-items: center; width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; background: var(--panel-raised); color: var(--fog); font-size: 11px; font-weight: 700; line-height: 1; }
+.lb-row .avatar-initial { width: 34px; height: 34px; font-size: 14px; }
+.lb-row.top-1 .avatar-initial { box-shadow: 0 0 0 2px var(--ember); }
+
+/* Giveaways page */
+.gw-list { display: flex; flex-direction: column; gap: 10px; }
+.gw-item { display: flex; gap: 16px; align-items: center; justify-content: space-between; padding: 14px 16px; border: 1px solid var(--hairline); border-radius: 12px; }
+.gw-item.is-live { border-left: 3px solid var(--ember); }
+.gw-main { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.gw-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gw-state { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; background: var(--panel-raised); color: var(--fog); }
+.is-live .gw-state { background: var(--ember); color: #14121f; }
+.gw-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--fog-dim); }
+.gw-prize { color: var(--fog); }
+.gw-winners { font-size: 13.5px; color: var(--paper); }
+@media (max-width: 760px) { .gw-item { flex-direction: column; align-items: stretch; } }
+.btn:disabled, .btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+.content > .callout { margin-bottom: 14px; }

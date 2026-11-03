@@ -8,13 +8,28 @@
     span.textContent = img.getAttribute('data-initial') || '?';
     img.replaceWith(span);
   }
+  // A member's avatar that fails (deleted, CDN hiccup) becomes a round letter of the name next to it.
+  function avatarTile(img) {
+    var person = img.closest('.person');
+    var name = person ? (person.textContent || '').trim() : '';
+    var span = document.createElement('span');
+    span.className = 'avatar-initial';
+    span.setAttribute('aria-hidden', 'true');
+    span.textContent = (name.charAt(0) || '?').toUpperCase();
+    img.replaceWith(span);
+  }
+  function broken(img) {
+    if (img.hasAttribute('data-initial')) tile(img);
+    else if (img.closest('.person')) avatarTile(img);
+    else if (img.hasAttribute('data-fallback') && img.src !== img.getAttribute('data-fallback')) img.src = img.getAttribute('data-fallback');
+  }
   document.addEventListener('error', function (e) {
     var img = e.target;
-    if (img && img.tagName === 'IMG' && img.hasAttribute('data-initial')) tile(img);
+    if (img && img.tagName === 'IMG') broken(img);
   }, true);
   document.addEventListener('DOMContentLoaded', function () {
-    Array.prototype.forEach.call(document.querySelectorAll('img[data-initial]'), function (img) {
-      if (img.complete && img.naturalWidth === 0) tile(img);
+    Array.prototype.forEach.call(document.querySelectorAll('img[data-initial], .person img, img[data-fallback]'), function (img) {
+      if (img.complete && img.naturalWidth === 0 && img.getAttribute('src')) broken(img);
     });
     railScroll();
     revealActive();

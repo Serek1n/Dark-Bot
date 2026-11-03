@@ -83,6 +83,10 @@
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5L11.8 7.2L16.8 7.5L12.9 10.6L14.2 15.5L10 12.8L5.8 15.5L7.1 10.6L3.2 7.5L8.2 7.2Z"/></svg>
         <span class="nl"><b>Доска почёта</b><small>Лучшие сообщения по реакциям</small></span>
       </a>
+      <a href="/dashboard/<%= guild.id %>/giveaways" class="<%= active === 'giveaways' ? 'active' : '' %>" title="Розыгрыши — Идущие и завершённые розыгрыши">
+        <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8H16.5V11H3.5Z"/><path d="M4.5 11V16.5H15.5V11M10 8V16.5"/><path d="M10 8C8.4 8 6.5 7.4 6.5 5.6C6.5 4.2 8.5 3.900 10 8ZM10 8C11.6 8 13.5 7.4 13.5 5.6C13.5 4.2 11.5 3.900 10 8Z"/></svg>
+        <span class="nl"><b>Розыгрыши</b><small>Идущие и завершённые розыгрыши</small></span>
+      </a>
       <a href="/dashboard/<%= guild.id %>/custom-commands" class="<%= active === 'custom-commands' ? 'active' : '' %>" title="Кастом-команды — Свои команды с префиксом">
         <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="15" height="12" rx="1.5"/><path d="M5.5 8L8 10L5.5 12M10.5 12.5H14.5"/></svg>
         <span class="nl"><b>Кастом-команды</b><small>Свои команды с префиксом</small></span>
@@ -127,7 +131,7 @@
     </a>
     <% if (typeof user !== 'undefined' && user) { %>
       <div class="sidebar-user">
-        <img src="<%= user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : 'https://cdn.discordapp.com/embed/avatars/0.png' %>" alt="" />
+        <img src="<%= user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : 'https://cdn.discordapp.com/embed/avatars/0.png' %>" alt="" data-fallback="https://cdn.discordapp.com/embed/avatars/0.png" />
         <span class="su-name rl" title="<%= user.global_name || user.username %>"><%= user.global_name || user.username %></span>
         <form method="post" action="/auth/logout">
           <button type="submit" class="su-logout" aria-label="Выйти из панели" title="Выйти">
@@ -150,6 +154,10 @@
       deleted: ['Удалено', false],
       invalid: ['Не удалось сохранить: проверьте заполнение полей', true],
       revoked: ['Роль снята', false],
+      refunded: ['Покупка возвращена: деньги у покупателя', false],
+      gwended: ['Розыгрыш завершён', false],
+      gwreroll: ['Победители выбраны заново', false],
+      nobot: ['Бот сейчас не в сети — попробуйте через минуту', true],
       revokefail: ['Discord не дал снять роль: проверьте, что роль бота выше', true],
       badterm: ['Не понял срок действия: напишите, например, 10д, 12ч или 1мес (от 1 минуты до 366 дней)', true],
       started: ['Выдача ролей запущена', false],

@@ -1,5 +1,30 @@
 [
   {
+    "bot": "3.2.0",
+    "panel": "3.2.0",
+    "date": "2026-11-04",
+    "botChanges": [
+      "Обновлена follow-redirects: токен бота не уйдёт по чужому перенаправлению"
+    ],
+    "panelChanges": [
+      "Новый раздел «Розыгрыши»: идущие и завершённые, «Завершить» и «Перевыбрать»",
+      "Магазин: кнопка «Вернуть» — деньги покупателю, роль снимается",
+      "Аватар не загрузился — вместо пустой картинки буква имени",
+      "На телефоне «Что включено» в две колонки; срок товара по-английски"
+    ],
+    "en": {
+      "botChanges": [
+        "follow-redirects updated: the bot token can't leak through a foreign redirect"
+      ],
+      "panelChanges": [
+        "New Giveaways section: running and finished ones, End now and Reroll",
+        "Shop: a Refund button — the money goes back, the role is removed",
+        "An avatar that fails to load becomes the first letter of the name",
+        "On phones What's on has two columns; the item term is in English"
+      ]
+    }
+  },
+  {
     "bot": "3.1.0",
     "panel": "3.1.0",
     "date": "2026-11-04",

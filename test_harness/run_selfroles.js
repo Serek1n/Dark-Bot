@@ -5,7 +5,7 @@ const fs = require('fs'); const path = require('path'); const assert = require('
 fs.mkdirSync('./data', { recursive: true });
 ['', '-shm', '-wal'].forEach((x) => fs.rmSync(process.env.DATABASE_PATH + x, { force: true }));
 const { PermissionFlagsBits: P } = require('discord.js');
-const G = '777000000000000001', R1 = '600000000000000001', R2 = '600000000000000002';
+const G = '777000000000000001', R1 = '600000000000000001', R2 = '600000000000000002', CH = '800000000000000001';
 const stub = (rel, exports) => { const f = require.resolve(path.join('..', 'web', rel)); require.cache[f] = { id: f, filename: f, loaded: true, exports }; };
 const deleted = []; let deleteFails = null;
 stub('middleware/ensureAuth.js', { ensureAuth: (q, s, n) => n() });
@@ -129,6 +129,44 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     assert.strictEqual((await db.ShopItem.findByPk(it.id)).oncePerUser, true);
     const page = await (await fetch(base + '/shop')).text();
     assert(page.includes('name="oncePerUser" checked') && page.includes(' · один раз'), 'shown');
+  });
+
+  await test('panel: a refund gives the money back, takes the role off, forgets the term, frees the piece and lets a one-time item be bought again', async () => {
+    const it = await db.ShopItem.create({ guildId: G, name: 'Once', price: 300, type: 'role', roleId: R1, stock: 0, oncePerUser: true });
+    const [p] = await db.MemberProfile.findOrCreate({ where: { guildId: G, userId: '500000000000000021' } }); await p.update({ balance: 0 });
+    const buy = await db.Purchase.create({ guildId: G, userId: '500000000000000021', itemId: it.id, itemName: 'Once', itemType: 'role', roleId: R1, price: 300, currency: 'coins', status: 'done' });
+    await db.TempRole.create({ guildId: G, userId: '500000000000000021', roleId: R1, expiresAt: new Date(Date.now() + 86400e3), givenBy: `shop:${it.id}` });
+    deleted.length = 0;
+    const r1 = await post(`/shop/purchases/${buy.id}/refund`); const r2 = await post(`/shop/purchases/${buy.id}/refund`);
+    assert(r1.includes('refunded') && r2.includes('invalid'), 'once: ' + r1 + ' ' + r2);
+    assert.strictEqual((await db.MemberProfile.findOne({ where: { guildId: G, userId: '500000000000000021' } })).balance, 300, 'money back once');
+    assert(deleted.includes(`/guilds/${G}/members/500000000000000021/roles/${R1}`) && !(await db.TempRole.findOne({ where: { userId: '500000000000000021' } })), 'role off, term forgotten');
+    assert.strictEqual((await db.ShopItem.findByPk(it.id)).stock, 1, 'the piece is back');
+    assert.strictEqual((await db.Purchase.findByPk(buy.id)).status, 'refunded');
+    assert(!(await require('../bot/modules/shop').boughtBefore(G, '500000000000000021', it.id)), 'may buy again');
+    const page = await (await fetch(base + '/shop')).text(); assert(page.includes('/refund'), 'the button');
+  });
+
+  await test('panel: giveaways page lists running and ended ones; end now and reroll go through the bot; without the bot — a clear note', async () => {
+    const bridge = require('../web/botBridge');
+    const live = await db.Giveaway.create({ guildId: G, channelId: CH, hostId: '500000000000000031', prize: 'Pizza', winnersCount: 1, endsAt: new Date(Date.now() + 3600e3) });
+    await db.GiveawayEntry.create({ giveawayId: live.id, userId: '500000000000000032' });
+    let page = await (await fetch(base + '/giveaways')).text();
+    assert(page.includes('Pizza') && page.includes('Идёт') && page.includes('Участников:') && page.includes('Бот сейчас не в сети'), 'listed');
+    assert((await post(`/giveaways/${live.id}/end`)).includes('nobot'), 'no bot: refused with a note');
+    const member = { roles: { cache: { has: () => true } } };
+    const ch = { send: async () => ({}), messages: { fetch: async () => ({ edit: async () => {} }) } };
+    bridge.setClient({ isReady: () => true, guilds: { cache: new Map([[G, { id: G, members: { fetch: async () => member }, roles: { cache: new Map() } }]]) }, channels: { fetch: async () => ch } });
+    try {
+      assert((await post(`/giveaways/${live.id}/end`)).includes('gwended'));
+      await live.reload(); assert(live.ended && JSON.parse(live.winners)[0] === '500000000000000032', 'ended with the winner');
+      assert((await post(`/giveaways/${live.id}/end`)).includes('invalid'), 'already ended');
+      assert((await post(`/giveaways/${live.id}/reroll`)).includes('gwreroll'));
+      const other = await db.Giveaway.create({ guildId: '777000000000000002', channelId: CH, hostId: '1', prize: 'X', endsAt: new Date(Date.now() + 1000) });
+      assert((await post(`/giveaways/${other.id}/end`)).includes('invalid'), 'another server');
+    } finally { bridge.setClient(null); }
+    page = await (await fetch(base + '/giveaways')).text();
+    assert(page.includes('Завершён') && page.includes('Победителя нет'), 'ended shown (the reroll had nobody else to pick)');
   });
 
   server.close();

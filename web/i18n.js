@@ -81,6 +81,8 @@ function panelLanguage(req, res, next) {
   res.locals.__t = same;
   if (req.lang === 'en') {
     res.locals.__t = t;
+    const { formatTerm } = require('../bot/utils/duration');
+    res.locals.termText = (ms) => i18n.runWith({ lang: 'en' }, () => formatTerm(ms)); // "10 d", not "10 д"
     enErrorTexts = enErrorTexts || Object.fromEntries(Object.entries(req.app.locals.errorTexts || {}).map(([k, v]) => [k, t(v)]));
     res.locals.errorTexts = enErrorTexts;
     const render = res.render.bind(res);

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Розыгрыши' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <div class="page-header">
+        <h1>Розыгрыши</h1>
+        <p class="page-intro">Розыгрыши запускаются в Discord командой <code>/giveaway start</code>. Здесь видно, что идёт и чем закончилось, а розыгрыш можно завершить досрочно или выбрать победителей заново.</p>
+      </div>
+      <% if (!botOnline) { %><div class="callout">Бот сейчас не в сети: завершить или перевыбрать розыгрыш можно, когда он запустится.</div><% } %>
+      <div class="card">
+        <% if (!giveaways.length) { %>
+          <p class="empty-state">Розыгрышей ещё не было. Начните первый в Discord: <code>/giveaway start</code>.</p>
+        <% } else { %>
+          <div class="gw-list">
+          <% giveaways.forEach(({ g, entries, winners, reward }) => { const end = new Date(g.endsAt); const ch = channels.find(c => c.id === g.channelId); const host = users[g.hostId]; %>
+            <div class="gw-item <%= g.ended ? 'is-ended' : 'is-live' %>">
+              <div class="gw-main">
+                <div class="gw-title"><span class="gw-state"><%= g.ended ? 'Завершён' : 'Идёт' %></span><b><%= g.prize %></b><span class="muted"> · №<%= g.id %></span></div>
+                <div class="gw-meta">
+                  <span><%= g.ended ? 'Закончился' : 'Закончится' %> <time datetime="<%= end.toISOString() %>"><%= end.toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %></time></span>
+                  <span>#<%= ch ? ch.name : 'канал удалён' %></span>
+                  <span>Участников: <b><%= entries %></b></span>
+                  <span>Победителей: <b><%= g.winnersCount %></b></span>
+                  <% if (host) { %><span>Организатор: <%= host.name %></span><% } %>
+                  <% if (reward) { %><span class="gw-prize">Приз выдаётся сам: <%= reward.replace(/<@&(\d+)>/, 'роль') %></span><% } %>
+                </div>
+                <% if (g.ended) { %><div class="gw-winners"><%= winners.length ? 'Победители: ' + winners.map(id => (users[id] && users[id].name) || id).join(', ') : 'Победителя нет' %></div><% } %>
+              </div>
+              <div class="gw-actions">
+                <% if (!g.ended) { %>
+                  <form method="post" action="/dashboard/<%= guild.id %>/giveaways/<%= g.id %>/end" data-no-guard data-confirm="Завершить розыгрыш «<%= g.prize %>» сейчас и выбрать победителей?" onsubmit="return confirm(this.dataset.confirm)"><button class="btn" type="submit" <%= botOnline ? '' : 'disabled' %>>Завершить сейчас</button></form>
+                <% } else { %>
+                  <form method="post" action="/dashboard/<%= guild.id %>/giveaways/<%= g.id %>/reroll" data-no-guard data-confirm="Выбрать новых победителей розыгрыша «<%= g.prize %>»?" onsubmit="return confirm(this.dataset.confirm)"><button class="btn btn-secondary" type="submit" <%= botOnline && entries ? '' : 'disabled' %>>Перевыбрать</button></form>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
