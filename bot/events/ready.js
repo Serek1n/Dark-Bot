@@ -34,6 +34,7 @@ module.exports = {
     startGiveawayScheduler(client); // ends giveaways when their time is up
     startReminderScheduler(client); // sends due reminders
     startPollScheduler(client); // posts the results of timed polls
+    require('../modules/scheduledMessages').startScheduledMessages(); // messages from the panel on a schedule
     require('../modules/tempRoles').startTempRoleScheduler(client); // takes temporary roles away when their time is up
     startRestoreCleanup(); // forgets old data of members who left
     require('../modules/tickets').sweepClosedTickets(client).catch(() => {}); // closed tickets whose channel outlived a restart

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Сообщения' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <div class="content">
+      <div class="page-header">
+        <h1>Сообщения</h1>
+        <p class="page-intro">Конструктор сообщений: текст, до 10 эмбедов и кнопки-ссылки. Отправляйте от имени бота или через вебхук, правьте уже отправленные, сохраняйте заготовки и ставьте сообщения по расписанию. Создать или удалить вебхук можно в разделе «Вебхуки».</p>
+      </div>
+
+      <div class="msg-tabs" role="tablist">
+        <button type="button" role="tab" data-tab="editor" class="active">Редактор</button>
+        <button type="button" role="tab" data-tab="saved">Сохранённые <span class="msg-count"><%= savedList.length %></span></button>
+        <button type="button" role="tab" data-tab="schedule">Расписание <span class="msg-count"><%= scheduled.length %></span></button>
+        <button type="button" role="tab" data-tab="tools">Инструменты</button>
+      </div>
+
+      <!-- Editor -->
+      <section class="msg-pane" data-pane="editor">
+        <div class="msg-grid">
+          <div class="msg-form" id="msg-editor">
+            <div class="card">
+              <h2>Куда отправить</h2>
+              <div class="msg-mode">
+                <label class="msg-radio"><input type="radio" name="m-mode" value="channel" checked /> <span><b>В канал от имени бота</b><small>Сообщение пишет сам бот</small></span></label>
+                <label class="msg-radio <%= rights.webhooks ? '' : 'is-off' %>"><input type="radio" name="m-mode" value="webhook" <%= rights.webhooks ? '' : 'disabled' %> /> <span><b>Через вебхук</b><small><%= rights.webhooks ? 'Любое имя и аватарка' : 'Нужно право «Управлять вебхуками»' %></small></span></label>
+              </div>
+              <div data-show="channel">
+                <label for="m-channel">Канал</label>
+                <select id="m-channel">
+                  <% channels.forEach(c => { %><option value="<%= c.id %>" data-type="<%= c.type %>"><%= c.type === 2 || c.type === 13 ? '🔊' : c.type === 15 || c.type === 16 ? '🗂' : '#' %> <%= c.name %></option><% }) %>
+                </select>
+              </div>
+              <div data-show="webhook" hidden>
+                <div class="two-col">
+                  <div>
+                    <label for="m-hook">Вебхук бота</label>
+                    <select id="m-hook">
+                      <option value="">— вставить ссылку —</option>
+                      <% hooks.forEach(h => { const ch = channels.find(c => c.id === h.channelId); %><option value="<%= h.id %>"><%= h.name %> · #<%= ch ? ch.name : h.channelId %></option><% }) %>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="m-hookurl">или ссылка вебхука</label>
+                    <input type="text" id="m-hookurl" inputmode="url" autocomplete="off" placeholder="https://discord.com/api/webhooks/…" />
+                  </div>
+                </div>
+                <div class="hint">Подходит любой вебхук этого сервера. Ссылка не сохраняется в заготовках; в расписании хранится в зашифрованном виде.</div>
+              </div>
+              <details class="msg-more">
+                <summary>Ветка, форум и правка отправленного</summary>
+                <div class="two-col">
+                  <div>
+                    <label for="m-thread">ID ветки (необязательно)</label>
+                    <input type="text" id="m-thread" inputmode="numeric" autocomplete="off" placeholder="Отправить внутрь ветки" />
+                  </div>
+                  <div>
+                    <label for="m-threadname">Новая публикация форума</label>
+                    <input type="text" id="m-threadname" maxlength="100" autocomplete="off" placeholder="Название публикации" />
+                  </div>
+                </div>
+                <label for="m-ref">Сообщение для правки: ID или ссылка</label>
+                <div class="msg-inline">
+                  <input type="text" id="m-ref" autocomplete="off" placeholder="https://discord.com/channels/…" />
+                  <button type="button" class="btn btn-secondary" data-act="load">Загрузить</button>
+                </div>
+                <div class="hint">«Загрузить» подставит в редактор уже отправленное сообщение — его можно изменить или отправить копию. Изменить можно только сообщение того же вебхука или бота.</div>
+              </details>
+            </div>
+
+            <div class="card" data-show="webhook" hidden>
+              <h2>Профиль</h2>
+              <div class="two-col">
+                <div><label for="m-username">Имя отправителя</label><input type="text" id="m-username" data-k="username" maxlength="80" placeholder="Как у вебхука" /></div>
+                <div><label for="m-avatar">Аватарка (ссылка https)</label><input type="text" id="m-avatar" data-k="avatar_url" inputmode="url" placeholder="Как у вебхука" /></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Текст</h2>
+              <textarea id="m-content" data-k="content" rows="5" maxlength="2000" placeholder="Поддерживается разметка Discord: **жирный**, *курсив*, __подчёркнутый__, ||спойлер||, # заголовок"></textarea>
+              <div class="msg-row">
+                <span class="hint" data-counter="content">0 / 2000</span>
+                <label class="msg-select-inline">Упоминания
+                  <select id="m-mentions" data-k="mentions">
+                    <option value="none">никого не пинговать</option>
+                    <option value="users">участников</option>
+                    <option value="roles">участников и роли</option>
+                    <% if (rights.everyone) { %><option value="everyone">всех, включая @everyone</option><% } %>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div id="m-embeds"></div>
+            <div class="msg-add">
+              <button type="button" class="btn btn-secondary" data-act="add-embed">+ Эмбед</button>
+              <button type="button" class="btn btn-secondary" data-act="add-button">+ Кнопка-ссылка</button>
+            </div>
+            <div id="m-buttons"></div>
+
+            <div class="card msg-actions">
+              <div class="msg-inline">
+                <button type="button" class="btn" data-act="send">Отправить</button>
+                <button type="button" class="btn btn-secondary" data-act="edit" hidden>Изменить сообщение</button>
+                <button type="button" class="btn btn-secondary" data-act="clear">Очистить</button>
+              </div>
+              <div class="msg-status" id="m-status" role="status" aria-live="polite"></div>
+              <div class="msg-inline">
+                <input type="text" id="m-savename" maxlength="100" placeholder="Название заготовки" />
+                <button type="button" class="btn btn-secondary" data-act="save">Сохранить</button>
+                <button type="button" class="btn btn-secondary" data-act="save-new" hidden>Как новую</button>
+              </div>
+              <details class="msg-more">
+                <summary>JSON</summary>
+                <textarea id="m-json" rows="8" spellcheck="false" class="mono"></textarea>
+                <div class="msg-inline">
+                  <button type="button" class="btn btn-secondary" data-act="export">Показать JSON</button>
+                  <button type="button" class="btn btn-secondary" data-act="import">Загрузить из JSON</button>
+                </div>
+                <div class="hint">Подходит JSON сообщения Discord (content, embeds, components) — в том числе из других конструкторов.</div>
+              </details>
+            </div>
+          </div>
+
+          <div class="msg-preview-wrap">
+            <div class="msg-preview-head">Предпросмотр</div>
+            <div class="msg-preview" id="m-preview"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Saved -->
+      <section class="msg-pane" data-pane="saved" hidden>
+        <div class="card">
+          <h2>Сохранённые сообщения</h2>
+          <div class="hint">До <%= maxSaved %> заготовок на сервер. Сохраняются в редакторе кнопкой «Сохранить».</div>
+          <% if (!savedList.length) { %>
+            <p class="empty-state">Пока ничего не сохранено.</p>
+          <% } else { %>
+            <div class="msg-list">
+              <% savedList.forEach(m => { %>
+                <div class="msg-item">
+                  <div class="msg-item-main"><b><%= m.name %></b><span class="muted">изменено <time datetime="<%= new Date(m.updatedAt).toISOString() %>"><%= new Date(m.updatedAt).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %></time></span></div>
+                  <div class="msg-item-actions">
+                    <button type="button" class="btn btn-secondary" data-open-saved="<%= m.id %>">Открыть</button>
+                    <form method="post" action="/dashboard/<%= guild.id %>/messages/saved/<%= m.id %>/delete" data-no-guard data-confirm="Удалить заготовку «<%= m.name %>»?" onsubmit="return confirm(this.dataset.confirm)"><button type="submit" class="btn btn-danger">Удалить</button></form>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+      </section>
+
+      <!-- Schedule -->
+      <section class="msg-pane" data-pane="schedule" hidden>
+        <div class="card">
+          <h2>Запланированные</h2>
+          <% if (!scheduled.length) { %>
+            <p class="empty-state">Нет запланированных сообщений.</p>
+          <% } else { %>
+            <div class="msg-list">
+              <% scheduled.forEach(({ s, rule, target }) => { const ch = channels.find(c => c.id === target.channelId); const hook = hooks.find(h => h.id === target.webhookId); %>
+                <div class="msg-item <%= s.enabled ? 'is-on' : 'is-off' %>">
+                  <div class="msg-item-main">
+                    <div><span class="gw-state"><%= s.enabled ? 'Активно' : 'Выключено' %></span> <b><%= s.name %></b></div>
+                    <div class="gw-meta">
+                      <span><%= rule %> (<%= s.timezone %>)</span>
+                      <% if (s.enabled && s.nextRunAt) { %><span>Следующее: <time datetime="<%= new Date(s.nextRunAt).toISOString() %>"><%= new Date(s.nextRunAt).toLocaleString('ru-RU', { timeZone: s.timezone, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %></time></span><% } %>
+                      <span><%= target.mode === 'webhook' ? 'Вебхук' + (hook ? ' «' + hook.name + '»' : '') : (ch ? '#' + ch.name : 'канал удалён') %></span>
+                      <span>Отправлено: <b><%= s.runs %></b></span>
+                    </div>
+                    <% if (s.lastError) { %><div class="msg-error">Последняя ошибка: <%= s.lastError %></div><% } %>
+                  </div>
+                  <div class="msg-item-actions">
+                    <button type="button" class="btn btn-secondary" data-edit-schedule="<%= s.id %>">Изменить</button>
+                    <form method="post" action="/dashboard/<%= guild.id %>/messages/schedule/<%= s.id %>/test" data-no-guard><button type="submit" class="btn btn-secondary">Тест</button></form>
+                    <form method="post" action="/dashboard/<%= guild.id %>/messages/schedule/<%= s.id %>/toggle" data-no-guard><button type="submit" class="btn btn-secondary"><%= s.enabled ? 'Выключить' : 'Включить' %></button></form>
+                    <form method="post" action="/dashboard/<%= guild.id %>/messages/schedule/<%= s.id %>/delete" data-no-guard data-confirm="Удалить запись «<%= s.name %>»?" onsubmit="return confirm(this.dataset.confirm)"><button type="submit" class="btn btn-danger">Удалить</button></form>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
+
+        <div class="card" id="m-sched">
+          <h2 id="m-sched-title">Новая запись</h2>
+          <div class="hint">Текст, эмбеды, кнопки и адресат берутся из вкладки «Редактор». До <%= maxScheduled %> записей на сервер.</div>
+          <div class="two-col">
+            <div><label for="s-name">Название</label><input type="text" id="s-name" maxlength="100" placeholder="Например: Ежедневное напоминание" /></div>
+            <div>
+              <label for="s-kind">Когда</label>
+              <select id="s-kind">
+                <option value="once">В выбранные даты</option>
+                <option value="daily">Каждый день</option>
+                <option value="weekly">По дням недели</option>
+                <option value="monthly">Каждый месяц</option>
+                <option value="hours">Каждые N часов</option>
+              </select>
+            </div>
+          </div>
+          <div data-kind="once">
+            <label>Даты и время</label>
+            <div id="s-dates"></div>
+            <button type="button" class="btn btn-secondary" data-act="add-date">+ Дата</button>
+          </div>
+          <div data-kind="hours" hidden>
+            <div class="two-col">
+              <div><label for="s-every">Каждые, часов</label><input type="number" id="s-every" min="1" max="720" value="24" /></div>
+              <div><label for="s-start">Начиная с</label><input type="datetime-local" id="s-start" /></div>
+            </div>
+          </div>
+          <div data-kind="weekly" hidden>
+            <label>Дни недели</label>
+            <div class="msg-days">
+              <% [['1','Пн'],['2','Вт'],['3','Ср'],['4','Чт'],['5','Пт'],['6','Сб'],['0','Вс']].forEach(([v, t]) => { %><label><input type="checkbox" name="s-day" value="<%= v %>" /> <%= t %></label><% }) %>
+            </div>
+          </div>
+          <div data-kind="monthly" hidden>
+            <label for="s-day">День месяца</label><input type="number" id="s-day" min="1" max="31" value="1" />
+            <div class="hint">Если в месяце меньше дней — в последний день.</div>
+          </div>
+          <div class="two-col">
+            <div data-kind="daily weekly monthly" hidden><label for="s-time">Время</label><input type="time" id="s-time" value="12:00" /></div>
+            <div>
+              <label for="s-tz">Часовой пояс</label>
+              <select id="s-tz"><% zones.forEach(z => { %><option value="<%= z %>" <%= z === defaultZone ? 'selected' : '' %>><%= z %></option><% }) %></select>
+            </div>
+          </div>
+          <div class="msg-inline">
+            <button type="button" class="btn" data-act="schedule">Запланировать</button>
+            <button type="button" class="btn btn-secondary" data-act="schedule-cancel" hidden>Отмена</button>
+          </div>
+          <div class="msg-status" id="s-status" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- Tools -->
+      <section class="msg-pane" data-pane="tools" hidden>
+        <div class="card">
+          <h2>Цветной текст</h2>
+          <div class="hint">Discord красит текст в блоке кода <code>ansi</code>. Соберите строку из кусков разного цвета и вставьте её в сообщение. Цвета видны в Discord на компьютере.</div>
+          <div class="ansi-controls">
+            <input type="text" id="a-text" maxlength="300" placeholder="Текст куска" />
+            <label>Цвет <select id="a-fg"><option value="">обычный</option><option value="30">серый</option><option value="31">красный</option><option value="32">зелёный</option><option value="33">жёлтый</option><option value="34">синий</option><option value="35">розовый</option><option value="36">бирюзовый</option><option value="37">белый</option></select></label>
+            <label>Фон <select id="a-bg"><option value="">нет</option><option value="40">тёмно-синий</option><option value="41">оранжевый</option><option value="42">серый</option><option value="43">светло-серый</option><option value="44">сизый</option><option value="45">индиго</option><option value="46">светлый</option><option value="47">белый</option></select></label>
+            <label><input type="checkbox" id="a-bold" /> жирный</label>
+            <label><input type="checkbox" id="a-under" /> подчёркнутый</label>
+            <button type="button" class="btn btn-secondary" data-act="ansi-add">Добавить</button>
+            <button type="button" class="btn btn-secondary" data-act="ansi-newline">Новая строка</button>
+          </div>
+          <div class="ansi-pieces" id="a-pieces"></div>
+          <div class="msg-preview ansi-out" id="a-preview"></div>
+          <textarea id="a-code" rows="4" readonly class="mono"></textarea>
+          <div class="msg-inline">
+            <button type="button" class="btn btn-secondary" data-act="ansi-copy">Копировать</button>
+            <button type="button" class="btn btn-secondary" data-act="ansi-insert">Вставить в текст сообщения</button>
+            <button type="button" class="btn btn-secondary" data-act="ansi-clear">Очистить</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Информация о вебхуке</h2>
+          <div class="hint">Вставьте ссылку вебхука — покажем, как он называется, в каком канале и на каком сервере и когда создан. Ссылка никуда не сохраняется.</div>
+          <div class="msg-inline">
+            <input type="text" id="w-url" inputmode="url" autocomplete="off" placeholder="https://discord.com/api/webhooks/…" />
+            <button type="button" class="btn btn-secondary" data-act="hook-info">Проверить</button>
+          </div>
+          <div id="w-out" class="msg-hookinfo"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script id="msg-data" type="application/json"><%- JSON.stringify({ guildId: guild.id, channels, hooks, canWebhook: rights.webhooks, canEveryone: rights.everyone, botName: 'Dark' }).replace(/</g, '\\u003c') %></script>
+  <script src="/js/messages.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
+</body>
+</html>

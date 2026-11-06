@@ -1,5 +1,34 @@
 [
   {
+    "bot": "3.4.0",
+    "panel": "3.3.0",
+    "date": "2026-11-06",
+    "botChanges": [
+      "Сообщения по расписанию: бот сам отправляет их в нужное время"
+    ],
+    "panelChanges": [
+      "Новый раздел «Сообщения»: конструктор с эмбедами, кнопками и предпросмотром",
+      "Отправка от имени бота или через вебхук, в ветку или новой публикацией форума",
+      "Правка уже отправленного сообщения и загрузка его в редактор по ссылке",
+      "Сохранённые заготовки, импорт и экспорт JSON",
+      "Расписание: в выбранные даты, каждый день, по дням недели, раз в месяц, каждые N часов",
+      "Инструменты: цветной текст (ANSI) и информация о вебхуке по ссылке"
+    ],
+    "en": {
+      "botChanges": [
+        "Scheduled messages: the bot posts them by itself at the right time"
+      ],
+      "panelChanges": [
+        "New «Messages» section: a builder with embeds, buttons and a preview",
+        "Send as the bot or through a webhook, into a thread or as a new forum post",
+        "Edit an already sent message and load it into the editor by its link",
+        "Saved templates, JSON import and export",
+        "Schedule: on chosen dates, daily, on weekdays, monthly, every N hours",
+        "Tools: coloured text (ANSI) and webhook info by link"
+      ]
+    }
+  },
+  {
     "bot": "3.3.0",
     "panel": "3.2.1",
     "date": "2026-11-04",
