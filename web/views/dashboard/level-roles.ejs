@@ -11,7 +11,7 @@
       </div>
 
       <form method="post" class="card">
-        <h2>Новая награда</h2>
+        <h2>Новая роль за уровень</h2>
         <div>
           <label>Уровень</label>
           <input type="number" name="level" min="1" max="500" placeholder="10" required />
@@ -64,7 +64,7 @@
       </div>
 
       <form method="post" action="/dashboard/<%= guild.id %>/level-roles/mode" class="card">
-        <h2>Режим</h2>
+        <h2>Когда у участника несколько ролей за уровни</h2>
         <div class="checkbox-row">
           <input type="checkbox" id="levelRolesReplace" name="levelRolesReplace" <%= settings.levelRolesReplace ? 'checked' : '' %> />
           <label for="levelRolesReplace">Оставлять только самую высокую роль (предыдущие снимаются)</label>

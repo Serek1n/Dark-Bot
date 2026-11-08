@@ -1427,3 +1427,13 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .num-step button:active { background: var(--ember-tint); color: var(--ember); }
 .num-step button:disabled { opacity: .35; cursor: default; background: transparent; }
 .num-field > input[type=number]:disabled + .num-step { display: none; }
+
+/* Automod: each list explains itself — how to fill it right above, what it does right below, and a live "Сейчас: …" line */
+.am-field { margin-top: 16px; }
+.am-field > label { margin-bottom: 2px; }
+.am-how { margin: 0 0 8px; }
+.am-notes { margin: 8px 0 0; padding-left: 18px; color: var(--fog-dim); font-size: 13px; line-height: 1.5; }
+.am-notes li + li { margin-top: 2px; }
+.am-now { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: var(--soft); border: 1px solid var(--hairline-soft); color: var(--fog); font-size: 13.5px; }
+.am-now::before { content: '→ '; color: var(--ember); font-weight: 700; }
+.am-idle textarea { opacity: .55; }

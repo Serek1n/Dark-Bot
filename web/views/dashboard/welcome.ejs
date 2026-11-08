@@ -18,6 +18,7 @@
               <option value="<%= c.id %>" <%= settings.welcomeChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
           </select>
+          <div class="hint">Сюда бот пишет, когда на сервер заходит новый человек. Не выбран — приветствия нет.</div>
         </div>
         <div>
           <label>Текст приветствия — доступны {user}, {name}, {server} и {count} (сколько людей на сервере), поддерживается **жирный** текст и заменители (ниже)</label>
@@ -37,13 +38,14 @@
           <span>Прикладывать картинку-карточку с аватаркой нового участника</span>
         </label>
         <div>
-          <label>Роль, выдаваемая автоматически при входе</label>
+          <label>Роль новичкам</label>
           <select name="autoRoleId">
-            <option value="">— не выбрано —</option>
+            <option value="">Не выдавать</option>
             <% roles.forEach(r => { %>
               <option value="<%= r.id %>" <%= settings.autoRoleId === r.id ? 'selected' : (r.blocked ? 'disabled' : '') %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option>
             <% }) %>
           </select>
+          <div class="hint">Бот выдаёт её каждому, кто заходит на сервер.</div>
         </div>
         <h2 style="margin-top:8px">Прощание</h2>
         <div>
@@ -54,6 +56,7 @@
               <option value="<%= c.id %>" <%= settings.leaveChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
           </select>
+          <div class="hint">Сюда бот пишет, когда человек уходит с сервера. Не выбран — прощания нет.</div>
         </div>
         <div>
           <label>Текст прощания — доступны {user} (имя без упоминания), {server} и {count}</label>

@@ -12,7 +12,7 @@
       <% const n = (v) => Number(v).toLocaleString('ru-RU'); const cn = (c) => c === 'crystals' ? settings.crystalName : settings.currencyName; %>
 
       <form method="post" action="/dashboard/<%= guild.id %>/shop/settings" class="card">
-        <h2>Настройки</h2>
+        <h2>Магазин и журнал покупок</h2>
         <label class="checkbox-row"><input type="checkbox" name="shopEnabled" <%= settings.shopEnabled ? 'checked' : '' %> /> Магазин включён</label>
         <div>
           <label>Канал для журнала покупок</label>
@@ -22,6 +22,7 @@
               <option value="<%= c.id %>" <%= settings.shopLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
           </select>
+          <div class="hint">Сюда бот пишет, кто и что купил. Не выбран — покупки видны только в таблице «Покупки» ниже.</div>
         </div>
         <button class="btn" type="submit">Сохранить</button>
       </form>

@@ -11,10 +11,11 @@
       </div>
 
       <form method="post" action="/dashboard/<%= guild.id %>/custom-commands/prefix" class="card">
-        <h2>Префикс</h2>
+        <h2>Префикс<span class="sub">Знак, с которого начинаются свои команды</span></h2>
         <div>
           <label>Символ перед командой (до 3 знаков)</label>
           <input type="text" name="prefix" value="<%= settings.prefix %>" maxlength="3" required />
+          <div class="hint">С префиксом «!» команда «правила» вызывается сообщением <code>!правила</code>. Слеш-команды бота (/profile, /shop…) от префикса не зависят.</div>
         </div>
         <button class="btn" type="submit">Сохранить</button>
       </form>

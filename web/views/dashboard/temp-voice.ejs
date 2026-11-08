@@ -11,18 +11,19 @@
       </div>
       <form method="post" class="card">
         <div>
-          <label>Канал "Войти чтобы создать"</label>
+          <label>Канал «Зайди, чтобы создать комнату»</label>
           <select name="tempVoiceJoinChannelId">
             <option value="">— выключено —</option>
             <% channels.filter(c => c.type === 2).forEach(c => { %>
               <option value="<%= c.id %>" <%= settings.tempVoiceJoinChannelId === c.id ? 'selected' : '' %>>🔊 <%= c.name %></option>
             <% }) %>
           </select>
+          <div class="hint">Кто заходит в этот голосовой канал, получает свою комнату и сразу в неё переносится. Когда комната пустеет, бот её удаляет. Не выбран — комнаты не создаются.</div>
         </div>
         <div>
           <label>Категория для новых каналов (необязательно)</label>
           <select name="tempVoiceCategoryId">
-            <option value="">— как у канала-триггера —</option>
+            <option value="">Та же, где канал «Зайди, чтобы создать»</option>
             <% channels.filter(c => c.type === 4).forEach(c => { %>
               <option value="<%= c.id %>" <%= settings.tempVoiceCategoryId === c.id ? 'selected' : '' %>><%= c.name %></option>
             <% }) %>

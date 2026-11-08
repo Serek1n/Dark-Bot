@@ -232,7 +232,7 @@ async function main() {
   await test('web: leveling page has separate Chat and Voice sections', async () => {
     const h = await render('leveling', { active: 'leveling' });
     for (const n of ['chatEnabled', 'xpPerMessageMin', 'chatCoinsPerMessage', 'crystalsPerLevel', 'voiceEnabled', 'voiceXpPerMinute', 'voiceCoinsPerMinute', 'voiceMinMembers']) assert(h.includes(`name="${n}"`), 'missing ' + n);
-    assert(h.includes('<h2>Чат</h2>') && h.includes('<h2>Голос</h2>'), 'sections');
+    assert(h.includes('<h2>Опыт за сообщения') && h.includes('<h2>Опыт за время в голосе'), 'sections');
   });
   await test('web: economy page renders both currencies', async () => {
     const h = await render('economy', { active: 'economy' });

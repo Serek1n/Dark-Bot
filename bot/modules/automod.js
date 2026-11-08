@@ -147,16 +147,16 @@ function isExempt(settings, message) {
 
 // The rules in the order they are checked. Each can have its own punishment and its own exceptions (settings.automodRules).
 const FILTERS = [
-  { key: 'words', title: 'Запрещённые слова', reason: 'запрещённое слово', test: (s, c) => checkBannedWords(s, c) },
-  { key: 'profanity', title: 'Нецензурная лексика', reason: 'нецензурная лексика', test: (s, c) => Boolean(s.automodProfanity) && containsProfanity(c) },
+  { key: 'words', title: 'Свои запрещённые слова', reason: 'запрещённое слово', test: (s, c) => checkBannedWords(s, c) },
+  { key: 'profanity', title: 'Мат', reason: 'нецензурная лексика', test: (s, c) => Boolean(s.automodProfanity) && containsProfanity(c) },
   { key: 'zalgo', title: 'Zalgo-текст', reason: 'Zalgo-текст (символы друг на друге)', test: (s, c) => Boolean(s.automodZalgo) && isZalgo(c) },
-  { key: 'invites', title: 'Приглашения', reason: 'ссылка-приглашение на другой сервер', test: (s, c) => checkInvite(s, c) },
-  { key: 'links', title: 'Ссылки', reason: 'ссылки здесь запрещены', test: (s, c) => checkLinks(s, c) },
-  { key: 'mentions', title: 'Упоминания', reason: 'слишком много упоминаний', test: (s, c) => checkMentions(s, c) },
-  { key: 'caps', title: 'Заглавные буквы', reason: 'слишком много заглавных букв', test: (s, c) => checkCaps(s, c) },
-  { key: 'emoji', title: 'Эмодзи', reason: 'слишком много эмодзи', test: (s, c) => checkEmoji(s, c) },
-  { key: 'duplicates', title: 'Одинаковые сообщения', reason: 'повторяющиеся сообщения', test: (s, c, m) => checkDuplicates(s, m.guildId, m.author.id, c) },
-  { key: 'spam', title: 'Спам', reason: 'спам (слишком много сообщений подряд)', test: (s, c, m) => checkSpam(s, m.guildId, m.author.id) }
+  { key: 'invites', title: 'Приглашения на другие серверы', reason: 'ссылка-приглашение на другой сервер', test: (s, c) => checkInvite(s, c) },
+  { key: 'links', title: 'Все ссылки', reason: 'ссылки здесь запрещены', test: (s, c) => checkLinks(s, c) },
+  { key: 'mentions', title: 'Много упоминаний', reason: 'слишком много упоминаний', test: (s, c) => checkMentions(s, c) },
+  { key: 'caps', title: 'КАПС', reason: 'слишком много заглавных букв', test: (s, c) => checkCaps(s, c) },
+  { key: 'emoji', title: 'Много эмодзи', reason: 'слишком много эмодзи', test: (s, c) => checkEmoji(s, c) },
+  { key: 'duplicates', title: 'Повтор одного и того же', reason: 'повторяющиеся сообщения', test: (s, c, m) => checkDuplicates(s, m.guildId, m.author.id, c) },
+  { key: 'spam', title: 'Слишком частые сообщения', reason: 'спам (слишком много сообщений подряд)', test: (s, c, m) => checkSpam(s, m.guildId, m.author.id) }
 ];
 const ACTIONS = ['delete', 'warn', 'mute'];
 

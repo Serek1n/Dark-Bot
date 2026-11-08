@@ -1,5 +1,28 @@
 [
  {
+  "bot": "3.4.2",
+  "panel": "3.4.0",
+  "date": "2026-11-09",
+  "botChanges": [
+   "Понятные названия правил автомодерации в журнале и настройках"
+  ],
+  "panelChanges": [
+   "Автомодерация: отдельные «Фильтр слов», «Фильтр ссылок» и «Спам и флуд»",
+   "Под каждым списком — как заполнять, что будет при пустом списке и строка «Сейчас: …»",
+   "Во всех разделах понятнее заголовки и подписи, у каналов сказано, что будет без выбора"
+  ],
+  "en": {
+   "botChanges": [
+    "Clear names of automoderation rules in the log and settings"
+   ],
+   "panelChanges": [
+    "Automoderation: separate \"Word filter\", \"Link filter\" and \"Spam and flood\"",
+    "Under each list: how to fill it, what an empty list means and a live \"Right now\" line",
+    "Clearer headings and labels; channel fields say what happens when none is chosen"
+   ]
+  }
+ },
+ {
   "bot": "3.4.1",
   "panel": "3.3.2",
   "date": "2026-11-09",

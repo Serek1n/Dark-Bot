@@ -11,7 +11,7 @@
       </div>
 
       <form method="post" class="card" id="imForm">
-        <h2>Новое сообщение<span class="sub">До <%= max %> сообщений на сервер, до <%= maxItems %> пунктов в каждом</span></h2>
+        <h2>Новое сообщение с ролями<span class="sub">До <%= max %> сообщений на сервер, до <%= maxItems %> пунктов в каждом</span></h2>
         <label>Канал</label>
         <select name="channelId" required>
           <option value="" disabled selected>— выберите —</option>
@@ -21,7 +21,7 @@
         <textarea name="content" maxlength="2000" rows="3" required placeholder="Выберите роли, которые вам интересны:"></textarea>
         <div class="two-col" style="margin-top:12px;">
           <div>
-            <label>Вид</label>
+            <label>Как выбирать роль</label>
             <select name="kind" id="imKind"><option value="buttons">Кнопки</option><option value="select">Выпадающий список</option></select>
           </div>
           <div>

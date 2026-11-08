@@ -19,24 +19,24 @@
         </div>
 
         <div class="card">
-          <h2>Чат</h2>
+          <h2>Опыт за сообщения<span class="sub">Сколько дают за сообщение в текстовом чате</span></h2>
           <div class="checkbox-row">
             <input type="checkbox" id="chatEnabled" name="chatEnabled" <%= settings.chatEnabled ? 'checked' : '' %> />
             <label for="chatEnabled" style="margin:0;">Начислять за сообщения</label>
           </div>
           <div class="two-col">
             <div>
-              <label>Мин. опыта за сообщение</label>
+              <label>Опыта за сообщение: от</label>
               <input type="number" name="xpPerMessageMin" value="<%= settings.xpPerMessageMin %>" min="1" />
             </div>
             <div>
-              <label>Макс. опыта за сообщение</label>
+              <label>до</label>
               <input type="number" name="xpPerMessageMax" value="<%= settings.xpPerMessageMax %>" min="1" />
             </div>
           </div>
           <div class="two-col">
             <div>
-              <label>Кулдаун между начислениями (сек)</label>
+              <label>Пауза между начислениями, секунд</label>
               <input type="number" name="xpCooldownSeconds" value="<%= settings.xpCooldownSeconds %>" min="0" max="3600" />
             </div>
             <div>
@@ -44,11 +44,11 @@
               <input type="number" name="chatCoinsPerMessage" value="<%= settings.chatCoinsPerMessage %>" min="0" max="10000" />
             </div>
           </div>
-          <div class="hint">Начисление идёт не чаще, чем раз в кулдаун: 60 секунд защищает от накрутки сообщениями.</div>
+          <div class="hint">Каждое сообщение даёт случайное число опыта в этих пределах, но не чаще одного раза за паузу. 60 секунд — защита от накрутки: десять сообщений подряд дадут опыт только за первое. 0 у монет — монеты за сообщения не выдаются.</div>
         </div>
 
         <div class="card">
-          <h2>Голос</h2>
+          <h2>Опыт за время в голосе<span class="sub">Начисляется каждую минуту, пока участник сидит в голосовом канале</span></h2>
           <div class="checkbox-row">
             <input type="checkbox" id="voiceEnabled" name="voiceEnabled" <%= settings.voiceEnabled ? 'checked' : '' %> />
             <label for="voiceEnabled" style="margin:0;">Начислять за время в голосовых каналах</label>
@@ -78,13 +78,14 @@
         </div>
 
         <div class="card">
-          <h2>Награда за уровень</h2>
+          <h2>Награда за новый уровень</h2>
           <label><%= settings.crystalName %> за каждый новый уровень</label>
           <input type="number" name="crystalsPerLevel" value="<%= settings.crystalsPerLevel %>" min="0" max="10000" />
+          <div class="hint">0 — ничего не выдавать. Роли за уровни настраиваются в разделе «Роли за уровни».</div>
         </div>
 
         <div class="card">
-          <h2>Объявления</h2>
+          <h2>Поздравление с новым уровнем</h2>
           <label>Куда отправлять поздравление</label>
           <select name="levelUpDestination">
             <option value="auto" <%= (settings.levelUpDestination || 'auto') === 'auto' ? 'selected' : '' %>>В чат: канал ниже или там, где набран уровень</option>
@@ -127,13 +128,14 @@
               <input type="checkbox" name="levelUpInVoice" <%= settings.levelUpInVoice !== false ? 'checked' : '' %> />
             </label>
           </div>
-          <label style="margin-top:14px;">Канал для объявлений о новом уровне (пусто — в том же канале)</label>
+          <label style="margin-top:14px;">Канал для поздравлений</label>
           <select name="levelUpChannelId">
-            <option value="">— не выбрано —</option>
+            <option value="">Тот же канал, где набран уровень</option>
             <% channels.filter(c => c.type === 0).forEach(c => { %>
               <option value="<%= c.id %>" <%= settings.levelUpChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
           </select>
+          <div class="hint">Не выбран — поздравление приходит туда, где участник набрал уровень.</div>
         </div>
 
         <button class="btn" type="submit">Сохранить</button>
