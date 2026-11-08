@@ -1,6 +1,23 @@
 [
  {
   "bot": "3.4.1",
+  "panel": "3.3.2",
+  "date": "2026-11-09",
+  "botChanges": [],
+  "panelChanges": [
+   "Большие текстовые поля растягиваются только вниз и не вылезают за карточку",
+   "Числовые поля получили аккуратные стрелки в стиле панели вместо стандартных"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Large text fields stretch only downward and no longer leave their card",
+    "Number fields got neat arrows in the panel's style instead of the browser's"
+   ]
+  }
+ },
+ {
+  "bot": "3.4.1",
   "panel": "3.3.1",
   "date": "2026-11-08",
   "botChanges": [

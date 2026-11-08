@@ -1412,3 +1412,18 @@ a.rail-btn { text-decoration: none; }
 @media (max-width: 1100px) { .msg-grid { grid-template-columns: 1fr; } .msg-preview-wrap { position: static; order: -1; } }
 @media (max-width: 760px) { .msg-mode { grid-template-columns: 1fr; } .msg-item { flex-direction: column; align-items: stretch; } .msg-item-actions { justify-content: flex-start; } .me-button { grid-template-columns: 1fr auto; } .me-button > div:first-child { grid-column: 1 / -1; } }
 .msg-pane [hidden], .msg-pane[hidden] { display: none !important; }
+
+/* Text boxes grow only downward: dragging the corner sideways pushed the field out of its card and the page scrolled sideways */
+textarea { resize: vertical; max-width: 100%; max-height: 70vh; box-sizing: border-box; }
+
+/* Number fields: the browser's grey arrows are replaced by the panel's own (web/public/js/ui.js → numberSteppers) */
+input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.num-field { position: relative; display: block; }
+.num-field > input[type=number] { padding-right: 34px; }
+.num-step { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 2px; }
+.num-step button { width: 22px; height: 15px; padding: 0; display: grid; place-items: center; background: transparent; border: 0; border-radius: 4px; color: var(--fog-dim); cursor: pointer; transition: background .12s ease, color .12s ease; }
+.num-step button:hover { background: var(--panel-raised); color: var(--paper); }
+.num-step button:active { background: var(--ember-tint); color: var(--ember); }
+.num-step button:disabled { opacity: .35; cursor: default; background: transparent; }
+.num-field > input[type=number]:disabled + .num-step { display: none; }

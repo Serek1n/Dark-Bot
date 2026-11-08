@@ -201,4 +201,39 @@
       box.addEventListener('input', draw); box.addEventListener('change', draw); draw();
     });
   }
+
+  // 8) Number fields get the panel's own up/down arrows instead of the browser's grey ones. Arrow keys and typing work as before;
+  //    holding a button keeps stepping. Fields added later (e.g. by the message builder) are picked up too.
+  var arrow = function (d) { return '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'; };
+  function stepper(input) {
+    if (input.dataset.stepper || input.closest('.num-field')) return;
+    input.dataset.stepper = '1';
+    var wrap = document.createElement('span'); wrap.className = 'num-field';
+    input.parentNode.insertBefore(wrap, input); wrap.appendChild(input);
+    var box = document.createElement('span'); box.className = 'num-step';
+    box.innerHTML = '<button type="button" tabindex="-1" data-dir="1" aria-label="Больше">' + arrow('M2 6.5L5 3.5L8 6.5') + '</button>' +
+      '<button type="button" tabindex="-1" data-dir="-1" aria-label="Меньше">' + arrow('M2 3.5L5 6.5L8 3.5') + '</button>';
+    wrap.appendChild(box);
+    var timer = 0;
+    var step = function (dir) {
+      if (input.disabled || input.readOnly) return;
+      try { if (dir > 0) input.stepUp(); else input.stepDown(); } catch (e) { input.value = (Number(input.value) || 0) + dir; }
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    var stop = function () { clearTimeout(timer); clearInterval(timer); timer = 0; };
+    box.addEventListener('pointerdown', function (ev) {
+      var b = ev.target.closest('button'); if (!b) return;
+      ev.preventDefault(); var dir = Number(b.getAttribute('data-dir'));
+      step(dir); input.focus({ preventScroll: true });
+      timer = setTimeout(function () { timer = setInterval(function () { step(dir); }, 70); }, 400);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (e) { box.addEventListener(e, stop); });
+  }
+  document.querySelectorAll('input[type=number]').forEach(stepper);
+  if (window.MutationObserver) {
+    new MutationObserver(function (list) {
+      list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType !== 1) return; if (n.matches && n.matches('input[type=number]')) stepper(n); if (n.querySelectorAll) n.querySelectorAll('input[type=number]').forEach(stepper); }); });
+    }).observe(document.body, { childList: true, subtree: true });
+  }
 })();

@@ -2383,5 +2383,9 @@
  "Этого пользователя нет на сервере.": "This user is not on the server.",
  "Эту роль выдавать нельзя: у бота нет права «Управлять ролями», роль выше роли бота или вашей, управляется интеграцией либо даёт права модерации": "This role cannot be given: the bot lacks \"Manage Roles\", the role is above the bot's or yours, is managed by an integration or gives moderation rights",
  "Эту роль выдаёт интеграция, а не бот. Сообщите администрации.": "This role is given by an integration, not the bot. Let the admins know.",
- "у бота нет права «Управлять ролями»": "the bot lacks \"Manage Roles\""
+ "у бота нет права «Управлять ролями»": "the bot lacks \"Manage Roles\"",
+ "Больше": "Increase",
+ "Меньше": "Decrease",
+ "<button type=\"button\" tabindex=\"-1\" data-dir=\"1\" aria-label=\"Больше\">": "<button type=\"button\" tabindex=\"-1\" data-dir=\"1\" aria-label=\"Increase\">",
+ "<button type=\"button\" tabindex=\"-1\" data-dir=\"-1\" aria-label=\"Меньше\">": "<button type=\"button\" tabindex=\"-1\" data-dir=\"-1\" aria-label=\"Decrease\">"
 }
