@@ -8,12 +8,15 @@ const { buildTopPage } = require('../../modules/leaderboardPage');
 const embeds = require('../../utils/embeds');
 const { pendingSeconds, formatDuration } = require('../../modules/voiceTime');
 const logger = require('../../utils/logger');
+const { refuseTarget } = require('../../utils/memberGate');
 
 const num = (n) => Math.round(Number(n) || 0).toLocaleString('ru-RU');
 
 /** How far a member is from a level, and how much chatting or sitting in voice that takes (Polaris' /calculate). */
 async function calc(interaction) {
   const target = interaction.options.getUser('user') || interaction.user;
+  const refused = await refuseTarget(interaction, target);
+  if (refused) return interaction.reply({ embeds: [embeds.error(refused)], flags: MessageFlags.Ephemeral });
   const level = Math.min(MAX_LEVEL, interaction.options.getInteger('level'));
   const settings = await getOrCreateSettings(interaction.guild.id);
   const profile = await getOrCreateProfile(interaction.guild.id, target.id);
@@ -110,6 +113,8 @@ module.exports = {
 
     if (sub === 'view') {
       const target = interaction.options.getUser('user') || interaction.user;
+      const refused = await refuseTarget(interaction, target);
+      if (refused) return interaction.reply({ embeds: [embeds.error(refused)], flags: MessageFlags.Ephemeral });
       // Sequential, not Promise.all: SQLite locks the whole file for writes, and
       // running two potential first-time inserts concurrently can race into a
       // SQLITE_BUSY error. These are both fast local queries, so there's no real

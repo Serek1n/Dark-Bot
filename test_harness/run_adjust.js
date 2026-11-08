@@ -75,13 +75,16 @@ const express = require('express');
     await post({ userId: U, mode: 'add', amount: '999999' }); assert((await prof()).level === L.MAX_LEVEL, 'clamped to max');
     await post({ userId: U, mode: 'set', amount: '-5' }); assert((await prof()).level === 0, 'negative set -> 0');
   });
-  await test('route: roles that cannot be given are reported, the level is still saved; absent member is fine', async () => {
+  await test('route: roles that cannot be given are reported, the level is still saved; someone not on the server is refused', async () => {
     memberRoles = []; failPut = true;
     let r = await post({ userId: U, mode: 'set', amount: '6' });
     assert(r.headers.get('location').includes('roles=fail') && (await prof()).level === 6, 'fail flag ' + r.headers.get('location'));
     failPut = false; memberExists = false;
+    const rows = await db.MemberProfile.count();
     r = await post({ userId: U, mode: 'set', amount: '7' });
-    assert(r.headers.get('location').includes('roles=none') && (await prof()).level === 7, 'left the server');
+    assert(r.headers.get('location').includes('notmember') && (await prof()).level === 6, 'left the server: nothing changed ' + r.headers.get('location'));
+    r = await post({ userId: '999999999999999999', mode: 'add', amount: '3' });
+    assert(r.headers.get('location').includes('notmember') && (await db.MemberProfile.count()) === rows, 'no profile is made for a stranger');
     memberExists = true;
   });
   await test('route: bad id is rejected and nothing changes', async () => {

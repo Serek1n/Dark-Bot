@@ -153,6 +153,13 @@
     var params = new URLSearchParams(location.search);
     // Error texts by code; the link only carries the code, so it cannot be used to show someone else's words.
     var reasons = <%- JSON.stringify(locals.errorTexts || {}).replace(/</g, '\\u003c') %>;
+    function needText(list) {
+      var names = { view: 'Просмотр канала', send: 'Отправлять сообщения', embed: 'Встраивать ссылки', history: 'Читать историю сообщений', react: 'Добавлять реакции', connect: 'Подключаться', manage: 'Управлять каналами', move: 'Перемещать участников', files: 'Прикреплять файлы' };
+      var parts = String(list || '').split(',');
+      if (parts.indexOf('gone') >= 0) return 'Канал не найден — возможно, его удалили. Настройка не изменена';
+      var need = parts.map(function (k) { return names[k]; }).filter(Boolean).map(function (n) { return '«' + n + '»'; });
+      return 'Бот не сможет работать в этом канале: не хватает прав ' + need.join(', ') + '. Выдайте их боту в настройках канала — канал не сохранён';
+    }
     var kinds = {
       saved: ['Изменения сохранены', false],
       deleted: ['Удалено', false],
@@ -168,7 +175,10 @@
       running: ['Выдача ролей уже идёт', true],
       nomessage: ['Сообщение не найдено в выбранном канале', true],
       notesent: ['Запись об обновлении отправлена в канал', false],
-      rolenotallowed: ['Эту роль выдавать нельзя: она управляется интеграцией, выше роли бота или вашей, либо даёт права модерации', true],
+      rolenotallowed: ['Эту роль выдавать нельзя: у бота нет права «Управлять ролями», роль выше роли бота или вашей, управляется интеграцией либо даёт права модерации', true],
+      noperm: [needText(params.get('need')), true],
+      isbot: ['У ботов нет профиля, уровня и баланса — выберите участника', true],
+      notmember: ['Этого пользователя нет на сервере', true],
       toomany: ['Достигнут предел записей для сервера', true],
       badchannel: ['Выберите канал этого сервера', true],
       badlogin: ['Неверный логин Twitch: латиница, цифры и _, от 3 до 25 символов', true],
@@ -202,8 +212,9 @@
         (kinds[key][1] ? 'M10 6V11M10 14H10.01' : 'M4.5 10.5L8.2 14L15.5 6') + '"/></svg><span></span>';
       t.lastChild.textContent = kinds[key][0];
       document.body.appendChild(t);
-      setTimeout(function () { t.remove(); }, 3600);
+      setTimeout(function () { t.remove(); }, kinds[key][0].length > 90 ? 8000 : 3600);
       params.delete(key);
+      params.delete('need');
       var q = params.toString();
       history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash);
       break;

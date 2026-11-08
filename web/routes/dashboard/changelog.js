@@ -5,6 +5,7 @@ const { snowflake, saved, getSettings } = require('../../utils/common');
 const updates = require('../../../bot/modules/updates');
 const { errorKey } = require('../../../bot/utils/discordErrors');
 
+const { channelGuard, noPerm } = require('../../utils/channels');
 const router = express.Router();
 // what the bot posts goes out in the server's language
 const i18nOut = (body, guildId) => require('../../../i18n').translatePayload(body, require('../../../i18n').langOf(guildId));
@@ -26,6 +27,10 @@ router.post('/:guildId/changelog/channel', ensureGuildAccess, async (req, res) =
   const channelId = snowflake(req.body.updatesChannelId);
   if (channelId && !(await getGuildChannels(guildId)).some((c) => c.id === channelId && NOTE_CHANNEL_TYPES.includes(c.type))) {
     return res.redirect(saved(guildId, 'changelog', 'badchannel'));
+  }
+  if (channelId && channelId !== settings.updatesChannelId) {
+    const miss = (await channelGuard(guildId)).missing(channelId, 'post');
+    if (miss) return res.redirect(noPerm(guildId, 'changelog', miss));
   }
   if (channelId !== settings.updatesChannelId) settings.updatesLastPosted = updates.latest()?.id || null;
   settings.updatesChannelId = channelId;

@@ -1,356 +1,385 @@
 [
-  {
-    "bot": "3.4.0",
-    "panel": "3.3.0",
-    "date": "2026-11-06",
-    "botChanges": [
-      "Сообщения по расписанию: бот сам отправляет их в нужное время"
-    ],
-    "panelChanges": [
-      "Новый раздел «Сообщения»: конструктор с эмбедами, кнопками и предпросмотром",
-      "Отправка от имени бота или через вебхук, в ветку или новой публикацией форума",
-      "Правка уже отправленного сообщения и загрузка его в редактор по ссылке",
-      "Сохранённые заготовки, импорт и экспорт JSON",
-      "Расписание: в выбранные даты, каждый день, по дням недели, раз в месяц, каждые N часов",
-      "Инструменты: цветной текст (ANSI) и информация о вебхуке по ссылке"
-    ],
-    "en": {
-      "botChanges": [
-        "Scheduled messages: the bot posts them by itself at the right time"
-      ],
-      "panelChanges": [
-        "New «Messages» section: a builder with embeds, buttons and a preview",
-        "Send as the bot or through a webhook, into a thread or as a new forum post",
-        "Edit an already sent message and load it into the editor by its link",
-        "Saved templates, JSON import and export",
-        "Schedule: on chosen dates, daily, on weekdays, monthly, every N hours",
-        "Tools: coloured text (ANSI) and webhook info by link"
-      ]
-    }
-  },
-  {
-    "bot": "3.3.0",
-    "panel": "3.2.1",
-    "date": "2026-11-04",
-    "botChanges": [
-      "/top быстрее: следующая страница готовится заранее и листается мгновенно",
-      "Неизменившиеся страницы не рисуются заново, ники берутся без запросов"
-    ],
-    "panelChanges": [
-      "Публичный рейтинг собирается раз в минуту, остальные открывают его сразу"
-    ],
-    "en": {
-      "botChanges": [
-        "/top is faster: the next page is prepared ahead and flips instantly",
-        "Unchanged pages are not drawn again, names come without requests"
-      ],
-      "panelChanges": [
-        "The public leaderboard is built once a minute, everyone else opens it at once"
-      ]
-    }
-  },
-  {
-    "bot": "3.2.0",
-    "panel": "3.2.0",
-    "date": "2026-11-04",
-    "botChanges": [
-      "Обновлена follow-redirects: токен бота не уйдёт по чужому перенаправлению"
-    ],
-    "panelChanges": [
-      "Новый раздел «Розыгрыши»: идущие и завершённые, «Завершить» и «Перевыбрать»",
-      "Магазин: кнопка «Вернуть» — деньги покупателю, роль снимается",
-      "Аватар не загрузился — вместо пустой картинки буква имени",
-      "На телефоне «Что включено» в две колонки; срок товара по-английски"
-    ],
-    "en": {
-      "botChanges": [
-        "follow-redirects updated: the bot token can't leak through a foreign redirect"
-      ],
-      "panelChanges": [
-        "New Giveaways section: running and finished ones, End now and Reroll",
-        "Shop: a Refund button — the money goes back, the role is removed",
-        "An avatar that fails to load becomes the first letter of the name",
-        "On phones What's on has two columns; the item term is in English"
-      ]
-    }
-  },
-  {
-    "bot": "3.1.0",
-    "panel": "3.1.0",
-    "date": "2026-11-04",
-    "botChanges": [
-      "Магазин: товар можно сделать одноразовым — купить его можно один раз",
-      "Повторная покупка такого товара отклоняется сразу, даже для продления"
-    ],
-    "panelChanges": [
-      "У товара отметка «Только одна покупка на участника»"
-    ],
-    "en": {
-      "botChanges": [
-        "Shop: an item can be made one-time — each member can buy it once",
-        "Buying such an item again is refused at once, even to extend it"
-      ],
-      "panelChanges": [
-        "Items have an “Only one purchase per member” mark"
-      ]
-    }
-  },
-  {
-    "bot": "3.0.4",
-    "panel": "3.0.3",
-    "date": "2026-11-04",
-    "botChanges": [],
-    "panelChanges": [
-      "Покупки в магазине: видно, до какого числа куплена роль, или «навсегда»"
-    ],
-    "en": {
-      "botChanges": [],
-      "panelChanges": [
-        "Shop purchases: shows until when a role was bought, or “forever”"
-      ]
-    }
-  },
-  {
-    "bot": "3.0.3",
-    "panel": "3.0.2",
-    "date": "2026-11-02",
-    "botChanges": [
-      "Поздравление с уровнем идёт только в свой чат: нет прав — не отправляется",
-      "Больше никаких запасных каналов: ни обычный чат, ни системный"
-    ],
-    "panelChanges": [
-      "Подсказка в «Уровнях» объясняет новое поведение"
-    ],
-    "en": {
-      "botChanges": [
-        "A level-up message goes only to its own chat: no rights there, no message",
-        "No more backup channels: neither the usual chat nor the system one"
-      ],
-      "panelChanges": [
-        "The hint on the Levels page explains the new behaviour"
-      ]
-    }
-  },
-  {
-    "bot": "3.0.2",
-    "panel": "3.0.1",
-    "date": "2026-11-01",
-    "botChanges": [
-      "Нет прав — бот пишет, каких именно и в каком канале",
-      "/giveaway start проверяет права в канале до начала розыгрыша",
-      "Английские ответы с ❌ и ✅ теперь переводятся полностью"
-    ],
-    "panelChanges": [],
-    "en": {
-      "botChanges": [
-        "Missing permissions: the bot names exactly which ones and in which channel",
-        "/giveaway start checks the channel's permissions before starting",
-        "English replies starting with ❌ and ✅ are now fully translated"
-      ],
-      "panelChanges": []
-    }
-  },
-  {
-    "bot": "3.0.1",
-    "panel": "3.0.1",
-    "date": "2026-11-01",
-    "botChanges": [
-      "Пункты меню «Profile», «Report message», «Report member» — по-английски у всех"
-    ],
-    "panelChanges": [
-      "Подсказки упоминают пункты меню их английскими названиями"
-    ],
-    "en": {
-      "botChanges": [
-        "The Profile, Report message and Report member menu items are English for everyone"
-      ],
-      "panelChanges": [
-        "Hints name the menu items by their English names"
-      ]
-    }
-  },
-  {
-    "bot": "3.0.0",
-    "panel": "3.0.0",
-    "date": "2026-11-01",
-    "botChanges": [
-      "Английский язык: язык бота выбирается для каждого сервера",
-      "Команды в Discord с английскими описаниями для английских клиентов",
-      "Новый сервер сам говорит на языке, выбранном в Discord",
-      "Карточки профиля, топа и приветствия рисуются на языке сервера"
-    ],
-    "panelChanges": [
-      "Панель на английском: переключатель внизу меню и на главной",
-      "Язык бота на сервере — на странице «Функции»",
-      "Тексты по умолчанию переключаются вместе с языком"
-    ],
-    "en": {
-      "botChanges": [
-        "English: the bot's language is chosen per server",
-        "Commands in Discord have English descriptions for English clients",
-        "A new server speaks the language set in its Discord settings",
-        "Profile, leaderboard and welcome cards are drawn in the server's language"
-      ],
-      "panelChanges": [
-        "The panel in English: a switch at the bottom of the menu and on the home page",
-        "The bot's language on a server is on the Features page",
-        "Default texts switch together with the language"
-      ]
-    }
-  },
-  {
-    "bot": "2.8.0",
-    "panel": "2.6.0",
-    "date": "2026-11-01",
-    "botChanges": [
-      "/giveaway start: бот сам выдаёт приз — монеты, кристаллы или роль",
-      "Роль-приз можно дать на время: reward_time 7d, 1мес",
-      "Розыгрыш можно опубликовать в другом канале: опция channel",
-      "Перевыбор победителей не выдаёт приз дважды"
-    ],
-    "panelChanges": [],
-    "en": {
-      "botChanges": [
-        "/giveaway start: the bot gives the prize itself — coins, crystals or a role",
-        "A prize role can be given for a while: reward_time 7d, 1mo",
-        "A giveaway can be posted in another channel: the channel option",
-        "Rerolling never gives the prize twice"
-      ],
-      "panelChanges": []
-    }
-  },
-  {
-    "bot": "2.7.0",
-    "panel": "2.6.0",
-    "date": "2026-10-31",
-    "botChanges": [
-      "Эмбеды в приветствии, прощании, повышении уровня и своих командах",
-      "Автомодерация: своё наказание и исключения для каждого правила",
-      "Проверка ников: мат, приглашения, Zalgo и «!!!» в начале",
-      "Несколько каналов для создания голосовых комнат, лимит участников"
-    ],
-    "panelChanges": [
-      "Редактор эмбеда с предпросмотром под каждым текстом бота",
-      "Автомодерация: настройки каждого правила и раздел «Ники»",
-      "Врем. голосовые: до 5 дополнительных каналов-создателей"
-    ]
-  },
-  {
-    "bot": "2.6.0",
-    "panel": "2.5.0",
-    "date": "2026-10-31",
-    "botChanges": [
-      "Роли с правами управления сервером бот сам больше не выдаёт",
-      "Никакой текст не пингует @everyone и роли без явного разрешения",
-      "Роли за реакции: режим «одна из сообщения» снимает старую реакцию",
-      "Закончилась купленная роль — бот напишет покупателю в ЛС"
-    ],
-    "panelChanges": [
-      "Магазин: список ролей на время с кнопкой «Снять»",
-      "Поля роли и срока видны только у товара-роли, «Удалить» — в одном ряду"
-    ]
-  },
-  {
-    "bot": "2.5.0",
-    "panel": "2.4.0",
-    "date": "2026-10-31",
-    "botChanges": [
-      "Магазин: роль можно продавать на время — потом бот снимет её сам",
-      "Повторная покупка продлевает срок от его конца"
-    ],
-    "panelChanges": [
-      "У товара-роли появилось поле «Срок действия» (10д, 12ч, 1мес)"
-    ]
-  },
-  {
-    "bot": "2.4.0",
-    "panel": "2.3.0",
-    "date": "2026-10-31",
-    "botChanges": [
-      "Заменители как в Lacuna: { member.* }, { guild.* }, функции NUMDECL, DATE, MATH…",
-      "Роли за реакции: до 3 ролей, режимы «одна из сообщения» и «обратный»",
-      "/report и «Пожаловаться на участника» с кнопками для модераторов",
-      "Голосовые роли и /temprole — роль на время",
-      "Сроки вида 0.5h, 3мес, 1y",
-      "Бета-версии больше нет: все функции сразу в релизе"
-    ],
-    "panelChanges": [
-      "Интерактивные сообщения: кнопки и списки с ролями",
-      "Подсказка заменителей и предпросмотр у текстовых полей",
-      "Голосовые роли на странице комнат",
-      "Лимит жалоб и оповещение о входе участника с жалобами",
-      "Убраны переключатель «Бета-функции» и значки «бета»"
-    ]
-  },
-  {
-    "bot": "2.3.0",
-    "panel": "2.2.0",
-    "date": "2026-10-31",
-    "botChanges": [
-      "Переключение релиз/бета одной командой с проверкой запуска",
-      "Автооткат, если новая версия не запустилась",
-      "Копия базы перед каждым обновлением",
-      "Бета не рассылает новости об обновлениях"
-    ],
-    "panelChanges": []
-  },
-  {
-    "bot": "2.2.0",
-    "panel": "2.2.0",
-    "date": "2026-10-26",
-    "botChanges": [
-      "Доска почёта: лучшие сообщения по ⭐ в отдельном канале",
-      "Свои команды не пингуют роли, не чаще раза в 3 с",
-      "/remind и /poll — только там, где можно писать",
-      "Автонаказание за предупреждения — только с правом модератора",
-      "Быстрее работа с базой и меньше памяти"
-    ],
-    "panelChanges": [
-      "Поиск разделов: Ctrl+K",
-      "Страница «Доска почёта»",
-      "Вебхуки — только с правом «Управлять вебхуками»",
-      "Панель слушает только localhost, токены входа зашифрованы",
-      "Меню на телефоне показывает текущий раздел"
-    ]
-  },
-  {
-    "bot": "2.1.0",
-    "panel": "2.1.0",
-    "date": "2026-10-26",
-    "botChanges": [
-      "Публикует список изменений в выбранный канал после обновления"
-    ],
-    "panelChanges": [
-      "Страница «Обновления»: что нового в боте и панели",
-      "Выбор канала для новостей об обновлениях"
-    ]
-  },
-  {
-    "bot": "2.0.1",
-    "panel": "2.0.0",
-    "date": "2026-10-25",
-    "botChanges": [
-      "Совместимость с npm 12: база и музыка ставятся без ошибок"
-    ],
-    "panelChanges": []
-  },
-  {
-    "bot": "2.0.0",
-    "panel": "2.0.0",
-    "date": "2026-10-25",
-    "botChanges": [
-      "Множители опыта для ролей",
-      "Своё поздравление с уровнем: текст, канал или ЛС, каждый N-й уровень",
-      "Команды /calc и /level, «Профиль» в меню участника",
-      "Голосования считают голоса верно, музыка не течёт по памяти",
-      "/mod и кнопки больше не падают с «Взаимодействие не удалось»"
-    ],
-    "panelChanges": [
-      "Версии бота и панели на «Обзоре»",
-      "Публичная страница рейтинга",
-      "Нельзя выдать через панель роль выше своей или админскую",
-      "Несохранённые правки в нескольких блоках больше не теряются",
-      "Ошибки Discord по-русски"
-    ]
+ {
+  "bot": "3.4.1",
+  "panel": "3.3.1",
+  "date": "2026-11-08",
+  "botChanges": [
+   "/profile, /level и /economy pay работают только с участниками сервера, не с ботами",
+   "/play сразу пишет, каких прав не хватает в голосовом канале или что он заполнен",
+   "Магазин точно говорит, почему не выдаёт роль: нет права или роль выше роли бота",
+   "Боты и люди без опыта больше не попадают в таблицу лидеров"
+  ],
+  "panelChanges": [
+   "Баланс и уровень нельзя менять боту и тем, кого нет на сервере",
+   "Без права «Управлять ролями» роли нельзя выбрать в магазине и других разделах",
+   "Канал, где бот не может писать, не сохраняется: панель называет недостающие права"
+  ],
+  "en": {
+   "botChanges": [
+    "/profile, /level and /economy pay work only with server members, not bots",
+    "/play says at once which voice channel rights are missing or that it is full",
+    "The shop says exactly why it cannot give a role: no permission or role too high",
+    "Bots and people without experience no longer appear in the leaderboard"
+   ],
+   "panelChanges": [
+    "Balance and level cannot be changed for bots or people not on the server",
+    "Without \"Manage Roles\" roles cannot be picked in the shop and other sections",
+    "A channel the bot cannot post in is not saved: the panel names the missing rights"
+   ]
   }
+ },
+ {
+  "bot": "3.4.0",
+  "panel": "3.3.0",
+  "date": "2026-11-06",
+  "botChanges": [
+   "Сообщения по расписанию: бот сам отправляет их в нужное время"
+  ],
+  "panelChanges": [
+   "Новый раздел «Сообщения»: конструктор с эмбедами, кнопками и предпросмотром",
+   "Отправка от имени бота или через вебхук, в ветку или новой публикацией форума",
+   "Правка уже отправленного сообщения и загрузка его в редактор по ссылке",
+   "Сохранённые заготовки, импорт и экспорт JSON",
+   "Расписание: в выбранные даты, каждый день, по дням недели, раз в месяц, каждые N часов",
+   "Инструменты: цветной текст (ANSI) и информация о вебхуке по ссылке"
+  ],
+  "en": {
+   "botChanges": [
+    "Scheduled messages: the bot posts them by itself at the right time"
+   ],
+   "panelChanges": [
+    "New «Messages» section: a builder with embeds, buttons and a preview",
+    "Send as the bot or through a webhook, into a thread or as a new forum post",
+    "Edit an already sent message and load it into the editor by its link",
+    "Saved templates, JSON import and export",
+    "Schedule: on chosen dates, daily, on weekdays, monthly, every N hours",
+    "Tools: coloured text (ANSI) and webhook info by link"
+   ]
+  }
+ },
+ {
+  "bot": "3.3.0",
+  "panel": "3.2.1",
+  "date": "2026-11-04",
+  "botChanges": [
+   "/top быстрее: следующая страница готовится заранее и листается мгновенно",
+   "Неизменившиеся страницы не рисуются заново, ники берутся без запросов"
+  ],
+  "panelChanges": [
+   "Публичный рейтинг собирается раз в минуту, остальные открывают его сразу"
+  ],
+  "en": {
+   "botChanges": [
+    "/top is faster: the next page is prepared ahead and flips instantly",
+    "Unchanged pages are not drawn again, names come without requests"
+   ],
+   "panelChanges": [
+    "The public leaderboard is built once a minute, everyone else opens it at once"
+   ]
+  }
+ },
+ {
+  "bot": "3.2.0",
+  "panel": "3.2.0",
+  "date": "2026-11-04",
+  "botChanges": [
+   "Обновлена follow-redirects: токен бота не уйдёт по чужому перенаправлению"
+  ],
+  "panelChanges": [
+   "Новый раздел «Розыгрыши»: идущие и завершённые, «Завершить» и «Перевыбрать»",
+   "Магазин: кнопка «Вернуть» — деньги покупателю, роль снимается",
+   "Аватар не загрузился — вместо пустой картинки буква имени",
+   "На телефоне «Что включено» в две колонки; срок товара по-английски"
+  ],
+  "en": {
+   "botChanges": [
+    "follow-redirects updated: the bot token can't leak through a foreign redirect"
+   ],
+   "panelChanges": [
+    "New Giveaways section: running and finished ones, End now and Reroll",
+    "Shop: a Refund button — the money goes back, the role is removed",
+    "An avatar that fails to load becomes the first letter of the name",
+    "On phones What's on has two columns; the item term is in English"
+   ]
+  }
+ },
+ {
+  "bot": "3.1.0",
+  "panel": "3.1.0",
+  "date": "2026-11-04",
+  "botChanges": [
+   "Магазин: товар можно сделать одноразовым — купить его можно один раз",
+   "Повторная покупка такого товара отклоняется сразу, даже для продления"
+  ],
+  "panelChanges": [
+   "У товара отметка «Только одна покупка на участника»"
+  ],
+  "en": {
+   "botChanges": [
+    "Shop: an item can be made one-time — each member can buy it once",
+    "Buying such an item again is refused at once, even to extend it"
+   ],
+   "panelChanges": [
+    "Items have an “Only one purchase per member” mark"
+   ]
+  }
+ },
+ {
+  "bot": "3.0.4",
+  "panel": "3.0.3",
+  "date": "2026-11-04",
+  "botChanges": [],
+  "panelChanges": [
+   "Покупки в магазине: видно, до какого числа куплена роль, или «навсегда»"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Shop purchases: shows until when a role was bought, or “forever”"
+   ]
+  }
+ },
+ {
+  "bot": "3.0.3",
+  "panel": "3.0.2",
+  "date": "2026-11-02",
+  "botChanges": [
+   "Поздравление с уровнем идёт только в свой чат: нет прав — не отправляется",
+   "Больше никаких запасных каналов: ни обычный чат, ни системный"
+  ],
+  "panelChanges": [
+   "Подсказка в «Уровнях» объясняет новое поведение"
+  ],
+  "en": {
+   "botChanges": [
+    "A level-up message goes only to its own chat: no rights there, no message",
+    "No more backup channels: neither the usual chat nor the system one"
+   ],
+   "panelChanges": [
+    "The hint on the Levels page explains the new behaviour"
+   ]
+  }
+ },
+ {
+  "bot": "3.0.2",
+  "panel": "3.0.1",
+  "date": "2026-11-01",
+  "botChanges": [
+   "Нет прав — бот пишет, каких именно и в каком канале",
+   "/giveaway start проверяет права в канале до начала розыгрыша",
+   "Английские ответы с ❌ и ✅ теперь переводятся полностью"
+  ],
+  "panelChanges": [],
+  "en": {
+   "botChanges": [
+    "Missing permissions: the bot names exactly which ones and in which channel",
+    "/giveaway start checks the channel's permissions before starting",
+    "English replies starting with ❌ and ✅ are now fully translated"
+   ],
+   "panelChanges": []
+  }
+ },
+ {
+  "bot": "3.0.1",
+  "panel": "3.0.1",
+  "date": "2026-11-01",
+  "botChanges": [
+   "Пункты меню «Profile», «Report message», «Report member» — по-английски у всех"
+  ],
+  "panelChanges": [
+   "Подсказки упоминают пункты меню их английскими названиями"
+  ],
+  "en": {
+   "botChanges": [
+    "The Profile, Report message and Report member menu items are English for everyone"
+   ],
+   "panelChanges": [
+    "Hints name the menu items by their English names"
+   ]
+  }
+ },
+ {
+  "bot": "3.0.0",
+  "panel": "3.0.0",
+  "date": "2026-11-01",
+  "botChanges": [
+   "Английский язык: язык бота выбирается для каждого сервера",
+   "Команды в Discord с английскими описаниями для английских клиентов",
+   "Новый сервер сам говорит на языке, выбранном в Discord",
+   "Карточки профиля, топа и приветствия рисуются на языке сервера"
+  ],
+  "panelChanges": [
+   "Панель на английском: переключатель внизу меню и на главной",
+   "Язык бота на сервере — на странице «Функции»",
+   "Тексты по умолчанию переключаются вместе с языком"
+  ],
+  "en": {
+   "botChanges": [
+    "English: the bot's language is chosen per server",
+    "Commands in Discord have English descriptions for English clients",
+    "A new server speaks the language set in its Discord settings",
+    "Profile, leaderboard and welcome cards are drawn in the server's language"
+   ],
+   "panelChanges": [
+    "The panel in English: a switch at the bottom of the menu and on the home page",
+    "The bot's language on a server is on the Features page",
+    "Default texts switch together with the language"
+   ]
+  }
+ },
+ {
+  "bot": "2.8.0",
+  "panel": "2.6.0",
+  "date": "2026-11-01",
+  "botChanges": [
+   "/giveaway start: бот сам выдаёт приз — монеты, кристаллы или роль",
+   "Роль-приз можно дать на время: reward_time 7d, 1мес",
+   "Розыгрыш можно опубликовать в другом канале: опция channel",
+   "Перевыбор победителей не выдаёт приз дважды"
+  ],
+  "panelChanges": [],
+  "en": {
+   "botChanges": [
+    "/giveaway start: the bot gives the prize itself — coins, crystals or a role",
+    "A prize role can be given for a while: reward_time 7d, 1mo",
+    "A giveaway can be posted in another channel: the channel option",
+    "Rerolling never gives the prize twice"
+   ],
+   "panelChanges": []
+  }
+ },
+ {
+  "bot": "2.7.0",
+  "panel": "2.6.0",
+  "date": "2026-10-31",
+  "botChanges": [
+   "Эмбеды в приветствии, прощании, повышении уровня и своих командах",
+   "Автомодерация: своё наказание и исключения для каждого правила",
+   "Проверка ников: мат, приглашения, Zalgo и «!!!» в начале",
+   "Несколько каналов для создания голосовых комнат, лимит участников"
+  ],
+  "panelChanges": [
+   "Редактор эмбеда с предпросмотром под каждым текстом бота",
+   "Автомодерация: настройки каждого правила и раздел «Ники»",
+   "Врем. голосовые: до 5 дополнительных каналов-создателей"
+  ]
+ },
+ {
+  "bot": "2.6.0",
+  "panel": "2.5.0",
+  "date": "2026-10-31",
+  "botChanges": [
+   "Роли с правами управления сервером бот сам больше не выдаёт",
+   "Никакой текст не пингует @everyone и роли без явного разрешения",
+   "Роли за реакции: режим «одна из сообщения» снимает старую реакцию",
+   "Закончилась купленная роль — бот напишет покупателю в ЛС"
+  ],
+  "panelChanges": [
+   "Магазин: список ролей на время с кнопкой «Снять»",
+   "Поля роли и срока видны только у товара-роли, «Удалить» — в одном ряду"
+  ]
+ },
+ {
+  "bot": "2.5.0",
+  "panel": "2.4.0",
+  "date": "2026-10-31",
+  "botChanges": [
+   "Магазин: роль можно продавать на время — потом бот снимет её сам",
+   "Повторная покупка продлевает срок от его конца"
+  ],
+  "panelChanges": [
+   "У товара-роли появилось поле «Срок действия» (10д, 12ч, 1мес)"
+  ]
+ },
+ {
+  "bot": "2.4.0",
+  "panel": "2.3.0",
+  "date": "2026-10-31",
+  "botChanges": [
+   "Заменители как в Lacuna: { member.* }, { guild.* }, функции NUMDECL, DATE, MATH…",
+   "Роли за реакции: до 3 ролей, режимы «одна из сообщения» и «обратный»",
+   "/report и «Пожаловаться на участника» с кнопками для модераторов",
+   "Голосовые роли и /temprole — роль на время",
+   "Сроки вида 0.5h, 3мес, 1y",
+   "Бета-версии больше нет: все функции сразу в релизе"
+  ],
+  "panelChanges": [
+   "Интерактивные сообщения: кнопки и списки с ролями",
+   "Подсказка заменителей и предпросмотр у текстовых полей",
+   "Голосовые роли на странице комнат",
+   "Лимит жалоб и оповещение о входе участника с жалобами",
+   "Убраны переключатель «Бета-функции» и значки «бета»"
+  ]
+ },
+ {
+  "bot": "2.3.0",
+  "panel": "2.2.0",
+  "date": "2026-10-31",
+  "botChanges": [
+   "Переключение релиз/бета одной командой с проверкой запуска",
+   "Автооткат, если новая версия не запустилась",
+   "Копия базы перед каждым обновлением",
+   "Бета не рассылает новости об обновлениях"
+  ],
+  "panelChanges": []
+ },
+ {
+  "bot": "2.2.0",
+  "panel": "2.2.0",
+  "date": "2026-10-26",
+  "botChanges": [
+   "Доска почёта: лучшие сообщения по ⭐ в отдельном канале",
+   "Свои команды не пингуют роли, не чаще раза в 3 с",
+   "/remind и /poll — только там, где можно писать",
+   "Автонаказание за предупреждения — только с правом модератора",
+   "Быстрее работа с базой и меньше памяти"
+  ],
+  "panelChanges": [
+   "Поиск разделов: Ctrl+K",
+   "Страница «Доска почёта»",
+   "Вебхуки — только с правом «Управлять вебхуками»",
+   "Панель слушает только localhost, токены входа зашифрованы",
+   "Меню на телефоне показывает текущий раздел"
+  ]
+ },
+ {
+  "bot": "2.1.0",
+  "panel": "2.1.0",
+  "date": "2026-10-26",
+  "botChanges": [
+   "Публикует список изменений в выбранный канал после обновления"
+  ],
+  "panelChanges": [
+   "Страница «Обновления»: что нового в боте и панели",
+   "Выбор канала для новостей об обновлениях"
+  ]
+ },
+ {
+  "bot": "2.0.1",
+  "panel": "2.0.0",
+  "date": "2026-10-25",
+  "botChanges": [
+   "Совместимость с npm 12: база и музыка ставятся без ошибок"
+  ],
+  "panelChanges": []
+ },
+ {
+  "bot": "2.0.0",
+  "panel": "2.0.0",
+  "date": "2026-10-25",
+  "botChanges": [
+   "Множители опыта для ролей",
+   "Своё поздравление с уровнем: текст, канал или ЛС, каждый N-й уровень",
+   "Команды /calc и /level, «Профиль» в меню участника",
+   "Голосования считают голоса верно, музыка не течёт по памяти",
+   "/mod и кнопки больше не падают с «Взаимодействие не удалось»"
+  ],
+  "panelChanges": [
+   "Версии бота и панели на «Обзоре»",
+   "Публичная страница рейтинга",
+   "Нельзя выдать через панель роль выше своей или админскую",
+   "Несохранённые правки в нескольких блоках больше не теряются",
+   "Ошибки Discord по-русски"
+  ]
+ }
 ]

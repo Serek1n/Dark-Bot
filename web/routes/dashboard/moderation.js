@@ -2,8 +2,9 @@ const express = require('express');
 const { ensureGuildAccess } = require('../../middleware/ensureGuildAccess');
 const { getGuildChannels, getGuild, getUsers } = require('../../discordApi');
 const { ModLog } = require('../../../db');
-const { clampInt, snowflake, saved, getSettings } = require('../../utils/common');
+const { clampInt, saved, getSettings } = require('../../utils/common');
 
+const { pickChannels, noPerm } = require('../../utils/channels');
 const router = express.Router();
 
 // ---- Moderation: channels, warning rules (escalation), cases ----
@@ -21,12 +22,11 @@ router.get('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
 
 router.post('/:guildId/moderation', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
-  settings.modLogChannelId = snowflake(req.body.modLogChannelId);
-  settings.reportChannelId = snowflake(req.body.reportChannelId);
+  const missing = await pickChannels(req.body, settings, req.params.guildId, { modLogChannelId: 'post', reportChannelId: 'post' });
   settings.reportDailyLimit = clampInt(req.body.reportDailyLimit, 1, 50, 5);
   settings.reportJoinAlert = req.body.reportJoinAlert === 'on';
   await settings.save();
-  res.redirect(saved(req.params.guildId, 'moderation'));
+  res.redirect(missing.length ? noPerm(req.params.guildId, 'moderation', missing) : saved(req.params.guildId, 'moderation'));
 });
 
 // Rules of /mod: DMs, mandatory reason, warning expiry and "N warnings -> action" (kept apart from the channels form).

@@ -2367,5 +2367,21 @@
  "участником": "a member",
  "чт": "Thu",
  "этот сервер": "this server",
- "— вставить ссылку —": "— paste a link —"
+ "— вставить ссылку —": "— paste a link —",
+ ". Выдайте их боту в настройках канала — канал не сохранён": ". Give them to the bot in the channel settings — the channel was not saved",
+ "Бот не может выдать эту роль: она выше роли бота. Администрации нужно поднять роль бота выше.": "The bot cannot give this role: it is above the bot's role. The admins need to move the bot's role higher.",
+ "Бот не может выдать эту роль: у него нет права «Управлять ролями». Сообщите администрации.": "The bot cannot give this role: it lacks the \"Manage Roles\" permission. Let the admins know.",
+ "Бот не может играть в канале **{0}**: не хватает прав {1}. Выдайте их роли бота в настройках этого канала.": "The bot cannot play in **{0}**: it lacks {1}. Give them to the bot's role in this channel's settings.",
+ "Бот не сможет работать в этом канале: не хватает прав ": "The bot cannot work in this channel: it lacks ",
+ "Канал **{0}** заполнен ({1} из {2}) — бот не может в него зайти.": "**{0}** is full ({1} of {2}) — the bot cannot join it.",
+ "Канал не найден — возможно, его удалили. Настройка не изменена": "Channel not found — it may have been deleted. The setting was not changed",
+ "Просмотр канала": "View Channel",
+ "У ботов нет профиля, уровня и баланса — выберите участника": "Bots have no profile, level or balance — choose a member",
+ "У ботов нет профиля, уровня и баланса.": "Bots have no profile, level or balance.",
+ "Читать историю сообщений": "Read Message History",
+ "Этого пользователя нет на сервере": "This user is not on the server",
+ "Этого пользователя нет на сервере.": "This user is not on the server.",
+ "Эту роль выдавать нельзя: у бота нет права «Управлять ролями», роль выше роли бота или вашей, управляется интеграцией либо даёт права модерации": "This role cannot be given: the bot lacks \"Manage Roles\", the role is above the bot's or yours, is managed by an integration or gives moderation rights",
+ "Эту роль выдаёт интеграция, а не бот. Сообщите администрации.": "This role is given by an integration, not the bot. Let the admins know.",
+ "у бота нет права «Управлять ролями»": "the bot lacks \"Manage Roles\""
 }

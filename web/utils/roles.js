@@ -9,6 +9,7 @@ const { getClient } = require('../botBridge');
 const { DANGEROUS, CRITICAL } = require('../../bot/utils/safeRole');
 
 const REASONS = {
+  noperm: 'у бота нет права «Управлять ролями»',
   managed: 'управляется интеграцией',
   bot: 'выше роли бота',
   you: 'не ниже вашей высшей роли',
@@ -29,11 +30,13 @@ async function roleGuard(guildId, userId) {
   const member = isOwner ? null : await guild.members.fetch(userId).catch(() => null);
   const isAdmin = isOwner || Boolean(member?.permissions?.has(P.Administrator));
   const botTop = guild.members.me?.roles?.highest?.position ?? 0;
+  const botCanManage = Boolean(guild.members.me?.permissions?.has(P.ManageRoles));
   const userTop = isOwner ? Infinity : (member?.roles?.highest?.position ?? 0);
 
   const check = (roleId) => {
     const role = guild.roles.cache.get(String(roleId));
     if (!role || role.id === guild.id) return 'роль не найдена';
+    if (!botCanManage) return REASONS.noperm;
     if (role.managed) return REASONS.managed;
     if (role.position >= botTop) return REASONS.bot;
     if (role.position >= userTop) return REASONS.you;
@@ -67,10 +70,13 @@ async function restGuard(guildId, userId) {
   const perms = (ids) => (ids || []).reduce((acc, id) => acc | BigInt(roles.get(id)?.permissions || 0), BigInt(roles.get(guildId)?.permissions || 0));
   const isAdmin = isOwner || (member && (perms(member.roles) & P.Administrator) !== 0n);
   const botTop = top(me.roles);
+  const botPerms = perms(me.roles);
+  const botCanManage = guild.owner_id === me.user?.id || (botPerms & (P.Administrator | P.ManageRoles)) !== 0n;
   const userTop = isOwner ? Infinity : top(member?.roles);
   const check = (roleId) => {
     const role = roles.get(String(roleId));
     if (!role || role.id === guildId) return 'роль не найдена';
+    if (!botCanManage) return REASONS.noperm;
     if (role.managed) return REASONS.managed;
     if (role.position >= botTop) return REASONS.bot;
     if (role.position >= userTop) return REASONS.you;

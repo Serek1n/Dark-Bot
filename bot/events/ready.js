@@ -35,6 +35,13 @@ module.exports = {
     startReminderScheduler(client); // sends due reminders
     startPollScheduler(client); // posts the results of timed polls
     require('../modules/scheduledMessages').startScheduledMessages(); // messages from the panel on a schedule
+    // Profiles of bots (the bot itself included) made before /profile, /economy pay and the panel checked for them: out of the top.
+    (async () => {
+      const botIds = new Set([client.user.id]);
+      for (const g of client.guilds.cache.values()) for (const m of g.members.cache.values()) if (m.user?.bot) botIds.add(m.id);
+      const removed = await require('../../db').MemberProfile.destroy({ where: { userId: [...botIds] } });
+      if (removed) logger.info(`Removed ${removed} profile(s) of bots from leaderboards`);
+    })().catch((err) => logger.warn(`Bot profiles cleanup failed: ${err.message}`));
     require('../modules/tempRoles').startTempRoleScheduler(client); // takes temporary roles away when their time is up
     startRestoreCleanup(); // forgets old data of members who left
     require('../modules/tickets').sweepClosedTickets(client).catch(() => {}); // closed tickets whose channel outlived a restart

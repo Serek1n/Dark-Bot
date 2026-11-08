@@ -4,6 +4,7 @@ const { getGuildChannels, getGuild, getUsers } = require('../../discordApi');
 const { StarboardEntry } = require('../../../db');
 const { clampInt, snowflake, saved, getSettings } = require('../../utils/common');
 
+const { channelGuard, noPerm } = require('../../utils/channels');
 const router = express.Router();
 const BOARD_TYPES = [0, 5];
 
@@ -25,6 +26,10 @@ router.post('/:guildId/starboard', ensureGuildAccess, async (req, res) => {
   const emoji = String(req.body.starboardEmoji || '').trim();
   const okEmoji = /^<a?:\w{2,32}:\d{15,25}>$/.test(emoji) || (emoji.length > 0 && emoji.length <= 16 && !/[\s<>@#:]/.test(emoji) && /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(emoji));
   if (emoji && !okEmoji) return res.redirect(saved(guildId, 'starboard', 'invalid'));
+  if (channelId && channelId !== settings.starboardChannelId) {
+    const miss = (await channelGuard(guildId)).missing(channelId, 'post');
+    if (miss) return res.redirect(noPerm(guildId, 'starboard', miss));
+  }
   settings.starboardChannelId = channelId;
   settings.starboardEmoji = emoji || '⭐';
   settings.starboardThreshold = clampInt(req.body.starboardThreshold, 1, 100, 3);

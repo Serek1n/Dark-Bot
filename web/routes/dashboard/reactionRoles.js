@@ -6,6 +6,7 @@ const { snowflake, saved } = require('../../utils/common');
 
 const { roleGuard } = require('../../utils/roles');
 
+const { channelGuard, noPerm } = require('../../utils/channels');
 const router = express.Router();
 
 // ---- Reaction roles ----
@@ -38,6 +39,8 @@ router.post('/:guildId/reaction-roles', ensureGuildAccess, async (req, res) => {
   const guard = await roleGuard(guildId, req.user?.id);
   if ([roleId, ...extra].some((id) => guard.check(id))) return res.redirect(saved(guildId, 'reaction-roles', 'rolenotallowed'));
   const mode = require('../../../bot/modules/reactionRoles').MODES.includes(req.body.mode) ? req.body.mode : 'normal';
+  const reactMiss = (await channelGuard(guildId)).missing(channelId, 'react');
+  if (reactMiss) return res.redirect(noPerm(guildId, 'reaction-roles', reactMiss));
   const found = await botApi.get(`/channels/${channelId}/messages/${messageId}`).then(() => true).catch(() => false);
   if (!found) return res.redirect(saved(guildId, 'reaction-roles', 'nomessage'));
 

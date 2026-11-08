@@ -5,6 +5,7 @@ const { getGuildChannels, getGuild, getUsers, botApi } = require('../../discordA
 const { MemberProfile, LevelRole } = require('../../../db');
 const { clampInt, snowflake, saved, getSettings } = require('../../utils/common');
 
+const { pickChannels, noPerm } = require('../../utils/channels');
 const router = express.Router();
 
 // ---- Leveling settings ----
@@ -25,6 +26,8 @@ router.post('/:guildId/leveling/adjust', ensureGuildAccess, async (req, res) => 
   const { guildId } = req.params;
   const userId = snowflake(req.body.userId);
   if (!userId) return res.redirect(saved(guildId, 'leveling', 'baduser'));
+  const problem = await require('../../utils/members').memberProblem(guildId, userId);
+  if (problem) return res.redirect(saved(guildId, 'leveling', problem) + '#adjust');
   const mode = ['add', 'remove', 'set'].includes(req.body.mode) ? req.body.mode : 'add';
   const { computeLevelAdjust, MAX_LEVEL } = require('../../../bot/modules/leveling');
   const amount = clampInt(req.body.amount, mode === 'set' ? 0 : 1, MAX_LEVEL, mode === 'set' ? 0 : 1);
@@ -84,7 +87,7 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   settings.voiceSkipMuted = req.body.voiceSkipMuted === 'on';
   settings.voiceMinMembers = clampInt(req.body.voiceMinMembers, 1, 10, settings.voiceMinMembers);
   settings.crystalsPerLevel = clampInt(req.body.crystalsPerLevel, 0, 10000, settings.crystalsPerLevel);
-  settings.levelUpChannelId = snowflake(req.body.levelUpChannelId);
+  const missing = await pickChannels(req.body, settings, req.params.guildId, { levelUpChannelId: 'post' });
   settings.levelUpInVoice = req.body.levelUpInVoice === 'on';
   const { DESTINATIONS } = require('../../../bot/utils/levelUp');
   settings.levelUpDestination = DESTINATIONS.includes(req.body.levelUpDestination) ? req.body.levelUpDestination : 'auto';
@@ -95,7 +98,7 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   settings.levelUpEvery = clampInt(req.body.levelUpEvery, 1, 100, 1);
   settings.levelUpEveryUntil = clampInt(req.body.levelUpEveryUntil, 0, 1000, 0);
   await settings.save();
-  res.redirect(saved(req.params.guildId, 'leveling'));
+  res.redirect(missing.length ? noPerm(req.params.guildId, 'leveling', missing) : saved(req.params.guildId, 'leveling'));
 });
 
 // ---- Leaderboard (read-only) ----

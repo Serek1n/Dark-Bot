@@ -123,7 +123,8 @@ module.exports = {
       const amount = interaction.options.getInteger('amount');
 
       if (target.id === interaction.user.id) return interaction.reply({ embeds: [embeds.error('Нельзя перевести самому себе.')], flags: MessageFlags.Ephemeral });
-      if (target.bot) return interaction.reply({ embeds: [embeds.error('Нельзя перевести боту.')], flags: MessageFlags.Ephemeral });
+      const refused = await require('../../utils/memberGate').refuseTarget(interaction, target, { bots: 'Нельзя перевести боту.' });
+      if (refused) return interaction.reply({ embeds: [embeds.error(refused)], flags: MessageFlags.Ephemeral });
 
       const guildId = interaction.guild.id;
       const settings = await getOrCreateSettings(guildId);

@@ -117,7 +117,7 @@ const roleMember = (ids, positions = {}) => ({ roles: { cache: new Map(ids.map((
     const level = require('../bot/commands/leveling/level');
     const target = makeUser('555000000000000005');
     const i = makeInteraction({ guildId: G, subcommand: 'set', options: { user: target, amount: 7 } });
-    i.guild.id = G; i.guild.members.fetch = async () => null;
+    i.guild.id = G; i.guild.members.fetch = async (id) => ({ id, roles: { cache: new Map() } }); // on the server
     await level.execute(i);
     const p = await db.MemberProfile.findOne({ where: { guildId: G, userId: target.id } });
     assert(p.level === 7 && Number(p.xp) === leveling.totalXpForLevel(7), JSON.stringify(p.toJSON()));

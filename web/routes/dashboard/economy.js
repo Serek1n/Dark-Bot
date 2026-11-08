@@ -28,6 +28,8 @@ router.post('/:guildId/economy/grant', ensureGuildAccess, async (req, res) => {
   if (!userId) return res.redirect(saved(guildId, 'economy', 'baduser'));
   const field = req.body.currency === 'crystals' ? 'crystals' : 'balance';
   const amount = clampInt(req.body.amount, -1000000000, 1000000000, 0);
+  const problem = await require('../../utils/members').memberProblem(guildId, userId);
+  if (problem) return res.redirect(saved(guildId, 'economy', problem));
   await MemberProfile.findOrCreate({ where: { guildId, userId } });
   // One SQL statement: the bot may pay out coins in the same second, and a read-then-write here would lose one of the two changes.
   await MemberProfile.update({ [field]: sequelize.literal(`MAX(0, COALESCE(${field}, 0) + ${amount})`) }, { where: { guildId, userId } });

@@ -98,7 +98,9 @@ function purchaseItem({ guild, member, itemId }) {
       if (member.roles.cache.has(item.roleId) && !(timed && (await tempRoles.termOf(guild.id, member.id, item.roleId)))) {
         return { ok: false, error: 'У вас уже есть эта роль.' };
       }
-      if (role.managed || !role.editable) return { ok: false, error: 'Бот не может выдать эту роль: администрации нужно поднять роль бота выше.' };
+      if (guild.members?.me && !guild.members.me.permissions?.has?.('ManageRoles')) return { ok: false, error: 'Бот не может выдать эту роль: у него нет права «Управлять ролями». Сообщите администрации.' };
+      if (role.managed) return { ok: false, error: 'Эту роль выдаёт интеграция, а не бот. Сообщите администрации.' };
+      if (!role.editable) return { ok: false, error: 'Бот не может выдать эту роль: она выше роли бота. Администрации нужно поднять роль бота выше.' };
       if (!canSelfGive(role, guild)) return { ok: false, error: 'Эта роль даёт права управления сервером, магазин её не выдаёт. Сообщите администрации.' };
     }
 

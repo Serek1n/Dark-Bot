@@ -4,6 +4,7 @@ const { getGuildChannels, getGuild } = require('../../discordApi');
 const { Alert } = require('../../../db');
 const { snowflake, saved } = require('../../utils/common');
 
+const { channelGuard, noPerm } = require('../../utils/channels');
 const router = express.Router();
 const MAX_ALERTS = 25;
 const ALERT_CHANNEL_TYPES = [0, 5];
@@ -34,6 +35,8 @@ router.post('/:guildId/alerts', ensureGuildAccess, async (req, res) => {
   if (!channels.some((c) => c.id === channelId && ALERT_CHANNEL_TYPES.includes(c.type))) {
     return res.redirect(saved(req.params.guildId, 'alerts', 'badchannel'));
   }
+  const alertMiss = (await channelGuard(req.params.guildId)).missing(channelId, 'post');
+  if (alertMiss) return res.redirect(noPerm(req.params.guildId, 'alerts', alertMiss));
   // A limit per server: every subscription costs requests to YouTube/Twitch that all servers share.
   const exists = await Alert.findOne({ where: { guildId: req.params.guildId, platform, targetId: target } });
   if (!exists && (await Alert.count({ where: { guildId: req.params.guildId } })) >= MAX_ALERTS) {

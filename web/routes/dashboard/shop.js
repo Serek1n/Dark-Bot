@@ -17,6 +17,7 @@ function termSeconds(raw) {
   return Math.round(ms / 1000);
 }
 
+const { pickChannels, noPerm } = require('../../utils/channels');
 const router = express.Router();
 
 // ---- Shop: editable items, purchase history ----
@@ -62,9 +63,9 @@ router.get('/:guildId/shop', ensureGuildAccess, async (req, res) => {
 router.post('/:guildId/shop/settings', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   settings.shopEnabled = req.body.shopEnabled === 'on';
-  settings.shopLogChannelId = snowflake(req.body.shopLogChannelId);
+  const missing = await pickChannels(req.body, settings, req.params.guildId, { shopLogChannelId: 'post' });
   await settings.save();
-  res.redirect(saved(req.params.guildId, 'shop'));
+  res.redirect(missing.length ? noPerm(req.params.guildId, 'shop', missing) : saved(req.params.guildId, 'shop'));
 });
 
 router.post('/:guildId/shop/items', ensureGuildAccess, async (req, res) => {

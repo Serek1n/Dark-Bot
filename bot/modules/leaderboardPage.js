@@ -81,7 +81,8 @@ function catRow(active, userId) {
 async function buildTopPage(client, guild, requestedPage, userId, category = 'total', { prefetch = true } = {}) {
   const cat = catOf(category);
   const c = CATS[cat];
-  const where = cat === 'total' ? { guildId: guild.id } : { guildId: guild.id, [c.field]: { [Op.gt]: 0 } };
+  // nobody with zero experience is ranked: an empty profile (someone who never wrote a word) is not a place in the top
+  const where = { guildId: guild.id, [c.field]: { [Op.gt]: 0 } };
   const total = await rankedCount(guild.id, cat, where);
   if (!total) return null;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));

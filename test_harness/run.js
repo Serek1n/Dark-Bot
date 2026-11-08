@@ -41,6 +41,7 @@ async function main() {
 
   // ===== profile =====
   await run('profile view', () => profileCmd.execute(makeInteraction({ subcommand: 'view' })));
+  await require('../db').MemberProfile.update({ xp: 50 }, { where: {} }); // only people with experience are ranked
   await run('profile top', () => profileCmd.execute(makeInteraction({ subcommand: 'top' })));
   await run('profile view -> PNG card with server rank', async () => {
     const i = makeInteraction({ subcommand: 'view' });

@@ -7,7 +7,7 @@ fs.mkdirSync('./data', { recursive: true });
 ['', '-shm', '-wal'].forEach((x) => fs.rmSync(process.env.DATABASE_PATH + x, { force: true }));
 const stub = (rel, exports) => { const f = require.resolve(path.join('..', 'web', rel)); require.cache[f] = { id: f, filename: f, loaded: true, exports }; };
 // the Discord side is faked; the real middleware, routes and app are used
-stub('discordApi.js', { getBotGuildIds: async () => new Set(['777000000000000001', '777000000000000002']), getBotGuilds: async () => new Map(), getGuildChannels: async () => [], getGuildRoles: async () => [], getGuild: async (id) => ({ id, name: 'T', icon: null }), getUsers: async () => ({}), botApi: {} });
+stub('discordApi.js', { getBotGuildIds: async () => new Set(['777000000000000001', '777000000000000002']), getBotGuilds: async () => new Map(), getGuildChannels: async () => [], getGuildRoles: async () => [], getGuild: async (id) => ({ id, name: 'T', icon: null }), getUsers: async () => ({}), botApi: { get: async (u) => ({ data: { roles: [], user: { id: u.split('/').pop() } } }) } }); // everyone asked about is a member
 const express = require('express');
 
 (async () => {

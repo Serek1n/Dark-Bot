@@ -7,6 +7,7 @@ const { snowflake, saved, getSettings } = require('../../utils/common');
 
 const { extraTriggers, MAX_EXTRA } = require('../../../bot/utils/voiceTriggers');
 
+const { pickChannels, noPerm } = require('../../utils/channels');
 const router = express.Router();
 // what the bot posts goes out in the server's language
 const i18nOut = (body, guildId) => require('../../../i18n').translatePayload(body, require('../../../i18n').langOf(guildId));
@@ -20,7 +21,7 @@ router.get('/:guildId/temp-voice', ensureGuildAccess, async (req, res) => {
 
 router.post('/:guildId/temp-voice', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
-  settings.tempVoiceJoinChannelId = snowflake(req.body.tempVoiceJoinChannelId);
+  const missing = await pickChannels(req.body, settings, req.params.guildId, { tempVoiceJoinChannelId: 'voice' });
   settings.tempVoiceCategoryId = snowflake(req.body.tempVoiceCategoryId);
   settings.tempVoiceNameTemplate = (req.body.tempVoiceNameTemplate || '').trim().slice(0, 90) || settings.tempVoiceNameTemplate;
   settings.tempVoiceUserLimit = Math.max(0, Math.min(99, parseInt(req.body.tempVoiceUserLimit, 10) || 0));
@@ -37,7 +38,7 @@ router.post('/:guildId/temp-voice', ensureGuildAccess, async (req, res) => {
   });
   settings.tempVoiceTriggers = JSON.stringify(extra);
   await settings.save();
-  res.redirect(saved(req.params.guildId, 'temp-voice'));
+  res.redirect(missing.length ? noPerm(req.params.guildId, 'temp-voice', missing) : saved(req.params.guildId, 'temp-voice'));
 });
 
 // ---- Voice roles: a role while in voice ----

@@ -40,7 +40,8 @@ module.exports = {
     if (!interaction.member?.permissions?.has?.(PermissionFlagsBits.ManageGuild)) return fail('Для этого нужно право **Управлять сервером**.');
     const mode = interaction.options.getSubcommand();
     const user = interaction.options.getUser('user');
-    if (user.bot) return fail('У ботов нет уровней.');
+    const refused = await require('../../utils/memberGate').refuseTarget(interaction, user, { bots: 'У ботов нет уровней.' });
+    if (refused) return fail(refused);
     const amount = interaction.options.getInteger('amount');
     const guild = interaction.guild;
 

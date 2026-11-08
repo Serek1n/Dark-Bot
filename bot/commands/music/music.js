@@ -3,7 +3,20 @@ const { getQueue, getOrCreateQueue, destroyQueue, resolveQuery } = require('../.
 const embeds = require('../../utils/embeds');
 const logger = require('../../utils/logger');
 
+/** Why the bot cannot play in this voice channel (missing rights, the channel is full), or null. */
+function musicRefusal(channel, me) {
+  if (!channel || !me) return null;
+  const { missingIn } = require('../../utils/missingPermissions');
+  const { name } = require('../../utils/permissionNames');
+  const missing = missingIn(channel, me, ['ViewChannel', 'Connect', 'Speak']);
+  if (missing.length) return `Бот не может играть в канале **${channel.name}**: не хватает прав ${missing.map((p) => `«${name(p)}»`).join(', ')}. Выдайте их роли бота в настройках этого канала.`;
+  const full = channel.userLimit && channel.members?.size >= channel.userLimit && !channel.members.has(me.id);
+  if (full && missingIn(channel, me, ['MoveMembers']).length) return `Канал **${channel.name}** заполнен (${channel.userLimit} из ${channel.userLimit}) — бот не может в него зайти.`;
+  return null;
+}
+
 module.exports = {
+  musicRefusal,
   // Registered as the flat command /play (the grouped `data` below is kept for tests only).
   variants: [
     {
@@ -45,6 +58,10 @@ module.exports = {
           flags: MessageFlags.Ephemeral
         });
       }
+
+      // Check the voice channel BEFORE searching and joining: without these rights joining just hangs and the person waits for nothing.
+      const voiceRefusal = musicRefusal(voiceChannel, interaction.guild.members?.me);
+      if (voiceRefusal) return interaction.reply({ embeds: [embeds.error(voiceRefusal)], flags: MessageFlags.Ephemeral });
 
       await interaction.deferReply();
       const tracks = await resolveQuery(query, interaction.user.id).catch((err) => {
