@@ -823,31 +823,36 @@ td form .btn { width: auto; }
 .badge { font-family: var(--font-ui); font-size: 12.5px; font-weight: 500; }
 .badge-mute, .badge-clear { background: var(--signal-tint); color: var(--signal); }
 
-/* Sticky "unsaved changes" bar */
+/* Sticky "unsaved changes" bar: appears on any change, wide and easy to hit */
 .save-bar {
-  position: fixed;
-  left: 50%;
-  bottom: 22px;
-  transform: translate(-50%, 24px);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 60;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 12px 10px 18px;
-  background: var(--panel-raised);
-  border: 1px solid var(--hairline);
-  border-left: 3px solid var(--ember);
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  position: fixed; left: 50%; bottom: 20px; z-index: 60;
+  width: min(760px, calc(100vw - 32px));
+  transform: translate(-50%, 24px); opacity: 0; pointer-events: none;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px 14px 14px 18px;
+  background: var(--panel-raised); border: 1px solid var(--hairline); border-radius: 14px;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.55);
   transition: opacity 0.18s ease, transform 0.18s ease;
-  max-width: calc(100vw - 24px);
 }
 .save-bar.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-.save-bar .sb-text { font-size: 14px; color: var(--paper); white-space: nowrap; }
-.save-bar .btn { padding: 8px 16px; font-size: 13.5px; }
-@media (max-width: 760px) { .save-bar { bottom: 12px; gap: 8px; padding-left: 14px; } .save-bar .sb-text { white-space: normal; font-size: 13px; } }
+.save-bar .sb-text { display: flex; align-items: center; gap: 12px; color: var(--paper); min-width: 0; }
+.save-bar .sb-text svg { color: var(--ember); flex: 0 0 auto; }
+.save-bar .sb-text > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.save-bar .sb-text b { font-size: 14.5px; }
+.save-bar .sb-text .sb-sub { font-size: 12.5px; color: var(--fog-dim); }
+.save-bar .sb-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+.save-bar .btn { padding: 10px 18px; font-size: 14px; }
+.save-bar #sbSave { min-width: 190px; }
+body.has-save-bar .content { padding-bottom: 120px; }
+.sb-replaced { display: none !important; }
+@media (max-width: 760px) {
+  .save-bar { left: 0; right: 0; bottom: 0; width: auto; transform: translateY(100%); border-radius: 16px 16px 0 0; flex-direction: column; align-items: stretch; gap: 12px; padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); }
+  .save-bar.show { transform: translateY(0); }
+  .save-bar .sb-actions { display: grid; grid-template-columns: 1fr 2fr; }
+  .save-bar #sbSave { min-width: 0; }
+  .save-bar .btn { padding: 13px 12px; font-size: 15px; }
+  body.has-save-bar .content { padding-bottom: 170px; }
+}
 
 /* Overview: two-column panels, member rows */
 .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
@@ -1437,3 +1442,33 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .am-now { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: var(--soft); border: 1px solid var(--hairline-soft); color: var(--fog); font-size: 13.5px; }
 .am-now::before { content: '→ '; color: var(--ember); font-weight: 700; }
 .am-idle textarea { opacity: .55; }
+
+/* Multi-select for channels and roles (ui.js multiPick): chosen items, search, a list with ticks */
+.ms { position: relative; border: 1px solid var(--hairline); border-radius: 12px; background: var(--soft); }
+.ms.open { border-color: var(--ember); }
+.ms-tokens { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 8px 0; min-height: 38px; cursor: text; }
+.ms-placeholder { color: var(--fog-dim); font-size: 13.5px; padding: 6px 4px; }
+.ms-token { display: inline-flex; align-items: center; gap: 4px; padding: 4px 4px 4px 10px; border-radius: 8px; background: var(--ember-tint); color: var(--paper); font-size: 13.5px; border: 1px solid var(--ember); max-width: 100%; }
+.ms-x { background: none; border: 0; color: var(--fog); font-size: 17px; line-height: 1; padding: 0 5px; border-radius: 6px; cursor: pointer; }
+.ms-x:hover { color: var(--paper); background: rgba(255, 255, 255, .08); }
+input.ms-search, input.ms-search[type="search"] { border: 0; border-top: 1px solid var(--hairline-soft); border-radius: 0 0 12px 12px; background: transparent; margin-top: 8px; padding: 10px 12px; width: 100%; box-shadow: none; }
+.ms.open input.ms-search { border-radius: 0; }
+input.ms-search:focus { outline: none; box-shadow: none; }
+.ms-list { max-height: 280px; overflow: auto; border-top: 1px solid var(--hairline-soft); padding: 4px; }
+.ms-list label.ms-item { display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--paper); font-weight: 400; }
+.ms-list label.ms-item[hidden] { display: none; }
+.ms-list label.ms-item:hover { background: var(--panel-raised); }
+.ms-list label.ms-item input { position: static; opacity: 1; pointer-events: auto; width: 17px; height: 17px; margin: 0; flex: 0 0 auto; accent-color: var(--ember); }
+.ms-list label.ms-item span { padding: 0; border: 0; background: none; color: inherit; font-size: inherit; border-radius: 0; }
+.ms-list label.ms-item input:checked + span { background: none; color: var(--paper); font-weight: 600; }
+.ms-group { padding: 10px 10px 4px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--fog-dim); }
+.ms-group[hidden], .ms-none[hidden] { display: none; }
+.ms-none { padding: 10px; color: var(--fog-dim); font-size: 13.5px; }
+
+/* Automod: special punishments for single rules */
+.card-lead { color: var(--fog); font-size: 14px; line-height: 1.55; margin: 0 0 14px; }
+.pr-empty { color: var(--fog-dim); font-size: 14px; margin: 0 0 12px; padding: 12px 14px; border: 1px dashed var(--hairline); border-radius: 10px; }
+.pr-empty[hidden], .rule-cfg[hidden] { display: none; }
+.rule-cfg .pr-remove { margin-top: 14px; }
+.pr-add { margin-top: 14px; }
+.pr-add select { max-width: 420px; }

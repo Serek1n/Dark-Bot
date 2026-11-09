@@ -231,6 +231,69 @@
     ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (e) { box.addEventListener(e, stop); });
   }
   document.querySelectorAll('input[type=number]').forEach(stepper);
+
+  // 7) Choosing several channels or roles: a cloud of chips became a field with the chosen items (× removes one),
+  //    a search box and a dropdown list with ticks, grouped by category. The checkboxes stay real, so forms send the same data.
+  function multiPick(box) {
+    if (box.dataset.ms) return;
+    box.dataset.ms = '1';
+    var items = Array.prototype.slice.call(box.querySelectorAll('label'));
+    if (!items.length) return;
+    var kind = box.getAttribute('data-kind') || (items[0].textContent.trim().charAt(0) === '#' ? 'channels' : 'roles');
+    var wrap = document.createElement('div'); wrap.className = 'ms';
+    var tokens = document.createElement('div'); tokens.className = 'ms-tokens';
+    var search = document.createElement('input'); search.type = 'search'; search.className = 'ms-search'; search.autocomplete = 'off';
+    search.placeholder = kind === 'channels' ? 'Поиск каналов…' : 'Поиск ролей…';
+    search.setAttribute('aria-label', search.placeholder);
+    var list = document.createElement('div'); list.className = 'ms-list'; list.hidden = true; list.setAttribute('role', 'listbox'); list.setAttribute('aria-multiselectable', 'true');
+    var empty = document.createElement('div'); empty.className = 'ms-none'; empty.textContent = 'Ничего не найдено';
+    box.parentNode.insertBefore(wrap, box);
+    wrap.appendChild(tokens); wrap.appendChild(search); wrap.appendChild(list);
+    var lastGroup = null;
+    items.forEach(function (label) {
+      var g = label.getAttribute('data-group') || '';
+      if (g && g !== lastGroup) { var h = document.createElement('div'); h.className = 'ms-group'; h.textContent = g; list.appendChild(h); }
+      lastGroup = g;
+      label.classList.add('ms-item');
+      list.appendChild(label);
+    });
+    list.appendChild(empty);
+    box.remove();
+    function draw() {
+      tokens.innerHTML = '';
+      var chosen = items.filter(function (l) { return l.querySelector('input').checked; });
+      if (!chosen.length) { var n = document.createElement('span'); n.className = 'ms-placeholder'; n.textContent = 'Ничего не выбрано'; tokens.appendChild(n); }
+      chosen.forEach(function (l) {
+        var t = document.createElement('span'); t.className = 'ms-token';
+        t.appendChild(document.createTextNode(l.querySelector('span').textContent));
+        var x = document.createElement('button'); x.type = 'button'; x.className = 'ms-x'; x.setAttribute('aria-label', 'Убрать'); x.textContent = '×';
+        x.addEventListener('click', function () { var i = l.querySelector('input'); i.checked = false; i.dispatchEvent(new Event('change', { bubbles: true })); draw(); });
+        t.appendChild(x); tokens.appendChild(t);
+      });
+    }
+    function filter() {
+      var q = search.value.trim().toLowerCase(); var shown = 0;
+      items.forEach(function (l) { var ok = !q || l.textContent.toLowerCase().indexOf(q) >= 0; l.hidden = !ok; if (ok) shown++; });
+      Array.prototype.forEach.call(list.querySelectorAll('.ms-group'), function (h) {
+        var n = h.nextElementSibling, any = false;
+        while (n && !n.classList.contains('ms-group')) { if (n.classList.contains('ms-item') && !n.hidden) any = true; n = n.nextElementSibling; }
+        h.hidden = !any;
+      });
+      empty.hidden = shown > 0;
+    }
+    var open = function () { list.hidden = false; wrap.classList.add('open'); };
+    var close = function () { list.hidden = true; wrap.classList.remove('open'); };
+    search.addEventListener('focus', open);
+    search.addEventListener('click', open);
+    search.addEventListener('input', function () { open(); filter(); });
+    search.addEventListener('keydown', function (e) { if (e.key === 'Escape') { close(); search.blur(); } if (e.key === 'Enter') e.preventDefault(); });
+    tokens.addEventListener('click', function (e) { if (!e.target.closest('.ms-x')) search.focus(); });
+    list.addEventListener('change', draw);
+    document.addEventListener('pointerdown', function (e) { if (!wrap.contains(e.target)) close(); });
+    wrap.addEventListener('focusout', function (e) { if (e.relatedTarget && !wrap.contains(e.relatedTarget)) close(); });
+    draw(); filter();
+  }
+  document.querySelectorAll('.pick').forEach(multiPick);
   if (window.MutationObserver) {
     new MutationObserver(function (list) {
       list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType !== 1) return; if (n.matches && n.matches('input[type=number]')) stepper(n); if (n.querySelectorAll) n.querySelectorAll('input[type=number]').forEach(stepper); }); });

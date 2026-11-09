@@ -189,7 +189,8 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     assert.deepStrictEqual(r, { words: { action: 'mute', mute: 45 }, links: { ch: [CH] } }, s.automodRules);
     assert(s.automodNicknames && s.automodDehoist && s.automodNickReplacement === 'Ник скрыт');
     const page = await (await fetch(base2 + '/automod')).text();
-    assert(page.includes('Для каждого правила') && page.includes('мут 45 мин') && page.includes('не в 1 кан.') && page.includes('name="automodDehoist" checked'), 'shown back');
+    assert(page.includes('Особое наказание для отдельных правил') && page.includes('удалить и замутить на 45 мин') && page.includes('не действует в 1 кан.') && page.includes('name="automodDehoist" checked'), 'shown back');
+    assert(/<details class="rule-cfg" data-rule="caps" hidden>/.test(page) && /<details class="rule-cfg" data-rule="words" >/.test(page), 'only rules with a special punishment are listed');
   });
 
   await test('panel: more trigger channels are saved (no duplicates, the main one is not repeated, a removed row disappears)', async () => {

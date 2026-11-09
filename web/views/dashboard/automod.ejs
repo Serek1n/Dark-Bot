@@ -10,9 +10,12 @@
         <p class="page-intro">Бот проверяет каждое сообщение. Если оно нарушает включённое правило, оно удаляется, а автору при желании выдаётся предупреждение или мут.</p>
       </div>
       <nav class="jump" aria-label="Разделы страницы">
-        <a href="#words">Фильтр слов</a><a href="#links">Фильтр ссылок</a><a href="#spam">Спам и флуд</a><a href="#action">Наказание</a><a href="#per-rule">Для каждого правила</a><a href="#names">Ники</a><a href="#skip">Исключения</a>
+        <a href="#words">Фильтр слов</a><a href="#links">Фильтр ссылок</a><a href="#spam">Спам и флуд</a><a href="#action">Наказание</a><a href="#per-rule">Особые наказания</a><a href="#names">Ники</a><a href="#skip">Исключения</a>
       </nav>
 
+      <% const cats = {}; channels.filter(c => c.type === 4).forEach(c => { cats[c.id] = c; });
+         const catOf = (c) => (cats[c.parent_id] || {}).name || 'Без категории';
+         const textCh2 = channels.filter(c => c.type === 0 || c.type === 5).sort((x, y) => ((cats[x.parent_id] || {}).position ?? -1) - ((cats[y.parent_id] || {}).position ?? -1) || (x.position || 0) - (y.position || 0)); %>
       <form method="post" class="plain">
         <div class="card">
           <div class="rules">
@@ -123,37 +126,50 @@
         </div>
 
         <div class="card" id="per-rule">
-          <h2>Для каждого правила отдельно<span class="sub">Необязательно: без настроек правило наказывает как указано выше</span></h2>
-          <% const textCh2 = channels.filter(c => c.type === 0 || c.type === 5); const actName = { '': 'как обычно', delete: 'только удалить', warn: 'предупреждение', mute: 'мут' }; %>
+          <h2>Особое наказание для отдельных правил<span class="sub">Необязательно</span></h2>
+          <p class="card-lead">Все правила наказываются так, как указано в блоке «Что делать с нарушителем». Здесь можно сделать исключение для одного правила: например, за мат — сразу мут на час, за КАПС — только удалить сообщение, а ссылки разрешить в #медиа.</p>
+          <% const actText = { delete: 'только удалить сообщение', warn: 'удалить и предупредить', mute: 'удалить и замутить' };
+             const cfgOf = (f) => ruleCfg[f.key] || {};
+             const isSet = (r) => Boolean(r.action || r.mute || (r.ch || []).length || (r.roles || []).length);
+             const sumOf = (r) => [r.action ? actText[r.action] + (r.action === 'mute' && r.mute ? ' на ' + r.mute + ' мин' : '') : (r.mute ? 'мут на ' + r.mute + ' мин' : ''), (r.ch || []).length ? 'не действует в ' + r.ch.length + ' кан.' : '', (r.roles || []).length ? 'не действует для ' + r.roles.length + ' рол.' : ''].filter(Boolean).join(' · '); %>
+          <% const anySet = filters.some(f => isSet(cfgOf(f))); %>
+          <p class="pr-empty" <%= anySet ? 'hidden' : '' %>>Особых наказаний нет — все правила работают одинаково.</p>
           <div class="rule-cfgs">
-          <% filters.forEach(f => { const r = ruleCfg[f.key] || {}; const chN = (r.ch || []).length, roN = (r.roles || []).length; %>
-            <details class="rule-cfg">
-              <summary><b><%= f.title %></b><span class="muted"> — <%= actName[r.action || ''] %><%= r.action === 'mute' && r.mute ? ' ' + r.mute + ' мин' : '' %><%= chN ? ' · не в ' + chN + ' кан.' : '' %><%= roN ? ' · не для ' + roN + ' рол.' : '' %></span></summary>
+          <% filters.forEach(f => { const r = cfgOf(f); %>
+            <details class="rule-cfg" data-rule="<%= f.key %>" <%= isSet(r) ? '' : 'hidden' %>>
+              <summary><b><%= f.title %></b><span class="muted"> — <span class="pr-sum"><%= sumOf(r) || 'настройте ниже' %></span></span></summary>
               <div class="two-col">
                 <div>
                   <label>Наказание за это правило</label>
                   <select name="rule_<%= f.key %>_action">
-                    <option value="" <%= !r.action ? 'selected' : '' %>>Как обычно (выше)</option>
+                    <option value="" <%= !r.action ? 'selected' : '' %>>Как в общем блоке</option>
                     <option value="delete" <%= r.action === 'delete' ? 'selected' : '' %>>Только удалить сообщение</option>
                     <option value="warn" <%= r.action === 'warn' ? 'selected' : '' %>>Удалить и предупредить</option>
                     <option value="mute" <%= r.action === 'mute' ? 'selected' : '' %>>Удалить и замутить</option>
                   </select>
                 </div>
-                <div><label>Срок мута, минут (пусто — как обычно)</label><input type="number" name="rule_<%= f.key %>_mute" value="<%= r.mute || '' %>" min="1" max="40320" /></div>
+                <div><label>Срок мута, минут</label><input type="number" name="rule_<%= f.key %>_mute" value="<%= r.mute || '' %>" min="1" max="40320" placeholder="как в общем блоке" /></div>
               </div>
               <label>Каналы, где это правило не действует</label>
-              <div class="pick">
+              <div class="pick" data-kind="channels">
                 <% if (!textCh2.length) { %><span class="pick-empty">Текстовых каналов не найдено</span><% } %>
-                <% textCh2.forEach(c => { %><label><input type="checkbox" name="rule_<%= f.key %>_ch" value="<%= c.id %>" <%= (r.ch || []).includes(c.id) ? 'checked' : '' %> /><span>#<%= c.name %></span></label><% }) %>
+                <% textCh2.forEach(c => { %><label data-group="<%= catOf(c) %>"><input type="checkbox" name="rule_<%= f.key %>_ch" value="<%= c.id %>" <%= (r.ch || []).includes(c.id) ? 'checked' : '' %> /><span>#<%= c.name %></span></label><% }) %>
               </div>
               <label>Роли, на которые это правило не действует</label>
-              <div class="pick">
+              <div class="pick" data-kind="roles">
                 <% roles.forEach(ro => { %><label><input type="checkbox" name="rule_<%= f.key %>_roles" value="<%= ro.id %>" <%= (r.roles || []).includes(ro.id) ? 'checked' : '' %> /><span><%= ro.name %></span></label><% }) %>
               </div>
+              <button type="button" class="btn btn-secondary pr-remove">Убрать особое наказание</button>
             </details>
           <% }) %>
           </div>
-          <div class="hint">Например: ссылки разрешены в #медиа, за мат — сразу мут на час, а за КАПС — только удаление.</div>
+          <div class="pr-add">
+            <label for="pr-add">Добавить особое наказание для правила</label>
+            <select id="pr-add">
+              <option value="">— выберите правило —</option>
+              <% filters.forEach(f => { %><option value="<%= f.key %>" <%= isSet(cfgOf(f)) ? 'hidden disabled' : '' %>><%= f.title %></option><% }) %>
+            </select>
+          </div>
         </div>
 
         <div class="card" id="names">
@@ -176,20 +192,20 @@
         </div>
 
         <div class="card" id="skip">
-          <h2>Исключения<span class="sub">Где и для кого автомодерация не работает. Нажмите на канал или роль, чтобы выбрать</span></h2>
+          <h2>Исключения<span class="sub">Где и для кого автомодерация не работает совсем</span></h2>
           <div>
             <label>Каналы, где автомодерация не работает</label>
             <div class="pick">
-              <% const textCh = channels.filter(c => c.type === 0 || c.type === 5); %>
-              <% if (!textCh.length) { %><span class="pick-empty">Текстовых каналов не найдено</span><% } %>
-              <% textCh.forEach(c => { %>
-                <label><input type="checkbox" name="ignoredChannels" value="<%= c.id %>" <%= ignoredChannels.includes(c.id) ? 'checked' : '' %> /><span>#<%= c.name %></span></label>
+    
+              <% if (!textCh2.length) { %><span class="pick-empty">Текстовых каналов не найдено</span><% } %>
+              <% textCh2.forEach(c => { %>
+                <label data-group="<%= catOf(c) %>"><input type="checkbox" name="ignoredChannels" value="<%= c.id %>" <%= ignoredChannels.includes(c.id) ? 'checked' : '' %> /><span>#<%= c.name %></span></label>
               <% }) %>
             </div>
           </div>
           <div>
             <label>Роли, которых автомодерация не проверяет</label>
-            <div class="pick">
+            <div class="pick" data-kind="roles">
               <% if (!roles.length) { %><span class="pick-empty">Ролей не найдено</span><% } %>
               <% roles.forEach(r => { %>
                 <label><input type="checkbox" name="ignoredRoles" value="<%= r.id %>" <%= ignoredRoles.includes(r.id) ? 'checked' : '' %> /><span><%= r.name %></span></label>
@@ -224,6 +240,41 @@
         document.getElementById('am-allow-wrap').classList.toggle('am-idle', !links);
       }
       form.addEventListener('input', update); form.addEventListener('change', update); update();
+
+      // Special punishments: only rules that have one are shown; "Добавить" opens a rule, "Убрать" clears and hides it.
+      var add = document.getElementById('pr-add'); var none = document.querySelector('.pr-empty');
+      var acts = { delete: 'только удалить сообщение', warn: 'удалить и предупредить', mute: 'удалить и замутить' };
+      function summary(d) {
+        var k = d.getAttribute('data-rule');
+        var a = d.querySelector('[name="rule_' + k + '_action"]').value; var m = d.querySelector('[name="rule_' + k + '_mute"]').value;
+        var ch = d.querySelectorAll('[name="rule_' + k + '_ch"]:checked').length; var ro = d.querySelectorAll('[name="rule_' + k + '_roles"]:checked').length;
+        var parts = [];
+        if (a) parts.push(acts[a] + (a === 'mute' && m ? ' на ' + m + ' мин' : '')); else if (m) parts.push('мут на ' + m + ' мин');
+        if (ch) parts.push('не действует в ' + ch + ' кан.');
+        if (ro) parts.push('не действует для ' + ro + ' рол.');
+        d.querySelector('.pr-sum').textContent = parts.length ? parts.join(' · ') : 'настройте ниже';
+      }
+      function syncAdd() {
+        var shown = document.querySelectorAll('.rule-cfg:not([hidden])').length;
+        none.hidden = shown > 0;
+        Array.prototype.forEach.call(add.options, function (o) { if (!o.value) return; var d = document.querySelector('.rule-cfg[data-rule="' + o.value + '"]'); o.hidden = o.disabled = !d.hidden; });
+      }
+      add.addEventListener('change', function () {
+        var d = document.querySelector('.rule-cfg[data-rule="' + add.value + '"]'); if (!d) return;
+        d.hidden = false; d.open = true; add.value = ''; syncAdd(); d.querySelector('select').focus();
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.rule-cfg'), function (d) {
+        d.addEventListener('input', function () { summary(d); }); d.addEventListener('change', function () { summary(d); });
+        d.querySelector('.pr-remove').addEventListener('click', function () {
+          d.querySelectorAll('select').forEach(function (x) { x.value = ''; });
+          d.querySelectorAll('input[type=number]').forEach(function (x) { x.value = ''; });
+          d.querySelectorAll('input[type=checkbox]').forEach(function (x) { x.checked = false; });
+          d.querySelectorAll('.ms-x').forEach(function (x) { x.click(); });
+          summary(d); d.open = false; d.hidden = true; syncAdd();
+          form.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+      });
+      syncAdd();
     })();
   </script>
 </body>

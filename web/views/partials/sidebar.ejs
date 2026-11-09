@@ -223,9 +223,11 @@
 </script>
 
 <div class="save-bar" id="saveBar" role="status" aria-live="polite">
-  <span class="sb-text">Есть несохранённые изменения</span>
-  <button type="button" class="btn btn-secondary" id="sbReset">Отменить</button>
-  <button type="button" class="btn" id="sbSave">Сохранить</button>
+  <span class="sb-text"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 6V10.5M10 13.5V13.6" stroke-linecap="round"/></svg><span><b>Есть несохранённые изменения</b><span class="sb-sub">Сохраните, чтобы бот начал работать по-новому</span></span></span>
+  <span class="sb-actions">
+    <button type="button" class="btn btn-secondary" id="sbReset">Отменить</button>
+    <button type="button" class="btn" id="sbSave">Сохранить изменения</button>
+  </span>
 </div>
 <script>
   // Shows a "save" bar once any settings form is edited, and warns before leaving with unsaved changes.
@@ -237,7 +239,7 @@
     });
     // Every edited form is remembered: saving one block must not silently drop changes made in another.
     var dirty = [], submitting = false;
-    function mark(f) { if (dirty.indexOf(f) < 0) dirty.push(f); bar.classList.add('show'); }
+    function mark(f) { if (dirty.indexOf(f) < 0) dirty.push(f); bar.classList.add('show'); document.body.classList.add('has-save-bar'); }
     function post(f) { return fetch(f.action || location.href, { method: 'POST', body: new URLSearchParams(new FormData(f)), credentials: 'same-origin' }); }
     // Saves the other edited forms in the background, then submits this one normally.
     function submitAll(main) {
@@ -245,6 +247,13 @@
       submitting = true;
       Promise.all(others.map(post)).catch(function () {}).then(function () { main.requestSubmit ? main.requestSubmit() : main.submit(); });
     }
+    // The bar appears by itself on any change, wherever the page is scrolled, so a settings form needs no own "Save" button
+    // at its very end. Buttons that do something else (add, publish, delete) stay.
+    forms.forEach(function (f) {
+      Array.prototype.forEach.call(f.querySelectorAll('button[type=submit], button:not([type])'), function (b) {
+        if (/^\s*(Сохранить|Save)/i.test(b.textContent) && !b.classList.contains('btn-danger')) b.classList.add('sb-replaced');
+      });
+    });
     forms.forEach(function (f) {
       f.addEventListener('input', function () { mark(f); });
       f.addEventListener('change', function () { mark(f); });

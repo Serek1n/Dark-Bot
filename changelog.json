@@ -1,6 +1,25 @@
 [
  {
   "bot": "3.4.2",
+  "panel": "3.4.1",
+  "date": "2026-11-09",
+  "botChanges": [],
+  "panelChanges": [
+   "Особые наказания: показаны только настроенные правила, остальные добавляются из списка",
+   "Выбор каналов и ролей — список с поиском, галочками и категориями вместо облака плашек",
+   "Панель «Есть несохранённые изменения» шире и заметнее, на телефоне — во всю ширину внизу"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Special punishments: only configured rules are shown, others are added from a list",
+    "Picking channels and roles: a list with search, ticks and categories instead of chips",
+    "The \"unsaved changes\" bar is wider and clearer; on phones it spans the whole bottom"
+   ]
+  }
+ },
+ {
+  "bot": "3.4.2",
   "panel": "3.4.0",
   "date": "2026-11-09",
   "botChanges": [
