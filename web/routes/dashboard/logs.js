@@ -1,7 +1,7 @@
 const express = require('express');
 const { ensureGuildAccess } = require('../../middleware/ensureGuildAccess');
 const { settingsChanged } = require('../../botBridge');
-const { getGuildChannels, getGuild, botApi } = require('../../discordApi');
+const { getGuildChannels, getGuild, getGuildRoles, botApi } = require('../../discordApi');
 const { CATEGORIES, KEYS: LOG_KEYS } = require('../../../bot/utils/logCategories');
 const { setupLogForum } = require('../../utils/logForum');
 const { parseJson, snowflake, getSettings } = require('../../utils/common');
@@ -11,10 +11,14 @@ const router = express.Router();
 // ---- Logs: the "Логи" forum (one post per kind of event, filled through a webhook) ----
 
 router.get('/:guildId/logs', ensureGuildAccess, async (req, res) => {
-  const [guild, settings, channels] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId)]);
+  const [guild, settings, channels, roles] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId), getGuildRoles(req.params.guildId).catch(() => [])]);
   res.render('dashboard/logs', {
     guild,
     settings,
+    channels,
+    roles: (roles || []).filter((r) => r.id !== req.params.guildId && !r.managed).sort((a, b) => b.position - a.position),
+    ignoreChannels: parseJson(settings.logIgnoreChannels, []),
+    ignoreRoles: parseJson(settings.logIgnoreRoles, []),
     forums: channels.filter((c) => c.type === 15),
     categories: CATEGORIES,
     threads: parseJson(settings.logThreads, {}),
@@ -41,6 +45,14 @@ router.post('/:guildId/logs', ensureGuildAccess, async (req, res) => {
 
   const enabled = new Set(LOG_KEYS.filter((k) => req.body['cat_' + k] === 'on'));
   settings.logDisabled = JSON.stringify(LOG_KEYS.filter((k) => !enabled.has(k)));
+  // What is left out: only channels and roles of this server, at most 100 of each
+  const [allChannels, allRoles] = await Promise.all([getGuildChannels(guildId), getGuildRoles(guildId).catch(() => [])]);
+  const list = (v) => [].concat(v || []).map(snowflake).filter(Boolean);
+  const chIds = new Set(allChannels.map((c) => c.id)); const roleIds = new Set((allRoles || []).map((r) => r.id));
+  settings.logIgnoreChannels = JSON.stringify([...new Set(list(req.body.logIgnoreChannels))].filter((id) => chIds.has(id)).slice(0, 100));
+  settings.logIgnoreRoles = JSON.stringify([...new Set(list(req.body.logIgnoreRoles))].filter((id) => roleIds.has(id) && id !== guildId).slice(0, 100));
+  settings.logIgnoreBots = req.body.logIgnoreBots === 'on';
+  settingsChanged(guildId, 'logs');
 
   const forumId = snowflake(req.body.logForumChannelId);
   if (!forumId) {

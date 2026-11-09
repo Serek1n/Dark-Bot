@@ -29,6 +29,9 @@ module.exports = (sequelize) => {
       },
       logThreads: { type: DataTypes.TEXT, defaultValue: '{}' }, // JSON { category: threadId }
       logDisabled: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON [category] switched off
+      logIgnoreChannels: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON [channelId]: messages, files and voice there are not logged
+      logIgnoreRoles: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON [roleId]: members with these roles are not logged (messages, files, voice)
+      logIgnoreBots: { type: DataTypes.BOOLEAN, defaultValue: false }, // messages of bots and webhooks are not logged
 
       // Welcome / autorole
       welcomeChannelId: { type: DataTypes.STRING, allowNull: true },

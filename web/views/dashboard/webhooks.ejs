@@ -1,14 +1,27 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><%- include('../partials/head', { title: guild.name + ' — Вебхуки' }) %></head>
+<head><%- include('../partials/head', { title: guild.name + ' — Вебхуки и сообщения' }) %></head>
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <div class="content">
       <div class="page-header">
-        <h1>Вебхуки</h1>
-        <p class="page-intro">Вебхук позволяет публиковать сообщения в канал от любого имени и с любой аватаркой — например, из внешних сервисов. Здесь можно создать вебхук в нужном канале, получить его ссылку и отправить тестовое сообщение. То же самое в Discord делает команда <code>/webhook</code>.</p>
+        <h1>Вебхуки и сообщения</h1>
+        <p class="page-intro">Вебхук публикует сообщения в канал от любого имени и с любой аватаркой. Здесь можно создать вебхук, собрать сообщение в конструкторе (текст, эмбеды или новые компоненты Discord), отправить его через вебхук или от имени бота, сохранить заготовку и поставить сообщение по расписанию.</p>
       </div>
+
+      <div class="msg-tabs" role="tablist">
+        <button type="button" role="tab" data-tab="hooks" class="active">Вебхуки <span class="msg-count"><%= hooks.length %></span></button>
+        <button type="button" role="tab" data-tab="editor">Конструктор</button>
+        <button type="button" role="tab" data-tab="saved">Сохранённые <span class="msg-count"><%= savedList.length %></span></button>
+        <button type="button" role="tab" data-tab="schedule">Расписание <span class="msg-count"><%= scheduled.length %></span></button>
+        <button type="button" role="tab" data-tab="tools">Инструменты</button>
+      </div>
+
+      <section class="msg-pane" data-pane="hooks">
+      <% if (!rights.webhooks) { %>
+        <div class="callout">Создавать и удалять вебхуки может только тот, у кого есть право «Управлять вебхуками». Конструктор, заготовки и расписание доступны — сообщения будут отправляться от имени бота.</div>
+      <% } else { %>
 
       <% if (featureOff) { %>
         <div class="callout" style="margin-bottom:18px"><%= disabledNote %> Пока она выключена, команда <code>/webhook</code> и кнопки в Discord не работают, а эта страница продолжает работать.</div>
@@ -96,6 +109,10 @@
           <% }) %>
         <% } %>
       </div>
+      <% } %>
+      </section>
+
+      <%- include('../partials/msg-builder') %>
     </div>
   </div>
 </body>

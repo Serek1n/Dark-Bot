@@ -161,8 +161,11 @@ const express = require('express');
     assert(r.headers.get('location').includes('adjusted=1') && (await MemberProfile.findOne({ where: { guildId: G, userId: U } })).level === 3, r.headers.get('location'));
   });
   await test('webhooks: "Manage Server" alone is not enough (links and hidden channels), "Manage Webhooks" or admin is needed', async () => {
+    // the page opens (the message builder works as the bot), but no webhook, link or creation form is shown
     const r = await fetch(gbase + '/webhooks', { headers: { 'x-test-rights': 'manage-only' } });
-    assert(r.status === 403 && (await r.text()).includes('Управлять вебхуками'), String(r.status));
+    const html = await r.text();
+    assert(r.status === 200 && html.includes('только тот, у кого есть право «Управлять вебхуками»') && !/discord(?:app)?\.com\/api\/webhooks\/\d/.test(html) && !html.includes('Новый вебхук'), String(r.status));
+
   });
   await test('webhook actions are limited to 10 a minute per user', async () => {
     const codes = []; for (let i = 0; i < 13; i++) codes.push((await post('/webhooks', { channelId: 'bad', name: '' })).status);

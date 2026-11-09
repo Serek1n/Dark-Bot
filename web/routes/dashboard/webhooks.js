@@ -36,14 +36,17 @@ const WEBHOOK_CHANNEL_TYPES = [0, 2, 5, 13, 15, 16];
 // Errors travel as a short code (`reason`), turned into text by the page: a link cannot carry arbitrary words to show.
 const webhookPage = (guildId, flag, reason) => `/dashboard/${guildId}/webhooks?${flag}=1${reason ? '&reason=' + reason : ''}`;
 
-router.get('/:guildId/webhooks', ensureGuildAccess, needWebhookRights, async (req, res) => {
+// The page: webhooks of the bot (for those who may manage webhooks) and the message builder (for every manager).
+router.get('/:guildId/webhooks', ensureGuildAccess, (req, res, next) => require('./messages').previewImages(req, res, next), async (req, res) => {
   const guildId = req.params.guildId;
-  const guild = await getGuild(guildId);
-  const channels = (await getGuildChannels(guildId)).filter((c) => WEBHOOK_CHANNEL_TYPES.includes(c.type));
-  const settings = await GuildSettings.findByPk(guildId);
+  const { builderData } = require('./messages');
+  const [guild, allChannels, settings, builder] = await Promise.all([getGuild(guildId), getGuildChannels(guildId), GuildSettings.findByPk(guildId), builderData(req)]);
+  const channels = allChannels.filter((c) => WEBHOOK_CHANNEL_TYPES.includes(c.type));
   let hooks = []; let error = null;
-  try { hooks = await webhooks.listOwn(guildId, BOT_ID(), settings?.logWebhookId); } catch (err) { error = webhooks.explain(err); }
-  res.render('dashboard/webhooks', { guild, channels, settings, hooks, error, featureOff: !isEnabled(settings, 'webhooks'), disabledNote: disabledText(settings, 'webhooks'), active: 'webhooks' });
+  if (builder.rights.webhooks) {
+    try { hooks = await webhooks.listOwn(guildId, BOT_ID(), settings?.logWebhookId); } catch (err) { error = webhooks.explain(err); }
+  }
+  res.render('dashboard/webhooks', { guild, channels, settings, hooks, error, featureOff: !isEnabled(settings, 'webhooks'), disabledNote: disabledText(settings, 'webhooks'), active: 'webhooks', ...builder });
 });
 
 router.post('/:guildId/webhooks', webhookLimit, ensureGuildAccess, needWebhookRights, needFeatureOn, async (req, res) => {

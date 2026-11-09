@@ -29,7 +29,7 @@ async function getConfig(guildId) {
   try {
     const s = await GuildSettings.findOne({
       where: { guildId },
-      attributes: ['logForumChannelId', 'logWebhookId', 'logWebhookToken', 'logThreads', 'logDisabled']
+      attributes: ['logForumChannelId', 'logWebhookId', 'logWebhookToken', 'logThreads', 'logDisabled', 'logIgnoreChannels', 'logIgnoreRoles', 'logIgnoreBots']
     });
     if (s?.logForumChannelId && s.logWebhookId && s.logWebhookToken) {
       const threads = parseJson(s.logThreads, {});
@@ -38,7 +38,10 @@ async function getConfig(guildId) {
         token: s.logWebhookToken,
         threads,
         threadIds: new Set(Object.values(threads)),
-        disabled: new Set(parseJson(s.logDisabled, []))
+        disabled: new Set(parseJson(s.logDisabled, [])),
+        ignoreChannels: new Set(parseJson(s.logIgnoreChannels, [])),
+        ignoreRoles: new Set(parseJson(s.logIgnoreRoles, [])),
+        ignoreBots: Boolean(s.logIgnoreBots)
       };
     }
   } catch (err) {
@@ -50,6 +53,19 @@ async function getConfig(guildId) {
 }
 
 const invalidate = (guildId) => configs.delete(guildId);
+
+/**
+ * True when an event must be left out of the logs by the server's "Что не записывать" settings:
+ * a channel (or the channel a thread belongs to) on the list, a bot or webhook when bots are off, a member with a listed role.
+ */
+function skipped(cfg, { channel, channelId, parentId, member, isBot } = {}) {
+  if (!cfg) return false;
+  const ids = [channelId, channel?.id, parentId, channel?.parentId].filter(Boolean);
+  if (cfg.ignoreChannels?.size && ids.some((id) => cfg.ignoreChannels.has(id))) return true;
+  if (cfg.ignoreBots && isBot) return true;
+  if (cfg.ignoreRoles?.size && member?.roles?.cache?.has && [...cfg.ignoreRoles].some((id) => member.roles.cache.has(id))) return true;
+  return false;
+}
 
 /** True when logs of this category are being collected for the guild. */
 async function isOn(guildId, key) {
@@ -105,6 +121,8 @@ function remember(message) {
     authorId: message.author?.id || null,
     channelId: message.channelId,
     webhookId: message.webhookId || null,
+    isBot: Boolean(message.author?.bot || message.webhookId),
+    parentId: message.channel?.parentId || null,
     attachments: [...(message.attachments?.values?.() || [])].slice(0, 10).map((a) => ({ name: a.name, url: a.url, size: a.size }))
   });
   if (messageCache.size > MAX_MESSAGES) messageCache.delete(messageCache.keys().next().value);
@@ -124,4 +142,4 @@ function markReported(guildId, userId, action) {
 }
 const wasReported = (guildId, userId, action) => Date.now() - (reported.get(`${guildId}:${userId}:${action}`) || 0) < 15_000;
 
-module.exports = { setAvatar, getConfig, invalidate, isOn, sendLog, log, remember, recall, forget, markReported, wasReported };
+module.exports = { setAvatar, getConfig, invalidate, skipped, isOn, sendLog, log, remember, recall, forget, markReported, wasReported };

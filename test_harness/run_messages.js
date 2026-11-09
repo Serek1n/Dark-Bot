@@ -112,11 +112,14 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
   const form = (p) => fetch(base + p, { method: 'POST', body: new URLSearchParams({}), redirect: 'manual' }).then((r) => r.headers.get('location'));
   const msg = { content: 'Привет @everyone', embeds: [{ title: 'Новости', description: 'Текст', color: '#5865f2' }], components: [{ components: [{ label: 'Сайт', url: 'https://example.com' }] }], username: 'Робот', mentions: 'everyone' };
 
-  await test('page: tabs, the bot\'s webhooks without their links, pictures of the preview allowed only here', async () => {
-    const r = await fetch(base); const html = await r.text();
+  await test('the builder is a part of the "Вебхуки" page (old address redirects); its data carries no webhook links', async () => {
+    const old = await fetch(base, { redirect: 'manual' });
+    assert(old.status === 301 && old.headers.get('location').endsWith(`/dashboard/${G}/webhooks#editor`), 'old /messages redirects');
+    const r = await fetch(base.replace('/messages', '/webhooks')); const html = await r.text();
     assert.strictEqual(r.status, 200);
-    for (const s of ['Редактор', 'Сохранённые', 'Расписание', 'Цветной текст', 'Информация о вебхуке', 'News · #general', '/js/messages.js']) assert(html.includes(s), s);
-    assert(!html.includes(TOKEN), 'no webhook token on the page');
+    for (const s of ['Вебхуки и сообщения', 'Конструктор', 'Сохранённые', 'Расписание', 'Цветной текст', 'Информация о вебхуке', 'News · #general', '/js/messages.js', 'name="m-kind" value="v2"']) assert(html.includes(s), s);
+    const data = /<script id="msg-data" type="application\/json">([\s\S]*?)<\/script>/.exec(html)[1];
+    assert(!data.includes(TOKEN) && JSON.parse(data).page.endsWith('/webhooks'), 'no webhook token in the builder data');
     assert(/img-src 'self' https: data:/.test(r.headers.get('content-security-policy')), r.headers.get('content-security-policy'));
   });
 
@@ -160,8 +163,8 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
       assert(r.status === 403 && /Управлять вебхуками/.test(r.error), JSON.stringify(r));
       r = await post('/send', { target: { mode: 'channel', channelId: CH }, message: msg });
       assert.deepStrictEqual(last('bot.post')[2].allowed_mentions, { parse: ['users', 'roles'] }, 'no @everyone without the right');
-      const html = await (await fetch(base)).text();
-      assert(!html.includes('News · #general') && html.includes('Нужно право «Управлять вебхуками»'), 'no webhooks offered');
+      const html = await (await fetch(base.replace('/messages', '/webhooks'))).text();
+      assert(!html.includes('News · #general') && html.includes('Нужно право «Управлять вебхуками»') && html.includes('только тот, у кого есть право «Управлять вебхуками»'), 'no webhooks offered, the builder still works');
     } finally { access = { manageable: true, owner: true, permissions: '0' }; }
   });
 
@@ -224,8 +227,29 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     assert((await form(`/schedule/${row.id}/test`)).includes('msgfail'));
     assert((await form(`/schedule/${once.id}/toggle`)).includes('msgpast'), 'nothing left to send');
     assert((await form(`/schedule/${once.id}/test`)).includes('msgtest'));
-    const page = await (await fetch(base)).text(); assert(page.includes('Последняя ошибка') && page.includes('каждый день в 19:00'), 'listed');
+    const page = await (await fetch(base.replace('/messages', '/webhooks'))).text(); assert(page.includes('Последняя ошибка') && page.includes('каждый день в 19:00'), 'listed');
     assert((await form(`/schedule/${row.id}/delete`)).includes('deleted') && !(await db.ScheduledMessage.findByPk(row.id)));
+  });
+
+  await test('Discord components: checked by Discord\'s rules, sent with the components flag, loaded back for editing', async () => {
+    const v2 = { v2: true, components: [{ type: 17, accent_color: '#e3a857', components: [{ type: 10, content: '## Новости' }, { type: 14, divider: true, spacing: 2 }, { type: 12, items: [{ media: { url: 'https://img.example/a.png' }, description: 'Картинка' }] }, { type: 9, components: [{ type: 10, content: 'Подробнее' }], accessory: { type: 2, style: 5, label: 'Сайт', url: 'https://example.com' } }] }, { type: 1, components: [{ type: 2, style: 5, label: 'Правила', url: 'https://example.com/r' }] }] };
+    let r = await post('/send', { target: { mode: 'webhook', webhookId: HOOK }, message: { ...v2, username: 'Новости' } });
+    assert(r.ok, JSON.stringify(r));
+    const p = last('hook.post');
+    assert(p[2].flags === 32768 && !('content' in p[2]) && !('embeds' in p[2]) && p[2].components[0].type === 17 && p[2].components[0].accent_color === 0xe3a857 && p[2].username === 'Новости', JSON.stringify(p[2]).slice(0, 200));
+    assert(/with_components=true/.test(p[1]));
+    sentMsgs[r.id].flags = 32768;
+    const back = await post('/load', { target: { mode: 'webhook', webhookId: HOOK }, messageRef: r.id });
+    assert(back.ok && back.message.v2 && back.message.components[0].type === 17, JSON.stringify(back).slice(0, 200));
+    const bad = async (components, re) => assert.throws(() => kit.cleanMessage({ v2: true, components }), (e) => e.kit && re.test(e.message), JSON.stringify(components).slice(0, 60));
+    await bad([], /хотя бы один блок/);
+    await bad([{ type: 17, components: [] }], /контейнер пустой/);
+    await bad([{ type: 17, components: [{ type: 17, components: [{ type: 10, content: 'x' }] }] }], /не поддерживается/);
+    await bad([{ type: 12, items: [{ media: { url: 'http://insecure/a.png' } }] }], /https/);
+    await bad(Array.from({ length: 41 }, () => ({ type: 10, content: 'a' })), /больше 40/);
+    await bad([{ type: 10, content: 'x'.repeat(2500) }, { type: 10, content: 'y'.repeat(2000) }], /больше 4000/);
+    r = await post('/saved', { name: 'Компоненты', state: { message: v2 } });
+    assert(r.ok, 'a draft with components is kept');
   });
 
   await test('webhook info: name, server and channel, never the token; bad links refused', async () => {

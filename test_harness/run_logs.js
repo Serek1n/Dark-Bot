@@ -113,7 +113,7 @@ WebhookClient.prototype.send = capture;
     const s = await settings(); const th = JSON.parse(s.logThreads);
     assert(s.logForumChannelId === FORUM && s.logWebhookId && s.logWebhookToken && Object.keys(th).length === 8 && state.threads.size === 8 && s.logDisabled === '[]', 'stored');
     const html = await (await fetch(base + '/logs')).text();
-    assert(html.includes('Изменения сообщений') && html.includes('События среди участников') && html.includes('Пересоздать недостающие темы') && html.includes('logs-forum') && !html.includes('general'), 'page');
+    assert(html.includes('Изменения сообщений') && html.includes('События среди участников') && html.includes('Пересоздать недостающие темы') && html.includes('logs-forum') && !html.includes('>#general</option>'), 'page');
   });
   await test('route: saving again does not touch Discord; switches are stored; "setup" repairs', async () => {
     state.log.length = 0;

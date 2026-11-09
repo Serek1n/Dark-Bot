@@ -74,6 +74,7 @@ on('messageCreate', async (message) => {
   const cfg = await L.getConfig(message.guild.id);
   if (!cfg || cfg.threadIds.has(message.channelId) || (message.webhookId && message.webhookId === cfg.webhookId)) return;
   L.remember(message);
+  if (L.skipped(cfg, { channel: message.channel, member: message.member, isBot: message.author?.bot || message.webhookId })) return;
   if (message.attachments.size && (await L.isOn(message.guild.id, 'files'))) {
     await L.log(message.guild.id, 'files', (base) =>
       base(COLORS.create)
@@ -100,6 +101,7 @@ on('messageUpdate', async (oldMessage, newMessage) => {
   const authorId = newMessage.author?.id || cached?.authorId;
   const removed = (cached?.attachments || []).filter((a) => !newMessage.attachments?.some?.((n) => n.url === a.url));
   L.remember(newMessage);
+  if (L.skipped(cfg, { channel: newMessage.channel, member: newMessage.member || newMessage.guild.members?.cache?.get(authorId), isBot: newMessage.author?.bot || newMessage.webhookId || cached?.isBot })) return;
   if (before !== after && before !== null && before !== undefined) {
     await L.log(guildId, 'messages', (base) =>
       base(COLORS.edit)
@@ -132,6 +134,7 @@ on('messageDelete', async (message) => {
   if ((cached?.webhookId || message.webhookId) === cfg.webhookId) return;
   const authorId = message.author?.id || cached?.authorId;
   const content = message.content ?? cached?.content;
+  if (L.skipped(cfg, { channel: message.channel, channelId: message.channelId, parentId: cached?.parentId, member: message.member || message.guild?.members?.cache?.get(authorId), isBot: message.author?.bot || message.webhookId || cached?.isBot })) return;
   await L.log(guildId, 'messages', async (base) => {
     // The audit log has an entry only when somebody else deleted the message (one entry covers several deletions).
     const entry = authorId ? await A.find(message.guild, AE.MessageDelete, (e) => e.targetId === authorId && (!e.extra?.channel || e.extra.channel.id === message.channelId), { wait: 800, tries: 1, consume: false }) : null;
@@ -160,6 +163,7 @@ on('messageDeleteBulk', async (messages, channel) => {
   const cfg = await L.getConfig(channel.guild.id);
   if (!cfg || cfg.threadIds.has(channel.id)) return;
   for (const id of messages.keys()) L.forget(id);
+  if (L.skipped(cfg, { channel })) return;
   await L.log(channel.guild.id, 'messages', async (base) => {
     const entry = await A.find(channel.guild, AE.MessageBulkDelete, (e) => e.targetId === channel.id, { wait: 800, tries: 1, consume: false });
     return base(COLORS.delete).setTitle('🧹 Массовое удаление сообщений').addFields({ name: 'Канал', value: `<#${channel.id}>`, inline: true }, { name: 'Количество', value: String(messages.size), inline: true }, ...A.actorFields(entry, 'Удалил'));
@@ -286,6 +290,9 @@ on('voiceStateUpdate', async (oldState, newState) => {
   const guildId = (newState.guild || oldState.guild).id;
   if (!(await L.isOn(guildId, 'voice'))) return;
   const id = newState.id;
+  const vcfg = await L.getConfig(guildId);
+  const vMember = newState.member || oldState.member;
+  if (L.skipped(vcfg, { member: vMember, isBot: vMember?.user?.bot }) || (L.skipped(vcfg, { channelId: oldState.channelId || newState.channelId }) && L.skipped(vcfg, { channelId: newState.channelId || oldState.channelId }))) return;
   const who = `${user(id)} (${clip((newState.member || oldState.member)?.user?.username || '—', 60)})`;
   const make = (color, title, fields = []) => L.log(guildId, 'voice', (base) => base(color).setTitle(title).setDescription(who).addFields(fields));
   // A moderator muting somebody: the audit log says who.

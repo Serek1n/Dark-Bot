@@ -32,6 +32,7 @@
       if (img.complete && img.naturalWidth === 0 && img.getAttribute('src')) broken(img);
     });
     navUi();
+    pageToc();
     quickJump();
     findOnPage();
     templateHelp();
@@ -69,6 +70,42 @@
     if (user) document.addEventListener('click', function (e) { if (user.open && !user.contains(e.target)) user.open = false; });
   }
 
+  // 3) "На этой странице": on wide screens the cards of the page are listed in a column on the left (built from their
+  //    headings, so every page has it); the card on screen is lit while scrolling. Narrow screens keep the buttons on top.
+  function pageToc() {
+    var content = document.querySelector('.app-layout > .content');
+    if (!content || !document.querySelector('.topbar') || content.querySelector('.msg-tabs')) return; // pages with their own tabs keep them
+    var heads = Array.prototype.filter.call(content.querySelectorAll('.card > h2, section.card h2, .card > .card-head h2'), function (h) {
+      return h.offsetParent !== null || h.closest('[data-pane]');
+    }).filter(function (h) { return !h.closest('[hidden]'); });
+    if (heads.length < 3) return;
+    var title = (content.querySelector('.page-header h1, .hero h1, h1') || {}).textContent || '';
+    var toc = document.createElement('nav'); toc.className = 'page-toc'; toc.setAttribute('aria-label', 'На этой странице');
+    var cap = document.createElement('div'); cap.className = 'toc-cap'; cap.textContent = 'На этой странице'; toc.appendChild(cap);
+    var links = [];
+    heads.forEach(function (h, i) {
+      var card = h.closest('.card') || h;
+      if (!card.id) card.id = 'sec-' + (i + 1);
+      var a = document.createElement('a'); a.href = '#' + card.id;
+      var first = h.firstChild && h.firstChild.nodeType === 3 ? h.firstChild.textContent : h.textContent;
+      a.textContent = (first || '').trim() || h.textContent.trim();
+      a.addEventListener('click', function (e) { e.preventDefault(); card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); history.replaceState(null, '', '#' + card.id); });
+      toc.appendChild(a); links.push({ a: a, card: card });
+    });
+    void title;
+    document.body.appendChild(toc);
+    document.body.classList.add('has-toc');
+    if (!('IntersectionObserver' in window)) return;
+    var visible = {};
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { visible[en.target.id] = en.isIntersecting ? en.intersectionRect.height : 0; });
+      var best = null, bestH = 0;
+      links.forEach(function (l) { var hgt = visible[l.card.id] || 0; if (hgt > bestH) { bestH = hgt; best = l; } });
+      links.forEach(function (l) { l.a.classList.toggle('on', l === best); });
+    }, { rootMargin: '-120px 0px -35% 0px', threshold: [0, 0.25, 0.5, 1] });
+    links.forEach(function (l) { io.observe(l.card); });
+  }
+
   // 4) Search: Ctrl+K (⌘K) or "/" opens it. It finds pages and the settings inside them (card headings, fields, switches);
   //    a setting opens its page scrolled to it.
   function quickJump() {
@@ -96,13 +133,30 @@
     box.className = 'qj';
     box.hidden = true;
     box.innerHTML = '<div class="qj-panel" role="dialog" aria-modal="true" aria-label="Поиск по панели">' +
+      '<div class="qj-field"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.3"/><path d="M12.8 12.8L16.5 16.5"/></svg>' +
       '<input class="qj-input" type="search" placeholder="Раздел или настройка: магазин, пауза, мат…" autocomplete="off" aria-label="Поиск раздела или настройки" />' +
-      '<div class="qj-list" role="listbox"></div><div class="qj-hint"><kbd>↑</kbd><kbd>↓</kbd> выбрать · <kbd>Enter</kbd> открыть · <kbd>Esc</kbd> закрыть</div></div>';
+      '<button type="button" class="qj-close" aria-label="Закрыть поиск">Esc</button></div>' +
+      '<div class="qj-list" role="listbox"></div><div class="qj-hint"><span><kbd>↑</kbd><kbd>↓</kbd> выбрать</span><span><kbd>Enter</kbd> открыть</span><span><kbd>Esc</kbd> закрыть</span></div></div>';
     document.body.appendChild(box);
     var input = box.querySelector('.qj-input'), list = box.querySelector('.qj-list'), shown = [], sel = 0;
     function norm(s) { return s.toLowerCase().replace(/ё/g, 'е'); }
     function match(it, words) { var h = norm(it.name + ' ' + it.desc); return words.every(function (w) { return h.indexOf(w) !== -1; }); }
     function head(text) { var d = document.createElement('div'); d.className = 'qj-head'; d.textContent = text; return d; }
+    // the typed words are lit in the result (built from text nodes: nothing typed can become markup)
+    function mark(el, text, words) {
+      var low = norm(text), spans = [];
+      words.forEach(function (w) { var i = low.indexOf(w); if (w && i !== -1) spans.push([i, i + w.length]); });
+      spans.sort(function (a, b) { return a[0] - b[0]; });
+      var pos = 0;
+      spans.forEach(function (sp) {
+        if (sp[0] < pos) return;
+        el.appendChild(document.createTextNode(text.slice(pos, sp[0])));
+        var m = document.createElement('mark'); m.textContent = text.slice(sp[0], sp[1]); el.appendChild(m); pos = sp[1];
+      });
+      el.appendChild(document.createTextNode(text.slice(pos)));
+    }
+    var frame = 0;
+    function drawSoon() { if (frame) return; frame = requestAnimationFrame(function () { frame = 0; draw(); }); }
     function draw() {
       var q = norm(input.value.trim()); var words = q ? q.split(/\s+/) : [];
       var foundPages = pages.filter(function (it) { return !words.length || match(it, words); });
@@ -116,16 +170,17 @@
         if (i === foundPages.length) list.appendChild(head('Настройки'));
         var a = document.createElement('a');
         a.href = it.href; a.className = 'qj-item' + (i === sel ? ' sel' : '') + (it.setting ? ' qj-setting' : ''); a.setAttribute('role', 'option');
-        a.innerHTML = it.icon + '<span><b></b><small></small></span>';
-        a.querySelector('b').textContent = it.name; a.querySelector('small').textContent = it.setting ? '↳ ' + it.desc : it.desc;
+        a.innerHTML = '<span class="qj-ic">' + it.icon + '</span><span class="qj-txt"><b></b><small></small></span>' + (i === sel ? '<kbd class="qj-enter">↵</kbd>' : '');
+        mark(a.querySelector('b'), it.name, words); a.querySelector('small').textContent = it.setting ? '↳ ' + it.desc : it.desc;
         list.appendChild(a);
       });
       var cur = list.querySelectorAll('.qj-item')[sel]; if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' });
     }
     function go(it) { var here = location.pathname === it.href.split('#')[0]; location.href = it.href; if (here) { close(); findOnPage(); } }
-    function open() { box.hidden = false; input.value = ''; sel = 0; draw(); input.focus(); document.documentElement.classList.add('qj-open'); loadSettings(); }
-    function close() { box.hidden = true; document.documentElement.classList.remove('qj-open'); }
-    input.addEventListener('input', function () { sel = 0; draw(); });
+    function open() { box.hidden = false; input.value = ''; sel = 0; draw(); input.focus(); document.documentElement.classList.add('qj-open'); requestAnimationFrame(function () { box.classList.add('in'); }); loadSettings(); }
+    function close() { box.classList.remove('in'); box.hidden = true; document.documentElement.classList.remove('qj-open'); }
+    input.addEventListener('input', function () { sel = 0; drawSoon(); });
+    box.querySelector('.qj-close').addEventListener('click', function () { close(); });
     input.addEventListener('keydown', function (e) {
       if (e.key === 'ArrowDown') { sel = Math.min(shown.length - 1, sel + 1); draw(); e.preventDefault(); }
       else if (e.key === 'ArrowUp') { sel = Math.max(0, sel - 1); draw(); e.preventDefault(); }
@@ -317,9 +372,124 @@
     draw(); filter();
   }
   document.querySelectorAll('.pick').forEach(multiPick);
+
+  // 8) Dropdowns: every single-choice list becomes a button with a popover list (search in long ones, keyboard, groups).
+  //    The real <select> stays underneath: forms, labels and scripts that read or set .value keep working.
+  var openSelect = null;
+  function fancySelect(sel) {
+    if (sel.dataset.fs || sel.multiple || sel.size > 1 || sel.closest('[data-native], .ms')) return;
+    sel.dataset.fs = '1';
+    var w = sel.offsetWidth, pw = sel.parentElement ? sel.parentElement.clientWidth : 0;
+    var wrap = document.createElement('div'); wrap.className = 'fs';
+    if (w && pw && w < pw * 0.85) { wrap.classList.add('fs-inline'); wrap.style.minWidth = w + 'px'; }
+    sel.parentNode.insertBefore(wrap, sel); wrap.appendChild(sel); sel.classList.add('fs-native'); sel.tabIndex = -1;
+    var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'fs-btn'; btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
+    if (sel.id) { var lab = document.querySelector('label[for="' + sel.id + '"]'); if (lab) { if (!lab.id) lab.id = sel.id + '-lbl'; btn.setAttribute('aria-labelledby', lab.id + ' ' + (sel.id + '-val')); } }
+    else if (sel.getAttribute('aria-label')) btn.setAttribute('aria-label', sel.getAttribute('aria-label'));
+    btn.innerHTML = '<span class="fs-val"></span><svg class="fs-chev" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg>';
+    var val = btn.querySelector('.fs-val'); if (sel.id) val.id = sel.id + '-val';
+    wrap.appendChild(btn);
+    var pop = document.createElement('div'); pop.className = 'fs-pop'; pop.hidden = true;
+    wrap.appendChild(pop);
+    var items = [], active = -1, search = null;
+    function label() {
+      var o = sel.options[sel.selectedIndex];
+      val.textContent = o ? o.textContent.trim() : '';
+      wrap.classList.toggle('fs-empty', !o || o.value === '');
+      btn.disabled = sel.disabled; wrap.hidden = sel.hidden;
+    }
+    function build() {
+      pop.innerHTML = ''; items = [];
+      var opts = Array.prototype.filter.call(sel.options, function (o) { return !o.hidden; });
+      if (opts.length > 8) {
+        var f = document.createElement('div'); f.className = 'fs-search';
+        search = document.createElement('input'); search.type = 'search'; search.placeholder = 'Поиск…'; search.autocomplete = 'off'; search.setAttribute('aria-label', 'Поиск в списке');
+        f.appendChild(search); pop.appendChild(f);
+        search.addEventListener('input', filter);
+        search.addEventListener('keydown', keys);
+      } else search = null;
+      var list = document.createElement('div'); list.className = 'fs-list'; list.setAttribute('role', 'listbox'); pop.appendChild(list);
+      var lastGroup = null;
+      opts.forEach(function (o) {
+        var g = o.parentElement && o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : '';
+        if (g && g !== lastGroup) { var h = document.createElement('div'); h.className = 'fs-group'; h.textContent = g; list.appendChild(h); }
+        lastGroup = g;
+        var it = document.createElement('div'); it.className = 'fs-opt'; it.setAttribute('role', 'option');
+        it.textContent = o.textContent.trim();
+        if (o.disabled) { it.classList.add('off'); it.setAttribute('aria-disabled', 'true'); }
+        if (o.selected) { it.classList.add('sel'); it.setAttribute('aria-selected', 'true'); }
+        if (o.value === '') it.classList.add('none');
+        it.addEventListener('mousedown', function (e) { e.preventDefault(); });
+        it.addEventListener('click', function () { if (!o.disabled) choose(o); });
+        it.addEventListener('mousemove', function () { setActive(items.indexOf(entry)); });
+        var entry = { el: it, o: o }; items.push(entry); list.appendChild(it);
+      });
+      var none = document.createElement('div'); none.className = 'fs-nothing'; none.textContent = 'Ничего не найдено'; none.hidden = true; list.appendChild(none);
+    }
+    function visible() { return items.filter(function (x) { return !x.el.hidden && !x.o.disabled; }); }
+    function setActive(i) {
+      items.forEach(function (x, k) { x.el.classList.toggle('act', k === i); });
+      active = i; var x = items[i]; if (x && x.el.scrollIntoView) x.el.scrollIntoView({ block: 'nearest' });
+    }
+    function filter() {
+      var q = search.value.trim().toLowerCase().replace(/ё/g, 'е');
+      items.forEach(function (x) { x.el.hidden = q && x.el.textContent.toLowerCase().replace(/ё/g, 'е').indexOf(q) === -1; });
+      Array.prototype.forEach.call(pop.querySelectorAll('.fs-group'), function (h) { var n = h.nextElementSibling, any = false; while (n && !n.classList.contains('fs-group')) { if (n.classList.contains('fs-opt') && !n.hidden) any = true; n = n.nextElementSibling; } h.hidden = !any; });
+      pop.querySelector('.fs-nothing').hidden = visible().length > 0;
+      var v = visible(); setActive(v.length ? items.indexOf(v[0]) : -1);
+    }
+    function place() {
+      var r = btn.getBoundingClientRect(), below = window.innerHeight - r.bottom, above = r.top;
+      wrap.classList.toggle('up', below < 280 && above > below);
+    }
+    function open() {
+      if (sel.disabled) return;
+      if (openSelect && openSelect !== close) openSelect();
+      build(); place(); pop.hidden = false; wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); openSelect = close;
+      var cur = items.findIndex(function (x) { return x.o.selected; }); setActive(cur);
+      if (search) search.focus();
+    }
+    function close() { pop.hidden = true; wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); if (openSelect === close) openSelect = null; }
+    function choose(o) {
+      var changed = sel.value !== o.value;
+      setValue.call(sel, o.value); label(); close(); btn.focus();
+      if (changed) { sel.dispatchEvent(new Event('input', { bubbles: true })); sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }
+    function step(d) { var v = visible(); if (!v.length) return; var pos = v.indexOf(items[active]); pos = pos === -1 ? 0 : Math.max(0, Math.min(v.length - 1, pos + d)); setActive(items.indexOf(v[pos])); }
+    function keys(e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (pop.hidden) open(); else step(1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (pop.hidden) open(); else step(-1); }
+      else if (e.key === 'Enter' || (e.key === ' ' && e.target === btn)) { e.preventDefault(); if (pop.hidden) open(); else if (items[active]) choose(items[active].o); }
+      else if (e.key === 'Escape' && !pop.hidden) { e.preventDefault(); e.stopPropagation(); close(); btn.focus(); }
+      else if (e.key === 'Tab') close();
+      else if (!search && e.key.length === 1 && !pop.hidden) { var ch = e.key.toLowerCase(); var v = visible(); var hit = v.filter(function (x) { return x.el.textContent.trim().toLowerCase().indexOf(ch) === 0; })[0]; if (hit) setActive(items.indexOf(hit)); }
+    }
+    btn.addEventListener('click', function () { pop.hidden ? open() : close(); });
+    btn.addEventListener('keydown', keys);
+    sel.addEventListener('focus', function () { btn.focus(); });
+    sel.addEventListener('change', label);
+    document.addEventListener('pointerdown', function (e) { if (!pop.hidden && !wrap.contains(e.target)) close(); });
+    // scripts set .value / .selectedIndex / .disabled / .hidden directly: the button follows
+    var proto = HTMLSelectElement.prototype;
+    var setValue = Object.getOwnPropertyDescriptor(proto, 'value').set;
+    ['value', 'selectedIndex'].forEach(function (k) {
+      var d = Object.getOwnPropertyDescriptor(proto, k);
+      Object.defineProperty(sel, k, { configurable: true, get: function () { return d.get.call(sel); }, set: function (v) { d.set.call(sel, v); label(); } });
+    });
+    ['disabled', 'hidden'].forEach(function (k) {
+      var d = Object.getOwnPropertyDescriptor(HTMLElement.prototype, k) || Object.getOwnPropertyDescriptor(proto, k) || Object.getOwnPropertyDescriptor(Element.prototype, k);
+      if (!d) return;
+      Object.defineProperty(sel, k, { configurable: true, get: function () { return d.get.call(sel); }, set: function (v) { d.set.call(sel, v); label(); } });
+    });
+    if (sel.form) sel.form.addEventListener('reset', function () { setTimeout(label, 0); });
+    label();
+  }
+  var fine = !window.matchMedia || window.matchMedia('(pointer: fine)').matches;
+  if (fine) document.querySelectorAll('.content select, .topbar select').forEach(fancySelect);
+  window.darkFancySelect = function (root) { if (fine) (root || document).querySelectorAll('.content select').forEach(fancySelect); };
   if (window.MutationObserver) {
     new MutationObserver(function (list) {
-      list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType !== 1) return; if (n.matches && n.matches('input[type=number]')) stepper(n); if (n.querySelectorAll) n.querySelectorAll('input[type=number]').forEach(stepper); }); });
+      list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType !== 1) return; if (n.matches && n.matches('input[type=number]')) stepper(n); if (n.querySelectorAll) n.querySelectorAll('input[type=number]').forEach(stepper); if (fine && n.closest && n.closest('.content')) { if (n.matches('select')) fancySelect(n); if (n.querySelectorAll) n.querySelectorAll('select').forEach(fancySelect); } }); });
     }).observe(document.body, { childList: true, subtree: true });
   }
 })();

@@ -1,5 +1,32 @@
 [
  {
+  "bot": "3.5.0",
+  "panel": "3.6.0",
+  "date": "2026-11-09",
+  "botChanges": [
+   "Логи: можно не записывать выбранные каналы, роли и сообщения ботов",
+   "Сообщения с компонентами Discord: контейнеры, текст, разделители, галереи, кнопки"
+  ],
+  "panelChanges": [
+   "Конструктор сообщений переехал в «Вебхуки и сообщения»; есть формат «Компоненты»",
+   "Слева — «На этой странице» с подсветкой раздела; плавные анимации",
+   "Новые выпадающие списки с поиском; поиск без задержек, с подсветкой совпадений",
+   "Однотонный фон; страница логов со сводкой и блоком «Что не записывать»"
+  ],
+  "en": {
+   "botChanges": [
+    "Logs: chosen channels, roles and bot messages can be left out",
+    "Messages with Discord components: containers, text, separators, galleries, buttons"
+   ],
+   "panelChanges": [
+    "The message builder moved to \"Webhooks and messages\"; new \"Components\" format",
+    "\"On this page\" column on the left with the current section lit; smooth animations",
+    "New dropdowns with search; quick search without lag, with matches lit",
+    "One flat background; the logs page has a summary and \"What not to log\""
+   ]
+  }
+ },
+ {
   "bot": "3.4.3",
   "panel": "3.5.1",
   "date": "2026-11-09",

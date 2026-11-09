@@ -13,7 +13,9 @@ const clean = (s) => String(s)
   .replace(/\s+/g, ' ').trim();
 
 function pageEntries(file) {
-  const src = fs.readFileSync(path.join(VIEWS, file), 'utf8');
+  let src = fs.readFileSync(path.join(VIEWS, file), 'utf8');
+  // parts of a page that live in a partial (the message builder of "Вебхуки")
+  for (const m of src.matchAll(/include\('\.\.\/partials\/(msg-builder)'/g)) src += fs.readFileSync(path.join(VIEWS, '..', 'partials', m[1] + '.ejs'), 'utf8');
   const page = file.replace(/\.ejs$/, '');
   const title = clean((/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(src) || [])[1] || '');
   const seen = new Set(); const out = [];

@@ -1,22 +1,4 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head><%- include('../partials/head', { title: guild.name + ' — Сообщения' }) %></head>
-<body>
-  <div class="app-layout">
-    <%- include('../partials/sidebar') %>
-    <div class="content">
-      <div class="page-header">
-        <h1>Сообщения</h1>
-        <p class="page-intro">Конструктор сообщений: текст, до 10 эмбедов и кнопки-ссылки. Отправляйте от имени бота или через вебхук, правьте уже отправленные, сохраняйте заготовки и ставьте сообщения по расписанию. Создать или удалить вебхук можно в разделе «Вебхуки».</p>
-      </div>
-
-      <div class="msg-tabs" role="tablist">
-        <button type="button" role="tab" data-tab="editor" class="active">Редактор</button>
-        <button type="button" role="tab" data-tab="saved">Сохранённые <span class="msg-count"><%= savedList.length %></span></button>
-        <button type="button" role="tab" data-tab="schedule">Расписание <span class="msg-count"><%= scheduled.length %></span></button>
-        <button type="button" role="tab" data-tab="tools">Инструменты</button>
-      </div>
-
+<%# The message builder (text, embeds, Discord components, drafts, schedule, tools): the panes of the "Вебхуки" page. %>
       <!-- Editor -->
       <section class="msg-pane" data-pane="editor">
         <div class="msg-grid">
@@ -30,7 +12,7 @@
               <div data-show="channel">
                 <label for="m-channel">Канал</label>
                 <select id="m-channel">
-                  <% channels.forEach(c => { %><option value="<%= c.id %>" data-type="<%= c.type %>"><%= c.type === 2 || c.type === 13 ? '🔊' : c.type === 15 || c.type === 16 ? '🗂' : '#' %> <%= c.name %></option><% }) %>
+                  <% msgChannels.forEach(c => { %><option value="<%= c.id %>" data-type="<%= c.type %>"><%= c.type === 2 || c.type === 13 ? '🔊' : c.type === 15 || c.type === 16 ? '🗂' : '#' %> <%= c.name %></option><% }) %>
                 </select>
               </div>
               <div data-show="webhook" hidden>
@@ -39,7 +21,7 @@
                     <label for="m-hook">Вебхук бота</label>
                     <select id="m-hook">
                       <option value="">— вставить ссылку —</option>
-                      <% hooks.forEach(h => { const ch = channels.find(c => c.id === h.channelId); %><option value="<%= h.id %>"><%= h.name %> · #<%= ch ? ch.name : h.channelId %></option><% }) %>
+                      <% msgHooks.forEach(h => { const ch = msgChannels.find(c => c.id === h.channelId); %><option value="<%= h.id %>"><%= h.name %> · #<%= ch ? ch.name : h.channelId %></option><% }) %>
                     </select>
                   </div>
                   <div>
@@ -79,6 +61,24 @@
             </div>
 
             <div class="card">
+              <h2>Формат сообщения</h2>
+              <div class="msg-mode">
+                <label class="msg-radio"><input type="radio" name="m-kind" value="classic" checked /> <span><b>Обычное</b><small>Текст, до 10 эмбедов и кнопки-ссылки</small></span></label>
+                <label class="msg-radio"><input type="radio" name="m-kind" value="v2" /> <span><b>Компоненты</b><small>Новый формат Discord: блоки текста, картинки, разделители, контейнеры</small></span></label>
+              </div>
+            </div>
+
+            <div data-kind-show="v2" hidden>
+              <div id="m-blocks"></div>
+              <div class="card v2-root-add">
+                <div class="v2-add-title">Добавить блок</div>
+                <div class="v2-add" data-list="blocks"></div>
+                <div class="hint" id="m-v2-count"></div>
+              </div>
+            </div>
+
+            <div data-kind-show="classic">
+            <div class="card">
               <h2>Текст</h2>
               <textarea id="m-content" data-k="content" rows="5" maxlength="2000" placeholder="Поддерживается разметка Discord: **жирный**, *курсив*, __подчёркнутый__, ||спойлер||, # заголовок"></textarea>
               <div class="msg-row">
@@ -100,6 +100,7 @@
               <button type="button" class="btn btn-secondary" data-act="add-button">+ Кнопка-ссылка</button>
             </div>
             <div id="m-buttons"></div>
+            </div>
 
             <div class="card msg-actions">
               <div class="msg-inline">
@@ -163,7 +164,7 @@
             <p class="empty-state">Нет запланированных сообщений.</p>
           <% } else { %>
             <div class="msg-list">
-              <% scheduled.forEach(({ s, rule, target }) => { const ch = channels.find(c => c.id === target.channelId); const hook = hooks.find(h => h.id === target.webhookId); %>
+              <% scheduled.forEach(({ s, rule, target }) => { const ch = msgChannels.find(c => c.id === target.channelId); const hook = msgHooks.find(h => h.id === target.webhookId); %>
                 <div class="msg-item <%= s.enabled ? 'is-on' : 'is-off' %>">
                   <div class="msg-item-main">
                     <div><span class="gw-state"><%= s.enabled ? 'Активно' : 'Выключено' %></span> <b><%= s.name %></b></div>
@@ -273,9 +274,5 @@
           <div id="w-out" class="msg-hookinfo"></div>
         </div>
       </section>
-    </div>
-  </div>
-  <script id="msg-data" type="application/json"><%- JSON.stringify({ guildId: guild.id, channels, hooks, canWebhook: rights.webhooks, canEveryone: rights.everyone, botName: 'Dark' }).replace(/</g, '\\u003c') %></script>
-  <script src="/js/messages.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
-</body>
-</html>
+<script id="msg-data" type="application/json"><%- JSON.stringify({ guildId: guild.id, page: '/dashboard/' + guild.id + '/webhooks', channels: msgChannels, hooks: msgHooks, canWebhook: rights.webhooks, canEveryone: rights.everyone, botName: 'Dark' }).replace(/</g, '\\u003c') %></script>
+<script src="/js/messages.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>

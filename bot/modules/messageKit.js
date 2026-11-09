@@ -101,12 +101,89 @@ function cleanComponents(raw) {
   return out;
 }
 
+// ---- Discord components ("Компоненты"): containers, text, separators, galleries, sections, link buttons ----
+const V2 = 1 << 15; // IS_COMPONENTS_V2: such a message has no text and no embeds, only components
+const V2_MAX = 40; // components in one message, nested ones included
+const V2_TEXT = 4000; // characters of text in all text blocks together
+
+function cleanV2(list) {
+  let count = 0; let text = 0;
+  const where = (n) => `Блок ${n}`;
+  const url = (v, what, n, image) => {
+    const u = str(v).trim();
+    if (!(image ? isImageUrl(u) : /^(https?|discord):\/\/[^\s<>"]{1,500}$/i.test(u))) throw new KitError(`${where(n)}: ${what} — нужна ссылка, начинающаяся с ${image ? 'https://' : 'http(s)://'}.`);
+    return u;
+  };
+  const textOf = (v, n) => {
+    const t = str(v);
+    if (!t.trim()) throw new KitError(`${where(n)}: текст пустой — напишите его или удалите блок.`);
+    if (t.length > V2_TEXT) throw new KitError(`${where(n)}: текст длиннее ${V2_TEXT} символов.`);
+    text += t.length; return t;
+  };
+  const button = (b, n) => {
+    const label = str(b?.label).trim();
+    if (!label || label.length > LIMITS.label) throw new KitError(`${where(n)}: у кнопки нужен текст от 1 до ${LIMITS.label} символов.`);
+    count++;
+    return { type: 2, style: 5, label, url: url(b?.url, 'ссылка кнопки', n) };
+  };
+  const one = (c, n, inContainer) => {
+    count++;
+    const type = Number(c?.type);
+    if (type === 10) return { type: 10, content: textOf(c.content, n) };
+    if (type === 14) return { type: 14, divider: c.divider !== false, spacing: Number(c.spacing) === 2 ? 2 : 1 };
+    if (type === 12) {
+      const items = (Array.isArray(c.items) ? c.items : []).filter((i) => str(i?.media?.url).trim());
+      if (!items.length) throw new KitError(`${where(n)}: в галерее нет картинок.`);
+      if (items.length > 10) throw new KitError(`${where(n)}: в галерее больше 10 картинок.`);
+      return { type: 12, items: items.map((i) => ({ media: { url: url(i.media.url, 'картинка', n, true) }, ...(str(i.description).trim() ? { description: str(i.description).trim().slice(0, 1024) } : {}), ...(i.spoiler ? { spoiler: true } : {}) })) };
+    }
+    if (type === 9) {
+      const texts = (Array.isArray(c.components) ? c.components : []).slice(0, 3);
+      if (!texts.length) throw new KitError(`${where(n)}: в разделе нет текста.`);
+      const acc = c.accessory || {};
+      let accessory;
+      if (Number(acc.type) === 2) accessory = button(acc, n);
+      else { count++; accessory = { type: 11, media: { url: url(acc.media?.url, 'картинка справа', n, true) } }; }
+      return { type: 9, components: texts.map((t) => { count++; return { type: 10, content: textOf(t.content, n) }; }), accessory };
+    }
+    if (type === 1) {
+      const buttons = (Array.isArray(c.components) ? c.components : []).filter((b) => b && b.type === 2);
+      if (!buttons.length) throw new KitError(`${where(n)}: добавьте хотя бы одну кнопку или удалите блок.`);
+      if (buttons.length > 5) throw new KitError(`${where(n)}: в ряду больше 5 кнопок.`);
+      return { type: 1, components: buttons.map((b) => button(b, n)) };
+    }
+    if (type === 17 && !inContainer) {
+      const kids = Array.isArray(c.components) ? c.components : [];
+      if (!kids.length) throw new KitError(`${where(n)}: контейнер пустой — добавьте в него блоки.`);
+      const color = parseColor(c.accent_color);
+      if (color === undefined) throw new KitError(`${where(n)}: цвет — напишите его как #e3a857.`);
+      return { type: 17, ...(color !== null ? { accent_color: color } : {}), ...(c.spoiler ? { spoiler: true } : {}), components: kids.map((k, i) => one(k, `${n}.${i + 1}`, true)) };
+    }
+    throw new KitError(`${where(n)}: такой блок Discord не поддерживается.`);
+  };
+  const raw = Array.isArray(list) ? list : [];
+  if (!raw.length) throw new KitError('Добавьте хотя бы один блок.');
+  const out = raw.map((c, i) => one(c, i + 1, false));
+  if (count > V2_MAX) throw new KitError(`Компонентов больше ${V2_MAX} (сейчас ${count}). Уберите часть блоков.`);
+  if (text > V2_TEXT) throw new KitError(`Во всех текстах вместе больше ${V2_TEXT} символов (сейчас ${text}).`);
+  return out;
+}
+
 /**
  * Checks a message from the editor and turns it into what Discord takes. Throws KitError with words a person can act on.
  * The result keeps `mentions` (who may be pinged) and the webhook-only `username` / `avatar_url` apart from the body.
  */
 function cleanMessage(raw) {
   if (!raw || typeof raw !== 'object') throw new KitError('Сообщение пустое.');
+  if (raw.v2 || (Number(raw.flags) & V2)) {
+    const components = cleanV2(raw.components);
+    const username = str(raw.username).trim();
+    if (username.length > LIMITS.username) throw new KitError(`Имя отправителя длиннее ${LIMITS.username} символов.`);
+    if (/discord|clyde/i.test(username)) throw new KitError('В имени отправителя Discord не разрешает слова «discord» и «clyde».');
+    const avatar = str(raw.avatar_url).trim();
+    if (avatar && !isImageUrl(avatar)) throw new KitError('Аватарка — нужна ссылка, начинающаяся с https://.');
+    return { v2: true, flags: V2, content: '', embeds: [], components, username, avatar_url: avatar, mentions: MENTIONS.includes(raw.mentions) ? raw.mentions : 'none' };
+  }
   const content = str(raw.content);
   if (content.length > LIMITS.content) throw new KitError(`Текст длиннее ${LIMITS.content} символов.`);
   const list = Array.isArray(raw.embeds) ? raw.embeds : [];
@@ -221,7 +298,9 @@ const query = (to, extra = {}) => {
 
 /** Sends (or, with messageId, edits) a checked message. Returns { id, channelId }. */
 async function deliver(to, msg, { messageId, canEveryone = false } = {}) {
-  const body = { content: msg.content || '', embeds: msg.embeds || [], components: msg.components || [], allowed_mentions: allowedMentions(msg.mentions, canEveryone) };
+  const body = msg.v2
+    ? { flags: V2, components: msg.components || [], allowed_mentions: allowedMentions(msg.mentions, canEveryone) }
+    : { content: msg.content || '', embeds: msg.embeds || [], components: msg.components || [], allowed_mentions: allowedMentions(msg.mentions, canEveryone) };
   if (to.kind === 'webhook') {
     if (messageId) {
       const { data } = await plainApi.patch(hookPath(to, `/messages/${messageId}`) + query(to), body);
@@ -260,6 +339,17 @@ async function fetchMessage(to, messageId) {
     if (e.fields) out.fields = e.fields.map((f) => ({ name: f.name, value: f.value, inline: Boolean(f.inline) }));
     return out;
   };
+  if ((data.flags || 0) & V2) {
+    // only what the builder can edit comes back: link buttons stay, menus and other interactive parts are dropped
+    const keep = (c) => {
+      if (!c) return null;
+      if (c.type === 1) { const b = (c.components || []).filter((x) => x.type === 2 && x.style === 5 && x.url).map((x) => ({ type: 2, style: 5, label: x.label || '', url: x.url })); return b.length ? { type: 1, components: b } : null; }
+      if (c.type === 9 && c.accessory?.type === 2 && !c.accessory.url) return { ...c, accessory: { type: 11, media: { url: '' } } };
+      if (c.type === 17) return { ...c, components: (c.components || []).map(keep).filter(Boolean) };
+      return [9, 10, 11, 12, 14].includes(c.type) ? c : null;
+    };
+    return { v2: true, flags: V2, components: (data.components || []).map(keep).filter(Boolean), username: to.kind === 'webhook' ? (data.author?.username || '') : '', channelId: data.channel_id };
+  }
   const rows = (data.components || []).map((r) => ({ type: 1, components: (r.components || []).filter((b) => b.type === 2 && b.style === 5).map((b) => ({ type: 2, style: 5, label: b.label || '', url: b.url })) })).filter((r) => r.components.length);
   return { content: data.content || '', embeds: (data.embeds || []).filter((e) => e.type === undefined || e.type === 'rich').map(pick), components: rows, username: to.kind === 'webhook' ? (data.author?.username || '') : '', channelId: data.channel_id };
 }
@@ -276,4 +366,4 @@ async function webhookInfo(url) {
   };
 }
 
-module.exports = { cleanMessage, cleanEmbed, cleanComponents, parseColor, allowedMentions, parseWebhookUrl, parseMessageRef, resolveTarget, deliver, fetchMessage, webhookInfo, errorText, isGone, KitError, LIMITS, _api: { botApi, plainApi } };
+module.exports = { V2, cleanV2, cleanMessage, cleanEmbed, cleanComponents, parseColor, allowedMentions, parseWebhookUrl, parseMessageRef, resolveTarget, deliver, fetchMessage, webhookInfo, errorText, isGone, KitError, LIMITS, _api: { botApi, plainApi } };

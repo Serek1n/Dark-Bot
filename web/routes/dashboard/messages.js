@@ -1,6 +1,6 @@
 const express = require('express');
 const { ensureGuildAccess } = require('../../middleware/ensureGuildAccess');
-const { getGuildChannels, getGuild, botApi } = require('../../discordApi');
+const { getGuildChannels, botApi } = require('../../discordApi');
 const { SavedMessage, ScheduledMessage } = require('../../../db');
 const { clampInt, saved } = require('../../utils/common');
 const { rateLimit } = require('../../middleware/rateLimit');
@@ -64,22 +64,26 @@ function previewImages(req, res, next) {
   next();
 }
 
-router.get('/:guildId/messages', ensureGuildAccess, previewImages, async (req, res) => {
+/** What the builder panes of the "Вебхуки" page need. */
+async function builderData(req) {
   const { guildId } = req.params;
   const r = rights(req);
-  const [guild, channels, savedList, scheduled, hooks] = await Promise.all([
-    getGuild(guildId), getGuildChannels(guildId),
+  const [channels, savedList, scheduled, hooks] = await Promise.all([
+    getGuildChannels(guildId),
     SavedMessage.findAll({ where: { guildId }, order: [['updatedAt', 'DESC']], attributes: ['id', 'name', 'updatedAt'] }),
     ScheduledMessage.findAll({ where: { guildId }, order: [['enabled', 'DESC'], ['nextRunAt', 'ASC']] }),
     r.webhooks ? ownHooks(guildId) : []
   ]);
-  res.render('dashboard/messages', {
-    guild, active: 'messages', rights: r, hooks, zones: ZONES, defaultZone: sched.DEFAULT_TZ,
-    channels: channels.filter((c) => CHANNEL_TYPES.includes(c.type)).map((c) => ({ id: c.id, name: c.name, type: c.type })),
+  return {
+    rights: r, msgHooks: hooks, zones: ZONES, defaultZone: sched.DEFAULT_TZ,
+    msgChannels: channels.filter((c) => CHANNEL_TYPES.includes(c.type)).map((c) => ({ id: c.id, name: c.name, type: c.type })),
     savedList, maxSaved: MAX_SAVED, maxScheduled: sched.MAX_PER_GUILD,
     scheduled: scheduled.map((s) => ({ s, rule: sched.describeRule(parse(s.rule, null)), target: parse(s.target, {}) }))
-  });
-});
+  };
+}
+
+// The builder lives on the "Вебхуки" page now; old links keep working.
+router.get('/:guildId/messages', ensureGuildAccess, (req, res) => res.redirect(301, `/dashboard/${req.params.guildId}/webhooks#editor`));
 
 // Send now, or edit an earlier message (messageId).
 router.post('/:guildId/messages/send', sendLimit, ensureGuildAccess, json, async (req, res) => {
@@ -153,7 +157,7 @@ router.post('/:guildId/messages/saved', toolLimit, ensureGuildAccess, json, asyn
 router.post('/:guildId/messages/saved/:id/delete', ensureGuildAccess, async (req, res) => {
   const { guildId } = req.params;
   await SavedMessage.destroy({ where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId } });
-  res.redirect(saved(guildId, 'messages', 'deleted') + '#saved');
+  res.redirect(saved(guildId, 'webhooks', 'deleted') + '#saved');
 });
 
 // ---- Scheduled messages ----
@@ -199,32 +203,32 @@ async function scheduleRow(req) {
 router.post('/:guildId/messages/schedule/:id/toggle', ensureGuildAccess, async (req, res) => {
   const { guildId } = req.params;
   const row = await scheduleRow(req);
-  if (!row) return res.redirect(saved(guildId, 'messages', 'invalid'));
+  if (!row) return res.redirect(saved(guildId, 'webhooks', 'invalid'));
   if (row.enabled) await row.update({ enabled: false });
   else {
     const next = sched.nextRun(parse(row.rule, null), row.timezone);
-    if (!next) return res.redirect(saved(guildId, 'messages', 'msgpast') + '#schedule');
+    if (!next) return res.redirect(saved(guildId, 'webhooks', 'msgpast') + '#schedule');
     await row.update({ enabled: true, nextRunAt: new Date(next), lastError: null });
     require('../../../bot/utils/scheduler').poke('messages');
   }
-  res.redirect(saved(guildId, 'messages') + '#schedule');
+  res.redirect(saved(guildId, 'webhooks') + '#schedule');
 });
 router.post('/:guildId/messages/schedule/:id/delete', ensureGuildAccess, async (req, res) => {
   const row = await scheduleRow(req);
   if (row) await row.destroy();
-  res.redirect(saved(req.params.guildId, 'messages', 'deleted') + '#schedule');
+  res.redirect(saved(req.params.guildId, 'webhooks', 'deleted') + '#schedule');
 });
 router.post('/:guildId/messages/schedule/:id/test', sendLimit, ensureGuildAccess, async (req, res) => {
   const { guildId } = req.params;
   const row = await scheduleRow(req);
-  if (!row) return res.redirect(saved(guildId, 'messages', 'invalid'));
-  if (parse(row.target, {}).mode === 'webhook' && !rights(req).webhooks) return res.redirect(saved(guildId, 'messages', 'msgnoright') + '#schedule');
+  if (!row) return res.redirect(saved(guildId, 'webhooks', 'invalid'));
+  if (parse(row.target, {}).mode === 'webhook' && !rights(req).webhooks) return res.redirect(saved(guildId, 'webhooks', 'msgnoright') + '#schedule');
   try {
     await sched.sendEntry(row);
-    res.redirect(saved(guildId, 'messages', 'msgtest') + '#schedule');
+    res.redirect(saved(guildId, 'webhooks', 'msgtest') + '#schedule');
   } catch (err) {
     await row.update({ lastError: kit.errorText(err).slice(0, 250) }).catch(() => {});
-    res.redirect(saved(guildId, 'messages', 'msgfail') + '#schedule');
+    res.redirect(saved(guildId, 'webhooks', 'msgfail') + '#schedule');
   }
 });
 
@@ -237,3 +241,5 @@ router.post('/:guildId/messages/webhook-info', toolLimit, ensureGuildAccess, jso
 });
 
 module.exports = router;
+module.exports.builderData = builderData;
+module.exports.previewImages = previewImages;

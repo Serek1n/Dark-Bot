@@ -146,6 +146,21 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     assert(sidebar.includes("noperm: [needText(params.get('need')), true]") && sidebar.includes('не хватает прав'), 'the message on the page');
   });
 
+  await test('logs: "what not to log" keeps only this server\'s channels and roles; the bot skips them', async () => {
+    const loc = await post('/logs', [['logIgnoreBots', 'on'], ['logIgnoreChannels', OPEN], ['logIgnoreChannels', '880000000000000077'], ['logIgnoreRoles', MODS], ['logIgnoreRoles', G], ['logIgnoreRoles', '999']]);
+    assert(loc.includes('saved=1'), loc);
+    const st = await db.GuildSettings.findByPk(G);
+    assert(st.logIgnoreBots && st.logIgnoreChannels === JSON.stringify([OPEN]) && st.logIgnoreRoles === JSON.stringify([MODS]), JSON.stringify({ b: st.logIgnoreBots, c: st.logIgnoreChannels, r: st.logIgnoreRoles }));
+    const L = require('../bot/modules/serverLog');
+    const cfg = { ignoreChannels: new Set([OPEN]), ignoreRoles: new Set([MODS]), ignoreBots: true };
+    const member = (ids) => ({ roles: { cache: new Map(ids.map((id) => [id, { id }])) } });
+    assert(L.skipped(cfg, { channelId: OPEN }) && L.skipped(cfg, { channel: { id: 'thread', parentId: OPEN } }), 'a channel and its threads');
+    assert(L.skipped(cfg, { channelId: LOGS, isBot: true }) && L.skipped(cfg, { channelId: LOGS, member: member([MODS]) }), 'bots and roles');
+    assert(!L.skipped(cfg, { channelId: LOGS, member: member([ROLE]) }) && !L.skipped(null, { channelId: OPEN }), 'everything else is logged');
+    const page = await (await fetch(base + '/logs')).text();
+    assert(page.includes('Что не записывать') && page.includes('видов событий записывается') && page.includes('Не записывать сообщения ботов и вебхуков'), 'the page');
+  });
+
   server.close();
   console.log(results.join('\n')); console.log(`\nИтого: ${results.length - failed}/${results.length} прошли успешно`);
   process.exit(failed ? 1 : 0);

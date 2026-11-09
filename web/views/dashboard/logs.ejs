@@ -10,6 +10,17 @@
         <p class="page-intro">Бот ведёт журнал событий в форуме: для каждого вида событий создаётся отдельная тема с тегом. Записи в неё приходят через вебхук.</p>
       </div>
 
+      <% const forumNow = forums.find(c => c.id === settings.logForumChannelId);
+         const onCount = categories.filter(c => !disabled.has(c.key)).length;
+         const cats = {}; channels.filter(c => c.type === 4).forEach(c => { cats[c.id] = c; });
+         const catOf = (c) => (cats[c.parent_id] || {}).name || 'Без категории';
+         const logChannels = channels.filter(c => [0, 2, 5, 13, 15].includes(c.type)).sort((x, y) => ((cats[x.parent_id] || {}).position ?? -1) - ((cats[y.parent_id] || {}).position ?? -1) || (x.position || 0) - (y.position || 0)); %>
+      <div class="log-status <%= forumNow ? 'on' : 'off' %>">
+        <div class="ls-item"><span class="ls-dot"></span><div><b><%= forumNow ? 'Логи пишутся' : 'Логи не подключены' %></b><small><%= forumNow ? 'в форум #' + forumNow.name : 'выберите форум ниже и сохраните' %></small></div></div>
+        <div class="ls-item"><b><%= onCount %> из <%= categories.length %></b><small>видов событий записывается</small></div>
+        <div class="ls-item"><b><%= ignoreChannels.length + ignoreRoles.length + (settings.logIgnoreBots ? 1 : 0) %></b><small>исключений в «Что не записывать»</small></div>
+      </div>
+
       <form method="post" class="card">
         <h2>Куда писать логи</h2>
         <div>
@@ -46,6 +57,25 @@
             </div>
           <% }) %>
         </div>
+
+        <h2 style="margin-top:26px;">Что не записывать<span class="sub">Действует на сообщения, файлы и голосовые каналы</span></h2>
+        <div class="rules">
+          <label class="rule">
+            <span class="rule-text"><b>Не записывать сообщения ботов и вебхуков</b><span>Правки, удаления и файлы от ботов не попадут в логи. Удобно, если на сервере много музыкальных или игровых ботов.</span></span>
+            <input type="checkbox" name="logIgnoreBots" <%= settings.logIgnoreBots ? 'checked' : '' %> />
+          </label>
+        </div>
+        <label>Каналы, которые не записываются</label>
+        <div class="pick" data-kind="channels">
+          <% if (!logChannels.length) { %><span class="pick-empty">Каналов не найдено</span><% } %>
+          <% logChannels.forEach(c => { %><label data-group="<%= catOf(c) %>"><input type="checkbox" name="logIgnoreChannels" value="<%= c.id %>" <%= ignoreChannels.includes(c.id) ? 'checked' : '' %> /><span><%= c.type === 2 || c.type === 13 ? '🔊 ' : '#' %><%= c.name %></span></label><% }) %>
+        </div>
+        <p class="hint">Например, канал с ботами или флудилка. Ветки внутри выбранного канала тоже не записываются. Не выбрано — записываются все каналы.</p>
+        <label>Участники с этими ролями не записываются</label>
+        <div class="pick" data-kind="roles">
+          <% roles.forEach(r => { %><label><input type="checkbox" name="logIgnoreRoles" value="<%= r.id %>" <%= ignoreRoles.includes(r.id) ? 'checked' : '' %> /><span><%= r.name %></span></label><% }) %>
+        </div>
+        <p class="hint">Например, модераторы. Входы, выходы и наказания всё равно записываются — они важны для безопасности.</p>
 
         <div class="actions" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;">
           <button class="btn" type="submit" name="action" value="save">Сохранить</button>
