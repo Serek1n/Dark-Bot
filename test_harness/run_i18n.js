@@ -168,7 +168,7 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
 
   await test('panel: scripts in English for English pages, the language of the bot is saved with the default texts', async () => {
     const js = await get('/js/ui.js?v=x-en'); const jsRu = await get('/js/ui.js?v=x');
-    assert(js.text.includes('Find a section: levels, shop, logs') && jsRu.text.includes('Найти раздел: уровни'), 'translated script');
+    assert(js.text.includes('Section or setting: shop, pause, swearing') && jsRu.text.includes('Раздел или настройка: магазин'), 'translated script');
     const page = await get(`/dashboard/${G}/features`, 'en'); assert(page.text.includes('/js/ui.js?v=x-en'), 'English pages ask for English scripts');
     const loc = await fetch(`${base}/dashboard/${G}/language`, { method: 'POST', body: new URLSearchParams({ language: 'en' }), redirect: 'manual' }).then((x) => x.headers.get('location'));
     assert(loc.includes('saved'));

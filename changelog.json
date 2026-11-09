@@ -1,6 +1,27 @@
 [
  {
   "bot": "3.4.3",
+  "panel": "3.5.0",
+  "date": "2026-11-09",
+  "botChanges": [],
+  "panelChanges": [
+   "Новая навигация: группы разделов в верхней строке, страницы группы — вкладками под ней",
+   "На телефоне и узком планшете — кнопка «≡» со всеми разделами по группам и описаниями",
+   "Поиск находит не только разделы, но и отдельные настройки и открывает страницу на них",
+   "Новый шрифт Onest; крупные кнопки и поля на сенсорных экранах"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "New navigation: section groups in the top bar, the group's pages as tabs below",
+    "On phones and narrow tablets: the \"≡\" button with all sections by group",
+    "Search finds single settings too and opens the page right at them",
+    "New font Onest; bigger buttons and fields on touch screens"
+   ]
+  }
+ },
+ {
+  "bot": "3.4.3",
   "panel": "3.4.1",
   "date": "2026-11-09",
   "botChanges": [

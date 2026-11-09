@@ -15,7 +15,8 @@ const web = path.join(__dirname, '..', 'web');
     assert(links.length === 22, 'links ' + links.length);
     assert((html.match(/<small>[^<]+<\/small>/g) || []).length === 22, 'descriptions');
     assert(/href="\/dashboard\/123456789012345678\/webhooks" class="active"/.test(html) && (html.match(/class="active"/g) || []).length === 1, 'one active');
-    assert(html.includes('data-rail-pin') && html.includes('data-theme-toggle'), 'pin and theme buttons');
+    assert(html.includes('data-menu-open') && html.includes('data-theme-toggle') && html.includes('data-quick-jump'), 'menu, theme and search buttons');
+    assert(/<a href="\/dashboard\/123456789012345678\/webhooks" class="tb-tab is-on"/.test(html) && /class="tb-group is-on"[^>]*>Инструменты</.test(html), 'the current group and its pages are shown on top');
   });
   await test('every page of the panel still has its entry in the menu', async () => {
     const html = await render('x'); const routes = fs.readdirSync(path.join(web, 'routes/dashboard')).map((f) => fs.readFileSync(path.join(web, 'routes/dashboard', f), 'utf8')).join('\n');

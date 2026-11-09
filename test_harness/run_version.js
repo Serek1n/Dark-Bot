@@ -45,7 +45,7 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
   const server = app.listen(0); const base = `http://127.0.0.1:${server.address().port}/dashboard`;
   await test('panel: the side menu and the overview show both versions and the bot state', async () => {
     const html = await (await fetch(`${base}/${G}`)).text();
-    assert(html.includes(`Бот <b>v${file.bot}</b>`) && html.includes(`Панель <b>v${file.panel}</b>`), 'side menu');
+    assert(html.includes(`Бот v${file.bot} · панель v${file.panel}`), 'menu');
     assert(html.includes('О версии') && html.includes('не в сети'), 'overview card; no bot in this test');
     require('../web/botBridge').setClient({ isReady: () => true, ws: { ping: 42 }, guilds: { cache: new Map([[G, {}]]) } });
     const on = await (await fetch(`${base}/${G}`)).text();

@@ -31,105 +31,108 @@
     Array.prototype.forEach.call(document.querySelectorAll('img[data-initial], .person img, img[data-fallback]'), function (img) {
       if (img.complete && img.naturalWidth === 0 && img.getAttribute('src')) broken(img);
     });
-    railScroll();
-    revealActive();
+    navUi();
     quickJump();
+    findOnPage();
     templateHelp();
     typeFields();
     embedEditors();
   });
 
-  // 2) The side menu scrolls without the browser's wide scrollbar: a thin thumb appears while scrolling, and the edges fade
-  //    where there is more to see.
-  function railScroll() {
-    var nav = document.querySelector('.sidebar nav');
-    var rail = document.querySelector('.sidebar');
-    if (!nav || !rail) return;
-    var thumb = document.createElement('div');
-    thumb.className = 'rail-thumb';
-    thumb.setAttribute('aria-hidden', 'true');
-    rail.appendChild(thumb);
-    var hideTimer = null;
-    function update(show) {
-      var max = nav.scrollHeight - nav.clientHeight;
-      nav.classList.toggle('can-up', nav.scrollTop > 2);
-      nav.classList.toggle('can-down', nav.scrollTop < max - 2);
-      if (max <= 2) { thumb.style.opacity = '0'; return; }
-      var ratio = nav.clientHeight / nav.scrollHeight;
-      var h = Math.max(28, nav.clientHeight * ratio);
-      var top = nav.offsetTop + (nav.scrollTop / max) * (nav.clientHeight - h);
-      thumb.style.height = h + 'px';
-      thumb.style.transform = 'translateY(' + top + 'px)';
-      if (show) {
-        thumb.style.opacity = '1';
-        clearTimeout(hideTimer);
-        hideTimer = setTimeout(function () { thumb.style.opacity = '0'; }, 900);
-      }
+  // 2) Navigation: "≡" opens the list of all pages (Esc, the backdrop or a link closes it); the strip of the group's pages
+  //    scrolls so the current page is in view (on a phone the strip is wider than the screen).
+  function navUi() {
+    var drawer = document.getElementById('navDrawer');
+    var openers = document.querySelectorAll('[data-menu-open]');
+    if (drawer) {
+      var lastFocus = null;
+      var open = function () {
+        lastFocus = document.activeElement; drawer.hidden = false; document.documentElement.classList.add('nd-open');
+        Array.prototype.forEach.call(openers, function (b) { b.setAttribute('aria-expanded', 'true'); });
+        var cur = drawer.querySelector('.nd-nav a.active') || drawer.querySelector('.nd-nav a');
+        if (cur) { cur.scrollIntoView({ block: 'center' }); cur.focus({ preventScroll: true }); }
+      };
+      var close = function () {
+        drawer.hidden = true; document.documentElement.classList.remove('nd-open');
+        Array.prototype.forEach.call(openers, function (b) { b.setAttribute('aria-expanded', 'false'); });
+        if (lastFocus && lastFocus.focus) lastFocus.focus();
+      };
+      Array.prototype.forEach.call(openers, function (b) { b.addEventListener('click', open); });
+      Array.prototype.forEach.call(drawer.querySelectorAll('[data-menu-close]'), function (b) { b.addEventListener('click', close); });
+      drawer.addEventListener('click', function (e) { if (e.target.closest('[data-quick-jump]')) close(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !drawer.hidden) close(); });
     }
-    nav.addEventListener('scroll', function () { update(true); }, { passive: true });
-    window.addEventListener('resize', function () { update(false); });
-    rail.addEventListener('transitionend', function () { update(false); });
-    update(false);
+    var tabs = document.querySelector('.tb-tabs'); var on = tabs && tabs.querySelector('.is-on');
+    if (on && tabs.scrollWidth > tabs.clientWidth + 2) tabs.scrollLeft = on.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2;
+    // the profile menu closes when clicking elsewhere
+    var user = document.querySelector('.tb-user');
+    if (user) document.addEventListener('click', function (e) { if (user.open && !user.contains(e.target)) user.open = false; });
   }
 
-  // 3) The current page's menu item is scrolled into view (on phones the menu is a horizontal strip: without this the
-  //    strip always starts at "Обзор", whatever page is open).
-  function revealActive() {
-    var nav = document.querySelector('.sidebar nav');
-    var link = nav && nav.querySelector('a.active');
-    if (!link) return;
-    // phones: the whole side menu is the horizontal strip; desktop: the list of links scrolls vertically
-    var strip = document.querySelector('.sidebar');
-    if (strip.scrollWidth > strip.clientWidth + 2) {
-      var s = strip.getBoundingClientRect(), l = link.getBoundingClientRect();
-      strip.scrollLeft += l.left - s.left - (s.width - l.width) / 2;
-    } else if (nav.scrollHeight > nav.clientHeight + 2) {
-      var n = nav.getBoundingClientRect(), k = link.getBoundingClientRect();
-      if (k.top < n.top || k.bottom > n.bottom) nav.scrollTop += k.top - n.top - (n.height - k.height) / 2;
-    }
-  }
-
-  // 4) Quick jump between sections: Ctrl+K (⌘K) or "/" opens a search over the menu, Enter goes to the found page.
+  // 4) Search: Ctrl+K (⌘K) or "/" opens it. It finds pages and the settings inside them (card headings, fields, switches);
+  //    a setting opens its page scrolled to it.
   function quickJump() {
-    var links = Array.prototype.slice.call(document.querySelectorAll('.sidebar nav a[title]'));
+    var links = Array.prototype.slice.call(document.querySelectorAll('.nd-nav a[title], .sidebar nav a[title]'));
     if (!links.length) return;
-    var items = links.map(function (a) {
+    var pages = links.map(function (a) {
       var t = a.getAttribute('title').split(' — ');
       return { name: t[0], desc: t[1] || '', href: a.getAttribute('href'), icon: a.querySelector('svg') ? a.querySelector('svg').outerHTML : '' };
     });
+    var base = (pages[0].href.match(/^\/dashboard\/\d+/) || [''])[0];
+    var iconOf = {}; pages.forEach(function (p) { iconOf[(p.href.split('/')[3] || 'overview')] = p; });
+    var settings = null, loading = false;
+    function loadSettings() {
+      if (settings || loading) return; loading = true;
+      fetch('/dashboard/settings-index.json', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        settings = [];
+        ((d && d.pages) || []).forEach(function (pg) {
+          var host = iconOf[pg.page]; if (!host) return;
+          pg.entries.forEach(function (e) { settings.push({ name: e.text, desc: host.name, href: base + (pg.page === 'overview' ? '' : '/' + pg.page) + '#find=' + encodeURIComponent(e.text), icon: host.icon, setting: true }); });
+        });
+        if (!box.hidden) draw();
+      }).catch(function () { settings = []; });
+    }
     var box = document.createElement('div');
     box.className = 'qj';
     box.hidden = true;
-    box.innerHTML = '<div class="qj-panel" role="dialog" aria-modal="true" aria-label="Переход к разделу">' +
-      '<input class="qj-input" type="search" placeholder="Найти раздел: уровни, магазин, логи…" autocomplete="off" aria-label="Поиск раздела" />' +
+    box.innerHTML = '<div class="qj-panel" role="dialog" aria-modal="true" aria-label="Поиск по панели">' +
+      '<input class="qj-input" type="search" placeholder="Раздел или настройка: магазин, пауза, мат…" autocomplete="off" aria-label="Поиск раздела или настройки" />' +
       '<div class="qj-list" role="listbox"></div><div class="qj-hint"><kbd>↑</kbd><kbd>↓</kbd> выбрать · <kbd>Enter</kbd> открыть · <kbd>Esc</kbd> закрыть</div></div>';
     document.body.appendChild(box);
     var input = box.querySelector('.qj-input'), list = box.querySelector('.qj-list'), shown = [], sel = 0;
     function norm(s) { return s.toLowerCase().replace(/ё/g, 'е'); }
+    function match(it, words) { var h = norm(it.name + ' ' + it.desc); return words.every(function (w) { return h.indexOf(w) !== -1; }); }
+    function head(text) { var d = document.createElement('div'); d.className = 'qj-head'; d.textContent = text; return d; }
     function draw() {
-      var q = norm(input.value.trim());
-      shown = items.filter(function (it) { return !q || norm(it.name + ' ' + it.desc).indexOf(q) !== -1; });
+      var q = norm(input.value.trim()); var words = q ? q.split(/\s+/) : [];
+      var foundPages = pages.filter(function (it) { return !words.length || match(it, words); });
+      var foundSettings = words.length && settings ? settings.filter(function (it) { return norm(it.name).indexOf(words[0]) !== -1 && match(it, words); }).slice(0, 30) : [];
+      shown = foundPages.concat(foundSettings);
       sel = Math.min(sel, Math.max(0, shown.length - 1));
       list.innerHTML = '';
       if (!shown.length) { list.innerHTML = '<div class="qj-empty">Ничего не найдено</div>'; return; }
       shown.forEach(function (it, i) {
+        if (i === 0 && foundPages.length && words.length) list.appendChild(head('Разделы'));
+        if (i === foundPages.length) list.appendChild(head('Настройки'));
         var a = document.createElement('a');
-        a.href = it.href; a.className = 'qj-item' + (i === sel ? ' sel' : ''); a.setAttribute('role', 'option');
+        a.href = it.href; a.className = 'qj-item' + (i === sel ? ' sel' : '') + (it.setting ? ' qj-setting' : ''); a.setAttribute('role', 'option');
         a.innerHTML = it.icon + '<span><b></b><small></small></span>';
-        a.querySelector('b').textContent = it.name; a.querySelector('small').textContent = it.desc;
+        a.querySelector('b').textContent = it.name; a.querySelector('small').textContent = it.setting ? '↳ ' + it.desc : it.desc;
         list.appendChild(a);
       });
-      var cur = list.children[sel]; if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' });
+      var cur = list.querySelectorAll('.qj-item')[sel]; if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' });
     }
-    function open() { box.hidden = false; input.value = ''; sel = 0; draw(); input.focus(); document.documentElement.classList.add('qj-open'); }
+    function go(it) { var here = location.pathname === it.href.split('#')[0]; location.href = it.href; if (here) { close(); findOnPage(); } }
+    function open() { box.hidden = false; input.value = ''; sel = 0; draw(); input.focus(); document.documentElement.classList.add('qj-open'); loadSettings(); }
     function close() { box.hidden = true; document.documentElement.classList.remove('qj-open'); }
     input.addEventListener('input', function () { sel = 0; draw(); });
     input.addEventListener('keydown', function (e) {
       if (e.key === 'ArrowDown') { sel = Math.min(shown.length - 1, sel + 1); draw(); e.preventDefault(); }
       else if (e.key === 'ArrowUp') { sel = Math.max(0, sel - 1); draw(); e.preventDefault(); }
-      else if (e.key === 'Enter' && shown[sel]) { location.href = shown[sel].href; e.preventDefault(); }
+      else if (e.key === 'Enter' && shown[sel]) { go(shown[sel]); e.preventDefault(); }
       else if (e.key === 'Escape') close();
     });
+    list.addEventListener('click', function (e) { var a = e.target.closest('.qj-item'); if (!a) return; var i = Array.prototype.indexOf.call(list.querySelectorAll('.qj-item'), a); if (shown[i]) { e.preventDefault(); go(shown[i]); } });
     box.addEventListener('mousedown', function (e) { if (e.target === box) close(); });
     document.addEventListener('keydown', function (e) {
       var typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '') || (e.target && e.target.isContentEditable);
@@ -138,6 +141,26 @@
       else if (e.key === 'Escape' && !box.hidden) close();
     });
     Array.prototype.forEach.call(document.querySelectorAll('[data-quick-jump]'), function (b) { b.addEventListener('click', open); });
+  }
+
+  // 4b) A setting found by the search (#find=…): the page scrolls to it, opens a folded block around it and lights it briefly.
+  function findOnPage() {
+    var m = /#find=([^&]+)/.exec(location.hash); if (!m) return;
+    var want; try { want = decodeURIComponent(m[1]).toLowerCase().replace(/ё/g, 'е').trim(); } catch (e) { return; }
+    var norm = function (el) { return (el.textContent || '').toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim(); };
+    var cands = Array.prototype.slice.call(document.querySelectorAll('.content h2, .content .rule-text b, .content label'));
+    var exact = cands.filter(function (el) { var t = norm(el); return t === want || t.replace(/[:：]$/, '') === want || t.indexOf(want + ' ') === 0 || (el.tagName === 'H2' && t.indexOf(want) === 0); });
+    var el = exact[0] || cands.filter(function (x) { return norm(x).indexOf(want) !== -1; })[0];
+    if (!el) return;
+    var target = el.closest('.rule') || el.closest('.card') && el.tagName === 'H2' && el.closest('.card') || el.parentElement;
+    var d = el.closest('details'); while (d) { d.open = true; d = d.parentElement && d.parentElement.closest('details'); }
+    setTimeout(function () {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.remove('find-hit'); void target.offsetWidth; target.classList.add('find-hit');
+      var field = target.querySelector('input:not([type=hidden]), select, textarea');
+      if (field && target !== el.closest('.card')) setTimeout(function () { try { field.focus({ preventScroll: true }); } catch (e) { /* old browsers */ } }, 450);
+    }, 60);
+    history.replaceState(null, '', location.pathname + location.search);
   }
 
   // 5) Templates: click a name to insert it at the cursor; "Предпросмотр" asks the server how the text will look.
