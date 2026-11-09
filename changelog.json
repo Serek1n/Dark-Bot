@@ -1,5 +1,20 @@
 [
  {
+  "bot": "3.4.3",
+  "panel": "3.4.1",
+  "date": "2026-11-09",
+  "botChanges": [
+   "Обновление на сервере не ломается, если GitHub временно не отвечает"
+  ],
+  "panelChanges": [],
+  "en": {
+   "botChanges": [
+    "Server updates no longer break when GitHub is temporarily down"
+   ],
+   "panelChanges": []
+  }
+ },
+ {
   "bot": "3.4.2",
   "panel": "3.4.1",
   "date": "2026-11-09",

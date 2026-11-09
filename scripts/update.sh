@@ -30,15 +30,50 @@ show_status() {
   pm2 describe "$NAME" >/dev/null 2>&1 && pm2 list | grep -E "name|$NAME" || echo "Процесс $NAME в pm2 не найден."
 }
 
+# ffmpeg for music is downloaded from GitHub. It is kept in data/cache between updates, so a GitHub hiccup (504) cannot
+# break an update, and it is not downloaded again every time.
+FF_CACHE="data/cache/ffmpeg"
+ffmpeg_path() { node -p "require('ffmpeg-static') || ''" 2>/dev/null || true; }
+keep_ffmpeg() {
+  local f; f="$(ffmpeg_path)"
+  if [ -n "$f" ] && [ -s "$f" ]; then mkdir -p "$(dirname "$FF_CACHE")"; cp -f "$f" "$FF_CACHE"; fi
+}
+
+# Installs what the bot needs. Packages come from the npm registry; nothing that downloads from GitHub can stop it:
+# sqlite3 is required (the database), the voice codec and ffmpeg are not (music falls back to other ways).
 install_deps() {
+  local i ok f
+  keep_ffmpeg || true
   say "Зависимости (npm ci)"
-  npm ci --omit=dev --no-audit --no-fund
-  # sqlite3 is a compiled module: without it the bot cannot even open the database
-  if ! node -e "require('sqlite3')" 2>/dev/null; then
-    echo "sqlite3 не собрался — пересобираю"
-    npm rebuild sqlite3 --foreground-scripts
-    node -e "require('sqlite3')"
+  ok=0
+  for i in 1 2 3; do
+    if npm ci --omit=dev --no-audit --no-fund --ignore-scripts; then ok=1; break; fi
+    echo "npm ci не прошёл (попытка $i из 3) — повторю через 15 с"; sleep 15
+  done
+  [ "$ok" = 1 ] || { echo "Не удалось скачать зависимости. Проверьте интернет на сервере и запустите обновление ещё раз."; return 1; }
+
+  say "База данных (sqlite3)"
+  ok=0
+  for i in 1 2 3; do
+    if npm rebuild sqlite3 --foreground-scripts && node -e "require('sqlite3')"; then ok=1; break; fi
+    echo "sqlite3 не установился (попытка $i из 3) — повторю через 15 с"; sleep 15
+  done
+  [ "$ok" = 1 ] || { echo "sqlite3 не установился: бот не сможет открыть базу."; return 1; }
+
+  say "Музыка (ffmpeg и голосовой кодек)"
+  npm rebuild @discordjs/opus >/dev/null 2>&1 || echo "Кодек @discordjs/opus не собрался — музыка будет работать через opusscript."
+  f="$(ffmpeg_path)"
+  if [ -n "$f" ] && [ ! -s "$f" ] && [ -s "$FF_CACHE" ]; then cp -f "$FF_CACHE" "$f"; chmod +x "$f"; echo "ffmpeg взят из сохранённой копии."; fi
+  if [ -n "$f" ] && [ ! -s "$f" ]; then
+    ok=0
+    for i in 1 2 3; do
+      if (cd node_modules/ffmpeg-static && node install.js); then ok=1; break; fi
+      echo "ffmpeg не скачался (попытка $i из 3)"; sleep 10
+    done
+    [ "$ok" = 1 ] || echo "ffmpeg скачать не удалось — бот работает, музыка возьмёт системный ffmpeg, если он установлен (apt install ffmpeg)."
   fi
+  keep_ffmpeg || true
+  return 0
 }
 
 restart_bot() {
@@ -69,7 +104,7 @@ wait_ready() {
 deploy() {
   local branch="$1" commit="$2" since
   git checkout -f -B "$branch" "$commit"
-  install_deps
+  install_deps || return 1
   since=$(node -e "console.log(Date.now())")
   restart_bot
   say "Жду, пока бот войдёт в Discord (до $WAIT_SECONDS с)"
