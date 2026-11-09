@@ -1,6 +1,21 @@
 [
  {
   "bot": "3.4.3",
+  "panel": "3.5.1",
+  "date": "2026-11-09",
+  "botChanges": [],
+  "panelChanges": [
+   "Убрано свечение вокруг значка сервера на странице «Обзор»"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Removed the glow around the server icon on the Overview page"
+   ]
+  }
+ },
+ {
+  "bot": "3.4.3",
   "panel": "3.5.0",
   "date": "2026-11-09",
   "botChanges": [],

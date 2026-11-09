@@ -1083,7 +1083,7 @@ input[type=text]:focus-visible, input[type=number]:focus-visible, select:focus-v
 .hero { display: flex; align-items: center; gap: 22px; margin-bottom: 30px; }
 .hero h1 { margin: 0 0 6px; font-size: 2.2rem; letter-spacing: -0.015em; line-height: 1.1; }
 .hero .page-intro { margin: 0; color: var(--fog); font-size: 15px; max-width: 56ch; line-height: 1.55; }
-.hero-icon { width: 76px; height: 76px; border-radius: 22px; flex-shrink: 0; object-fit: cover; box-shadow: 0 0 0 1px var(--hairline), 0 16px 34px -16px var(--ember); }
+.hero-icon { width: 76px; height: 76px; border-radius: 22px; flex-shrink: 0; object-fit: cover; box-shadow: 0 0 0 1px var(--hairline); }
 
 /* Server marks without a picture: the first letter of the name */
 .guild-initial {
