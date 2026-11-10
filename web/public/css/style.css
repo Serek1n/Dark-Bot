@@ -1741,3 +1741,40 @@ select.fs-native { position: absolute !important; inset: 0; width: 100% !importa
 .fs-search input:focus { border-color: var(--ember); box-shadow: none; }
 .msg-preview-wrap { top: 124px; }
 .app-layout > .content:has(.msg-tabs) { max-width: 1280px; }
+
+/* 2026-11c: compact search, a backing for "На этой странице", quicker motion */
+.qj { padding: 12vh 16px 16px !important; align-items: flex-start !important; }
+.qj-panel { max-width: 560px !important; height: auto !important; max-height: min(520px, 76vh) !important; border-radius: 16px !important; border: 1px solid var(--hairline) !important; }
+.qj-list { flex: 0 1 auto; max-height: 380px; }
+.qj-item .qj-ic { display: grid; place-items: center; flex-direction: initial; width: 32px; height: 32px; flex: 0 0 32px; border-radius: 9px; }
+.qj-item .qj-ic svg { width: 16px; height: 16px; display: block; margin: 0; }
+.qj-item .qj-txt { display: flex; flex-direction: column; }
+.qj-item { padding: 7px 10px; }
+.qj-item b { font-size: 14px; }
+.qj-item small { font-size: 12px; }
+.qj-field .qj-input { padding: 13px 0; font-size: 16px; }
+@media (max-width: 760px) {
+  .qj { padding: 10px 10px 10px !important; }
+  .qj-panel { max-width: none !important; max-height: 70vh !important; }
+  .qj-list { max-height: calc(70vh - 60px); }
+}
+
+@media (min-width: 1280px) {
+  body.has-toc .page-toc { background: var(--panel); border: 1px solid var(--hairline); border-radius: 14px; padding: 12px 8px 10px; max-height: calc(100vh - 160px); }
+}
+.toc-cap { padding: 2px 10px 8px; }
+
+.app-layout > .content > * { animation-duration: .18s; }
+.app-layout > .content > *:nth-child(2) { animation-delay: .015s; }
+.app-layout > .content > *:nth-child(3) { animation-delay: .03s; }
+.app-layout > .content > *:nth-child(4) { animation-delay: .045s; }
+.app-layout > .content > *:nth-child(n+5) { animation-delay: .06s; }
+body.has-toc .page-toc { animation-duration: .18s; }
+details[open] > :not(summary), .tb-user-menu, .ms-list:not([hidden]), .fs-pop { animation-duration: .1s; }
+.qj { transition-duration: .08s; }
+.qj-panel { transition-duration: .1s; }
+.nd-panel { animation-duration: .14s; }
+.nd-backdrop { animation-duration: .12s; }
+.page-toc a, .page-toc a::before { transition-duration: .1s; }
+.tb-group, .tb-icon, .tb-search, .btn, .nd-nav a, .ms-item, .card .rule, .tb-tab, .fs-btn, .fs-chev { transition-duration: .1s; }
+.toast { animation-duration: .15s; }

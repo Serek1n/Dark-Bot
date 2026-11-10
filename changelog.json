@@ -1,6 +1,25 @@
 [
  {
   "bot": "3.5.0",
+  "panel": "3.6.1",
+  "date": "2026-11-10",
+  "botChanges": [],
+  "panelChanges": [
+   "Поиск — компактное окно по центру, иконки в результатах ровные",
+   "У колонки «На этой странице» подложка; подсветка доходит до последнего раздела",
+   "Анимации быстрее"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Search is a compact centered window, result icons are aligned",
+    "The \"On this page\" column has a backing; highlighting reaches the last section",
+    "Faster animations"
+   ]
+  }
+ },
+ {
+  "bot": "3.5.0",
   "panel": "3.6.0",
   "date": "2026-11-09",
   "botChanges": [

@@ -95,15 +95,25 @@
     void title;
     document.body.appendChild(toc);
     document.body.classList.add('has-toc');
-    if (!('IntersectionObserver' in window)) return;
-    var visible = {};
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) { visible[en.target.id] = en.isIntersecting ? en.intersectionRect.height : 0; });
-      var best = null, bestH = 0;
-      links.forEach(function (l) { var hgt = visible[l.card.id] || 0; if (hgt > bestH) { bestH = hgt; best = l; } });
-      links.forEach(function (l) { l.a.classList.toggle('on', l === best); });
-    }, { rootMargin: '-120px 0px -35% 0px', threshold: [0, 0.25, 0.5, 1] });
-    links.forEach(function (l) { io.observe(l.card); });
+    // The lit item: the section whose top passed under the bar last; at the very bottom of the page — the last one
+    // (a short last section never reaches the top). A click lights its item right away.
+    var lockUntil = 0;
+    function light(l) { links.forEach(function (x) { x.a.classList.toggle('on', x === l); }); }
+    function update() {
+      if (Date.now() < lockUntil) return;
+      var line = 140, cur = links[0];
+      var atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      if (atEnd) cur = links[links.length - 1];
+      else links.forEach(function (l) { if (l.card.getBoundingClientRect().top - line <= 0) cur = l; });
+      light(cur);
+    }
+    links.forEach(function (l) {
+      l.a.addEventListener('click', function () { light(l); lockUntil = Date.now() + 700; });
+    });
+    var ticking = false;
+    window.addEventListener('scroll', function () { if (ticking) return; ticking = true; requestAnimationFrame(function () { ticking = false; update(); }); }, { passive: true });
+    window.addEventListener('resize', update);
+    update();
   }
 
   // 4) Search: Ctrl+K (⌘K) or "/" opens it. It finds pages and the settings inside them (card headings, fields, switches);
