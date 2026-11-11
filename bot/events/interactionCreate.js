@@ -16,6 +16,12 @@ function failureText(interaction, err, fallback) {
   return require('../utils/missingPermissions').explainMissing(err, interaction.guild, interaction.channel) || fallback;
 }
 
+const tellFailed = async (interaction) => { // the person sees why nothing happened instead of Discord's bare "interaction failed"
+  const payload = { embeds: [embeds.error('Не получилось выполнить действие. Попробуйте ещё раз.')], flags: MessageFlags.Ephemeral };
+  if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
+  else await interaction.reply(payload).catch(() => {});
+};
+
 module.exports = {
   name: 'interactionCreate',
   async execute(interaction) {
@@ -52,6 +58,7 @@ module.exports = {
         await handleTopButton(interaction);
       } catch (err) {
         logger.error('Leaderboard button failed:', err);
+        await tellFailed(interaction);
       }
       return;
     }
@@ -70,11 +77,11 @@ module.exports = {
     }
 
     if (require('../modules/reports').isReportComponent(interaction)) {
-      try { await require('../modules/reports').handleReportComponent(interaction); } catch (err) { logger.error('Report action failed:', err); }
+      try { await require('../modules/reports').handleReportComponent(interaction); } catch (err) { logger.error('Report action failed:', err); await tellFailed(interaction); }
       return;
     }
     if (interaction.isModalSubmit?.() && interaction.customId?.startsWith('repmodal:')) {
-      try { await require('../commands/moderation/reportUser').handleModal(interaction); } catch (err) { logger.error('Report window failed:', err); }
+      try { await require('../commands/moderation/reportUser').handleModal(interaction); } catch (err) { logger.error('Report window failed:', err); await tellFailed(interaction); }
       return;
     }
 

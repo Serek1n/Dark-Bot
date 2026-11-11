@@ -144,9 +144,9 @@
     box.hidden = true;
     box.innerHTML = '<div class="qj-panel" role="dialog" aria-modal="true" aria-label="Поиск по панели">' +
       '<div class="qj-field"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.3"/><path d="M12.8 12.8L16.5 16.5"/></svg>' +
-      '<input class="qj-input" type="search" placeholder="Раздел или настройка: магазин, пауза, мат…" autocomplete="off" aria-label="Поиск раздела или настройки" />' +
+      '<input class="qj-input" type="search" placeholder="Раздел или настройка: магазин, пауза, мат…" autocomplete="off" aria-label="Поиск раздела или настройки" role="combobox" aria-expanded="true" aria-controls="qjList" aria-autocomplete="list" />' +
       '<button type="button" class="qj-close" aria-label="Закрыть поиск">Esc</button></div>' +
-      '<div class="qj-list" role="listbox"></div><div class="qj-hint"><span><kbd>↑</kbd><kbd>↓</kbd> выбрать</span><span><kbd>Enter</kbd> открыть</span><span><kbd>Esc</kbd> закрыть</span></div></div>';
+      '<div class="qj-list" id="qjList" role="listbox" aria-label="Результаты поиска"></div><div class="qj-hint"><span><kbd>↑</kbd><kbd>↓</kbd> выбрать</span><span><kbd>Enter</kbd> открыть</span><span><kbd>Esc</kbd> закрыть</span></div></div>';
     document.body.appendChild(box);
     var input = box.querySelector('.qj-input'), list = box.querySelector('.qj-list'), shown = [], sel = 0;
     function norm(s) { return s.toLowerCase().replace(/ё/g, 'е'); }
@@ -174,21 +174,25 @@
       shown = foundPages.concat(foundSettings);
       sel = Math.min(sel, Math.max(0, shown.length - 1));
       list.innerHTML = '';
-      if (!shown.length) { list.innerHTML = '<div class="qj-empty">Ничего не найдено</div>'; return; }
+      if (!shown.length) { list.innerHTML = '<div class="qj-empty" role="status">Ничего не найдено</div>'; input.removeAttribute('aria-activedescendant'); return; }
       shown.forEach(function (it, i) {
         if (i === 0 && foundPages.length && words.length) list.appendChild(head('Разделы'));
         if (i === foundPages.length) list.appendChild(head('Настройки'));
         var a = document.createElement('a');
-        a.href = it.href; a.className = 'qj-item' + (i === sel ? ' sel' : '') + (it.setting ? ' qj-setting' : ''); a.setAttribute('role', 'option');
+        a.href = it.href; a.className = 'qj-item' + (i === sel ? ' sel' : '') + (it.setting ? ' qj-setting' : ''); a.setAttribute('role', 'option'); a.id = 'qjOpt' + i; a.setAttribute('aria-selected', i === sel ? 'true' : 'false');
         a.innerHTML = '<span class="qj-ic">' + it.icon + '</span><span class="qj-txt"><b></b><small></small></span>' + (i === sel ? '<kbd class="qj-enter">↵</kbd>' : '');
         mark(a.querySelector('b'), it.name, words); a.querySelector('small').textContent = it.setting ? '↳ ' + it.desc : it.desc;
         list.appendChild(a);
       });
       var cur = list.querySelectorAll('.qj-item')[sel]; if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' });
+      if (cur) input.setAttribute('aria-activedescendant', cur.id); else input.removeAttribute('aria-activedescendant'); // the chosen result is announced
     }
     function go(it) { var here = location.pathname === it.href.split('#')[0]; location.href = it.href; if (here) { close(); findOnPage(); } }
-    function open() { box.hidden = false; input.value = ''; sel = 0; draw(); input.focus(); document.documentElement.classList.add('qj-open'); requestAnimationFrame(function () { box.classList.add('in'); }); loadSettings(); }
-    function close() { box.classList.remove('in'); box.hidden = true; document.documentElement.classList.remove('qj-open'); }
+    var opener = null;
+    // while the search is open the page behind it is out of reach of the keyboard and of screen readers
+    function shut(on) { Array.prototype.forEach.call(document.body.children, function (el) { if (el !== box && el.tagName !== 'SCRIPT') { if (on) { if (!el.inert) { el.inert = true; el.setAttribute('data-qj-inert', ''); } } else if (el.hasAttribute('data-qj-inert')) { el.inert = false; el.removeAttribute('data-qj-inert'); } } }); }
+    function open() { opener = document.activeElement; shut(true); box.hidden = false; input.value = ''; sel = 0; draw(); input.focus(); document.documentElement.classList.add('qj-open'); requestAnimationFrame(function () { box.classList.add('in'); }); loadSettings(); }
+    function close() { if (box.hidden) return; box.classList.remove('in'); box.hidden = true; document.documentElement.classList.remove('qj-open'); shut(false); if (opener && opener.focus && document.contains(opener)) opener.focus(); opener = null; }
     input.addEventListener('input', function () { sel = 0; drawSoon(); });
     box.querySelector('.qj-close').addEventListener('click', function () { close(); });
     input.addEventListener('keydown', function (e) {
@@ -381,6 +385,25 @@
     wrap.addEventListener('focusout', function (e) { if (e.relatedTarget && !wrap.contains(e.relatedTarget)) close(); });
     draw(); filter();
   }
+  // 7a) Names for screen readers. A caption written next to its field (not around it and without "for") is tied to that
+  //     field here, once, for every page; table headers say that they head a column. Runs before the lists below are
+  //     rebuilt, so the custom dropdown finds its caption too.
+  (function () {
+    var n = 0, FIELD = 'input:not([type=hidden]):not([type=submit]):not([type=button]), select, textarea';
+    Array.prototype.forEach.call(document.querySelectorAll('label:not([for])'), function (lab) {
+      if (lab.querySelector(FIELD)) return; // wraps its field: already tied
+      var el = lab.nextElementSibling, field = null;
+      for (var steps = 0; el && steps < 4 && !field; steps++, el = el.nextElementSibling) {
+        if (el.tagName === 'LABEL') break;
+        field = el.matches(FIELD) ? el : el.querySelector(FIELD);
+      }
+      if (!field || (field.labels && field.labels.length)) return;
+      if (!field.id) field.id = 'fld' + (++n);
+      lab.htmlFor = field.id;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('thead th:not([scope])'), function (th) { th.setAttribute('scope', 'col'); });
+  })();
+
   document.querySelectorAll('.pick').forEach(multiPick);
 
   // 8) Dropdowns: every single-choice list becomes a button with a popover list (search in long ones, keyboard, groups).

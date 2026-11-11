@@ -4,7 +4,7 @@
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
-    <div class="content">
+    <main class="content" id="main" tabindex="-1">
       <div class="page-header">
         <h1>Система уровней</h1>
         <p class="page-intro">Один общий уровень растёт от сообщений и от времени в голосовых каналах. Для каждого источника свои настройки.</p>
@@ -182,7 +182,7 @@
       <div class="card">
         <h2>Импорт уровней</h2>
         <p>Перенос из экспорта Lacuna или из экспорта этого бота (файл <code>.json</code>). Чужой опыт нельзя разделить на чат и голос, он считается чатовым. Экспорт Dark восстанавливает опыт чата и голоса отдельно и кристаллы. Существующие значения не уменьшаются.</p>
-        <input type="file" id="importFile" accept=".json,application/json" />
+        <input type="file" id="importFile" aria-label="Файл с уровнями" accept=".json,application/json" />
         <button class="btn" type="button" id="importBtn">Импортировать</button>
         <div class="hint" id="importStatus"></div>
       </div>
@@ -227,7 +227,7 @@
           });
         })();
       </script>
-    </div>
+    </main>
   </div>
 </body>
 </html>

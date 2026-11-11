@@ -4,6 +4,7 @@ const { TempVoiceChannel } = require('../../db');
 const logger = require('../utils/logger');
 const { getQueue, destroyQueue } = require('../modules/music/player');
 const { trackVoiceState } = require('../modules/voiceTime');
+const { isTempRoom, rememberTempRoom, forgetTempRoom } = require('../modules/tempRooms');
 
 module.exports = {
   name: 'voiceStateUpdate',
@@ -34,15 +35,18 @@ module.exports = {
     // Clean up an emptied temp channel regardless of whether temp-voice is still
     // configured right now — otherwise disabling the feature leaves old channels stuck.
     if (oldState.channelId) {
-      const tempChannel = await TempVoiceChannel.findOne({ where: { channelId: oldState.channelId } });
+      // The ids of the temporary rooms are kept in memory, so leaving an ordinary voice channel costs no database query.
+      const tempChannel = (await isTempRoom(oldState.channelId)) ? await TempVoiceChannel.findOne({ where: { channelId: oldState.channelId } }) : null;
       if (tempChannel) {
         const channel = await guild.channels.fetch(oldState.channelId).catch(() => null);
         if (channel && channel.members.size === 0) {
           await channel.delete().catch(() => {});
           await tempChannel.destroy();
+          forgetTempRoom(oldState.channelId);
         } else if (!channel) {
           // Channel was already removed some other way (manually deleted) — drop the stale record.
           await tempChannel.destroy();
+          forgetTempRoom(oldState.channelId);
         }
       }
     }
@@ -69,11 +73,13 @@ module.exports = {
           ]
         });
         await TempVoiceChannel.create({ guildId: guild.id, channelId: channel.id, ownerId: newState.member.id });
+        rememberTempRoom(channel.id);
         // The member may already have left the trigger channel: then the new room would stay empty forever.
         const moved = await newState.setChannel(channel).then(() => true).catch(() => false);
         if (!moved) {
           await channel.delete('Владелец вышел до переноса в комнату').catch(() => {});
           await TempVoiceChannel.destroy({ where: { channelId: channel.id } }).catch(() => {});
+          forgetTempRoom(channel.id);
         }
       } catch (err) {
         logger.error('Failed to create temp voice channel:', err);

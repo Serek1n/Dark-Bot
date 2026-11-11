@@ -159,7 +159,7 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
 
   // ---------- /voice ----------
   const runCmd = async (w, sub, options = {}, member) => { const replies = []; const i = { guild: w.guild, member: member || w.owner, user: (member || w.owner).user, channel: { send: async (p) => { replies.push(['channel', p]); } }, replied: false, deferred: false,
-    options: { getSubcommand: () => sub, getUser: (k) => (options[k] ? { id: options[k] } : null), getString: (k) => options[k] ?? null, getInteger: (k) => options[k] ?? null, getChannel: () => options.channel || null }, reply: async (p) => { replies.push(p); }, followUp: async (p) => { replies.push(p); } };
+    options: { getSubcommand: () => sub, getUser: (k) => (options[k] ? { id: options[k] } : null), getString: (k) => options[k] ?? null, getInteger: (k) => options[k] ?? null, getChannel: () => options.channel || null }, reply: async (p) => { replies.push(p); }, followUp: async (p) => { replies.push(p); }, deferReply: async () => { i.deferred = true; }, editReply: async (p) => { replies.push(p); } };
     await cmd.execute(i); return txt(replies); };
   await test('/voice: name, limit, access, trust, transfer, claim, info, delete work like the buttons', async () => {
     const w = await world(); const a = w.person('A', { inRoom: true });

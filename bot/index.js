@@ -37,6 +37,7 @@ const client = new Client({
 });
 
 client.commands = new Collection();
+let webServer = null;
 
 async function main() {
   await init();
@@ -59,7 +60,7 @@ async function main() {
   if (String(process.env.WEB_ENABLED || 'true').toLowerCase() !== 'false') {
     // Whatever goes wrong with the panel (bad OAuth settings, busy port) must never take the bot down with it.
     try {
-      await require('../web').start({ client });
+      webServer = await require('../web').start({ client });
     } catch (err) {
       logger.error('Web panel failed to start (the bot keeps running):', err);
     }
@@ -72,3 +73,23 @@ main().catch((err) => {
 });
 
 process.on('unhandledRejection', (err) => logger.error('Unhandled rejection:', err));
+
+// A clean stop (pm2 restart, an update, Ctrl+C): stop taking requests, write the voice time still held in memory, let the
+// running database transaction finish, leave Discord and close the database. Without it every restart lost up to 5 minutes
+// of everybody's voice time and could cut a purchase in half.
+let stopping = false;
+async function shutdown(signal) {
+  if (stopping) return;
+  stopping = true;
+  logger.info(`${signal}: stopping...`);
+  const hardStop = setTimeout(() => process.exit(0), 8000); // never hang: pm2 kills after kill_timeout anyway
+  hardStop.unref?.();
+  try { if (webServer?.close) webServer.close(); } catch { /* not started */ }
+  try { await require('./modules/voiceTime').flushAll(); } catch (err) { logger.warn(`voice time was not saved: ${err.message}`); }
+  try { const db = require('../db'); await db.inTransaction(async () => {}); } catch { /* nothing was running */ }
+  try { await client.destroy(); } catch { /* not logged in */ }
+  try { await require('../db').sequelize.close(); } catch { /* already closed */ }
+  process.exit(0);
+}
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));

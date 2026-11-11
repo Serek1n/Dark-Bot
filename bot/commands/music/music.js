@@ -15,6 +15,27 @@ function musicRefusal(channel, me) {
   return null;
 }
 
+const PLAY_COOLDOWN = 4000; // per member
+const MAX_SEARCHES_GUILD = 2; // running at once on one server
+const MAX_SEARCHES_ALL = 6; // running at once in the whole bot
+const MAX_QUEUE = 500; // tracks waiting on one server
+const lastPlay = new Map(); const searching = new Map(); let searchingAll = 0;
+function searchRefusal(guildId, userId) {
+  const now = Date.now();
+  const last = lastPlay.get(userId) || 0;
+  if (now - last < PLAY_COOLDOWN) return 'Слишком часто. Подождите пару секунд и повторите.';
+  if ((searching.get(guildId) || 0) >= MAX_SEARCHES_GUILD || searchingAll >= MAX_SEARCHES_ALL) return 'Сейчас уже идёт поиск других треков. Повторите через несколько секунд.';
+  if (lastPlay.size > 5000) for (const [k, t] of lastPlay) if (now - t > PLAY_COOLDOWN) lastPlay.delete(k);
+  lastPlay.set(userId, now);
+  searching.set(guildId, (searching.get(guildId) || 0) + 1); searchingAll++;
+  return null;
+}
+function searchDone(guildId) {
+  const n = (searching.get(guildId) || 1) - 1;
+  if (n > 0) searching.set(guildId, n); else searching.delete(guildId);
+  searchingAll = Math.max(0, searchingAll - 1);
+}
+
 module.exports = {
   musicRefusal,
   // Registered as the flat command /play (the grouped `data` below is kept for tests only).
@@ -63,11 +84,18 @@ module.exports = {
       const voiceRefusal = musicRefusal(voiceChannel, interaction.guild.members?.me);
       if (voiceRefusal) return interaction.reply({ embeds: [embeds.error(voiceRefusal)], flags: MessageFlags.Ephemeral });
 
+      // Every search starts a yt-dlp process (a playlist: up to a hundred of them one after another). Without limits
+      // a few people sending /play in a row would take the whole machine, and with it the bot on every server.
+      const wait = searchRefusal(interaction.guild.id, interaction.user.id);
+      if (wait) return interaction.reply({ embeds: [embeds.error(wait)], flags: MessageFlags.Ephemeral });
       await interaction.deferReply();
-      const tracks = await resolveQuery(query, interaction.user.id).catch((err) => {
-        logger.error('resolveQuery failed', err);
-        return [];
-      });
+      let tracks;
+      try {
+        tracks = await resolveQuery(query, interaction.user.id).catch((err) => {
+          logger.error('resolveQuery failed', err);
+          return [];
+        });
+      } finally { searchDone(interaction.guild.id); }
       if (!tracks.length) return interaction.editReply({ embeds: [embeds.error('Ничего не найдено по запросу.')] });
 
       const queue = getOrCreateQueue(interaction.guild.id, voiceChannel, interaction.channel);
@@ -81,6 +109,9 @@ module.exports = {
         }
       }
       const wasPlaying = Boolean(queue.playing);
+      const room = Math.max(0, MAX_QUEUE - (queue.tracks?.length || 0));
+      if (!room) return interaction.editReply({ embeds: [embeds.error(`Очередь заполнена (${MAX_QUEUE} треков). Дождитесь, пока часть доиграет.`)] });
+      if (tracks.length > room) tracks = tracks.slice(0, room);
       tracks.forEach((t) => queue.enqueue(t));
 
       if (!wasPlaying) {

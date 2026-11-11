@@ -118,6 +118,30 @@ function purchaseItem({ guild, member, itemId }) {
       return { ok: false, error: `Не хватает: нужно ${fmt(item.price)} ${cName}.` };
     }
 
+    // The purchase is written down right after the money is taken and BEFORE Discord is asked for the role: a stop of the
+    // process in between can no longer leave coins spent with no trace of what they were spent on.
+    const status = item.type === 'role' || item.deliveryMessage ? 'done' : 'pending';
+    let purchase;
+    try {
+      purchase = await Purchase.create({
+        guildId: guild.id,
+        userId: member.id,
+        itemId: item.id,
+        itemName: item.name,
+        itemType: item.type,
+        roleId: item.type === 'role' ? item.roleId : null,
+        price: item.price,
+        currency: item.currency,
+        status,
+        expiresAt: null
+      });
+    } catch (err) {
+      logger.error('Shop: the purchase was not saved:', err);
+      await credit(guild.id, member.id, field, item.price);
+      await putBack();
+      return { ok: false, error: 'Не получилось оформить покупку. С вас ничего не списано.' };
+    }
+
     let term = null;
     if (item.type === 'role') {
       try {
@@ -127,23 +151,11 @@ function purchaseItem({ guild, member, itemId }) {
         logger.error('Shop: could not give role:', err);
         await credit(guild.id, member.id, field, item.price); // give the money back
         await putBack();
+        await purchase.destroy().catch(() => {});
         return { ok: false, error: 'Не удалось выдать роль. С вас ничего не списано.' };
       }
+      if (term) await purchase.update({ expiresAt: term.expiresAt }).catch(() => {});
     }
-
-    const status = item.type === 'role' || item.deliveryMessage ? 'done' : 'pending';
-    const purchase = await Purchase.create({
-      guildId: guild.id,
-      userId: member.id,
-      itemId: item.id,
-      itemName: item.name,
-      itemType: item.type,
-      roleId: item.type === 'role' ? item.roleId : null,
-      price: item.price,
-      currency: item.currency,
-      status,
-      expiresAt: term ? term.expiresAt : null
-    });
     return { ok: true, item, purchase, settings, balanceAfter, currencyName: cName, extended: Boolean(term?.extended) };
   });
 }

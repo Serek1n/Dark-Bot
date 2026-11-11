@@ -470,7 +470,12 @@ on('guildScheduledEventUpdate', async (oldEv, ev) => {
 const loaded = new Set();
 async function loadMembersForLogs(client) {
   for (const guild of client.guilds.cache.values()) {
-    if (loaded.has(guild.id) || !(await L.getConfig(guild.id))) continue;
+    if (loaded.has(guild.id)) continue;
+    // Also where "restore roles on return" is on: a member the bot has not seen since its restart leaves as a bare id,
+    // without roles, and nothing could be saved for him.
+    const s = await require('../modules/leveling').getOrCreateSettings(guild.id).catch(() => null);
+    const restore = !s || (s.restoreOnRejoin !== false && s.restoreOnRejoin !== 0);
+    if (!restore && !(await L.getConfig(guild.id))) continue;
     loaded.add(guild.id);
     await guild.members.fetch().catch((err) => {
       loaded.delete(guild.id);

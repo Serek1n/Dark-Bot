@@ -45,6 +45,10 @@ module.exports = {
     require('../modules/tempRoles').startTempRoleScheduler(client); // takes temporary roles away when their time is up
     startRestoreCleanup(); // forgets old data of members who left
     require('../modules/tickets').sweepClosedTickets(client).catch(() => {}); // closed tickets whose channel outlived a restart
+    require('../modules/dbBackup').startDbBackup(); // a copy of the database once a day
+    require('../modules/commandSync').syncCommands(client).catch((err) => logger.warn(`Commands were not registered: ${err.message}`)); // new commands appear without a manual step
+    require('../modules/tempRooms').sweepTempRooms(client).catch(() => {}); // rooms that emptied while the bot was off
+    require('../modules/giveaways').settleUnpaid?.(client).catch(() => {}); // prizes of giveaways that ended right before a stop
     require('../modules/voiceRoles').sweepVoiceRoles(client).catch(() => {}); // voice roles of people who left while the bot was off
     require('../modules/updates').announceUpdates(client).catch(() => {}); // "what's new" into the chosen channels after an update
     client.user.setActivity('/help | Dark', { type: ActivityType.Watching });

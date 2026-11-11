@@ -6,8 +6,9 @@ module.exports = {
       name: 'dark-bot',
       script: './bot/index.js',
       env: { NODE_ENV: 'production' },
-      max_restarts: 10,
-      restart_delay: 5000
+      // After a crash wait a little longer each time (up to 15 s) and never give up: a long Discord outage must not leave the bot stopped.
+      exp_backoff_restart_delay: 2000,
+      kill_timeout: 10000 // time for a clean stop: voice time is written, the database is closed
     }
   ]
 };

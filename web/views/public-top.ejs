@@ -16,7 +16,7 @@
         <p class="empty-state">Пока никто не попал в рейтинг.</p>
       <% } else { %>
         <div class="toolbar">
-          <input type="text" class="search" id="lbSearch" placeholder="Найти участника по имени" autocomplete="off" />
+          <input type="text" class="search" id="lbSearch" aria-label="Найти участника по имени" placeholder="Найти участника по имени" autocomplete="off" />
           <span class="count" id="lbCount"><%= rows.length %> в рейтинге</span>
         </div>
         <div class="lb-list">

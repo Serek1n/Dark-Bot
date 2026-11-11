@@ -165,7 +165,10 @@ async function liftExpiredBans(client) {
   let lifted = 0;
   for (const entry of due) {
     const guild = client.guilds.cache.get(entry.guildId);
-    if (!guild) continue; // the bot is not on that server right now; try again later
+    if (!guild) { // the bot is not on that server right now: look again in an hour, and never let such rows hold up the others
+      await entry.update({ expiresAt: new Date(Date.now() + 60 * MINUTE) }).catch(() => {});
+      continue;
+    }
     try {
       await guild.members.unban(entry.userId, `Срок бана истёк (дело #${entry.caseNumber})`).catch((err) => {
         if (!/unknown ban|10026/i.test(String(err.message) + String(err.code))) throw err; // already unbanned by hand: fine

@@ -12,7 +12,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY . .
 
-RUN npm install -g pm2 && mkdir -p /app/data && chown -R node:node /app
+RUN npm install -g pm2@5 && mkdir -p /app/data && chown -R node:node /app
 
 # not root
 USER node

@@ -6,7 +6,7 @@ const { give } = require('../../modules/tempRoles');
 const { TempRole } = require('../../../db');
 
 const MAX_MS = 366 * 24 * 3600 * 1000;
-const DANGEROUS = PermissionFlagsBits.Administrator | PermissionFlagsBits.ManageGuild | PermissionFlagsBits.ManageRoles | PermissionFlagsBits.BanMembers | PermissionFlagsBits.KickMembers | PermissionFlagsBits.ModerateMembers | PermissionFlagsBits.ManageChannels | PermissionFlagsBits.ManageWebhooks;
+const { DANGEROUS } = require('../../utils/safeRole'); // one list for the panel and the commands
 
 module.exports = {
   data: new SlashCommandBuilder()

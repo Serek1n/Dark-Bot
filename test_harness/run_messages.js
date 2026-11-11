@@ -32,12 +32,15 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
   const hooks = { [HOOK]: { id: HOOK, guild_id: G, channel_id: CH, token: TOKEN, name: 'News' }, [URLHOOK]: { id: URLHOOK, guild_id: G, channel_id: CH, token: TOKEN, name: 'Pasted' }, '900000000000000003': { id: '900000000000000003', guild_id: OTHER, channel_id: FOREIGN, token: TOKEN, name: 'Foreign' } };
   const sentMsgs = {};
   const reply = (where, body) => { const id = String(123400000000000000n + BigInt(calls.length)); sentMsgs[id] = { ...body, channel_id: where, id, author: { username: body.username || 'News' } }; return { data: { id, channel_id: where } }; };
+  let everyonePerms = (1n << 10n) | (1n << 11n) | (1n << 16n); // what @everyone may do: see the channels, write, read the history
   Object.assign(kit._api.botApi, {
     get: async (u) => {
       calls.push(['bot.get', u]);
       let m = /^\/channels\/(\d+)$/.exec(u); if (m) { if (!channels[m[1]]) throw err(404, 10003); return { data: channels[m[1]] }; }
       m = /^\/webhooks\/(\d+)$/.exec(u); if (m) { if (!hooks[m[1]]) throw err(404, 10015); return { data: hooks[m[1]] }; }
       m = /^\/channels\/(\d+)\/messages\/(\d+)$/.exec(u); if (m) { if (!sentMsgs[m[2]]) throw err(404, 10008); return { data: sentMsgs[m[2]] }; }
+      if (/^\/guilds\/\d+\/members\/\d+$/.test(u)) return { data: { roles: [] } };
+      m = /^\/guilds\/(\d+)\/roles$/.exec(u); if (m) return { data: [{ id: m[1], permissions: String(everyonePerms), mentionable: false }, { id: '555000000000000001', permissions: '0', mentionable: true }] };
       return { data: {} };
     },
     post: async (u, body) => { calls.push(['bot.post', u, body]); const m = /^\/channels\/(\d+)\/(messages|threads)$/.exec(u); if (m[2] === 'threads') { const r = reply('T' + calls.length, body.message); return { data: { id: r.data.channel_id, message: { id: r.data.id } } }; } return reply(m[1], body); },
@@ -67,7 +70,9 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     assert.deepStrictEqual(ok.components, [{ type: 1, components: [{ type: 2, style: 5, label: 'Сайт', url: 'https://example.com' }] }]);
     assert.strictEqual(ok.mentions, 'none');
     assert.deepStrictEqual(kit.allowedMentions('none'), { parse: [] });
-    assert.deepStrictEqual(kit.allowedMentions('everyone', false), { parse: ['users', 'roles'] }, '@everyone needs the right');
+    assert.deepStrictEqual(kit.allowedMentions('everyone', false), { parse: ['users'], roles: [] }, '@everyone needs the right');
+    assert.deepStrictEqual(kit.allowedMentions('roles', false, ['R1']), { parse: ['users'], roles: ['R1'] }, 'without the right only the mentionable roles are pinged');
+    assert.deepStrictEqual(kit.allowedMentions('roles', true), { parse: ['users', 'roles'] }, 'with the right every role may be pinged');
   });
 
   await test('webhook links and message links are read; anything else is refused', async () => {
@@ -162,12 +167,37 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
       r = await post('/send', { target: { mode: 'webhook', webhookId: HOOK }, message: { content: 'x' } });
       assert(r.status === 403 && /Управлять вебхуками/.test(r.error), JSON.stringify(r));
       r = await post('/send', { target: { mode: 'channel', channelId: CH }, message: msg });
-      assert.deepStrictEqual(last('bot.post')[2].allowed_mentions, { parse: ['users', 'roles'] }, 'no @everyone without the right');
+      { const am = last('bot.post')[2].allowed_mentions; assert.deepStrictEqual(am.parse, ['users'], 'no @everyone without the right'); assert(Array.isArray(am.roles), 'roles are listed one by one'); }
       const html = await (await fetch(base.replace('/messages', '/webhooks'))).text();
       assert(!html.includes('News · #general') && html.includes('Нужно право «Управлять вебхуками»') && html.includes('только тот, у кого есть право «Управлять вебхуками»'), 'no webhooks offered, the builder still works');
     } finally { access = { manageable: true, owner: true, permissions: '0' }; }
   });
 
+  await test('the bot is not a way around channel permissions: a manager needs his own rights in the channel; journals and the log webhook are closed', async () => {
+    const actor = { userId: '800000000000000099', access: { manageable: true, owner: false, permissions: String(1n << 5n) } }; // "Manage Server" only
+    const keep = everyonePerms;
+    const refused = async (opts, re, why) => { const e = await kit.resolveTarget(G, { mode: 'channel', channelId: CH }, { actor, ...opts }).then(() => null, (x) => x); assert(e && e.code === 'forbidden' && re.test(e.message), why + ': ' + (e && e.message)); };
+    await db.GuildSettings.findOrCreate({ where: { guildId: G } });
+    try {
+      assert((await kit.resolveTarget(G, { mode: 'channel', channelId: CH }, { actor })).kind === 'channel', 'sees the channel and may write');
+      assert((await kit.resolveTarget(G, { mode: 'channel', channelId: CH }, { actor: { userId: actor.userId, access: { owner: true } }, need: 'edit' })).kind === 'channel', 'the owner may everything');
+      await refused({ need: 'edit' }, /Управлять сообщениями/, 'editing the bot\'s message needs Manage Messages there');
+      everyonePerms = (1n << 10n) | (1n << 16n); // sees, may not write
+      await refused({}, /писать/, 'no right to write');
+      everyonePerms = 0n; // a channel he does not see
+      await refused({}, /нет доступа/, 'hidden channel');
+      await refused({ need: 'read' }, /нет доступа/, 'a message of a hidden channel is not read');
+      everyonePerms = keep | (1n << 13n); // may manage messages...
+      await db.GuildSettings.update({ modLogChannelId: CH }, { where: { guildId: G } });
+      await refused({ need: 'edit' }, /журнал/, '...but records of a journal channel stay as they are');
+      await db.GuildSettings.update({ modLogChannelId: null, logWebhookId: HOOK }, { where: { guildId: G } });
+      const e = await kit.resolveTarget(G, { mode: 'webhook', webhookId: HOOK }).then(() => null, (x) => x);
+      assert(e && /служебный вебхук/.test(e.message), 'the log webhook is not a target');
+      // the route passes the person who presses the button
+      const before = access; access = actor.access; everyonePerms = 0n;
+      try { const r = await post('/send', { target: { mode: 'channel', channelId: CH }, message: { content: 'x' } }); assert(r.status === 403, 'route refuses: ' + JSON.stringify(r)); } finally { access = before; }
+    } finally { everyonePerms = keep; await db.GuildSettings.update({ modLogChannelId: null, logWebhookId: null }, { where: { guildId: G } }); }
+  });
   await test('edit and restore: load a sent message (by ID or link) into the editor, change it in place', async () => {
     const sent = await post('/send', { target: { mode: 'webhook', webhookId: HOOK }, message: { content: 'v1', embeds: [{ title: 'A', fields: [{ name: 'n', value: 'v' }] }], components: [{ components: [{ label: 'L', url: 'https://a.b' }] }] } });
     let r = await post('/load', { target: { mode: 'webhook', webhookId: HOOK }, messageRef: sent.id });

@@ -4,7 +4,7 @@
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
-    <div class="content">
+    <main class="content" id="main" tabindex="-1">
       <div class="page-header">
         <h1>Таблица лидеров</h1>
         <p class="page-intro">Топ участников сервера: по общему опыту или по времени в голосовых каналах.</p>
@@ -34,7 +34,7 @@
       </div>
       <% if (top.length) { %>
         <div class="toolbar">
-          <input type="text" class="search" id="lbSearch" placeholder="Найти участника по имени" autocomplete="off" />
+          <input type="text" class="search" id="lbSearch" aria-label="Найти участника по имени" placeholder="Найти участника по имени" autocomplete="off" />
           <span class="count" id="lbCount"><%= top.length %> из топ-50</span>
         </div>
       <% } %>
@@ -61,7 +61,7 @@
           </div>
         <% } %>
       </div>
-    </div>
+    </main>
   </div>
   <script>
     (function () {

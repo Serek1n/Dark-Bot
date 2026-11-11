@@ -111,9 +111,22 @@ router.post('/:guildId/shop/purchases/:id/refund', ensureGuildAccess, async (req
   await credit(guildId, purchase.userId, purchase.currency === 'crystals' ? 'crystals' : 'balance', purchase.price);
   if (purchase.itemId) await ShopItem.increment('stock', { by: 1, where: { id: purchase.itemId, guildId, stock: { [Op.ne]: null } } }).catch(() => {});
   if (purchase.itemType === 'role' && purchase.roleId) {
-    const reason = { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Возврат покупки в панели') } };
-    await botApi.delete(`/guilds/${guildId}/members/${purchase.userId}/roles/${purchase.roleId}`, reason).catch(() => {}); // the member left or has no such role: nothing to take
-    await TempRole.destroy({ where: { guildId, userId: purchase.userId, roleId: purchase.roleId } });
+    // A role on a term may have been bought several times (each purchase prolongs it). Returning one purchase takes back
+    // only its own time: the role goes only when nothing paid for is left.
+    const where = { guildId, userId: purchase.userId, roleId: purchase.roleId };
+    const term = await TempRole.findOne({ where });
+    const item = purchase.itemId ? await ShopItem.findOne({ where: { id: purchase.itemId, guildId }, attributes: ['durationSeconds'] }) : null;
+    const ms = Number(item?.durationSeconds) > 0 ? Number(item.durationSeconds) * 1000 : 0;
+    const left = term && ms ? new Date(term.expiresAt).getTime() - ms : 0;
+    const others = term && ms ? await Purchase.count({ where: { guildId, userId: purchase.userId, roleId: purchase.roleId, status: 'done', id: { [Op.ne]: purchase.id } } }) : 0;
+    if (others > 0 && left > Date.now() + 60 * 1000) {
+      await term.update({ expiresAt: new Date(left) });
+      require('../../../bot/modules/tempRoles').wake?.();
+    } else {
+      const reason = { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Возврат покупки в панели') } };
+      await botApi.delete(`/guilds/${guildId}/members/${purchase.userId}/roles/${purchase.roleId}`, reason).catch(() => {}); // the member left or has no such role: nothing to take
+      await TempRole.destroy({ where });
+    }
   }
   res.redirect(saved(guildId, 'shop', 'refunded'));
 });

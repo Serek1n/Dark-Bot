@@ -34,8 +34,11 @@ function canManage(member, ticket, settings) {
 async function openTicket(interaction) {
   const { guild, user } = interaction;
   const settings = await getOrCreateSettings(guild.id);
-  const reply = (embed) => interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-  if (!isEnabled(settings, 'tickets')) return reply(embeds.info('Обращения на этом сервере отключены.'));
+  if (!isEnabled(settings, 'tickets')) return interaction.reply({ embeds: [embeds.info('Обращения на этом сервере отключены.')], flags: MessageFlags.Ephemeral });
+  // Acknowledge first: the channel is made under a lock, and when several people press at once the last ones would
+  // otherwise get their answer later than the 3 seconds Discord allows.
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const reply = (embed) => interaction.editReply({ embeds: [embed] });
 
   // One lock per server: the next number is max + 1, so two people opening at once must not get the same one.
   return withLock(`ticket-open:${guild.id}`, async () => {
@@ -66,7 +69,13 @@ async function openTicket(interaction) {
       return reply(embeds.error('Не получилось создать канал. Сообщите администрации: боту нужно право «Управлять каналами».'));
     }
 
-    await Ticket.create({ guildId: guild.id, channelId: channel.id, userId: user.id, number });
+    try {
+      await Ticket.create({ guildId: guild.id, channelId: channel.id, userId: user.id, number });
+    } catch (err) { // no record means nobody could ever close it: take the channel back
+      logger.error(`Ticket was not saved in ${guild.id}: ${err.message}`);
+      await channel.delete('Обращение не удалось записать').catch(() => {});
+      return reply(embeds.error('Не получилось создать обращение. Попробуйте ещё раз.'));
+    }
     const staffPing = settings.ticketSupportRoleId ? ` <@&${settings.ticketSupportRoleId}>` : '';
     await channel.send({
       content: `<@${user.id}>${staffPing}`,

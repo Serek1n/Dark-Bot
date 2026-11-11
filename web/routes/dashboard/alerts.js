@@ -19,7 +19,7 @@ router.get('/:guildId/alerts', ensureGuildAccess, async (req, res) => {
 router.post('/:guildId/alerts', ensureGuildAccess, async (req, res) => {
   const { platform, targetId, channelId, message } = req.body;
   // YouTube channel IDs are case-sensitive; Twitch logins are not.
-  const rawTarget = (targetId || '').trim().slice(0, 100);
+  const rawTarget = String(targetId || '').trim().slice(0, 100);
   const target = platform === 'twitch' ? rawTarget.toLowerCase() : rawTarget;
   if (platform === 'youtube' && !/^UC[\w-]{20,}$/.test(target)) {
     return res.redirect(saved(req.params.guildId, 'alerts', 'invalid'));

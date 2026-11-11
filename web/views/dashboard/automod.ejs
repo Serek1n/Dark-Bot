@@ -4,7 +4,7 @@
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
-    <div class="content">
+    <main class="content" id="main" tabindex="-1">
       <div class="page-header">
         <h1>Автомодерация</h1>
         <p class="page-intro">Бот проверяет каждое сообщение. Если оно нарушает включённое правило, оно удаляется, а автору при желании выдаётся предупреждение или мут.</p>
@@ -217,7 +217,7 @@
 
         <button class="btn" type="submit" style="align-self:flex-start;">Сохранить</button>
       </form>
-    </div>
+    </main>
   </div>
   <script>
     // "Сейчас: …" under the word and link filters says in plain words what will happen with the current ticks and lists.

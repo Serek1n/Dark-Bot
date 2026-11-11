@@ -4,7 +4,7 @@
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
-    <div class="content">
+    <main class="content" id="main" tabindex="-1">
       <div class="page-header">
         <h1>Оповещения YouTube / Twitch</h1>
         <p class="page-intro">Бот проверяет каналы каждые несколько минут и публикует уведомление о новом видео или начале стрима в выбранный канал.</p>
@@ -70,7 +70,7 @@
           </table></div>
         <% } %>
       </div>
-    </div>
+    </main>
   </div>
 </body>
 </html>

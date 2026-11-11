@@ -2,6 +2,7 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const embeds = require('../../utils/embeds');
 const logger = require('../../utils/logger');
+const { withLock } = require('../../utils/lock');
 const { isAdmin } = require('../../utils/permissions');
 const room = require('../../modules/voiceRoom');
 
@@ -36,13 +37,17 @@ module.exports = {
     const guild = interaction.guild;
     if (!guild) return interaction.reply({ embeds: [embeds.error('Комнатами можно управлять только на сервере.')], ...ephemeral });
     const sub = interaction.options.getSubcommand();
-    const done = (text) => interaction.reply({ embeds: [embeds.success(text)], ...ephemeral });
+    // Several Discord calls may follow (permissions of every role of the category): acknowledge first, or the answer
+    // comes after the 3 seconds Discord gives and the member sees "the application did not respond".
+    await interaction.deferReply(ephemeral);
+    const say = (payload) => interaction.editReply(payload);
+    const done = (text) => say({ embeds: [embeds.success(text)] });
 
     try {
       if (sub === 'panel') {
-        if (!isAdmin(interaction.member)) return interaction.reply({ embeds: [embeds.error('Разместить панель могут только администраторы сервера.')], ...ephemeral });
+        if (!isAdmin(interaction.member)) return say({ embeds: [embeds.error('Разместить панель могут только администраторы сервера.')] });
         const target = interaction.options.getChannel('channel') || interaction.channel;
-        if (!target?.send) return interaction.reply({ embeds: [embeds.error('В этот канал нельзя отправить сообщение.')], ...ephemeral });
+        if (!target?.send) return say({ embeds: [embeds.error('В этот канал нельзя отправить сообщение.')] });
         await target.send(room.panelPayload());
         return done(`Панель управления комнатами размещена в <#${target.id}>.`);
       }
@@ -50,20 +55,22 @@ module.exports = {
 
       const ctx = await room.findRoom(guild, interaction.member);
       const id = () => interaction.options.getUser('user', true).id;
-      if (sub === 'info') return interaction.reply({ embeds: [room.describe(ctx)], ...ephemeral, allowedMentions: { parse: [] } });
-      if (sub === 'name') return done(await room.rename(ctx, interaction.options.getString('name', true)));
-      if (sub === 'limit') return done(await room.rename(ctx, null, interaction.options.getInteger('count', true)));
-      if (sub === 'access') return done(await room.setAccess(ctx, interaction.options.getString('mode', true)));
-      if (sub === 'region') return done(await room.setRegion(ctx, interaction.options.getString('region', true)));
-      if (sub === 'transfer') return done(await room.transfer(ctx, id()));
-      if (sub === 'delete') return done(await room.removeRoom(ctx));
-      const many = { trust: room.trust, untrust: room.untrust, invite: room.invite, kick: room.kick, ban: room.ban, unban: room.unban }[sub];
-      return done(await many(ctx, [id()]));
+      if (sub === 'info') return say({ embeds: [room.describe(ctx)], allowedMentions: { parse: [] } });
+      // One action on a room at a time, the same lock as the buttons of the panel: no two owners after a transfer and a claim.
+      return await withLock(`voiceroom:${ctx.channel?.id || ctx.rec?.channelId || interaction.member.id}`, async () => {
+        if (sub === 'name') return done(await room.rename(ctx, interaction.options.getString('name', true)));
+        if (sub === 'limit') return done(await room.rename(ctx, null, interaction.options.getInteger('count', true)));
+        if (sub === 'access') return done(await room.setAccess(ctx, interaction.options.getString('mode', true)));
+        if (sub === 'region') return done(await room.setRegion(ctx, interaction.options.getString('region', true)));
+        if (sub === 'transfer') return done(await room.transfer(ctx, id()));
+        if (sub === 'delete') return done(await room.removeRoom(ctx));
+        const many = { trust: room.trust, untrust: room.untrust, invite: room.invite, kick: room.kick, ban: room.ban, unban: room.unban }[sub];
+        return done(await many(ctx, [id()]));
+      });
     } catch (err) {
       if (!(err instanceof room.RoomError)) logger.error(`/voice ${sub} failed:`, err);
       const text = err instanceof room.RoomError ? err.message : 'Не получилось выполнить действие. Проверьте права бота: «Управлять каналами», «Управлять ролями», «Перемещать участников».';
-      const payload = { embeds: [embeds.error(text)], ...ephemeral };
-      return interaction.replied || interaction.deferred ? interaction.followUp(payload) : interaction.reply(payload);
+      return say({ embeds: [embeds.error(text)] }).catch(() => {});
     }
   }
 };

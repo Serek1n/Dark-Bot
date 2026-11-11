@@ -80,10 +80,11 @@ router.post('/:guildId/level-roles/sync', ensureGuildAccess, async (req, res) =>
     const targets = members.filter((m) => levels.has(m.user.id) && !m.user.bot);
     status.total = targets.length;
     const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+    const critical = await require('../../utils/roles').criticalRoleIds(guildId); // never a role that gives control over the server
     for (const m of targets) {
       const { add, remove } = computeTrackRoleChanges(levelRoles, levels.get(m.user.id), m.roles, settings.levelRolesReplace);
       try {
-        for (const id of add) { await botApi.put(`/guilds/${guildId}/members/${m.user.id}/roles/${id}`, null, { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Роль за уровень') } }); await pause(300); }
+        for (const id of add) { if (critical.has(id)) { status.failed = (status.failed || 0) + 1; continue; } await botApi.put(`/guilds/${guildId}/members/${m.user.id}/roles/${id}`, null, { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Роль за уровень') } }); await pause(300); }
         for (const id of remove) { await botApi.delete(`/guilds/${guildId}/members/${m.user.id}/roles/${id}`); await pause(300); }
       } catch (err) {
         status.failed = (status.failed || 0) + 1; // e.g. role is above the bot's role

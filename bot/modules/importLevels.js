@@ -1,4 +1,4 @@
-const { MemberProfile } = require('../../db');
+const { MemberProfile, sequelize } = require('../../db');
 const { xpForLevel, totalXpForLevel, levelFromXp } = require('./leveling');
 
 // Numbers from an uploaded file are clamped: a value like 1e400 must not reach the database or the level loop.
@@ -33,23 +33,22 @@ async function importLacuna(guildId, users) {
     const messages = num(row.activity?.total_messages, MAX_COUNT);
     const voice = num(row.activity?.total_voice_time, MAX_COUNT);
 
-    const [profile] = await MemberProfile.findOrCreate({ where: { guildId, userId } });
+    await MemberProfile.findOrCreate({ where: { guildId, userId } });
     const dark = user.dark && typeof user.dark === 'object' ? user.dark : null;
+    // ONE statement per member, in SQL ("the bigger of the two"), never read-change-write: the bot keeps adding XP and
+    // coins while an import runs, and a saved copy of the row would silently undo what was earned in between.
+    const common = 'balance = MAX(balance, :money), messageCount = MAX(messageCount, :messages), voiceSeconds = MAX(COALESCE(voiceSeconds, 0), :voice), updatedAt = CURRENT_TIMESTAMP';
+    const where = 'WHERE guildId = :guildId AND userId = :userId';
+    const replacements = { guildId, userId, money, messages, voice, xp, chat: dark ? num(dark.chatXp, MAX_XP_PART) : 0, voiceXp: dark ? num(dark.voiceXp, MAX_XP_PART) : 0, crystals: dark ? num(dark.crystals, MAX_MONEY) : 0 };
     if (dark) {
       // Export of this bot: both directions are restored exactly (never lowered).
-      profile.chatXp = Math.max(Number(profile.chatXp), num(dark.chatXp, MAX_XP_PART));
-      profile.voiceXp = Math.max(Number(profile.voiceXp), num(dark.voiceXp, MAX_XP_PART));
-      profile.crystals = Math.max(Number(profile.crystals), num(dark.crystals, MAX_MONEY));
-    } else if (xp > Number(profile.xp)) {
-      // Other bots keep one XP number: it cannot be split, so it counts as chat progress.
-      profile.chatXp = Number(profile.chatXp) + (xp - Number(profile.xp));
+      await sequelize.query(`UPDATE member_profiles SET chatXp = MAX(chatXp, :chat), voiceXp = MAX(voiceXp, :voiceXp), xp = MAX(chatXp, :chat) + MAX(voiceXp, :voiceXp), crystals = MAX(crystals, :crystals), ${common} ${where}`, { replacements });
+    } else {
+      // Other bots keep one XP number: it cannot be split, so what is missing counts as chat progress.
+      await sequelize.query(`UPDATE member_profiles SET chatXp = chatXp + MAX(0, :xp - xp), xp = MAX(xp, :xp), ${common} ${where}`, { replacements });
     }
-    profile.xp = Number(profile.chatXp) + Number(profile.voiceXp);
-    profile.level = levelFromXp(profile.xp);
-    profile.balance = Math.max(Number(profile.balance), money);
-    profile.messageCount = Math.max(Number(profile.messageCount), messages);
-    profile.voiceSeconds = Math.max(Number(profile.voiceSeconds || 0), voice);
-    await profile.save();
+    const row2 = await MemberProfile.findOne({ where: { guildId, userId }, attributes: ['xp'], raw: true });
+    if (row2) await sequelize.query(`UPDATE member_profiles SET level = :level ${where} AND xp = :was`, { replacements: { guildId, userId, level: levelFromXp(Number(row2.xp)), was: row2.xp } });
     imported++;
   }
   return { imported, skipped };

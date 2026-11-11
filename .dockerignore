@@ -1,0 +1,10 @@
+# Never into the image: secrets, the database with its copies, the repository history.
+.env
+.env.*
+!.env.example
+data
+.git
+.github
+node_modules
+test_harness
+*.log

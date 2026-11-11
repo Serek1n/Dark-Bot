@@ -202,10 +202,14 @@ function cleanMessage(raw) {
   return { content, embeds, components, username, avatar_url: avatar, mentions };
 }
 
-/** Who may be pinged. @everyone/@here only when the person asked for it AND may do it on the server. */
-function allowedMentions(level, canEveryone) {
+/** Who may be pinged. @everyone/@here only when the person asked for it AND may do it on the server.
+ *  Without that right "roles" means only the roles the server itself marked as mentionable (roleIds). */
+function allowedMentions(level, canEveryone, roleIds) {
   if (level === 'everyone' && canEveryone) return { parse: ['users', 'roles', 'everyone'] };
-  if (level === 'roles' || level === 'everyone') return { parse: ['users', 'roles'] };
+  if (level === 'roles' || level === 'everyone') {
+    if (canEveryone || !Array.isArray(roleIds)) return canEveryone ? { parse: ['users', 'roles'] } : { parse: ['users'], roles: [] };
+    return { parse: ['users'], roles: roleIds.slice(0, 100) };
+  }
   if (level === 'users') return { parse: ['users'] };
   return { parse: [] };
 }
@@ -256,7 +260,7 @@ async function channelOf(id) {
  * Where a message goes, checked against the server: a webhook of THIS server (one the bot made, or a pasted link), or a channel /
  * thread of this server for posting as the bot. Returns { kind, id, token, channelId, threadId, threadName, forum }.
  */
-async function resolveTarget(guildId, target, { webhookUrl } = {}) {
+async function resolveTarget(guildId, target, { webhookUrl, actor, need = 'send' } = {}) {
   const t = target && typeof target === 'object' ? target : {};
   const threadId = t.threadId ? str(t.threadId).trim() : '';
   if (threadId && !SNOW.test(threadId)) throw new KitError('ID ветки — это число из 17–20 цифр.');
@@ -280,13 +284,65 @@ async function resolveTarget(guildId, target, { webhookUrl } = {}) {
     if (!SNOW.test(id)) throw new KitError('Выберите вебхук или вставьте его ссылку.');
     const { data } = await botApi.get(`/webhooks/${id}`).catch((err) => { if (err?.response?.status === 404) throw new KitError('Вебхук не найден — возможно, его удалили.', 'gone'); throw err; });
     if (data.guild_id !== guildId || !data.token) throw new KitError('Этот вебхук не создан ботом на этом сервере — вставьте его ссылку.');
+    const { GuildSettings } = require('../../db');
+    const log = await GuildSettings.findOne({ where: { guildId }, attributes: ['logWebhookId'], raw: true }).catch(() => null);
+    if (log?.logWebhookId && log.logWebhookId === id) throw new KitError('Это служебный вебхук журнала сервера: писать через него нельзя.', 'forbidden');
     return { kind: 'webhook', id, token: data.token, channelId: data.channel_id, threadId, threadName, forum: null };
   }
   const channelId = str(t.channelId).trim();
   if (!SNOW.test(channelId)) throw new KitError('Выберите канал.');
   const channel = await channelOf(channelId).catch(() => null);
   if (!channel || channel.guild_id !== guildId) throw new KitError('Канал не найден на этом сервере.', 'gone');
+  await requireActor(guildId, channel, actor, need);
   return { kind: 'channel', channelId, threadId, threadName, forum: [15, 16].includes(channel.type) };
+}
+
+const P = { ADMIN: 1n << 3n, VIEW: 1n << 10n, SEND: 1n << 11n, MANAGE_MESSAGES: 1n << 13n, HISTORY: 1n << 16n };
+const big = (v) => { try { return BigInt(v || '0'); } catch { return 0n; } };
+
+/** What the panel user himself may do in a channel: the bot must not become a way around the channel's own permissions.
+ *  actor = { userId, access } where access is req.guildAccess. Server owners and administrators may everything. */
+async function actorPerms(guildId, channel, actor) {
+  const a = actor.access || {};
+  if (a.viaOwnerOverride || a.owner || (big(a.permissions) & P.ADMIN) === P.ADMIN) return ~0n;
+  const [member, roles] = await Promise.all([
+    botApi.get(`/guilds/${guildId}/members/${actor.userId}`).then((r) => r.data).catch(() => null),
+    botApi.get(`/guilds/${guildId}/roles`).then((r) => r.data).catch(() => null)
+  ]);
+  if (!member || !Array.isArray(roles)) return 0n;
+  const mine = new Set([guildId, ...(member.roles || [])]);
+  let perms = 0n;
+  for (const r of roles) if (mine.has(r.id)) perms |= big(r.permissions);
+  if ((perms & P.ADMIN) === P.ADMIN) return ~0n;
+  const ows = channel.permission_overwrites || [];
+  const every = ows.find((o) => o.id === guildId);
+  if (every) perms = (perms & ~big(every.deny)) | big(every.allow);
+  let allow = 0n; let deny = 0n;
+  for (const o of ows) if (o.id !== guildId && String(o.type) === '0' && mine.has(o.id)) { allow |= big(o.allow); deny |= big(o.deny); }
+  perms = (perms & ~deny) | allow;
+  const own = ows.find((o) => String(o.type) === '1' && o.id === actor.userId);
+  if (own) perms = (perms & ~big(own.deny)) | big(own.allow);
+  return perms;
+}
+
+/** Throws unless the panel user may do `need` ('send' | 'edit' | 'read') in this channel (a thread answers for its parent). */
+async function requireActor(guildId, channel, actor, need) {
+  if (!actor) return;
+  let base = channel;
+  if ([10, 11, 12].includes(channel.type) && channel.parent_id) base = await channelOf(channel.parent_id).catch(() => null);
+  if (!base || base.guild_id !== guildId) throw new KitError('Канал не найден на этом сервере.', 'gone');
+  const perms = await actorPerms(guildId, base, actor);
+  const has = (bit) => (perms & bit) === bit;
+  if (!has(P.VIEW)) throw new KitError('У вас нет доступа к этому каналу в Discord.', 'forbidden');
+  if (need === 'read' && !has(P.HISTORY)) throw new KitError('У вас нет права читать историю этого канала.', 'forbidden');
+  if (need === 'send' && !has(P.SEND)) throw new KitError('У вас нет права писать в этот канал в Discord.', 'forbidden');
+  if (need === 'edit') {
+    if (!has(P.MANAGE_MESSAGES)) throw new KitError('Чтобы менять сообщения бота в этом канале, вам нужно право «Управлять сообщениями» в нём.', 'forbidden');
+    const { GuildSettings } = require('../../db');
+    const s = await GuildSettings.findOne({ where: { guildId }, attributes: ['modLogChannelId', 'logForumChannelId', 'reportChannelId', 'shopLogChannelId'], raw: true }).catch(() => null);
+    const journals = [s?.modLogChannelId, s?.logForumChannelId, s?.reportChannelId, s?.shopLogChannelId].filter(Boolean);
+    if (journals.includes(base.id) || journals.includes(channel.id)) throw new KitError('Это канал журнала: записи бота в нём изменить нельзя.', 'forbidden');
+  }
 }
 
 const hookPath = (to, rest = '') => `/webhooks/${to.id}/${to.token}${rest}`;
@@ -297,10 +353,14 @@ const query = (to, extra = {}) => {
 };
 
 /** Sends (or, with messageId, edits) a checked message. Returns { id, channelId }. */
-async function deliver(to, msg, { messageId, canEveryone = false } = {}) {
+async function deliver(to, msg, { messageId, canEveryone = false, guildId } = {}) {
+  let roleIds; // without the "mention everyone" right only the roles the server made mentionable are pinged
+  if (!canEveryone && (msg.mentions === 'roles' || msg.mentions === 'everyone')) {
+    roleIds = guildId ? await botApi.get(`/guilds/${guildId}/roles`).then((r) => r.data.filter((x) => x.mentionable && x.id !== guildId).map((x) => x.id)).catch(() => []) : [];
+  }
   const body = msg.v2
-    ? { flags: V2, components: msg.components || [], allowed_mentions: allowedMentions(msg.mentions, canEveryone) }
-    : { content: msg.content || '', embeds: msg.embeds || [], components: msg.components || [], allowed_mentions: allowedMentions(msg.mentions, canEveryone) };
+    ? { flags: V2, components: msg.components || [], allowed_mentions: allowedMentions(msg.mentions, canEveryone, roleIds) }
+    : { content: msg.content || '', embeds: msg.embeds || [], components: msg.components || [], allowed_mentions: allowedMentions(msg.mentions, canEveryone, roleIds) };
   if (to.kind === 'webhook') {
     if (messageId) {
       const { data } = await plainApi.patch(hookPath(to, `/messages/${messageId}`) + query(to), body);
@@ -366,4 +426,4 @@ async function webhookInfo(url) {
   };
 }
 
-module.exports = { V2, cleanV2, cleanMessage, cleanEmbed, cleanComponents, parseColor, allowedMentions, parseWebhookUrl, parseMessageRef, resolveTarget, deliver, fetchMessage, webhookInfo, errorText, isGone, KitError, LIMITS, _api: { botApi, plainApi } };
+module.exports = { V2, cleanV2, cleanMessage, cleanEmbed, cleanComponents, parseColor, allowedMentions, parseWebhookUrl, parseMessageRef, resolveTarget, requireActor, deliver, fetchMessage, webhookInfo, errorText, isGone, KitError, LIMITS, _api: { botApi, plainApi } };

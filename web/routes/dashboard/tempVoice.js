@@ -23,7 +23,7 @@ router.post('/:guildId/temp-voice', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   const missing = await pickChannels(req.body, settings, req.params.guildId, { tempVoiceJoinChannelId: 'voice' });
   settings.tempVoiceCategoryId = snowflake(req.body.tempVoiceCategoryId);
-  settings.tempVoiceNameTemplate = (req.body.tempVoiceNameTemplate || '').trim().slice(0, 90) || settings.tempVoiceNameTemplate;
+  settings.tempVoiceNameTemplate = String(req.body.tempVoiceNameTemplate || '').trim().slice(0, 90) || settings.tempVoiceNameTemplate;
   settings.tempVoiceUserLimit = Math.max(0, Math.min(99, parseInt(req.body.tempVoiceUserLimit, 10) || 0));
   // More trigger channels: rows trig_channel[], trig_category[], trig_name[], trig_limit[] (an empty channel drops the row)
   const col = (k) => [].concat(req.body[k] ?? []);

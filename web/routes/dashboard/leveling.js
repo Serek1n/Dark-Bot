@@ -58,7 +58,8 @@ router.post('/:guildId/leveling/adjust', ensureGuildAccess, async (req, res) => 
         const { add, remove } = computeAdjustRoleChanges(levelRoles, result.level, member.roles || [], settings.levelRolesReplace, result.level < result.previousLevel);
         const reason = { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Уровень изменён администратором') } };
         let failed = false;
-        for (const id of add) await botApi.put(`/guilds/${guildId}/members/${userId}/roles/${id}`, null, reason).catch(() => { failed = true; });
+        const critical = await require('../../utils/roles').criticalRoleIds(guildId); // never a role that gives control over the server
+        for (const id of add) { if (critical.has(id)) { failed = true; continue; } await botApi.put(`/guilds/${guildId}/members/${userId}/roles/${id}`, null, reason).catch(() => { failed = true; }); }
         for (const id of remove) await botApi.delete(`/guilds/${guildId}/members/${userId}/roles/${id}`, reason).catch(() => { failed = true; });
         roles = failed ? 'fail' : 'ok';
       }

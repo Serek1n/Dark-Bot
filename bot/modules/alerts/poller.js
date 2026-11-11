@@ -30,6 +30,43 @@ async function alertChannel(client, alert) {
   return channel && channel.guildId === alert.guildId ? channel : null;
 }
 
+// One request per YouTube channel per round, however many servers follow it. The public feed of the channel is asked
+// first: it costs no API quota (the free 10 000 units a day were enough for only ~34 subscriptions at a 5-minute
+// interval). The API (1 unit) is the fallback when the feed does not answer.
+let ytRound = new Map();
+const unxml = (t) => String(t || '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, '&');
+function parseFeed(xml) {
+  const text = String(xml || '');
+  const entry = text.match(/<entry>([\s\S]*?)<\/entry>/);
+  if (!entry) return null;
+  const videoId = (entry[1].match(/<yt:videoId>([\w-]{6,20})<\/yt:videoId>/) || [])[1];
+  if (!videoId) return null;
+  const title = unxml((entry[1].match(/<title>([\s\S]*?)<\/title>/) || [])[1]).slice(0, 300);
+  const channelTitle = unxml((text.match(/<author>\s*<name>([\s\S]*?)<\/name>/) || [])[1]).slice(0, 200);
+  return { videoId, title, channelTitle };
+}
+async function fetchLatestUpload(channelId) {
+  if (process.env.YOUTUBE_FEED !== 'off') {
+    try {
+      const { data } = await axios.get('https://www.youtube.com/feeds/videos.xml', { params: { channel_id: channelId }, timeout: 15000, responseType: 'text', maxContentLength: 2 * 1024 * 1024, maxRedirects: 0 });
+      const latest = parseFeed(data);
+      if (latest) return latest;
+    } catch { /* the feed is unavailable: the API below */ }
+  }
+  const { data } = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
+    params: { key: process.env.YOUTUBE_API_KEY, playlistId: `UU${channelId.slice(2)}`, part: 'snippet', maxResults: 1 },
+    timeout: 15000
+  });
+  const item = data.items?.[0];
+  const videoId = item?.snippet?.resourceId?.videoId;
+  if (!videoId) return null;
+  return { videoId, title: item.snippet.title || '', channelTitle: item.snippet.videoOwnerChannelTitle || item.snippet.channelTitle || '' };
+}
+function latestUpload(channelId) {
+  if (!ytRound.has(channelId)) ytRound.set(channelId, fetchLatestUpload(channelId));
+  return ytRound.get(channelId);
+}
+
 async function checkYouTube(alert, client) {
   if (!process.env.YOUTUBE_API_KEY) return;
 
@@ -40,21 +77,13 @@ async function checkYouTube(alert, client) {
   if (!/^UC[\w-]{20,}$/.test(channelId)) {
     throw new Error('ID канала YouTube должен начинаться с UC (например, UCxxxxxxxxxxxxxxxxxxxxxx)');
   }
-  const uploadsId = `UU${channelId.slice(2)}`;
-  const { data } = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
-    params: { key: process.env.YOUTUBE_API_KEY, playlistId: uploadsId, part: 'snippet', maxResults: 1 },
-    timeout: 15000
-  });
-
-  const latest = data.items?.[0];
+  const latest = await latestUpload(channelId);
   if (!latest) return;
-
-  const videoId = latest.snippet?.resourceId?.videoId;
-  if (!videoId) return;
+  const videoId = latest.videoId;
   if (alert.lastSeenId === videoId) return; // already announced
 
   const isFirstRun = !alert.lastSeenId;
-  const channelTitle = latest.snippet.videoOwnerChannelTitle || latest.snippet.channelTitle || alert.targetName || channelId;
+  const channelTitle = latest.channelTitle || alert.targetName || channelId;
   alert.lastSeenId = videoId;
   alert.targetName = channelTitle;
   await alert.save();
@@ -65,7 +94,7 @@ async function checkYouTube(alert, client) {
   if (!channel) return;
 
   const url = `https://www.youtube.com/watch?v=${videoId}`;
-  const text = require('../../utils/replacers').render(alert.message, { subs: { name: channelTitle, title: latest.snippet?.title || '', link: url } }, { name: channelTitle, url });
+  const text = require('../../utils/replacers').render(alert.message, { subs: { name: channelTitle, title: latest.title || '', link: url } }, { name: channelTitle, url });
   channel.send({ content: text, allowedMentions: { parse: [] } }).catch(() => {});
 }
 
@@ -111,6 +140,7 @@ async function pollOnce(client) {
 }
 
 async function pollAll(client) {
+  ytRound = new Map();
   const alerts = await Alert.findAll();
   for (const alert of alerts) {
     try {
@@ -131,4 +161,4 @@ function startAlertPoller(client) {
   logger.info(`Alert poller scheduled every ${minutes} min`);
 }
 
-module.exports = { startAlertPoller, pollOnce };
+module.exports = { startAlertPoller, pollOnce, parseFeed };

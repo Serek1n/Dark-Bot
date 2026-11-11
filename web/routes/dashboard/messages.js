@@ -82,6 +82,8 @@ async function builderData(req) {
   };
 }
 
+const actorOf = (req) => ({ userId: req.user?.id, access: req.guildAccess });
+
 // The builder lives on the "Вебхуки" page now; old links keep working.
 router.get('/:guildId/messages', ensureGuildAccess, (req, res) => res.redirect(301, `/dashboard/${req.params.guildId}/webhooks#editor`));
 
@@ -98,8 +100,8 @@ router.post('/:guildId/messages/send', sendLimit, ensureGuildAccess, json, async
       messageId = ref.messageId;
       if (ref.channelId && target.mode === 'channel' && !target.threadId && ref.channelId !== target.channelId) target.threadId = ref.channelId; // a link into a thread
     }
-    const to = await kit.resolveTarget(guildId, target);
-    const sent = await kit.deliver(to, msg, { messageId, canEveryone: rights(req).everyone });
+    const to = await kit.resolveTarget(guildId, target, { actor: actorOf(req), need: messageId ? 'edit' : 'send' });
+    const sent = await kit.deliver(to, msg, { messageId, canEveryone: rights(req).everyone, guildId });
     res.json({ ok: true, edited: Boolean(messageId), id: sent.id, channelId: sent.channelId, url: `https://discord.com/channels/${guildId}/${sent.channelId}/${sent.id}` });
   } catch (err) { fail(res, err, err?.code === 'forbidden' ? 403 : 400); }
 });
@@ -116,9 +118,10 @@ router.post('/:guildId/messages/load', toolLimit, ensureGuildAccess, json, async
       const ch = await botApi.get(`/channels/${ref.channelId}`).then((r) => r.data).catch(() => null);
       if (!ch || ch.guild_id !== guildId) throw new kit.KitError('Канал из ссылки не найден на этом сервере.');
       const thread = [10, 11, 12].includes(ch.type);
+      await kit.requireActor(guildId, ch, actorOf(req), 'read');
       to = { kind: 'channel', channelId: thread ? ch.parent_id : ch.id, threadId: thread ? ch.id : '', forum: false };
     } else {
-      to = await kit.resolveTarget(guildId, target);
+      to = await kit.resolveTarget(guildId, target, { actor: actorOf(req), need: 'read' });
     }
     const message = await kit.fetchMessage(to, ref.messageId);
     res.json({ ok: true, message, messageId: ref.messageId });
@@ -186,7 +189,7 @@ router.post('/:guildId/messages/schedule', toolLimit, ensureGuildAccess, json, a
     if (target.mode === 'webhook' && target.url) webhookUrl = encrypt(target.url);
     if (target.mode !== 'webhook' || (target.webhookId && !target.url)) webhookUrl = null;
     const { decrypt } = require('../../../db/crypto');
-    await kit.resolveTarget(guildId, target, { webhookUrl: webhookUrl ? decrypt(webhookUrl) : null });
+    await kit.resolveTarget(guildId, target, { webhookUrl: webhookUrl ? decrypt(webhookUrl) : null, actor: actorOf(req) });
     const fields = {
       name, data: JSON.stringify(msg), target: JSON.stringify({ ...target, url: '' }), webhookUrl,
       rule: JSON.stringify(rule), timezone, nextRunAt: new Date(next), enabled: true, canEveryone: msg.mentions === 'everyone', lastError: null
@@ -224,7 +227,7 @@ router.post('/:guildId/messages/schedule/:id/test', sendLimit, ensureGuildAccess
   if (!row) return res.redirect(saved(guildId, 'webhooks', 'invalid'));
   if (parse(row.target, {}).mode === 'webhook' && !rights(req).webhooks) return res.redirect(saved(guildId, 'webhooks', 'msgnoright') + '#schedule');
   try {
-    await sched.sendEntry(row);
+    await sched.sendEntry(row, { everyoneOk: rights(req).everyone }); // a test never pings @everyone on somebody else's right
     res.redirect(saved(guildId, 'webhooks', 'msgtest') + '#schedule');
   } catch (err) {
     await row.update({ lastError: kit.errorText(err).slice(0, 250) }).catch(() => {});

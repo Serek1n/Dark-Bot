@@ -56,7 +56,10 @@ async function tick(client) {
       const member = await guild.members.fetch(row.userId).catch(() => null);
       if (member?.roles.cache.has(row.roleId)) {
         const ok = await member.roles.remove(row.roleId, 'Временная роль закончилась').then(() => true).catch((err) => { logger.warn(`temprole remove: ${err.message}`); return false; });
-        if (!ok) continue; // try again later (rights, Discord hiccup)
+        if (!ok) { // rights or a Discord hiccup: try again in 10 minutes; a row that cannot be done must not block the queue
+          await row.update({ expiresAt: new Date(Date.now() + 10 * 60 * 1000) }).catch(() => {});
+          continue;
+        }
         if (String(row.givenBy || '').startsWith('shop:')) await tellEnded(member, guild, row.roleId);
       }
     }
@@ -70,4 +73,4 @@ function startTempRoleScheduler(client) {
   scheduler = createScheduler({ name: 'temproles', nextDue: () => TempRole.min('expiresAt'), run: () => tick(client) }).start();
 }
 
-module.exports = { give, giveOrExtend, termOf, tick, startTempRoleScheduler };
+module.exports = { give, giveOrExtend, termOf, tick, startTempRoleScheduler, wake: () => scheduler?.wake?.() };

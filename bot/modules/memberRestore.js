@@ -19,6 +19,19 @@ const daysOf = (s) => Number(s?.restoreDays) > 0 ? Number(s.restoreDays) : DEFAU
 const parseIds = (text) => { try { const v = JSON.parse(text || '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []; } catch { return []; } };
 const isStaffRole = (role) => Boolean(role.permissions?.any?.(STAFF_PERMISSIONS));
 
+/** Is the leaving member banned? Asked from the ban list; a bot without "Ban Members" cannot read it (and gets no ban
+ *  events either), so then the audit log is asked for a ban of this member in the last seconds. */
+async function wasBanned(member) {
+  const guild = member.guild;
+  const viaList = await guild.bans?.fetch?.({ user: member.id, force: true }).then(() => true).catch((err) => (err?.code === 10026 || /unknown ban/i.test(String(err?.message)) ? false : null));
+  if (viaList !== null && viaList !== undefined) return viaList;
+  try {
+    const logs = await guild.fetchAuditLogs?.({ type: 22, limit: 5 }); // 22 = MemberBanAdd
+    const hit = logs?.entries?.find?.((e) => (e.targetId || e.target?.id) === member.id && Date.now() - e.createdTimestamp < 60_000);
+    return Boolean(hit);
+  } catch { return false; }
+}
+
 /** Remembers the roles and the nickname of a member who is leaving. Never throws. */
 async function saveSnapshot(member) {
   try {
@@ -27,7 +40,7 @@ async function saveSnapshot(member) {
     if (!isOn(settings)) return;
     if (member.partial || !member.roles?.cache) return; // roles unknown: an older snapshot, if any, stays
     // A banned member comes back (after an unban) with nothing: the punishment is not undone by roles.
-    const banned = await member.guild.bans?.fetch?.({ user: member.id, force: true }).then(() => true).catch(() => false);
+    const banned = await wasBanned(member);
     const key = { guildId: member.guild.id, userId: member.id };
     if (banned) return void (await MemberSnapshot.destroy({ where: key }));
     const roleIds = [...member.roles.cache.keys()].filter((id) => id !== member.guild.id).slice(0, 250);
@@ -58,8 +71,7 @@ async function restoreMember(member) {
     const key = { guildId: guild.id, userId: member.id };
     const snap = await MemberSnapshot.findOne({ where: key });
     if (!snap) return null;
-    await snap.destroy(); // used once; if he leaves again a new one is made
-    if (Date.now() - new Date(snap.leftAt).getTime() > daysOf(settings) * DAY) return null;
+    if (Date.now() - new Date(snap.leftAt).getTime() > daysOf(settings) * DAY) { await snap.destroy(); return null; }
 
     const top = guild.members?.me?.roles?.highest?.position ?? 0;
     const have = new Set([...(member.roles?.cache?.keys?.() || [])]);
@@ -76,9 +88,12 @@ async function restoreMember(member) {
       try { await member.roles.add(given, reason); } catch {
         const done = [];
         for (const id of given) { try { await member.roles.add(id, reason); done.push(id); } catch { skipped.push(id); } }
+        // Discord refused every role (an outage, not a matter of rights): keep the snapshot instead of losing the roles for good.
+        if (!done.length && given.length) { logger.warn(`Roles of ${member.id} were not restored in ${guild.id}: the snapshot is kept`); return null; }
         given.splice(0, given.length, ...done);
       }
     }
+    await snap.destroy(); // used once; if he leaves again a new one is made
     let nickname = null;
     if (snap.nickname && !member.nickname && member.manageable !== false && typeof member.setNickname === 'function') {
       try { await member.setNickname(snap.nickname, 'Участник вернулся на сервер: никнейм восстановлен'); nickname = snap.nickname; } catch { /* the bot may not be allowed */ }

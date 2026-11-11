@@ -22,7 +22,7 @@ router.post('/:guildId/reaction-roles', ensureGuildAccess, async (req, res) => {
   const channelId = snowflake(req.body.channelId);
   const messageId = snowflake(req.body.messageId);
   const roleId = snowflake(req.body.roleId);
-  const raw = (req.body.emoji || '').trim();
+  const raw = String(req.body.emoji || '').trim();
   const custom = raw.match(/^<a?:(\w+):(\d+)>$/);
   const emoji = custom ? custom[2] : raw;
   if (!channelId || !messageId || !roleId || !emoji || emoji.length > 64) {

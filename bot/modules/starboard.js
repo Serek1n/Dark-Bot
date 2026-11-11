@@ -52,13 +52,14 @@ async function countStars(reaction, message, selfStar) {
 async function handleStarReaction(reaction, user) {
   try {
     if (user?.bot) return;
-    if (reaction.partial) await reaction.fetch().catch(() => {});
     let message = reaction.message;
     if (!message?.guild) return;
     const settings = await getOrCreateSettings(message.guild.id);
     if (!settings.starboardChannelId || !isEnabled(settings, 'starboard')) return;
     if (reactionKey(reaction.emoji) !== emojiKey(settings.starboardEmoji)) return;
     if (message.channelId === settings.starboardChannelId) return; // reactions on the board itself
+    if (reaction.partial) await reaction.fetch().catch(() => {}); // only now, when the board really needs the message
+    message = reaction.message;
     if (message.partial) message = await message.fetch().catch(() => null);
     if (!message) return;
 

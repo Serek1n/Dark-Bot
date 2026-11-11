@@ -120,12 +120,12 @@ function describeRule(rule) {
 const parse = (v, fallback) => { try { const x = JSON.parse(v); return x && typeof x === 'object' ? x : fallback; } catch { return fallback; } };
 
 /** Sends one schedule entry now (also the "Отправить тест" button). Throws on failure. */
-async function sendEntry(entry) {
+async function sendEntry(entry, { everyoneOk = true } = {}) {
   const { decrypt } = require('../../db/crypto');
   const target = parse(entry.target, {});
   const to = await kit.resolveTarget(entry.guildId, target, { webhookUrl: entry.webhookUrl ? decrypt(entry.webhookUrl) : null });
   const msg = kit.cleanMessage(parse(entry.data, {}));
-  return kit.deliver(to, msg, { canEveryone: Boolean(entry.canEveryone) });
+  return kit.deliver(to, msg, { canEveryone: Boolean(entry.canEveryone) && everyoneOk, guildId: entry.guildId });
 }
 
 async function tick() {

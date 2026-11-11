@@ -4,7 +4,7 @@
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
-    <div class="content">
+    <main class="content" id="main" tabindex="-1">
       <div class="page-header">
         <h1>Вебхуки и сообщения</h1>
         <p class="page-intro">Вебхук публикует сообщения в канал от любого имени и с любой аватаркой. Здесь можно создать вебхук, собрать сообщение в конструкторе (текст, эмбеды или новые компоненты Discord), отправить его через вебхук или от имени бота, сохранить заготовку и поставить сообщение по расписанию.</p>
@@ -113,7 +113,7 @@
       </section>
 
       <%- include('../partials/msg-builder') %>
-    </div>
+    </main>
   </div>
 </body>
 </html>

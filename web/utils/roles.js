@@ -87,4 +87,12 @@ async function restGuard(guildId, userId) {
   return { check, annotate: (list) => list.map((r) => ({ ...r, blocked: check(r.id) })) };
 }
 
-module.exports = { roleGuard, DANGEROUS, CRITICAL };
+/** Roles the bot must never hand out by itself, whoever asks (they give control over the server): a set of ids.
+ *  For the paths where the panel gives level roles directly; the same rule as bot/utils/safeRole.js. */
+async function criticalRoleIds(guildId) {
+  const { isCritical } = require('../../bot/utils/safeRole');
+  const roles = await require('../discordApi').getGuildRoles(guildId).catch(() => []);
+  return new Set((roles || []).filter((r) => r.managed || isCritical(r)).map((r) => r.id));
+}
+
+module.exports = { roleGuard, criticalRoleIds, DANGEROUS, CRITICAL };

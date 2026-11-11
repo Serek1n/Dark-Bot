@@ -1,5 +1,8 @@
 name: CI
 on: [push, pull_request]
+# the job only reads the repository: its token can change nothing
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -10,3 +13,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      # known vulnerabilities in what the bot runs with (does not stop the build: an advisory can appear overnight)
+      - run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true

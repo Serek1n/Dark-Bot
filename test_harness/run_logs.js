@@ -368,8 +368,14 @@ WebhookClient.prototype.send = capture;
     const fetched = []; const mk = (id) => ({ id, members: { fetch: async () => { fetched.push(id); } } });
     const client = { guilds: { cache: new Map([[G, mk(G)], ['OTHER', mk('OTHER')]]) } };
     await db.GuildSettings.update({ logDisabled: '[]' }, { where: { guildId: G } }); S.invalidate(G);
+    // a server without the forum and with "restore roles on return" off needs nobody in the cache
+    await db.GuildSettings.findOrCreate({ where: { guildId: 'OTHER' } }); await db.GuildSettings.update({ restoreOnRejoin: false }, { where: { guildId: 'OTHER' } });
     await handlers.loadMembersForLogs(client); await handlers.loadMembersForLogs(client);
     assert(fetched.join() === G, 'only the guild with logs, once: ' + fetched);
+    // with "restore roles" on (the default) the members are needed too: a member who leaves unseen would leave without roles to save
+    await db.GuildSettings.update({ restoreOnRejoin: true }, { where: { guildId: 'OTHER' } });
+    await new Promise((r) => setTimeout(r, 10)); await handlers.loadMembersForLogs(client);
+    assert(fetched.join() === G + ',OTHER', 'the guild with role restore is loaded as well: ' + fetched);
   });
   await test('every log event is registered with discord.js (array export) and the intents are enabled', async () => {
     const { loadEvents } = require('../bot/handlers/loadEvents'); const names = [];

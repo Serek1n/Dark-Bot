@@ -15,12 +15,12 @@ const { makeInteraction, makeUser } = require('./mock');
 
   await test('exactly the expected commands are registered, old names are gone', async () => {
     const names = [...cmds.keys()].sort();
-    assert(names.join() === ['Report message', 'balance', 'play', 'mod', 'daily', 'pay', 'shop', 'help', 'profile', 'top'].sort().join(), names.join());
+    assert(names.join() === ['8ball', 'Profile', 'Report member', 'Report message', 'balance', 'calc', 'coinflip', 'daily', 'dice', 'giveaway', 'help', 'level', 'mod', 'pay', 'play', 'poll', 'profile', 'remind', 'report', 'rps', 'serverinfo', 'shop', 'temprole', 'ticket', 'top', 'userinfo', 'voice', 'webhook'].sort().join(), names.join());
   });
   await test('all names/options are valid for Discord (lowercase, 1-32 chars) and descriptions <= 100', async () => {
     const re = /^[-_\p{L}\p{N}]{1,32}$/u;
     for (const [n, c] of cmds) {
-      const j = c.data.toJSON(); if (j.type === 3) { assert(j.name.length <= 32, 'ctx name'); continue; }
+      const j = c.data.toJSON(); if (j.type === 2 || j.type === 3) { /* right-click menu entries: capitals and spaces are allowed */ assert(j.name.length <= 32, 'ctx name'); continue; }
       const walk = (o) => { assert(re.test(o.name) && o.name === o.name.toLowerCase(), 'bad name ' + o.name); assert(!o.description || o.description.length <= 100, 'long description ' + o.name); (o.options || []).forEach(walk); };
       walk(j);
     }

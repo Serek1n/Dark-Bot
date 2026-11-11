@@ -4,7 +4,7 @@
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
-    <div class="content">
+    <main class="content" id="main" tabindex="-1">
       <div class="page-header">
         <h1>Наказания и журнал</h1>
         <p class="page-intro">Здесь настраивается, что бот делает за предупреждения, и виден журнал всех наказаний. Выдают их модераторы командой <code>/mod</code> в Discord, а автомодерация — сама.</p>
@@ -129,7 +129,7 @@
           </table></div>
         <% } %>
       </div>
-    </div>
+    </main>
   </div>
 </body>
 </html>

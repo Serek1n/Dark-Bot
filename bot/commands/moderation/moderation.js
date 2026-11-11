@@ -2,6 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('disc
 const { Warning, ModLog, GuildSettings } = require('../../../db');
 const { recordAndAnnounce, createCase, caseEmbed, LABELS } = require('../../utils/modlog');
 const embeds = require('../../utils/embeds');
+const logger = require('../../utils/logger');
 const { memberHasPermission, hierarchyError } = require('../../utils/permissions');
 const { parseDuration, formatDuration, MAX_TIMEOUT } = require('../../utils/duration');
 const mod = require('../../modules/moderation');
@@ -304,6 +305,9 @@ module.exports = {
       const number = interaction.options.getInteger('number');
       const entry = await ModLog.findOne({ where: { guildId: guild.id, caseNumber: number } });
       if (!entry) return fail(interaction, 'Дело с таким номером не найдено.');
+      // Nobody rewrites the case about himself, and the old wording does not vanish: it stays in the bot's log.
+      if (entry.userId === interaction.user.id && !memberHasPermission(interaction.member, 'Administrator')) return fail(interaction, 'Причину в деле о себе изменить нельзя.');
+      logger.info(`Case #${number} in ${guild.id}: reason changed by ${interaction.user.id}; was: ${String(entry.reason || '').slice(0, 300)}`);
       await entry.update({ reason: interaction.options.getString('text').slice(0, 900) });
       return interaction.reply({ embeds: [embeds.success(`Причина в деле #${number} изменена.`)], ...ephemeral });
     }

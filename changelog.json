@@ -1,5 +1,58 @@
 [
  {
+  "bot": "3.6.0",
+  "panel": "3.7.0",
+  "date": "2026-11-11",
+  "botChanges": [
+   "Автомодерация проверяет и отредактированные сообщения",
+   "Временные роли и баны: одна «застрявшая» запись больше не задерживает остальные",
+   "Пустые временные комнаты убираются после перезапуска бота",
+   "Восстановление ролей работает и для тех, кого бот не видел после перезапуска",
+   "При остановке бот сохраняет время в голосе и закрывает базу",
+   "Копия базы каждый день; команды регистрируются сами после обновления",
+   "Оповещения YouTube читают ленту канала и не тратят квоту",
+   "/play: пауза между запросами и предел очереди 500 треков",
+   "/voice и обращения отвечают вовремя, без «приложение не отвечает»",
+   "Покупка записывается до выдачи роли; возврат снимает только свой срок"
+  ],
+  "panelChanges": [
+   "Конструктор сообщений учитывает ваши права в канале Discord",
+   "Журнал наказаний и вебхук логов закрыты от правки через конструктор",
+   "Упоминание ролей без права «Упоминать everyone» — только разрешённые роли",
+   "Границы полей стали заметнее, подписи связаны с полями для экранного чтения",
+   "Ссылка «Перейти к содержимому», панель сохранения не мешает клавиатуре",
+   "Поиск объявляет выбранный результат и возвращает фокус на кнопку",
+   "На телефоне крупнее чипы, ссылки и кнопки в шапке",
+   "Страницы и стили сжимаются: загрузка примерно в 5 раз легче",
+   "Адрес /healthz для внешнего мониторинга"
+  ],
+  "en": {
+   "botChanges": [
+    "Automod also checks edited messages",
+    "Temporary roles and bans: one stuck entry no longer holds up the rest",
+    "Empty temporary rooms are removed after the bot restarts",
+    "Role restore also works for members the bot has not seen since a restart",
+    "On stop the bot saves voice time and closes the database",
+    "A database copy every day; commands register themselves after an update",
+    "YouTube alerts read the channel feed and spend no quota",
+    "/play: a pause between requests and a queue limit of 500 tracks",
+    "/voice and tickets answer in time, without \"the application did not respond\"",
+    "A purchase is recorded before the role is given; a refund takes back only its own term"
+   ],
+   "panelChanges": [
+    "The message builder respects your own rights in the Discord channel",
+    "The punishment journal and the log webhook are closed to edits through the builder",
+    "Mentioning roles without \"Mention everyone\": only the roles that allow it",
+    "Field edges are easier to see, captions are tied to fields for screen readers",
+    "A \"Skip to content\" link, the save bar no longer gets in the way of the keyboard",
+    "Search announces the chosen result and returns focus to its button",
+    "Bigger chips, links and top bar buttons on phones",
+    "Pages and styles are compressed: about 5 times lighter to load",
+    "The /healthz address for outside monitoring"
+   ]
+  }
+ },
+ {
   "bot": "3.5.0",
   "panel": "3.6.1",
   "date": "2026-11-10",

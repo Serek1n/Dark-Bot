@@ -16,7 +16,7 @@ router.get('/:guildId/custom-commands', ensureGuildAccess, async (req, res) => {
 
 router.post('/:guildId/custom-commands/prefix', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
-  const prefix = (req.body.prefix || '').trim().slice(0, 3);
+  const prefix = String(req.body.prefix || '').trim().slice(0, 3);
   if (!prefix || /\s/.test(prefix)) return res.redirect(saved(req.params.guildId, 'custom-commands', 'invalid'));
   settings.prefix = prefix;
   await settings.save();
@@ -26,10 +26,10 @@ router.post('/:guildId/custom-commands/prefix', ensureGuildAccess, async (req, r
 router.post('/:guildId/custom-commands', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   // Triggers are a single word; strip the prefix if the admin typed it ("!rules" -> "rules").
-  let trigger = (req.body.trigger || '').trim().toLowerCase().split(/\s+/)[0] || '';
+  let trigger = String(req.body.trigger || '').trim().toLowerCase().split(/\s+/)[0] || '';
   if (settings.prefix && trigger.startsWith(settings.prefix.toLowerCase())) trigger = trigger.slice(settings.prefix.length);
   trigger = trigger.slice(0, 32);
-  const response = (req.body.response || '').trim().slice(0, 2000);
+  const response = String(req.body.response || '').trim().slice(0, 2000);
   const embed = require('../../utils/embedForm').embedFromBody(req.body, 'ccEmbed');
   const { hasBody, parseEmbed } = require('../../../bot/utils/messageBuilder');
   if (!trigger || (!response && !hasBody(parseEmbed(embed)))) return res.redirect(saved(req.params.guildId, 'custom-commands', 'invalid'));

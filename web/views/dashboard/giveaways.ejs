@@ -4,7 +4,7 @@
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
-    <div class="content">
+    <main class="content" id="main" tabindex="-1">
       <div class="page-header">
         <h1>Розыгрыши</h1>
         <p class="page-intro">Розыгрыши запускаются в Discord командой <code>/giveaway start</code>. Здесь видно, что идёт и чем закончилось, а розыгрыш можно завершить досрочно или выбрать победителей заново.</p>
@@ -41,7 +41,7 @@
           </div>
         <% } %>
       </div>
-    </div>
+    </main>
   </div>
 </body>
 </html>

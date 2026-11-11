@@ -183,12 +183,14 @@ function skipsRule(rule, message) {
 }
 
 /** Runs automod on a message: { key, reason } of the first rule it breaks, or null. */
-async function evaluate(settings, message) {
+const RATE_FILTERS = ['duplicates', 'spam']; // count messages, so an edit must not be counted as one more
+async function evaluate(settings, message, { edited = false } = {}) {
   if (!settings.automodEnabled) return null;
   if (isExempt(settings, message)) return null;
   const content = message.content || '';
   const rules = rulesOf(settings);
   for (const f of FILTERS) {
+    if (edited && RATE_FILTERS.includes(f.key)) continue;
     if (skipsRule(rules[f.key], message)) continue;
     if (f.test(settings, content, message)) return { key: f.key, reason: f.reason };
   }

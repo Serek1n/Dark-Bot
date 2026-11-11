@@ -56,7 +56,9 @@ module.exports = {
       const { add, remove } = computeAdjustRoleChanges(levelRoles, result.level, [...member.roles.cache.keys()], settings.levelRolesReplace, result.level < result.previousLevel);
       let failed = 0;
       const reason = 'Уровень изменён командой /level';
-      for (const id of add) await member.roles.add(id, reason).catch(() => { failed++; });
+      // the same rule as for XP earned in chat: a role that gives control over the server is never handed out by the bot
+      const { canSelfGive } = require('../../utils/safeRole');
+      for (const id of add) { const role = guild.roles.cache.get(id); if (!role || !canSelfGive(role, guild)) { failed++; continue; } await member.roles.add(id, reason).catch(() => { failed++; }); }
       for (const id of remove) await member.roles.remove(id, reason).catch(() => { failed++; });
       if (add.length || remove.length) rolesNote = failed ? '\n⚠️ Часть ролей за уровни изменить не удалось: роль бота должна быть выше них.' : '\nРоли за уровни обновлены.';
     }

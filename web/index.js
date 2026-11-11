@@ -42,6 +42,8 @@ app.locals.tplRef = require('../bot/utils/replacers').REFERENCE; // the names of
 
 const panelI18n = require('./i18n');
 app.use(panelI18n.englishScripts); // /js/*.js?v=…-en: the same scripts with English texts
+// gzip for pages, styles and scripts (about 5 times smaller on the wire); fonts are already packed
+app.use(require('compression')({ threshold: 1024 }));
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '7d',
   setHeaders: (res, file) => { if (file.endsWith('.woff2')) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); } // fonts never change under the same name
@@ -69,6 +71,14 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => { res.locals.reqPath = req.originalUrl; next(); });
 app.use(panelI18n.panelLanguage); // English pages for English viewers
+// For an outside monitor (UptimeRobot and the like): 200 while the panel answers, the database opens and the bot is on Discord.
+app.get('/healthz', async (req, res) => {
+  const client = require('./botBridge').getClient?.();
+  let dbOk = true;
+  try { await require('../db').sequelize.query('SELECT 1'); } catch { dbOk = false; }
+  const botOk = client ? Boolean(client.isReady?.()) : null; // null: the panel runs without the bot in this process
+  res.set('Cache-Control', 'no-store').status(dbOk && botOk !== false ? 200 : 503).json({ ok: dbOk && botOk !== false, db: dbOk, bot: botOk });
+});
 app.get('/lang/:lang', panelI18n.switchLanguage);
 app.use(csrfGuard);
 app.use(panelAudit);

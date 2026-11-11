@@ -21,10 +21,10 @@ router.post('/:guildId/welcome', ensureGuildAccess, async (req, res) => {
   settings.welcomeEmbed = embedFromBody(req.body, 'welcomeEmbed');
   settings.leaveEmbed = embedFromBody(req.body, 'leaveEmbed');
   // the text may be left empty when the embed says everything
-  settings.welcomeMessage = (req.body.welcomeMessage || '').trim().slice(0, 1800) || (settings.welcomeEmbed ? '' : settings.welcomeMessage);
+  settings.welcomeMessage = String(req.body.welcomeMessage || '').trim().slice(0, 1800) || (settings.welcomeEmbed ? '' : settings.welcomeMessage);
   settings.welcomeCard = req.body.welcomeCard === 'on';
   const missing = await pickChannels(req.body, settings, req.params.guildId, { welcomeChannelId: settings.welcomeCard ? 'card' : 'post', leaveChannelId: 'post' });
-  settings.leaveMessage = (req.body.leaveMessage || '').trim().slice(0, 1800) || (settings.leaveEmbed ? '' : settings.leaveMessage);
+  settings.leaveMessage = String(req.body.leaveMessage || '').trim().slice(0, 1800) || (settings.leaveEmbed ? '' : settings.leaveMessage);
   // A new autorole must be one this user may hand out; an unchanged one stays as it is.
   const autoRoleId = snowflake(req.body.autoRoleId);
   if (autoRoleId && autoRoleId !== settings.autoRoleId && (await roleGuard(req.params.guildId, req.user?.id)).check(autoRoleId)) {

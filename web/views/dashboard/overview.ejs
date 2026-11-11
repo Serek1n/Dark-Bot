@@ -4,7 +4,7 @@
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
-    <div class="content">
+    <main class="content" id="main" tabindex="-1">
       <div class="hero">
         <% if (guild.icon) { %><img class="hero-icon" src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png" alt="" data-initial="<%= String(guild.name || '?').trim().charAt(0).toUpperCase() %>" />
         <% } else { %><span class="hero-icon guild-initial" aria-hidden="true"><%= String(guild.name || '?').trim().charAt(0).toUpperCase() %></span><% } %>
@@ -147,7 +147,7 @@
         <a class="card-link" href="/dashboard/<%= guild.id %>/changelog">Что нового →</a>
       </div>
       <% } %>
-    </div>
+    </main>
   </div>
 </body>
 </html>

@@ -230,4 +230,18 @@ function startGiveawayScheduler(client) {
   scheduler = createScheduler({ name: 'giveaways', nextDue: () => Giveaway.min('endsAt', { where: { ended: false } }), run: () => tick(client) }).start();
 }
 
-module.exports = { startGiveaway, finishGiveaway, giveawayEmbed, grantRewards, rewardText, pickWinners, isGiveawayButton, handleGiveawayButton, startGiveawayScheduler, tick, parseWinners };
+/** At start: giveaways that ended within the last day but whose prizes were not (all) given, because the process
+ *  stopped between "ended" and the prizes. grantRewards skips whoever already has his prize. */
+async function settleUnpaid(client) {
+  const { Op } = require('sequelize');
+  const rows = await Giveaway.findAll({ where: { ended: true, rewardType: { [Op.ne]: null }, endsAt: { [Op.gte]: new Date(Date.now() - 24 * 3600 * 1000) } }, limit: 100 });
+  for (const g of rows) {
+    const winners = parseIds(g.winners); const paid = new Set(parseIds(g.rewarded));
+    if (!winners.length || winners.every((id) => paid.has(id))) continue;
+    const guild = client.guilds.cache.get(g.guildId);
+    if (!guild) continue;
+    await grantRewards(guild, g, winners).catch((err) => logger.warn(`giveaway ${g.id}: prizes after restart failed: ${err.message}`));
+  }
+}
+
+module.exports = { settleUnpaid, startGiveaway, finishGiveaway, giveawayEmbed, grantRewards, rewardText, pickWinners, isGiveawayButton, handleGiveawayButton, startGiveawayScheduler, tick, parseWinners };

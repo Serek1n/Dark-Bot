@@ -4,7 +4,7 @@
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
-    <div class="content">
+    <main class="content" id="main" tabindex="-1">
       <div class="page-header">
         <h1>Интерактивные сообщения</h1>
         <p class="page-intro">Бот публикует сообщение с кнопками или выпадающим списком. Нажатие выдаёт, снимает или переключает роль тому, кто нажал, — без реакций и без команд.</p>
@@ -81,7 +81,7 @@
           </div>
         <% } %>
       </div>
-    </div>
+    </main>
   </div>
   <script src="/js/interactive.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
 </body>

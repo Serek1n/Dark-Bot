@@ -2,7 +2,7 @@
 // roles, warnings...) stays in the database for 14 days. Add the bot back within that time and it all
 // works as before; after that the server's data is deleted.
 const { Op } = require('sequelize');
-const { sequelize, GuildSettings } = require('../../db');
+const { sequelize, GuildSettings, inTransaction } = require('../../db');
 const logger = require('../utils/logger');
 
 const RETENTION_DAYS = 14;
@@ -51,7 +51,14 @@ async function purgeExpired(client, now = Date.now()) {
   const purged = [];
   for (const { guildId } of expired) {
     if (client.guilds.cache.has(guildId)) { await restore(guildId); continue; } // came back: never delete
-    await sequelize.transaction(async (transaction) => {
+    // Through the one queue of transactions (db/index.js): a big delete beside the bot's own writes would otherwise fight for SQLite's write lock.
+    await inTransaction(async (transaction) => {
+      // Entries of giveaways carry no server id of their own: they go by the giveaways of this server, before those are deleted.
+      const { Giveaway, GiveawayEntry } = sequelize.models;
+      if (Giveaway && GiveawayEntry) {
+        const ids = (await Giveaway.findAll({ where: { guildId }, attributes: ['id'], raw: true, transaction })).map((g) => g.id);
+        if (ids.length) await GiveawayEntry.destroy({ where: { giveawayId: ids }, transaction });
+      }
       for (const model of Object.values(sequelize.models)) {
         if (model.rawAttributes.guildId) await model.destroy({ where: { guildId }, transaction });
       }
