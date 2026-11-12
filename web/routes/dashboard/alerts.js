@@ -13,7 +13,7 @@ const ALERT_CHANNEL_TYPES = [0, 5];
 router.get('/:guildId/alerts', ensureGuildAccess, async (req, res) => {
   const [guild, channels] = await Promise.all([getGuild(req.params.guildId), getGuildChannels(req.params.guildId)]);
   const alerts = await Alert.findAll({ where: { guildId: req.params.guildId } });
-  res.render('dashboard/alerts', { guild, channels, alerts, active: 'alerts' });
+  res.render('dashboard/alerts', { guild, channels, alerts, twitchReady: Boolean(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET), active: 'alerts' });
 });
 
 router.post('/:guildId/alerts', ensureGuildAccess, async (req, res) => {

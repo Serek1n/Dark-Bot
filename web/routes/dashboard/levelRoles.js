@@ -1,65 +1,74 @@
 const express = require('express');
 const { ensureGuildAccess } = require('../../middleware/ensureGuildAccess');
-const { getGuildRoles, getGuild, botApi } = require('../../discordApi');
+const { getGuildRoles, botApi } = require('../../discordApi');
 const { MemberProfile, LevelRole } = require('../../../db');
 const { clampInt, snowflake, saved, getSettings } = require('../../utils/common');
 
 const { roleGuard } = require('../../utils/roles');
 
 const router = express.Router();
+const back = (guildId, flag) => saved(guildId, 'leveling', flag) + '#level-roles';
 
 // ---- Level roles ----
 const syncStatus = new Map(); // guildId -> { running, done, total, error }
 
-router.get('/:guildId/level-roles', ensureGuildAccess, async (req, res) => {
-  const [guild, settings, allRoles, guard] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildRoles(req.params.guildId), roleGuard(req.params.guildId, req.user?.id)]);
-  const roles = guard.annotate(allRoles);
-  const levelRoles = await LevelRole.findAll({ where: { guildId: req.params.guildId, track: 'total' }, order: [['level', 'ASC']] });
-  res.render('dashboard/level-roles', { guild, settings, roles, levelRoles, sync: syncStatus.get(req.params.guildId) || null, active: 'level-roles' });
+// Roles for levels are a part of the "Уровни" page now; the old address leads there.
+router.get('/:guildId/level-roles', (req, res) => {
+  const id = snowflake(req.params.guildId);
+  res.redirect(301, id ? `/dashboard/${id}/leveling#level-roles` : '/dashboard');
 });
+
+/** What the "Роли за уровни" part of the "Уровни" page shows. */
+async function levelRolesData(guildId, userId) {
+  const [allRoles, guard, levelRoles] = await Promise.all([
+    getGuildRoles(guildId), roleGuard(guildId, userId),
+    LevelRole.findAll({ where: { guildId, track: 'total' }, order: [['level', 'ASC']] })
+  ]);
+  return { roles: guard.annotate(allRoles), levelRoles, sync: syncStatus.get(guildId) || null };
+}
 
 router.post('/:guildId/level-roles', ensureGuildAccess, async (req, res) => {
   const { guildId } = req.params;
   const level = clampInt(req.body.level, 1, 500, 0);
   const roleId = snowflake(req.body.roleId);
   const roles = await getGuildRoles(guildId);
-  if (!level || !roleId || !roles.some((r) => r.id === roleId)) return res.redirect(saved(guildId, 'level-roles', 'invalid'));
-  if ((await roleGuard(guildId, req.user?.id)).check(roleId)) return res.redirect(saved(guildId, 'level-roles', 'rolenotallowed'));
+  if (!level || !roleId || !roles.some((r) => r.id === roleId)) return res.redirect(back(guildId, 'invalid'));
+  if ((await roleGuard(guildId, req.user?.id)).check(roleId)) return res.redirect(back(guildId, 'rolenotallowed'));
   const track = 'total';
   // One role per (direction, level): saving the same pair again replaces the role.
   const existing = await LevelRole.findOne({ where: { guildId, level, track } });
   const keep = req.body.keep === 'on';
   if (existing) await existing.update({ roleId, keep });
   else await LevelRole.create({ guildId, level, roleId, track, keep });
-  res.redirect(saved(guildId, 'level-roles'));
+  res.redirect(back(guildId));
 });
 
 // "Keep": the role stays even in "only the highest role" mode.
 router.post('/:guildId/level-roles/keep/:id', ensureGuildAccess, async (req, res) => {
   await LevelRole.update({ keep: req.body.keep === 'on' }, { where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId: req.params.guildId } });
-  res.redirect(saved(req.params.guildId, 'level-roles'));
+  res.redirect(back(req.params.guildId));
 });
 
 router.post('/:guildId/level-roles/mode', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   settings.levelRolesReplace = req.body.levelRolesReplace === 'on';
   await settings.save();
-  res.redirect(saved(req.params.guildId, 'level-roles'));
+  res.redirect(back(req.params.guildId));
 });
 
 router.post('/:guildId/level-roles/delete/:id', ensureGuildAccess, async (req, res) => {
   await LevelRole.destroy({ where: { id: req.params.id, guildId: req.params.guildId } });
-  res.redirect(saved(req.params.guildId, 'level-roles', 'deleted'));
+  res.redirect(back(req.params.guildId, 'deleted'));
 });
 
 // Gives roles to everyone who already has the level (e.g. after importing levels). Runs in the background.
 router.post('/:guildId/level-roles/sync', ensureGuildAccess, async (req, res) => {
   const { guildId } = req.params;
-  if (syncStatus.get(guildId)?.running) return res.redirect(saved(guildId, 'level-roles', 'running'));
+  if (syncStatus.get(guildId)?.running) return res.redirect(back(guildId, 'running'));
   const settings = await getSettings(guildId);
   const status = { running: true, done: 0, total: 0, error: null };
   syncStatus.set(guildId, status);
-  res.redirect(saved(guildId, 'level-roles', 'started'));
+  res.redirect(back(guildId, 'started'));
 
   (async () => {
     const { computeTrackRoleChanges } = require('../../../bot/modules/levelRoles');
@@ -101,3 +110,4 @@ router.post('/:guildId/level-roles/sync', ensureGuildAccess, async (req, res) =>
 });
 
 module.exports = router;
+module.exports.levelRolesData = levelRolesData;

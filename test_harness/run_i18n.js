@@ -141,7 +141,7 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
   await db.GuildSettings.findOrCreate({ where: { guildId: G } });
 
   await test('panel in English: every page renders, with no Russian left outside names of the server', async () => {
-    const pages = ['overview', 'features', 'leveling', 'economy', 'channel-boosts', 'shop', 'leaderboard', 'moderation', 'logs', 'automod', 'welcome', 'level-roles', 'reaction-roles', 'interactive', 'starboard', 'custom-commands', 'temp-voice', 'alerts', 'webhooks', 'changelog'];
+    const pages = ['overview', 'features', 'leveling', 'economy', 'channel-boosts', 'shop', 'leaderboard', 'moderation', 'logs', 'automod', 'welcome', 'reaction-roles', 'interactive', 'custom-commands', 'temp-voice', 'alerts', 'webhooks', 'changelog'];
     const left = {};
     for (const p of pages) {
       const r = await get(`/dashboard/${G}${p === 'overview' ? '' : '/' + p}`, 'en');

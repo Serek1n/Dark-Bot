@@ -53,6 +53,7 @@ async function fetchLatestUpload(channelId) {
       if (latest) return latest;
     } catch { /* the feed is unavailable: the API below */ }
   }
+  if (!process.env.YOUTUBE_API_KEY) return null; // no key: the feed is the only way, try again next round
   const { data } = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
     params: { key: process.env.YOUTUBE_API_KEY, playlistId: `UU${channelId.slice(2)}`, part: 'snippet', maxResults: 1 },
     timeout: 15000
@@ -68,7 +69,7 @@ function latestUpload(channelId) {
 }
 
 async function checkYouTube(alert, client) {
-  if (!process.env.YOUTUBE_API_KEY) return;
+  // the channel's public feed needs no key; YOUTUBE_API_KEY is only a spare way when the feed does not answer
 
   // Newest upload via the channel's "uploads" playlist (UC... -> UU...). This costs 1 quota unit
   // per check, while the search endpoint costs 100 and would burn the free daily quota

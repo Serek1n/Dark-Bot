@@ -49,7 +49,8 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     assert(html.includes('О версии') && html.includes('не в сети'), 'overview card; no bot in this test');
     require('../web/botBridge').setClient({ isReady: () => true, ws: { ping: 42 }, guilds: { cache: new Map([[G, {}]]) } });
     const on = await (await fetch(`${base}/${G}`)).text();
-    assert(on.includes('в сети · 42 мс') && on.includes('серверов: 1'), 'online');
+    assert(on.includes('в сети · 42 мс'), 'online');
+    assert(!on.includes('Сборка') && !on.includes('Платформа') && !/работает \d/.test(on), 'no build, platform or panel uptime on the card');
     require('../web/botBridge').setClient(null);
   });
   await test('server list shows the versions too', async () => {

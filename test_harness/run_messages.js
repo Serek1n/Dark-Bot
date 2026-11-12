@@ -122,7 +122,7 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     assert(old.status === 301 && old.headers.get('location').endsWith(`/dashboard/${G}/webhooks#editor`), 'old /messages redirects');
     const r = await fetch(base.replace('/messages', '/webhooks')); const html = await r.text();
     assert.strictEqual(r.status, 200);
-    for (const s of ['Вебхуки и сообщения', 'Конструктор', 'Сохранённые', 'Расписание', 'Цветной текст', 'Информация о вебхуке', 'News · #general', '/js/messages.js', 'name="m-kind" value="v2"']) assert(html.includes(s), s);
+    for (const s of ['Вебхуки', 'Конструктор', 'Сохранённые', 'Расписание', 'Цветной текст', 'Информация о вебхуке', 'News · #general', '/js/messages.js', 'name="m-kind" value="v2"']) assert(html.includes(s), s);
     const data = /<script id="msg-data" type="application\/json">([\s\S]*?)<\/script>/.exec(html)[1];
     assert(!data.includes(TOKEN) && JSON.parse(data).page.endsWith('/webhooks'), 'no webhook token in the builder data');
     assert(/img-src 'self' https: data:/.test(r.headers.get('content-security-policy')), r.headers.get('content-security-policy'));

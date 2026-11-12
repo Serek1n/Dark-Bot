@@ -1,5 +1,34 @@
 [
  {
+  "bot": "3.6.2",
+  "panel": "3.9.0",
+  "date": "2026-11-12",
+  "botChanges": [
+   "Оповещения YouTube работают без ключа API: бот читает ленту канала",
+   "Доска почёта удалена"
+  ],
+  "panelChanges": [
+   "«Роли за уровни» — теперь раздел страницы «Уровни»",
+   "«Вебхуки и сообщения» переименованы в «Вебхуки»",
+   "Оповещения: объяснение простыми словами, как найти ID канала",
+   "Язык бота: вариант «Язык по умолчанию»",
+   "«О версии»: только версии бота и панели"
+  ],
+  "en": {
+   "botChanges": [
+    "YouTube alerts work without an API key: the bot reads the channel feed",
+    "The starboard was removed"
+   ],
+   "panelChanges": [
+    "“Level roles” is now a part of the “Levels” page",
+    "“Webhooks and messages” is renamed to “Webhooks”",
+    "Alerts: explained in plain words, how to find the channel ID",
+    "Bot language: the “Default language” option",
+    "“About”: only the versions of the bot and the panel"
+   ]
+  }
+ },
+ {
   "bot": "3.6.1",
   "panel": "3.8.0",
   "date": "2026-11-12",

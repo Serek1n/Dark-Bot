@@ -20,7 +20,6 @@ const FEATURES = [
   { key: 'webhooks', field: 'webhooksEnabled', title: 'Вебхуки', desc: 'Команда /webhook: создание вебхуков и отправка сообщений через них (нужно право «Управлять вебхуками»)', commands: ['webhook'], page: 'webhooks' },
   { key: 'voiceRoles', field: 'voiceRolesEnabled', title: 'Голосовые роли', desc: 'Роль, пока участник сидит в голосовом канале', commands: [], page: 'temp-voice' },
   { key: 'interactive', field: 'interactiveEnabled', title: 'Интерактивные сообщения', desc: 'Сообщения с кнопками и списками, которые выдают роли', commands: [], page: 'interactive' },
-  { key: 'starboard', field: 'starboardEnabled', title: 'Доска почёта', desc: 'Сообщения, набравшие ⭐, копируются в отдельный канал', commands: [], page: 'starboard' },
   { key: 'report', field: 'reportEnabled', title: 'Жалобы', desc: 'Пункт «Report message» в меню сообщения', commands: ['Report message', 'report', 'Report member'], page: 'moderation' }
 ];
 

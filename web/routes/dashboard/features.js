@@ -32,4 +32,10 @@ router.post('/:guildId/features', ensureGuildAccess, async (req, res) => {
   res.redirect(saved(req.params.guildId, 'features'));
 });
 
+// "Доска почёта" was removed: an old bookmark opens the overview instead of an error.
+router.get('/:guildId/starboard', (req, res) => {
+  const id = require('../../utils/common').snowflake(req.params.guildId);
+  res.redirect(301, id ? `/dashboard/${id}` : '/dashboard');
+});
+
 module.exports = router;

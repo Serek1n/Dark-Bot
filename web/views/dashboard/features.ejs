@@ -14,14 +14,14 @@
         <div class="two-col">
           <div>
             <select name="language" aria-label="Язык бота на сервере">
-              <option value="auto" <%= (settings.language || 'auto') === 'auto' ? 'selected' : '' %>>Как язык сервера в Discord</option>
+              <option value="auto" <%= (settings.language || 'auto') === 'auto' ? 'selected' : '' %>>Язык по умолчанию</option>
               <option value="ru" <%= settings.language === 'ru' ? 'selected' : '' %>>Русский</option>
               <option value="en" <%= settings.language === 'en' ? 'selected' : '' %>>English</option>
             </select>
           </div>
           <div><button class="btn" type="submit">Сохранить язык</button></div>
         </div>
-        <p class="hint">На этом языке бот отвечает на команды, пишет сообщения, логи и рисует карточки. Описания команд в списке «/» Discord показывает на языке клиента каждого участника. Тексты по умолчанию (приветствие, название валюты…) переключатся сами, свои тексты останутся как есть. Язык самой панели — переключатель внизу меню.</p>
+        <p class="hint">На этом языке бот отвечает на команды и пишет сообщения. «Язык по умолчанию» — тот, что выбран в настройках сервера Discord. Тексты, которые вы написали сами, бот не переводит. Язык этой панели меняется кнопкой с глобусом вверху.</p>
       </form>
       <form method="post">
         <div class="switch-list">

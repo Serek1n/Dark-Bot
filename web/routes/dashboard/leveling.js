@@ -18,7 +18,8 @@ router.get('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
     const users = await getUsers([q.u]);
     adjusted = { name: users[q.u]?.name || q.u, from: clampInt(q.from, 0, 1000, 0), to: clampInt(q.to, 0, 1000, 0), roles: ['ok', 'fail', 'none'].includes(q.roles) ? q.roles : 'none' };
   }
-  res.render('dashboard/leveling', { guild, settings, channels, adjusted, prefillUser: snowflake(q.user) || '', active: 'leveling' });
+  const rolesPart = await require('./levelRoles').levelRolesData(req.params.guildId, req.user?.id);
+  res.render('dashboard/leveling', { guild, settings, channels, adjusted, prefillUser: snowflake(q.user) || '', ...rolesPart, active: 'leveling' });
 });
 
 // Manual level change: add, take away or set an exact level. Roles for levels are updated right away.

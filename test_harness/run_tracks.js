@@ -238,8 +238,8 @@ async function main() {
     const h = await render('economy', { active: 'economy' });
     for (const n of ['currencyName', 'crystalName', 'dailyCoins']) assert(h.includes(`name="${n}"`), 'missing ' + n);
   });
-  await test('web: level roles page has the direction selector; leaderboard has tabs', async () => {
-    const h = await render('level-roles', { active: 'level-roles' });
+  await test('web: level roles (a part of the "Уровни" page) have no direction selector; leaderboard has tabs', async () => {
+    const h = fs.readFileSync(path.join(__dirname, '..', 'web', 'views', 'partials', 'level-roles-cards.ejs'), 'utf8');
     assert(!h.includes('name="track"'), 'no direction selector any more');
     const lb = await render('leaderboard', { active: 'leaderboard' });
     assert(lb.includes('track=voice') && !lb.includes('track=chat'), 'tabs');

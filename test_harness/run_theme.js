@@ -9,18 +9,18 @@ const web = path.join(__dirname, '..', 'web');
   const assert = (c, m) => { if (!c) throw new Error(m); };
   const render = (active) => ejs.renderFile(path.join(web, 'views/partials/sidebar.ejs'), { guild: { id: '123456789012345678', name: 'Т', icon: null }, active, user: { id: '1', username: 'a', avatar: null } });
 
-  await test('menu: 21 links, each with a name and a description, the current page is marked', async () => {
+  await test('menu: 19 links, each with a name and a description, the current page is marked', async () => {
     const html = await render('webhooks');
     const links = html.match(/<a href="\/dashboard\/123456789012345678[^"]*" class="[^"]*" title="[^"]+"/g) || [];
-    assert(links.length === 21, 'links ' + links.length);
-    assert((html.match(/<small>[^<]+<\/small>/g) || []).length === 21, 'descriptions');
+    assert(links.length === 19, 'links ' + links.length);
+    assert((html.match(/<small>[^<]+<\/small>/g) || []).length === 19, 'descriptions');
     assert(/href="\/dashboard\/123456789012345678\/webhooks" class="active"/.test(html) && (html.match(/class="active"/g) || []).length === 1, 'one active');
     assert(html.includes('data-menu-open') && html.includes('data-theme-toggle') && html.includes('data-quick-jump'), 'menu, theme and search buttons');
     assert(/<a href="\/dashboard\/123456789012345678\/webhooks" class="tb-tab is-on"/.test(html) && /class="tb-group is-on"[^>]*>Сервер</.test(html), 'the current group and its pages are shown on top');
   });
   await test('every page of the panel still has its entry in the menu', async () => {
     const html = await render('x'); const routes = fs.readdirSync(path.join(web, 'routes/dashboard')).map((f) => fs.readFileSync(path.join(web, 'routes/dashboard', f), 'utf8')).join('\n');
-    for (const p of ['features', 'leveling', 'economy', 'channel-boosts', 'shop', 'leaderboard', 'moderation', 'logs', 'automod', 'welcome', 'level-roles', 'reaction-roles', 'custom-commands', 'temp-voice', 'alerts', 'webhooks']) {
+    for (const p of ['features', 'leveling', 'economy', 'channel-boosts', 'shop', 'leaderboard', 'moderation', 'logs', 'automod', 'welcome', 'reaction-roles', 'custom-commands', 'temp-voice', 'alerts', 'webhooks']) {
       assert(html.includes(`/dashboard/123456789012345678/${p}"`), 'missing in menu: ' + p);
       assert(routes.includes(`'/:guildId/${p}'`), 'route gone: ' + p);
     }

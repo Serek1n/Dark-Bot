@@ -10,7 +10,7 @@ const FLAGS = {
 };
 // What each kind of channel setting needs from the bot.
 const NEEDS = {
-  post: ['view', 'send', 'embed'], // logs, greetings, level-ups, reports, alerts, starboard
+  post: ['view', 'send', 'embed'], // logs, greetings, level-ups, reports, alerts
   card: ['view', 'send', 'embed', 'files'], // greetings with a picture card
   react: ['view', 'history', 'react'], // reaction roles
   voice: ['view', 'connect', 'manage', 'move'] // "join to create" channel of temporary rooms

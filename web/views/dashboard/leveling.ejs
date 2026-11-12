@@ -141,6 +141,8 @@
         <button class="btn" type="submit">Сохранить</button>
       </form>
 
+      <%- include('../partials/level-roles-cards') %>
+
       <form method="post" action="/dashboard/<%= guild.id %>/leveling/adjust" class="card" id="adjust" data-no-guard data-confirm="Изменить уровень участника? Роли за уровни будут выданы или сняты сразу." data-confirm-ok="Изменить" data-confirm-soft>
         <h2>Изменить уровень участника</h2>
         <p>Добавьте или уберите уровни, либо задайте точный. Участник окажется в начале нужного уровня, роли за уровни обновятся сразу. Кристаллы за такое изменение не выдаются.</p>

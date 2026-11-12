@@ -2656,5 +2656,21 @@
  "Не удалось связаться с сервером: ": "Could not reach the server: ",
  "<span class=\"mention\">@Новый участник</span>": "<span class=\"mention\">@New member</span>",
  "Новый участник": "New member",
- "Предупреждения сгорают через, дней": "Warnings expire after, days"
+ "Предупреждения сгорают через, дней": "Warnings expire after, days",
+ "Бот сам сообщит в ваш канал Discord, когда на YouTube выйдет новое видео или на Twitch начнётся стрим.": "The bot posts in your Discord channel when a new video comes out on YouTube or a stream starts on Twitch.",
+ "Как это работает": "How it works",
+ "Выберите платформу и укажите канал YouTube или логин на Twitch.": "Choose the platform and enter the YouTube channel or the Twitch login.",
+ "Выберите канал Discord, куда писать.": "Choose the Discord channel to post in.",
+ "Бот проверяет новинки раз в несколько минут и публикует сообщение.": "The bot checks for new things every few minutes and posts a message.",
+ "Уже вышедшие видео бот не публикует — только те, что появятся после добавления подписки.": "Videos that are already out are not posted — only the ones that appear after the subscription is added.",
+ "Оповещения о стримах Twitch пока не работают: владелец бота должен подключить Twitch в настройках бота. YouTube работает без настройки.": "Twitch stream alerts do not work yet: the bot’s owner has to connect Twitch in the bot’s settings. YouTube works without any setup.",
+ "Канал YouTube или логин Twitch": "YouTube channel or Twitch login",
+ "UC… или логин": "UC… or login",
+ "YouTube: ID канала, он начинается с UC. Найти его: YouTube → ваш канал → «О канале» → «Поделиться» → «Копировать идентификатор канала». Twitch: логин из ссылки twitch.tv/⟦0⟧логин⟦1⟧.": "YouTube: the channel ID, it starts with UC. To find it: YouTube → your channel → “About” → “Share” → “Copy channel ID”. Twitch: the login from the link twitch.tv/⟦0⟧login⟦1⟧.",
+ "Текст сообщения (можно не менять)": "Message text (you may leave it as is)",
+ "Куда пишет": "Posts to",
+ "Язык по умолчанию": "Default language",
+ "На этом языке бот отвечает на команды и пишет сообщения. «Язык по умолчанию» — тот, что выбран в настройках сервера Discord. Тексты, которые вы написали сами, бот не переводит. Язык этой панели меняется кнопкой с глобусом вверху.": "The bot answers commands and writes messages in this language. “Default language” is the one chosen in the Discord server settings. Texts you wrote yourself are not translated. The language of this panel is changed with the globe button at the top.",
+ "Ролей за уровни пока нет — добавьте первую ниже.": "No level roles yet — add the first one below.",
+ "Вебхуки — Вебхуки, конструктор, расписание": "Webhooks — Webhooks, builder, schedule"
 }
