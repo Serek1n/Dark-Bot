@@ -21,7 +21,6 @@
       <% if (guild.icon) { %><img src="https://cdn.discordapp.com/icons/<%= gid %>/<%= guild.icon %>.png" alt="" class="guild-icon" data-initial="<%= initial %>" />
       <% } else { %><span class="guild-icon guild-initial" aria-hidden="true"><%= initial %></span><% } %>
       <span class="tb-guild-name"><%= guild.name %></span>
-      <svg class="tb-caret" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg>
     </a>
     <nav class="tb-groups" aria-label="Разделы панели">
       <a href="/dashboard/<%= gid %>" class="tb-group<%= active === 'overview' ? ' is-on' : '' %>"<%- active === 'overview' ? ' aria-current="page"' : '' %>>Главная</a>

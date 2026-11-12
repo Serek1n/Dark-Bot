@@ -1,6 +1,21 @@
 [
  {
   "bot": "3.6.5",
+  "panel": "3.10.4",
+  "date": "2026-11-12",
+  "botChanges": [],
+  "panelChanges": [
+   "Убрана стрелочка у названия сервера в верхнем меню"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "The arrow next to the server name in the top bar is gone"
+   ]
+  }
+ },
+ {
+  "bot": "3.6.5",
   "panel": "3.10.3",
   "date": "2026-11-12",
   "botChanges": [],
