@@ -71,16 +71,14 @@
           </div>
         <% } else { %>
           <% const att = locals.attention || []; %>
+          <% if (att.length) { %>
           <div class="card hp-attn">
-            <h2>Требует внимания <% if (att.length) { %><span class="hp-attn-n"><%= att.length %></span><% } %></h2>
-            <% if (!att.length) { %>
-              <p class="hp-ok">Всё в порядке: бот в сети, журналы настроены, новых жалоб нет.</p>
-            <% } else { %>
-              <div class="hp-attn-list">
-                <% att.forEach((a) => { %><a class="hp-attn-row <%= a.level %>" href="<%= a.href %>"><span class="hp-attn-ico"><%- M.icon(a.icon, 15) %></span><span class="hp-attn-text"><%= a.text %></span><span class="hp-attn-go" aria-hidden="true">›</span></a><% }) %>
-              </div>
-            <% } %>
+            <h2>Требует внимания <span class="hp-attn-n"><%= att.length %></span></h2>
+            <div class="hp-attn-list">
+              <% att.forEach((a) => { %><a class="hp-attn-row <%= a.level %>" href="<%= a.href %>"><span class="hp-attn-ico"><%- M.icon(a.icon, 15) %></span><span class="hp-attn-text"><%= a.text %></span><span class="hp-attn-go" aria-hidden="true">›</span></a><% }) %>
+            </div>
           </div>
+          <% } %>
           <div class="stat-row hp-kpis">
             <div class="stat-box"><div class="value"><%= guild.approximate_member_count ? fmtN(guild.approximate_member_count) : '—' %></div><div class="label">Участников на сервере</div></div>
             <div class="stat-box"><div class="value"><%= fmtN(memberCount) %></div><div class="label">В системе уровней</div></div>

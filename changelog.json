@@ -1,6 +1,21 @@
 [
  {
   "bot": "3.6.5",
+  "panel": "3.10.3",
+  "date": "2026-11-12",
+  "botChanges": [],
+  "panelChanges": [
+   "Блок «Требует внимания» на главной показывается, только когда есть проблемы"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "The \"Needs attention\" block on the home page appears only when there are problems"
+   ]
+  }
+ },
+ {
+  "bot": "3.6.5",
   "panel": "3.10.2",
   "date": "2026-11-12",
   "botChanges": [],
