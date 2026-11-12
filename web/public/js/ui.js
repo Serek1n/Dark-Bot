@@ -37,6 +37,7 @@
     templateHelp();
     typeFields();
     embedEditors();
+    cardColumns();
   });
 
   // 2) Navigation: "≡" opens the list of all pages (Esc, the backdrop or a link closes it); the strip of the group's pages
@@ -69,6 +70,96 @@
     if (user) document.addEventListener('click', function (e) { if (user.open && !user.contains(e.target)) user.open = false; });
   }
 
+
+  // Wide screens: the cards of a page stand in two columns, each card under the one above it in its column — the next card
+  // goes to the shorter column, so no card is stretched to its neighbour's height and no empty strip is left inside it.
+  // A full-width block (a heading, a table, a wide card) starts a new section; where the two columns of a section end
+  // almost level, the shorter one's last card is lengthened by the few pixels so both end on one line.
+  // The page keeps its HTML order and its forms (cards inside a <form> stay in it), only the grid positions change.
+  function cardColumns() {
+    var content = document.querySelector('.app-layout > .content');
+    if (!content || content.querySelector('.home-dash') || !window.matchMedia) return;
+    var wide = window.matchMedia('(min-width: 1200px)');
+    var GAP = 16, LEVEL = 72; // px between cards; columns closer than this at a section's end are levelled
+    var items = [], laidOut = false, queued = false, busy = false;
+    // a form's own .style can be hidden behind a field named "style" (form.style is then that field): read it from the prototype
+    var styleOf = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'style').get;
+    var st = function (el) { return styleOf.call(el); };
+
+    function collect() {
+      var out = [];
+      Array.prototype.forEach.call(content.children, function (el) {
+        var cs = getComputedStyle(el);
+        if (cs.display === 'contents') Array.prototype.forEach.call(el.children, function (k) { if (getComputedStyle(k).display !== 'none') out.push(k); });
+        else if (cs.display !== 'none') out.push(el);
+      });
+      return out.map(function (el, i) { return { el: el, i: i, order: Number(getComputedStyle(el).order) || 0 }; })
+        .sort(function (a, b) { return a.order - b.order || a.i - b.i; }).map(function (x) { return x.el; });
+    }
+    function clear() {
+      st(content).gridAutoRows = ''; st(content).rowGap = '';
+      items.forEach(function (el) { st(el).gridRow = ''; st(el).gridColumn = ''; st(el).alignSelf = ''; st(el).minHeight = ''; st(el).height = ''; el.removeAttribute('data-levelled'); });
+      laidOut = false;
+    }
+    function layout() {
+      queued = false;
+      if (!wide.matches) { if (laidOut) clear(); return; }
+      busy = true;
+      items = collect();
+      items.forEach(function (el) { st(el).minHeight = ''; st(el).height = 'auto'; el.removeAttribute('data-levelled'); }); // auto: no rule may tie a card to its grid area
+      st(content).gridAutoRows = '1px'; st(content).rowGap = '0px';
+      var col = [0, 0], last = [null, null], top = 0;
+      function level() { // end of a section: the shorter column's last card takes the few missing pixels
+        var lo = col[0] <= col[1] ? 0 : 1, hi = 1 - lo, card = last[lo];
+        if (card && col[hi] - col[lo] > 0 && col[hi] - col[lo] <= LEVEL) {
+          var h = card.offsetHeight + col[hi] - col[lo];
+          st(card).minHeight = h + 'px'; card.setAttribute('data-levelled', ''); card.__h = h;
+          var start = parseInt(st(card).gridRow, 10);
+          st(card).gridRow = start + ' / span ' + h;
+          col[lo] = col[hi];
+        }
+        top = Math.max(col[0], col[1]); col = [top, top]; last = [null, null];
+      }
+      items.forEach(function (el) {
+        var half = el.classList.contains('card') && !el.classList.contains('g-span');
+        st(el).alignSelf = 'start';
+        if (!half) {
+          if (last[0] || last[1]) level();
+          st(el).gridColumn = '1 / -1';
+          var h = Math.ceil(el.getBoundingClientRect().height); el.__h = h;
+          st(el).gridRow = (top + 1) + ' / span ' + Math.max(1, h);
+          top += h + (h ? GAP : 0); col = [top, top];
+          return;
+        }
+        var c = col[0] <= col[1] ? 0 : 1;
+        st(el).gridColumn = String(c + 1);
+        var hh = Math.ceil(el.getBoundingClientRect().height); el.__h = hh;
+        st(el).gridRow = (col[c] + 1) + ' / span ' + Math.max(1, hh);
+        col[c] += hh + GAP; last[c] = el;
+      });
+      if (last[0] || last[1]) level();
+      laidOut = true;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { busy = false; }); });
+    }
+    function queue() { if (!queued) { queued = true; requestAnimationFrame(layout); } }
+    layout();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(queue);
+    window.addEventListener('load', queue);
+    window.addEventListener('resize', queue);
+    if (wide.addEventListener) wide.addEventListener('change', queue);
+    if (window.ResizeObserver) {
+      // a card that grows or shrinks (a list opened, an item added) moves the cards under it; the pixels this script adds
+      // to a levelled card are not a change of its own
+      // (each card's height as last placed is remembered: only a different one means it really changed)
+      var ro = new ResizeObserver(function (entries) {
+        if (entries.some(function (e) { return Math.abs(Math.ceil(e.target.getBoundingClientRect().height) - (e.target.__h || 0)) > 1; })) queue();
+      });
+      var watched = [];
+      var watch = function () { collect().forEach(function (el) { if (watched.indexOf(el) === -1) { ro.observe(el); watched.push(el); } }); };
+      watch();
+      new MutationObserver(function () { if (!busy) { watch(); queue(); } }).observe(content, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    }
+  }
 
   // 4) Search: Ctrl+K (⌘K) or "/" opens it. It finds pages and the settings inside them (card headings, fields, switches);
   //    a setting opens its page scrolled to it.

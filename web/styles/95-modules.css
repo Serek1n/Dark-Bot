@@ -273,7 +273,7 @@ button, input, select, textarea, optgroup { font-family: inherit; }
   /* one card on the whole row: its own content goes in columns */
   .logs-card .switch-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
   .releases { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; align-items: start; }
-  .msg-pane[data-pane="hooks"]:not([hidden]) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+  .msg-pane[data-pane="hooks"]:not([hidden]) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
   .msg-pane[data-pane="hooks"] > * { margin: 0; min-width: 0; }
   .msg-pane[data-pane="hooks"] > :not(form.card), .msg-pane[data-pane="hooks"] > .card:last-child { grid-column: 1 / -1; }
   .app-layout > .content:has(.msg-tabs) { max-width: 1440px; }

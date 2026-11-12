@@ -1,6 +1,23 @@
 [
  {
   "bot": "3.6.6",
+  "panel": "3.13.1",
+  "date": "2026-11-13",
+  "botChanges": [],
+  "panelChanges": [
+   "Карточки идут двумя колонками друг под другом и не растягиваются до высоты соседа",
+   "Пустых полос внутри карточек больше нет; колонки выравниваются, где разница мала"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Cards flow in two columns one under another and are not stretched to a neighbour",
+    "No more empty strips inside cards; columns are levelled where they nearly match"
+   ]
+  }
+ },
+ {
+  "bot": "3.6.6",
   "panel": "3.13.0",
   "date": "2026-11-12",
   "botChanges": [
