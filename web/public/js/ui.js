@@ -191,7 +191,17 @@
     var opener = null;
     // while the search is open the page behind it is out of reach of the keyboard and of screen readers
     function shut(on) { Array.prototype.forEach.call(document.body.children, function (el) { if (el !== box && el.tagName !== 'SCRIPT') { if (on) { if (!el.inert) { el.inert = true; el.setAttribute('data-qj-inert', ''); } } else if (el.hasAttribute('data-qj-inert')) { el.inert = false; el.removeAttribute('data-qj-inert'); } } }); }
-    function open() { opener = document.activeElement; shut(true); box.hidden = false; input.value = ''; sel = 0; draw(); input.focus(); document.documentElement.classList.add('qj-open'); requestAnimationFrame(function () { box.classList.add('in'); }); loadSettings(); }
+    // the window drops down under the top bar, right under the "Поиск" button (like the "Модули" menu)
+    function place() {
+      var bar = document.querySelector('.topbar'), btn = document.querySelector('.tb-search');
+      var top = bar ? Math.round(bar.getBoundingClientRect().bottom) + 6 : 64;
+      var r = btn && btn.offsetParent !== null ? btn.getBoundingClientRect() : null;
+      box.style.setProperty('--qj-top', top + 'px');
+      box.style.setProperty('--qj-right', (r ? Math.max(12, Math.round(window.innerWidth - r.right)) : 12) + 'px');
+    }
+    window.addEventListener('resize', function () { if (!box.hidden) place(); });
+    function open() { var mm = document.getElementById('modsMenu'); if (mm && !mm.hidden) { var mb = document.querySelector('[data-mods-open]'); if (mb) mb.click(); }
+      opener = document.activeElement; shut(true); place(); box.hidden = false; input.value = ''; sel = 0; draw(); input.focus(); document.documentElement.classList.add('qj-open'); requestAnimationFrame(function () { box.classList.add('in'); }); loadSettings(); }
     function close() { if (box.hidden) return; box.classList.remove('in'); box.hidden = true; document.documentElement.classList.remove('qj-open'); shut(false); if (opener && opener.focus && document.contains(opener)) opener.focus(); opener = null; }
     input.addEventListener('input', function () { sel = 0; drawSoon(); });
     box.querySelector('.qj-close').addEventListener('click', function () { close(); });

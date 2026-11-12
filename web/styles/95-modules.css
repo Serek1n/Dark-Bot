@@ -151,3 +151,13 @@
 .card h2 { margin-bottom: 14px; padding-bottom: 12px; }
 .stat-row { gap: 10px; margin-bottom: 14px; }
 @media (min-width: 1100px) { body.has-toc .page-toc { top: 84px; } }
+
+/* ---------- search (Ctrl+K): a small window under the "Поиск" button, like the "Модули" menu ---------- */
+.qj { background: transparent; padding: 0; display: block; }
+.qj-panel { position: fixed; top: var(--qj-top, 66px); right: var(--qj-right, 16px); width: min(480px, calc(100vw - 24px)); max-height: min(560px, calc(100vh - var(--qj-top, 66px) - 16px)); border-radius: var(--r-16); background: var(--panel); border: 1px solid var(--hairline); box-shadow: 0 24px 60px var(--shadow-pop); transform: translateY(-6px); }
+.qj-field { padding: 4px 10px 4px 14px; }
+.qj-field .qj-input { padding: 12px 0; font-size: var(--fs-15); }
+.qj-list { max-height: none; flex: 1; min-height: 0; }
+.qj-item { padding: 8px 10px; }
+.qj-hint { padding: 8px 14px; }
+@media (max-width: 760px) { .qj-panel { left: 12px; right: 12px; width: auto; } }

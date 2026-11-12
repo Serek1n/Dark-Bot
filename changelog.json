@@ -1,6 +1,21 @@
 [
  {
   "bot": "3.6.5",
+  "panel": "3.10.1",
+  "date": "2026-11-12",
+  "botChanges": [],
+  "panelChanges": [
+   "Поиск открывается небольшим окном под кнопкой «Поиск», как меню «Модули»"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Search opens as a small window under the \"Search\" button, like the \"Modules\" menu"
+   ]
+  }
+ },
+ {
+  "bot": "3.6.5",
   "panel": "3.10.0",
   "date": "2026-11-12",
   "botChanges": [],
