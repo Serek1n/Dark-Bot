@@ -161,3 +161,62 @@
 .qj-item { padding: 8px 10px; }
 .qj-hint { padding: 8px 14px; }
 @media (max-width: 760px) { .qj-panel { left: 12px; right: 12px; width: auto; } }
+
+/* ---------- home, refined: header with the server's state, "Требует внимания", phone order ---------- */
+.home-head { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.hh-icon { width: 56px; height: 56px; border-radius: var(--r-16); object-fit: cover; flex-shrink: 0; display: grid; place-items: center; font-size: var(--fs-24); font-weight: 700; }
+.hh-text { min-width: 0; }
+.home-head h1 { margin: 0 0 8px; overflow-wrap: anywhere; }
+.hh-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.hh-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--r-pill); background: var(--panel); border: 1px solid var(--hairline); color: var(--fog); font-size: var(--fs-13); text-decoration: none; white-space: nowrap; }
+.hh-chip b { color: var(--paper); font-weight: 600; }
+a.hh-chip:hover { color: var(--paper); border-color: var(--field-border); }
+.hh-chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--fog-dim); }
+.hh-chip.ok i { background: var(--success); }
+.hh-chip.bad { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--hairline)); }
+.hh-chip.bad i { background: var(--danger); }
+
+.hp-back { display: none; color: var(--fog); text-decoration: none; font-size: var(--fs-14); margin: 0 0 10px 2px; }
+.hp-attn h2 { display: flex; align-items: center; gap: 8px; }
+.hp-attn-n { font-size: var(--fs-12); font-weight: 600; padding: 1px 8px; border-radius: var(--r-pill); background: var(--ember-tint); color: var(--ember); }
+.hp-ok { margin: 0; color: var(--success); font-size: var(--fs-14); }
+.hp-attn-list { display: grid; gap: 6px; }
+.hp-attn-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: var(--r-10); background: var(--soft); border: 1px solid var(--hairline-soft); color: var(--paper); text-decoration: none; font-size: var(--fs-14); min-width: 0; }
+.hp-attn-row:hover { border-color: var(--hairline); background: var(--panel-raised); }
+.hp-attn-ico { width: 28px; height: 28px; border-radius: var(--r-8); display: grid; place-items: center; flex-shrink: 0; background: var(--panel-raised); color: var(--fog); }
+.hp-attn-row.bad .hp-attn-ico { background: var(--danger-tint); color: var(--danger); }
+.hp-attn-row.warn .hp-attn-ico { background: var(--ember-tint); color: var(--ember); }
+.hp-attn-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.hp-attn-go { color: var(--fog-dim); font-size: var(--fs-18); }
+.hp-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.hp-cmd-intro { margin-top: 0; color: var(--fog); font-size: var(--fs-14); }
+.hp-cmd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.hp-cmd-grid > div { padding: 8px 10px; font-size: var(--fs-13); line-height: 1.45; }
+.hp-cmd-grid br { display: none; }
+.hp-cmd-grid code { margin-right: 6px; }
+
+.hl-row { padding: 6px 10px; }
+.hl-cat { margin: 12px 10px 4px; }
+
+@media (max-width: 1100px) { .hp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) {
+  .home-split { display: flex; flex-direction: column; gap: 16px; }
+  .home-pane { order: 1; width: 100%; }
+  .home-list { order: 2; width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 6px; padding: 10px; }
+  .home-list .hl-cat { grid-column: 1 / -1; }
+  .home-list .hl-home { grid-column: 1 / -1; }
+  .hl-num { display: none; }
+  .hp-back { display: inline-block; }
+  .home-head { gap: 12px; }
+  .hh-icon { width: 48px; height: 48px; }
+  .home-head h1 { font-size: var(--fs-24); }
+}
+@media (max-width: 560px) {
+  .hp-cmd-grid { grid-template-columns: 1fr; }
+  .hp-head { flex-wrap: wrap; }
+  .hp-head .mh-side { width: 100%; justify-content: flex-start; padding-top: 0; }
+  .home-list { grid-template-columns: 1fr 1fr; }
+  .hl-row { padding: 7px 8px; gap: 8px; font-size: var(--fs-13); }
+  .hl-ico { width: 24px; height: 24px; }
+}
+.home-list { position: static; max-height: none; overflow: visible; }

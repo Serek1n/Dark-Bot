@@ -42,7 +42,22 @@ router.get('/:guildId', ensureGuildAccess, async (req, res) => {
   const { BY_KEY, moduleStats } = require('../../modules');
   const stats = await moduleStats(req.params.guildId);
   const selected = BY_KEY.has(String(req.query.m || '')) ? String(req.query.m) : null;
+  // "Требует внимания": what an admin should look at now, most urgent first; empty = all is well.
+  const mods = res.locals.mods;
+  const on = (k) => !mods || (mods.list.find((m) => m.key === k) || {}).on !== false;
+  const first = (k) => (stats[k] && stats[k][0] ? Number(stats[k][0].value) || 0 : 0);
+  const g = `/dashboard/${req.params.guildId}`;
+  const attention = [];
+  if (res.locals.sys && !res.locals.sys.botOnline) attention.push({ level: 'bad', icon: 'moderation', text: 'Бот не в сети: команды и автоматические действия не работают', href: `${g}/changelog` });
+  if (on('report') && first('report')) attention.push({ level: 'warn', icon: 'report', text: `Новых жалоб: ${first('report')}`, href: `${g}/moderation` });
+  if (on('tickets') && first('tickets')) attention.push({ level: 'warn', icon: 'tickets', text: `Открытых обращений: ${first('tickets')}`, href: `${g}?m=tickets` });
+  if (!settings.modLogChannelId) attention.push({ level: 'info', icon: 'moderation', text: 'Не выбран канал журнала наказаний', href: `${g}/moderation` });
+  if (!settings.logForumChannelId) attention.push({ level: 'info', icon: 'logs', text: 'Логи сервера не настроены', href: `${g}/logs` });
+  if (on('welcome') && settings.welcomeEnabled && !settings.welcomeChannelId && !settings.autoRoleId) attention.push({ level: 'info', icon: 'welcome', text: 'Приветствие включено, но канал не выбран', href: `${g}/welcome` });
+  const offCount = mods ? mods.list.filter((m) => !m.on).length : 0;
+  if (offCount) attention.push({ level: 'info', icon: 'modules', text: `Выключено модулей: ${offCount}`, href: `${g}/features` });
   res.render('dashboard/overview', {
+    attention,
     stats,
     selected,
     guild,

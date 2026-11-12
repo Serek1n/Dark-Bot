@@ -2744,5 +2744,19 @@
  "Модуль «": "Module “",
  "» включён": "” is on",
  "» выключен": "” is off",
- "Не удалось сохранить. Обновите страницу и попробуйте ещё раз": "Could not save. Reload the page and try again"
+ "Не удалось сохранить. Обновите страницу и попробуйте ещё раз": "Could not save. Reload the page and try again",
+ "Бот не в сети: команды и автоматические действия не работают": "The bot is offline: commands and automatic actions do not work",
+ "Новых жалоб: {0}": "New reports: {0}",
+ "Открытых обращений: {0}": "Open tickets: {0}",
+ "Не выбран канал журнала наказаний": "No channel is chosen for the punishment log",
+ "Логи сервера не настроены": "Server logs are not set up",
+ "Приветствие включено, но канал не выбран": "The welcome is on, but no channel is chosen",
+ "Выключено модулей: {0}": "Modules off: {0}",
+ "Бот в сети": "Bot online",
+ "Бот не в сети": "Bot offline",
+ "Модулей включено: ⟦0⟧⟦1⟧⟦2⟧ из": "Modules on: ⟦0⟧⟦1⟧⟦2⟧ of",
+ "‹ Сводка по серверу": "‹ Server summary",
+ "Требует внимания": "Needs attention",
+ "Всё в порядке: бот в сети, журналы настроены, новых жалоб нет.": "All is well: the bot is online, the logs are set up, no new reports.",
+ "Модулей включено": "Modules on"
 }

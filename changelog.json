@@ -1,6 +1,27 @@
 [
  {
   "bot": "3.6.5",
+  "panel": "3.10.2",
+  "date": "2026-11-12",
+  "botChanges": [],
+  "panelChanges": [
+   "Главная: иконка сервера и строка состояния (участники, бот в сети, модули)",
+   "Новый блок «Требует внимания»: жалобы, обращения, ненастроенные журналы",
+   "На телефоне сначала сводка или модуль, список модулей ниже в 2 колонки",
+   "Компактнее карточка команд, 4 цифры сводки; список модулей не обрезается"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Home: the server icon and a status line (members, bot online, modules)",
+    "A new \"Needs attention\" block: reports, tickets, logs not set up",
+    "On phones the summary or module comes first, the module list below in 2 columns",
+    "A compact commands card, 4 summary numbers; the module list is not cut off"
+   ]
+  }
+ },
+ {
+  "bot": "3.6.5",
   "panel": "3.10.1",
   "date": "2026-11-12",
   "botChanges": [],

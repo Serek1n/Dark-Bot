@@ -9,9 +9,18 @@
       <% const M = locals.M || global.__darkModules; const fmtN = (v) => Number(v || 0).toLocaleString('ru-RU').replace(/\s/g, '\u202f');
          const mods = locals.mods || M.moduleState(settings); const stats = locals.stats || {}; const selected = locals.selected || null;
          const sel = selected ? mods.list.find((m) => m.key === selected) : null; %>
+      <% const initial = String(guild.name || '?').trim().charAt(0).toUpperCase(); const online = locals.sys ? sys.botOnline : null; %>
       <div class="home-head">
-        <h1><%= guild.name %></h1>
-        <p class="page-intro"><%= guild.approximate_member_count ? fmtN(guild.approximate_member_count) + ' участников · ' : '' %>включено модулей: <%= mods.on %> из <%= mods.total %></p>
+        <% if (guild.icon) { %><img class="hh-icon" src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png" alt="" data-initial="<%= initial %>" />
+        <% } else { %><span class="hh-icon guild-initial" aria-hidden="true"><%= initial %></span><% } %>
+        <div class="hh-text">
+          <h1><%= guild.name %></h1>
+          <div class="hh-chips">
+            <% if (guild.approximate_member_count) { %><span class="hh-chip"><b><%= fmtN(guild.approximate_member_count) %></b> участников</span><% } %>
+            <% if (online !== null) { %><span class="hh-chip <%= online ? 'ok' : 'bad' %>"><i></i><%= online ? 'Бот в сети' : 'Бот не в сети' %></span><% } %>
+            <a class="hh-chip" href="/dashboard/<%= guild.id %>/features">Модулей включено: <b><%= mods.on %></b> из <%= mods.total %></a>
+          </div>
+        </div>
       </div>
       <div class="home-split">
         <nav class="home-list" aria-label="Модули">
@@ -30,6 +39,7 @@
 
         <section class="home-pane" aria-live="polite">
         <% if (sel) { const st = stats[sel.key] || []; const cmds = (sel.commands || []).filter((c) => !/[A-Z]/.test(c)); %>
+          <a class="hp-back" href="/dashboard/<%= guild.id %>">‹ Сводка по серверу</a>
           <div class="hp-head">
             <span class="mh-icon<%= sel.on ? ' is-on' : '' %>"><%- M.icon(sel.key, 22) %></span>
             <div class="hp-title"><h2><%= sel.title %></h2><p><%= sel.desc %></p></div>
@@ -60,10 +70,22 @@
             <% } %>
           </div>
         <% } else { %>
-          <div class="stat-row">
+          <% const att = locals.attention || []; %>
+          <div class="card hp-attn">
+            <h2>Требует внимания <% if (att.length) { %><span class="hp-attn-n"><%= att.length %></span><% } %></h2>
+            <% if (!att.length) { %>
+              <p class="hp-ok">Всё в порядке: бот в сети, журналы настроены, новых жалоб нет.</p>
+            <% } else { %>
+              <div class="hp-attn-list">
+                <% att.forEach((a) => { %><a class="hp-attn-row <%= a.level %>" href="<%= a.href %>"><span class="hp-attn-ico"><%- M.icon(a.icon, 15) %></span><span class="hp-attn-text"><%= a.text %></span><span class="hp-attn-go" aria-hidden="true">›</span></a><% }) %>
+              </div>
+            <% } %>
+          </div>
+          <div class="stat-row hp-kpis">
             <div class="stat-box"><div class="value"><%= guild.approximate_member_count ? fmtN(guild.approximate_member_count) : '—' %></div><div class="label">Участников на сервере</div></div>
             <div class="stat-box"><div class="value"><%= fmtN(memberCount) %></div><div class="label">В системе уровней</div></div>
             <div class="stat-box"><div class="value"><%= fmtN(warningCount) %></div><div class="label">Предупреждений</div></div>
+            <div class="stat-box"><div class="value"><%= mods.on %>/<%= mods.total %></div><div class="label">Модулей включено</div></div>
           </div>
       <%
         const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' };
@@ -103,8 +125,8 @@
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="15" height="12" rx="1.5"/><path d="M5.5 8L8 10L5.5 12M10.5 12.5H14.5"/></svg>
           Команды бота
         </h2>
-        <p style="margin-top:0">Настройки сервера делаются только здесь, в панели. В Discord остались команды для участников и модераторов:</p>
-        <div class="cmd-grid">
+        <p class="hp-cmd-intro">Настройки сервера делаются только здесь, в панели. В Discord остались команды для участников и модераторов:</p>
+        <div class="cmd-grid hp-cmd-grid">
           <div><code>/profile</code><br>Карточка: уровень, место, баланс</div>
           <div><code>/top</code><br>Лидеры: общий и по голосу</div>
           <div><code>/play</code><br>Музыка, управление кнопками</div>
