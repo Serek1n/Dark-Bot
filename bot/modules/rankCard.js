@@ -155,116 +155,181 @@ function paintBackground(ctx, W, H, glowX, glowY) {
   ctx.stroke();
 }
 
-/**
- * Renders a rank/profile card as a PNG buffer.
- * @param {{ username: string, avatarURL?: string, level: number, xpIntoLevel: number, xpNeeded: number,
- *   balance: number, currencyName: string, messageCount: number, rank?: number, totalMembers?: number }} data
- * @returns {Promise<Buffer>}
- */
-function formatVoice(totalSeconds) {
-  const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-  const h = Math.floor(s / 3600);
-  if (h) return `${fmt(h)} ч`; // total hours, no days
-  return `${Math.floor(s / 60)} мин`;
+// A big figure in a column of fixed width: the full number, made smaller when it is long, and shortened
+// ("12,3 млн") only when even the smallest size does not fit. Sets ctx.font and returns the text to draw.
+function shortNumber(n) {
+  const v = Math.trunc(Number(n) || 0);
+  const part = (base) => {
+    const x = v / base;
+    return (x >= 100 ? Math.trunc(x) : Math.trunc(x * 10) / 10).toString().replace('.', ',');
+  };
+  if (Math.abs(v) >= 1e9) return `${part(1e9)} млрд`;
+  if (Math.abs(v) >= 1e6) return `${part(1e6)} млн`;
+  if (Math.abs(v) >= 1e3) return `${part(1e3)} тыс`;
+  return String(v);
+}
+function fitNumber(ctx, n, maxWidth, size, minSize) {
+  const full = fmt(n);
+  for (let px = size; px >= minSize; px -= 2) {
+    ctx.font = `${px}px CardMonoBold`;
+    if (ctx.measureText(full).width <= maxWidth) return full;
+  }
+  const short = shortNumber(n);
+  for (let px = size; px >= minSize; px -= 2) {
+    ctx.font = `${px}px CardMonoBold`;
+    if (ctx.measureText(short).width <= maxWidth) return short;
+  }
+  return truncateToWidth(ctx, short, maxWidth);
 }
 
+// Voice time as a figure and a caption: whole hours once there is at least one, minutes before that.
+function voiceStat(totalSeconds) {
+  const s = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const h = Math.floor(s / 3600);
+  return h ? [h, 'ч в голосе'] : [Math.floor(s / 60), 'мин в голосе'];
+}
+
+/** Rounded-square avatar in an ember frame; a letter badge when the picture can't be loaded. */
+async function drawSquareAvatar(ctx, url, name, x, y, size, radius) {
+  ctx.fillStyle = COLORS.ember;
+  roundRect(ctx, x - 4, y - 4, size + 8, size + 8, radius + 4);
+  ctx.fill();
+  ctx.save();
+  roundRect(ctx, x, y, size, size, radius);
+  ctx.clip();
+  try {
+    if (!url) throw new Error('no avatar');
+    const img = await loadAvatar(url);
+    ctx.drawImage(img, x, y, size, size);
+  } catch {
+    const grad = ctx.createLinearGradient(x, y, x + size, y + size);
+    grad.addColorStop(0, '#2b2e37');
+    grad.addColorStop(1, '#1b1d23');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, size, size);
+    ctx.fillStyle = COLORS.ember;
+    ctx.font = `${Math.round(size * 0.48)}px CardSansBold`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText((String(name || '?').trim()[0] || '?').toUpperCase(), x + size / 2, y + size / 2 + size * 0.02);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+  ctx.restore();
+}
+
+/**
+ * The profile card as a PNG buffer: a framed square avatar with the name, level, place and XP bar beside it, and the
+ * numbers below in three groups — economy, activity, experience — two figures each.
+ * @param {{ username: string, avatarURL?: string, level: number, xpIntoLevel: number, xpNeeded: number,
+ *   balance: number, currencyName: string, crystals?: number, crystalName?: string, messageCount: number,
+ *   voiceSeconds?: number, chatXp?: number, voiceXp?: number, rank?: number, totalMembers?: number }} data
+ * @returns {Promise<Buffer>}
+ */
 async function drawRankCard(data) {
   ensureFonts();
   const W = 900;
-  const H = 360;
+  const H = 376;
   const { canvas, ctx } = makeCanvas(W, H);
 
-  paintBackground(ctx, W, H, 150, 170);
-  drawCrescent(ctx, W - 38, 38, 14, COLORS.ember, 0.55);
-
-  const cx = 150;
-  const cy = 170;
-  const R = 88;
-  await drawAvatar(ctx, data.avatarURL, data.username, cx, cy, R);
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = COLORS.ember;
-  ctx.beginPath();
-  ctx.arc(cx, cy, R + 3, 0, Math.PI * 2);
+  ctx.fillStyle = COLORS.bg;
+  roundRect(ctx, 0, 0, W, H, 24);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, 0.5, 0.5, W - 1, H - 1, 24);
   ctx.stroke();
 
-  const left = 300;
-  const right = 850;
-  const barW = right - left;
+  await drawSquareAvatar(ctx, data.avatarURL, data.username, 40, 32, 132, 26);
 
-  // Username
-  ctx.fillStyle = COLORS.paper;
-  ctx.font = '32px CardSansBold';
+  const left = 200;
+  const right = W - 36;
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(truncateToWidth(ctx, data.username, 420), left, 82);
 
-  // Level — the hero stat
-  ctx.fillStyle = COLORS.ember;
-  ctx.font = '76px CardMonoBold';
-  ctx.fillText(String(data.level), left, 170);
-  const levelWidth = ctx.measureText(String(data.level)).width;
-  ctx.fillStyle = COLORS.fog;
-  ctx.font = '22px CardSans';
-  ctx.fillText('уровень', left + levelWidth + 14, 170);
+  // XP numbers on the right first, so the line beside them knows how much room it has
+  const xpText = `${fmt(data.xpIntoLevel)} / ${fmt(data.xpNeeded)} XP`;
+  ctx.font = '16px CardMonoBold';
+  const xpW = ctx.measureText(xpText).width;
+  ctx.textAlign = 'right';
+  ctx.fillStyle = COLORS.emberLight;
+  ctx.fillText(xpText, right, 120);
+  ctx.textAlign = 'left';
 
-  // Server rank, right-aligned on the level row
-  if (data.rank) {
-    ctx.textAlign = 'right';
-    ctx.fillStyle = COLORS.paper;
-    ctx.font = '40px CardMonoBold';
-    ctx.fillText(`#${data.rank}`, right, 136);
-    ctx.fillStyle = COLORS.fog;
-    ctx.font = '14px CardSans';
-    ctx.fillText(data.totalMembers ? `место из ${fmt(data.totalMembers)}` : 'место на сервере', right, 158);
-    ctx.textAlign = 'left';
-  }
+  ctx.fillStyle = COLORS.paper;
+  ctx.font = '36px CardSansBold';
+  ctx.fillText(truncateToWidth(ctx, data.username, right - left), left, 88);
 
-  // XP progress
-  const barY = 206;
-  const barH = 16;
+  let place = '';
+  if (data.rank && data.totalMembers) place = `  ·  #${fmt(data.rank)} из ${fmt(data.totalMembers)}`;
+  else if (data.rank) place = `  ·  #${fmt(data.rank)}`;
+  ctx.fillStyle = 'rgba(236,232,224,0.75)';
+  ctx.font = '17px CardSans';
+  ctx.fillText(truncateToWidth(ctx, `${fmt(data.level)} уровень${place}`, right - left - xpW - 24), left, 120);
+
+  // XP bar with a soft glow at its head
+  const barY = 142;
+  const barH = 10;
+  const barW = right - left;
   ctx.fillStyle = COLORS.track;
-  roundRect(ctx, left, barY, barW, barH, 8);
+  roundRect(ctx, left, barY, barW, barH, barH / 2);
   ctx.fill();
-
   const ratio = data.xpNeeded > 0 ? Math.max(0, Math.min(1, data.xpIntoLevel / data.xpNeeded)) : 0;
   if (ratio > 0) {
-    const fillGrad = ctx.createLinearGradient(left, 0, right, 0);
+    const fw = Math.max(barH, barW * ratio);
+    const fillGrad = ctx.createLinearGradient(left, 0, left + fw, 0);
     fillGrad.addColorStop(0, COLORS.emberDeep);
     fillGrad.addColorStop(1, COLORS.emberLight);
     ctx.fillStyle = fillGrad;
-    roundRect(ctx, left, barY, Math.max(barH, barW * ratio), barH, 8);
+    roundRect(ctx, left, barY, fw, barH, barH / 2);
     ctx.fill();
+    ctx.save();
+    ctx.shadowColor = 'rgba(240,192,120,0.8)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = COLORS.emberLight;
+    ctx.beginPath();
+    ctx.arc(left + fw - barH / 2, barY + barH / 2, barH / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
-  ctx.textAlign = 'right';
-  ctx.fillStyle = COLORS.fog;
-  ctx.font = '16px CardMonoBold';
-  ctx.fillText(`${fmt(data.xpIntoLevel)} / ${fmt(data.xpNeeded)} XP`, right, barY - 10);
-  ctx.textAlign = 'left';
 
-  // Stats: two rows of three. Row 1 = wallet and messages, row 2 = the two level directions.
-  ctx.strokeStyle = COLORS.hairline;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(left, 238);
-  ctx.lineTo(right, 238);
-  ctx.stroke();
+  // Three groups of two numbers
+  const groups = [
+    ['ЭКОНОМИКА', [[data.balance, data.currencyName || 'монеты'], [data.crystals || 0, data.crystalName || 'кристаллы']]],
+    ['АКТИВНОСТЬ', [[data.messageCount, 'сообщений'], voiceStat(data.voiceSeconds)]],
+    ['ОПЫТ', [[data.chatXp ?? 0, 'XP за чат'], [data.voiceXp ?? 0, 'XP за голос']]]
+  ];
+  const gap = 12;
+  const gx0 = 36;
+  const gy = 198;
+  const gh = 142;
+  const gw = (W - gx0 * 2 - gap * 2) / 3;
+  groups.forEach(([title, items], i) => {
+    const gx = gx0 + i * (gw + gap);
+    ctx.fillStyle = COLORS.panel;
+    roundRect(ctx, gx, gy, gw, gh, 16);
+    ctx.fill();
+    ctx.strokeStyle = COLORS.hairline;
+    ctx.lineWidth = 1;
+    roundRect(ctx, gx + 0.5, gy + 0.5, gw - 1, gh - 1, 16);
+    ctx.stroke();
 
-  const colW = Math.floor(barW / 3);
-  const stat = (col, row, value, label) => {
-    const x = left + col * colW;
-    const y = 270 + row * 56;
-    ctx.fillStyle = COLORS.paper;
-    ctx.font = '22px CardMonoBold';
-    ctx.fillText(truncateToWidth(ctx, value, colW - 14), x, y);
+    ctx.fillStyle = COLORS.ember;
+    roundRect(ctx, gx + 20, gy + 22, 4, 14, 2);
+    ctx.fill();
     ctx.fillStyle = COLORS.fog;
-    ctx.font = '13px CardSans';
-    ctx.fillText(truncateToWidth(ctx, label, colW - 14), x, y + 20);
-  };
-  stat(0, 0, fmt(data.balance), data.currencyName || 'монеты');
-  stat(1, 0, fmt(data.crystals || 0), data.crystalName || 'кристаллы');
-  stat(2, 0, fmt(data.messageCount), 'сообщений');
-  stat(0, 1, formatVoice(data.voiceSeconds), 'в голосовых');
-  stat(1, 1, fmt(data.chatXp ?? 0), 'XP за чат');
-  stat(2, 1, fmt(data.voiceXp ?? 0), 'XP за голос');
+    ctx.font = '12px CardSansBold';
+    ctx.fillText(title, gx + 32, gy + 34);
+
+    const colW = (gw - 40) / 2;
+    items.forEach(([value, label], j) => {
+      const sx = gx + 20 + j * colW;
+      ctx.fillStyle = COLORS.paper;
+      ctx.fillText(fitNumber(ctx, value, colW - 18, 30, 16), sx, gy + 92);
+      ctx.fillStyle = COLORS.fog;
+      ctx.font = '13px CardSans';
+      ctx.fillText(truncateToWidth(ctx, label, colW - 10), sx, gy + 118);
+    });
+  });
 
   return canvas.encode('png');
 }

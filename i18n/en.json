@@ -2672,5 +2672,15 @@
  "Язык по умолчанию": "Default language",
  "На этом языке бот отвечает на команды и пишет сообщения. «Язык по умолчанию» — тот, что выбран в настройках сервера Discord. Тексты, которые вы написали сами, бот не переводит. Язык этой панели меняется кнопкой с глобусом вверху.": "The bot answers commands and writes messages in this language. “Default language” is the one chosen in the Discord server settings. Texts you wrote yourself are not translated. The language of this panel is changed with the globe button at the top.",
  "Ролей за уровни пока нет — добавьте первую ниже.": "No level roles yet — add the first one below.",
- "Вебхуки — Вебхуки, конструктор, расписание": "Webhooks — Webhooks, builder, schedule"
+ "Вебхуки — Вебхуки, конструктор, расписание": "Webhooks — Webhooks, builder, schedule",
+ "ч в голосе": "h in voice",
+ "мин в голосе": "min in voice",
+ "  ·  #{0} из {1}": "  ·  #{0} of {1}",
+ "{0} уровень{1}": "Level {0}{1}",
+ "{0} млрд": "{0}B",
+ "{0} млн": "{0}M",
+ "{0} тыс": "{0}K",
+ "ЭКОНОМИКА": "ECONOMY",
+ "АКТИВНОСТЬ": "ACTIVITY",
+ "ОПЫТ": "EXPERIENCE"
 }

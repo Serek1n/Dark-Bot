@@ -1,5 +1,22 @@
 [
  {
+  "bot": "3.6.3",
+  "panel": "3.9.0",
+  "date": "2026-11-12",
+  "botChanges": [
+   "Новая карточка /profile: аватар в рамке, цифры в трёх группах",
+   "Большие числа на карточке уменьшаются или сокращаются, а не обрезаются"
+  ],
+  "panelChanges": [],
+  "en": {
+   "botChanges": [
+    "A new /profile card: a framed avatar, the numbers in three groups",
+    "Big numbers on the card get smaller or shortened instead of cut off"
+   ],
+   "panelChanges": []
+  }
+ },
+ {
   "bot": "3.6.2",
   "panel": "3.9.0",
   "date": "2026-11-12",
