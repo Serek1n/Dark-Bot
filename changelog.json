@@ -1,6 +1,21 @@
 [
  {
   "bot": "3.6.5",
+  "panel": "3.10.6",
+  "date": "2026-11-12",
+  "botChanges": [],
+  "panelChanges": [
+   "Страница больше не смещается вправо, когда открываешь поиск"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "The page no longer shifts right when you open the search"
+   ]
+  }
+ },
+ {
+  "bot": "3.6.5",
   "panel": "3.10.5",
   "date": "2026-11-12",
   "botChanges": [],

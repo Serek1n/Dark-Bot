@@ -192,7 +192,7 @@ tbody tr:hover { background: var(--soft); }
 .qj-hint { padding: 10px 14px; border-top: 1px solid var(--hairline-soft); font-size: var(--fs-12); color: var(--fog); }
 .qj-hint kbd, .qj-kbd { font: 11px var(--font-mono); padding: 2px 6px; border-radius: var(--r-6); border: 1px solid var(--hairline); background: var(--soft); color: var(--fog); }
 .qj-kbd { margin-left: auto; }
-html.qj-open { overflow: hidden; }
+/* the search is a small dropdown now: the page keeps its scrollbar, so nothing moves when it opens */
 @media (max-width: 760px) { .qj { padding-top: 8vh; } .qj-hint { display: none; } }
 
 /* ---- Template help under text fields ---- */

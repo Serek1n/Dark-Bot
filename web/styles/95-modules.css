@@ -227,3 +227,7 @@ a.hh-chip:hover { color: var(--paper); border-color: var(--field-border); }
 .grid-2 > .card > .card-link { margin-top: auto; padding-top: 12px; }
 .grid-2 > .card > .empty-state { flex: 1; display: grid; place-items: center; margin: 0; }
 .grid-2 > .card > form:last-child, .grid-2 > form.card > .btn:last-child { margin-top: auto; }
+
+/* ---------- the page never jumps sideways: the scrollbar's place is kept even when a window locks scrolling ---------- */
+html { scrollbar-gutter: stable; }
+.qj-list { overscroll-behavior: contain; }
