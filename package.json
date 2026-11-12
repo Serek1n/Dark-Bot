@@ -1,6 +1,6 @@
 {
   "name": "dark-bot",
-  "version": "3.6.3",
+  "version": "3.6.4",
   "description": "Discord bot: leveling, economy, moderation, reaction roles, temp voice, custom commands, music, YouTube/Twitch alerts + web dashboard",
   "main": "bot/index.js",
   "scripts": {

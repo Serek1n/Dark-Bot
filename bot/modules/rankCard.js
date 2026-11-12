@@ -1,16 +1,19 @@
 const path = require('path');
 const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
 
-// Fonts are bundled in the repo (not relying on whatever happens to be installed
-// on the host) so cards render identically on any VPS. DejaVu Sans has full
-// Cyrillic coverage, which matters since usernames/labels are often in Russian.
+// Fonts are bundled in the repo (not relying on whatever happens to be installed on the host) so cards
+// render identically on any VPS. Manrope draws everything — text and figures; it covers Latin, Cyrillic
+// (with the extended letters), Greek and Vietnamese. DejaVu Sans stays as the fallback for whatever
+// Manrope has no glyph for (symbols, rarer scripts in nicknames), so those don't turn into boxes.
 const FONTS_DIR = path.join(__dirname, '..', 'assets', 'fonts');
 let fontsRegistered = false;
 function ensureFonts() {
   if (fontsRegistered) return;
-  GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'DejaVuSans.ttf'), 'CardSans');
-  GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'DejaVuSans-Bold.ttf'), 'CardSansBold');
-  GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'DejaVuSansMono-Bold.ttf'), 'CardMonoBold');
+  GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Manrope-Regular.ttf'), 'CardSans');
+  GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Manrope-ExtraBold.ttf'), 'CardSansBold');
+  GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'Manrope-ExtraBold.ttf'), 'CardMonoBold'); // figures
+  GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'DejaVuSans.ttf'), 'CardFallback');
+  GlobalFonts.registerFromPath(path.join(FONTS_DIR, 'DejaVuSans-Bold.ttf'), 'CardFallbackBold');
   fontsRegistered = true;
 }
 
@@ -107,7 +110,7 @@ async function drawAvatar(ctx, url, name, cx, cy, radius) {
     ctx.fill();
     const letter = (String(name || '?').trim()[0] || '?').toUpperCase();
     ctx.fillStyle = COLORS.ember;
-    ctx.font = `${Math.round(radius * 0.95)}px CardSansBold`;
+    ctx.font = `${Math.round(radius * 0.95)}px CardSansBold, CardFallbackBold`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(letter, cx, cy + radius * 0.04);
@@ -171,12 +174,12 @@ function shortNumber(n) {
 function fitNumber(ctx, n, maxWidth, size, minSize) {
   const full = fmt(n);
   for (let px = size; px >= minSize; px -= 2) {
-    ctx.font = `${px}px CardMonoBold`;
+    ctx.font = `${px}px CardMonoBold, CardFallbackBold`;
     if (ctx.measureText(full).width <= maxWidth) return full;
   }
   const short = shortNumber(n);
   for (let px = size; px >= minSize; px -= 2) {
-    ctx.font = `${px}px CardMonoBold`;
+    ctx.font = `${px}px CardMonoBold, CardFallbackBold`;
     if (ctx.measureText(short).width <= maxWidth) return short;
   }
   return truncateToWidth(ctx, short, maxWidth);
@@ -208,7 +211,7 @@ async function drawSquareAvatar(ctx, url, name, x, y, size, radius) {
     ctx.fillStyle = grad;
     ctx.fillRect(x, y, size, size);
     ctx.fillStyle = COLORS.ember;
-    ctx.font = `${Math.round(size * 0.48)}px CardSansBold`;
+    ctx.font = `${Math.round(size * 0.48)}px CardSansBold, CardFallbackBold`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText((String(name || '?').trim()[0] || '?').toUpperCase(), x + size / 2, y + size / 2 + size * 0.02);
@@ -248,7 +251,7 @@ async function drawRankCard(data) {
 
   // XP numbers on the right first, so the line beside them knows how much room it has
   const xpText = `${fmt(data.xpIntoLevel)} / ${fmt(data.xpNeeded)} XP`;
-  ctx.font = '16px CardMonoBold';
+  ctx.font = '16px CardMonoBold, CardFallbackBold';
   const xpW = ctx.measureText(xpText).width;
   ctx.textAlign = 'right';
   ctx.fillStyle = COLORS.emberLight;
@@ -256,14 +259,14 @@ async function drawRankCard(data) {
   ctx.textAlign = 'left';
 
   ctx.fillStyle = COLORS.paper;
-  ctx.font = '36px CardSansBold';
+  ctx.font = '36px CardSansBold, CardFallbackBold';
   ctx.fillText(truncateToWidth(ctx, data.username, right - left), left, 88);
 
   let place = '';
   if (data.rank && data.totalMembers) place = `  ·  #${fmt(data.rank)} из ${fmt(data.totalMembers)}`;
   else if (data.rank) place = `  ·  #${fmt(data.rank)}`;
   ctx.fillStyle = 'rgba(236,232,224,0.75)';
-  ctx.font = '17px CardSans';
+  ctx.font = '17px CardSans, CardFallback';
   ctx.fillText(truncateToWidth(ctx, `${fmt(data.level)} уровень${place}`, right - left - xpW - 24), left, 120);
 
   // XP bar with a soft glow at its head
@@ -317,7 +320,7 @@ async function drawRankCard(data) {
     roundRect(ctx, gx + 20, gy + 22, 4, 14, 2);
     ctx.fill();
     ctx.fillStyle = COLORS.fog;
-    ctx.font = '12px CardSansBold';
+    ctx.font = '12px CardSansBold, CardFallbackBold';
     ctx.fillText(title, gx + 32, gy + 34);
 
     const colW = (gw - 40) / 2;
@@ -326,7 +329,7 @@ async function drawRankCard(data) {
       ctx.fillStyle = COLORS.paper;
       ctx.fillText(fitNumber(ctx, value, colW - 18, 30, 16), sx, gy + 92);
       ctx.fillStyle = COLORS.fog;
-      ctx.font = '13px CardSans';
+      ctx.font = '13px CardSans, CardFallback';
       ctx.fillText(truncateToWidth(ctx, label, colW - 10), sx, gy + 118);
     });
   });
@@ -370,14 +373,14 @@ async function renderLeaderboard(data) {
 
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = COLORS.paper;
-  ctx.font = '30px CardSansBold';
+  ctx.font = '30px CardSansBold, CardFallbackBold';
   ctx.fillText(data.heading || 'Таблица лидеров', 90, 52);
   ctx.fillStyle = COLORS.fog;
-  ctx.font = '15px CardSans';
+  ctx.font = '15px CardSans, CardFallback';
   ctx.fillText(truncateToWidth(ctx, data.title || '', 600), 90, 76);
   if (data.pages > 1) {
     ctx.textAlign = 'right';
-    ctx.font = '16px CardMonoBold';
+    ctx.font = '16px CardMonoBold, CardFallbackBold';
     ctx.fillText(`стр. ${data.page} / ${data.pages}`, W - 52, 60);
     ctx.textAlign = 'left';
   }
@@ -417,7 +420,7 @@ async function renderLeaderboard(data) {
     } else {
       ctx.fillStyle = COLORS.fog;
     }
-    ctx.font = '16px CardMonoBold';
+    ctx.font = '16px CardMonoBold, CardFallbackBold';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(String(r.rank), 62, mid + 1);
@@ -447,7 +450,7 @@ async function renderLeaderboard(data) {
 
     // Name + xp bar
     ctx.fillStyle = COLORS.paper;
-    ctx.font = '20px CardSansBold';
+    ctx.font = '20px CardSansBold, CardFallbackBold';
     ctx.fillText(truncateToWidth(ctx, r.name, 480), 156, mid - 4);
 
     const bx = 156;
@@ -464,10 +467,10 @@ async function renderLeaderboard(data) {
     // Level + XP, right aligned
     ctx.textAlign = 'right';
     ctx.fillStyle = COLORS.ember;
-    ctx.font = '24px CardMonoBold';
+    ctx.font = '24px CardMonoBold, CardFallbackBold';
     ctx.fillText(r.sub || `ур. ${r.level}`, W - 52, mid - 2);
     ctx.fillStyle = COLORS.fog;
-    ctx.font = '14px CardMonoBold';
+    ctx.font = '14px CardMonoBold, CardFallbackBold';
     ctx.fillText(r.small || `${fmt(r.xp)} XP`, W - 52, mid + 18);
     ctx.textAlign = 'left';
   }

@@ -24,19 +24,19 @@ async function renderWelcomeCard({ username, avatarURL, serverName, memberCount 
   const left = 270;
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = COLORS.ember;
-  ctx.font = '22px CardSansBold';
+  ctx.font = '22px CardSansBold, CardFallbackBold';
   ctx.fillText('ДОБРО ПОЖАЛОВАТЬ', left, 98);
 
   ctx.fillStyle = COLORS.paper;
-  ctx.font = '44px CardSansBold';
+  ctx.font = '44px CardSansBold, CardFallbackBold';
   ctx.fillText(truncateToWidth(ctx, username, W - left - 50), left, 154);
 
   ctx.fillStyle = COLORS.fog;
-  ctx.font = '22px CardSans';
+  ctx.font = '22px CardSans, CardFallback';
   ctx.fillText(truncateToWidth(ctx, `на сервер ${serverName}`, W - left - 50), left, 196);
   if (memberCount) {
     ctx.fillStyle = COLORS.silver;
-    ctx.font = '20px CardSans';
+    ctx.font = '20px CardSans, CardFallback';
     ctx.fillText(`Вы наш участник № ${memberCount}`, left, 236);
   }
   return canvas.encode('png'); // encoded off the main thread: a join must not freeze the bot and the panel

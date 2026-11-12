@@ -1,5 +1,22 @@
 [
  {
+  "bot": "3.6.4",
+  "panel": "3.9.0",
+  "date": "2026-11-12",
+  "botChanges": [
+   "Новый шрифт на картинках бота — Manrope: профиль, лидеры, приветствие",
+   "Редкие символы в никах рисуются запасным шрифтом, а не квадратиками"
+  ],
+  "panelChanges": [],
+  "en": {
+   "botChanges": [
+    "A new font on the bot's pictures, Manrope: profile, leaderboard, welcome",
+    "Rare symbols in nicknames are drawn with a fallback font, not as boxes"
+   ],
+   "panelChanges": []
+  }
+ },
+ {
   "bot": "3.6.3",
   "panel": "3.9.0",
   "date": "2026-11-12",
