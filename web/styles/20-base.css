@@ -76,26 +76,6 @@ html[data-theme="light"] .ic-sun, html[data-theme="light"] .t-to-light { display
   flex: 1;
   min-width: 0;
 }
-.nav-group { display: flex; flex-direction: column; gap: 1px; }
-.nav-group-label {
-  font-size: var(--fs-12);
-  color: var(--fog-dim);
-  padding: 0 12px;
-  margin: 8px 0 2px;
-  height: 14px; line-height: 14px; overflow: hidden;
-  white-space: nowrap;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-family: var(--font-ui);
-}
-.back-link {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--hairline);
-  font-size: var(--fs-13);
-  color: var(--fog);
-}
-.back-link:hover { color: var(--paper); }
 
 .content { flex: 1; min-width: 0; padding: 40px 48px 64px; max-width: 980px; }
 .page-header { margin-bottom: 28px; }
@@ -219,22 +199,6 @@ tbody tr { transition: background 0.1s ease; }
 tbody tr:hover { background: var(--hairline-soft); }
 
 /* Overview quick-links */
-.quick-links { display: flex; flex-direction: column; gap: 2px; }
-.quick-links a {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 10px;
-  border-radius: var(--r-6);
-  color: var(--paper);
-  font-size: var(--fs-14);
-  transition: background 0.12s ease;
-}
-.quick-links a:hover { background: var(--hairline-soft); }
-.quick-links a svg { color: var(--ember); flex-shrink: 0; }
-.quick-links a .ql-text { flex: 1; }
-.quick-links a .ql-desc { color: var(--fog); font-size: var(--fs-13); display: block; margin-top: 1px; }
-.quick-links a .ql-arrow { color: var(--fog-dim); }
 
 .error-page {
   position: relative; z-index: 1;

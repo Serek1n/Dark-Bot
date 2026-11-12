@@ -160,24 +160,15 @@ a.hh-chip:hover { color: var(--paper); border-color: var(--field-border); }
 .hp-back { display: none; color: var(--fog); text-decoration: none; font-size: var(--fs-14); margin: 0 0 10px 2px; }
 .hp-attn h2 { display: flex; align-items: center; gap: 8px; }
 .hp-attn-n { font-size: var(--fs-12); font-weight: 600; padding: 1px 8px; border-radius: var(--r-pill); background: var(--ember-tint); color: var(--ember); }
-.hp-ok { margin: 0; color: var(--success); font-size: var(--fs-14); }
-.hp-attn-list { display: grid; gap: 6px; }
-.hp-attn-row { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: var(--r-10); background: var(--soft); border: 1px solid var(--hairline-soft); color: var(--paper); text-decoration: none; font-size: var(--fs-14); min-width: 0; }
-.hp-attn-row:hover { border-color: var(--hairline); background: var(--panel-raised); }
+
 .hp-attn-ico { width: 28px; height: 28px; border-radius: var(--r-8); display: grid; place-items: center; flex-shrink: 0; background: var(--panel-raised); color: var(--fog); }
-.hp-attn-row.bad .hp-attn-ico { background: var(--danger-tint); color: var(--danger); }
-.hp-attn-row.warn .hp-attn-ico { background: var(--ember-tint); color: var(--ember); }
-.hp-attn-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.hp-attn-go { color: var(--fog-dim); font-size: var(--fs-18); }
-.hp-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
 .hp-cmd-intro { margin-top: 0; color: var(--fog); font-size: var(--fs-14); }
 .hp-cmd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .hp-cmd-grid > div { padding: 8px 10px; font-size: var(--fs-13); line-height: 1.45; }
 .hp-cmd-grid br { display: none; }
 .hp-cmd-grid code { margin-right: 6px; }
 
-
-@media (max-width: 1100px) { .hp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) {
   .hp-back { display: inline-block; }
   .home-head { gap: 12px; }
@@ -306,3 +297,9 @@ button, input, select, textarea, optgroup { font-family: inherit; }
   .app-layout > .content > .card.g-fields > :not(h2) { margin-top: 0; }
   .app-layout > .content > .card.g-fields > div > label:first-child, .app-layout > .content > .card.g-fields > .two-col label { margin-top: 0; }
 }
+
+/* the buttons of a card in one row at its foot (export, import): side by side, level with the neighbour card's */
+.btn-row.card-foot { align-items: center; gap: 10px; }
+.card > .btn-row.card-foot { margin-top: auto; padding-top: 14px; }
+.import-row input[type=file] { margin: 0; flex: 1 1 220px; min-width: 0; }
+.import-row input[type=file]::file-selector-button { margin-right: 10px; }

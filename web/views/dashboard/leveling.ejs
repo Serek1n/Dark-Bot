@@ -188,16 +188,20 @@
       <div class="card">
         <h2>Экспорт уровней</h2>
         <p>Скачайте опыт, уровни, сообщения, время в голосовых и обе валюты всех участников, например перед переходом на другого бота. JSON можно импортировать обратно сюда, CSV открывается в Excel и Google Таблицах. В файле только ID участников и цифры, без имён и почт.</p>
-        <a class="btn" href="/dashboard/<%= guild.id %>/leveling/export">Скачать JSON</a>
-        <a class="btn" href="/dashboard/<%= guild.id %>/leveling/export?format=csv">Скачать CSV</a>
+        <div class="btn-row card-foot">
+          <a class="btn" href="/dashboard/<%= guild.id %>/leveling/export">Скачать JSON</a>
+          <a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/leveling/export?format=csv">Скачать CSV</a>
+        </div>
       </div>
 
       <div class="card">
         <h2>Импорт уровней</h2>
         <p>Перенос из экспорта Lacuna или из экспорта этого бота (файл <code>.json</code>). Чужой опыт нельзя разделить на чат и голос, он считается чатовым. Экспорт Dark восстанавливает опыт чата и голоса отдельно и кристаллы. Существующие значения не уменьшаются.</p>
-        <input type="file" id="importFile" aria-label="Файл с уровнями" accept=".json,application/json" />
-        <button class="btn" type="button" id="importBtn" data-url="/dashboard/<%= guild.id %>/leveling/import">Импортировать</button>
         <div class="hint" id="importStatus"></div>
+        <div class="btn-row card-foot import-row">
+          <input type="file" id="importFile" aria-label="Файл с уровнями" accept=".json,application/json" />
+          <button class="btn" type="button" id="importBtn" data-url="/dashboard/<%= guild.id %>/leveling/import">Импортировать</button>
+        </div>
       </div>
 
 

@@ -51,7 +51,7 @@ app.get('/css/style.css', (req, res) => {
   const css = require('./styles').stylesheet();
   res.set({ 'Content-Type': 'text/css; charset=utf-8', 'Cache-Control': 'public, max-age=604800', ETag: css.etag });
   if (req.headers['if-none-match'] === css.etag) return res.status(304).end();
-  res.send(css.text);
+  res.send(css.min); // the source parts keep their comments; the browser gets them packed (web/styles/index.js)
 });
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '7d',

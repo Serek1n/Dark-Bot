@@ -23,7 +23,7 @@ const time = async (label, n, fn) => {
   // voice tick with a big channel
   const members = Array.from({ length: N }, (_, i) => ({ id: 'u' + i, user: { bot: false }, voice: { deaf: false }, displayName: 'm' + i, roles: { cache: new Map() } }));
   const channel = { id: 'vc', isVoiceBased: () => true, members: new Map(members.map((m) => [m.id, m])) };
-  const guild = { id: G, afkChannelId: null, channels: { cache: new Map([['vc', channel]]) }, roles: { cache: new Map() } };
+  const guild = { id: G, name: 'Bench', afkChannelId: null, channels: { cache: new Map([['vc', channel]]) }, roles: { cache: new Map() } };
   members.forEach((m) => { m.guild = guild; });
   const client = { guilds: { cache: new Map([[G, guild]]) } };
   await time(`voice tick, ${N} people in one channel`, 3, () => vt.xpTick(client));

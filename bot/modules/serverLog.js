@@ -29,9 +29,9 @@ async function getConfig(guildId) {
   try {
     const s = await GuildSettings.findOne({
       where: { guildId },
-      attributes: ['logForumChannelId', 'logWebhookId', 'logWebhookToken', 'logThreads', 'logDisabled', 'logIgnoreChannels', 'logIgnoreRoles', 'logIgnoreBots']
+      attributes: ['logsEnabled', 'logForumChannelId', 'logWebhookId', 'logWebhookToken', 'logThreads', 'logDisabled', 'logIgnoreChannels', 'logIgnoreRoles', 'logIgnoreBots']
     });
-    if (s?.logForumChannelId && s.logWebhookId && s.logWebhookToken) {
+    if (s?.logsEnabled !== false && s?.logForumChannelId && s.logWebhookId && s.logWebhookToken) { // module off: nothing is written
       const threads = parseJson(s.logThreads, {});
       cfg = {
         webhookId: s.logWebhookId,

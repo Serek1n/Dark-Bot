@@ -17,7 +17,7 @@ h1 { font-weight: 700; letter-spacing: -0.02em; }
 .tb-guild .guild-icon { width: 30px; height: 30px; border-radius: var(--r-10); flex: 0 0 30px; object-fit: cover; }
 .tb-guild .guild-initial { display: grid; place-items: center; background: var(--ember-tint-strong); color: var(--ember); font-weight: 700; font-size: var(--fs-14); }
 .tb-guild-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tb-caret { color: var(--fog-dim); flex: 0 0 auto; }
+
 .tb-groups { display: flex; gap: 2px; min-width: 0; }
 .tb-group { padding: 8px 14px; border-radius: var(--r-10); color: var(--fog); text-decoration: none; font-weight: 500; font-size: var(--fs-15); white-space: nowrap; }
 .tb-group:hover { color: var(--paper); background: var(--panel-raised); }
@@ -75,7 +75,7 @@ html.nd-open { overflow: hidden; }
 
 /* tablet: groups stay while they fit, the server name shrinks */
 @media (max-width: 1180px) { .tb-guild-name { max-width: 110px; } .tb-search { min-width: 0; } .tb-search .qj-kbd { display: none; } }
-@media (max-width: 1040px) { .tb-guild-name, .tb-caret { display: none; } .tb-guild { margin-right: 2px; } .tb-group { padding: 8px 10px; font-size: var(--fs-14); } .tb-search-text { display: none; } .tb-search { width: 38px; padding: 0; justify-content: center; } }
+@media (max-width: 1040px) { .tb-guild-name { display: none; } .tb-guild { margin-right: 2px; } .tb-group { padding: 8px 10px; font-size: var(--fs-14); } .tb-search-text { display: none; } .tb-search { width: 38px; padding: 0; justify-content: center; } }
 /* narrow tablet and phone: groups go to the "≡" drawer, the current group's pages stay as tabs */
 @media (max-width: 860px) {
   .tb-burger { display: inline-grid; }

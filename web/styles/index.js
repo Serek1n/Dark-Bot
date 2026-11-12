@@ -11,10 +11,29 @@ function parts() {
   return fs.readdirSync(DIR).filter((f) => /^\d\d-[\w-]+\.css$/.test(f)).sort();
 }
 
+/**
+ * What the browser gets: the same rules without comments and spare spaces (about a quarter smaller after gzip). Quoted
+ * text is left exactly as written; spaces are only dropped where CSS ignores them (around { } ; , and the > combinator).
+ */
+function minify(css) {
+  const strings = [];
+  const keep = (s) => `\u0000${strings.push(s) - 1}\u0000`;
+  return css
+    // one pass, so a quote inside a comment or a comment mark inside quotes can't fool it: quoted text is put aside,
+    // comments are dropped
+    .replace(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|\/\*[\s\S]*?\*\//g, (m, str) => (str ? keep(str) : ''))
+    .replace(/\s+/g, ' ')
+    .replace(/\s*([{};,>])\s*/g, '$1')
+    .replace(/;}/g, '}')
+    .replace(/\u0000(\d+)\u0000/g, (_, i) => strings[i])
+    .trim();
+}
+
 let cache = null;
 function build() {
   const text = parts().map((f) => fs.readFileSync(path.join(DIR, f), 'utf8').replace(/\s*$/, '\n')).join('\n');
-  return { text, etag: '"' + crypto.createHash('sha1').update(text).digest('base64url').slice(0, 20) + '"', mtimeMs: Math.max(...parts().map((f) => fs.statSync(path.join(DIR, f)).mtimeMs)) };
+  const min = minify(text);
+  return { text, min, etag: '"' + crypto.createHash('sha1').update(min).digest('base64url').slice(0, 20) + '"', mtimeMs: Math.max(...parts().map((f) => fs.statSync(path.join(DIR, f)).mtimeMs)) };
 }
 
 /** The whole stylesheet. Built once; outside production it is rebuilt when a part changes. */
@@ -25,4 +44,4 @@ function stylesheet() {
   return cache;
 }
 
-module.exports = { stylesheet, parts };
+module.exports = { stylesheet, parts, minify };

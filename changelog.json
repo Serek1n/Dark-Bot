@@ -1,5 +1,30 @@
 [
  {
+  "bot": "3.6.6",
+  "panel": "3.13.0",
+  "date": "2026-11-12",
+  "botChanges": [
+   "«Наказания» (/mod) и «Логи сервера» можно выключить в панели, как другие модули",
+   "Поздравление с уровнем не падает, если у сервера нет названия"
+  ],
+  "panelChanges": [
+   "Экспорт и импорт уровней: кнопки в один ряд, внизу карточек",
+   "Стили на 29% легче: сжатие и удалены неиспользуемые правила",
+   "Цифры главной считаются раз в 10 секунд, а после изменений — сразу"
+  ],
+  "en": {
+   "botChanges": [
+    "\"Punishments\" (/mod) and \"Server logs\" can be switched off in the panel like other modules",
+    "The level-up message no longer fails when the server has no name"
+   ],
+   "panelChanges": [
+    "Level export and import: buttons in one row at the foot of the cards",
+    "Styles are 29% lighter: packed, and unused rules removed",
+    "Home numbers are counted every 10 seconds, and right after a change"
+   ]
+  }
+ },
+ {
   "bot": "3.6.5",
   "panel": "3.12.1",
   "date": "2026-11-12",

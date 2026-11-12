@@ -51,8 +51,8 @@ router.get('/:guildId', ensureGuildAccess, async (req, res) => {
   if (res.locals.sys && !res.locals.sys.botOnline) attention.push({ level: 'bad', icon: 'moderation', text: 'Бот не в сети: команды и автоматические действия не работают', href: `${g}/changelog` });
   if (on('report') && first('report')) attention.push({ level: 'warn', icon: 'report', text: `Новых жалоб: ${first('report')}`, href: `${g}/moderation` });
   if (on('tickets') && first('tickets')) attention.push({ level: 'warn', icon: 'tickets', text: `Открытых обращений: ${first('tickets')}`, href: `${g}?m=tickets` });
-  if (!settings.modLogChannelId) attention.push({ level: 'info', icon: 'moderation', text: 'Не выбран канал журнала наказаний', href: `${g}/moderation` });
-  if (!settings.logForumChannelId) attention.push({ level: 'info', icon: 'logs', text: 'Логи сервера не настроены', href: `${g}/logs` });
+  if (on('moderation') && !settings.modLogChannelId) attention.push({ level: 'info', icon: 'moderation', text: 'Не выбран канал журнала наказаний', href: `${g}/moderation` });
+  if (on('logs') && !settings.logForumChannelId) attention.push({ level: 'info', icon: 'logs', text: 'Логи сервера не настроены', href: `${g}/logs` });
   if (on('welcome') && settings.welcomeEnabled && !settings.welcomeChannelId && !settings.autoRoleId) attention.push({ level: 'info', icon: 'welcome', text: 'Приветствие включено, но канал не выбран', href: `${g}/welcome` });
   const offCount = mods ? mods.list.filter((m) => !m.on).length : 0;
   if (offCount) attention.push({ level: 'info', icon: 'modules', text: `Выключено модулей: ${offCount}`, href: `${g}/features` });

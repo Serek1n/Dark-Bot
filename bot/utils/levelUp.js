@@ -98,7 +98,7 @@ async function announceLevelUp({ guild, user, displayName, level, oldLevel, chan
       .setAuthor({ name: displayName || user.username, iconURL: user.displayAvatarURL?.() || undefined })
       .setTitle(custom ? null : 'Поздравляю с повышением уровня! ✨')
       .setDescription(text + (!custom && crystals > 0 ? `\n+${crystals} ${crystalName || 'кристаллы'}` : ''))
-      .setFooter({ text: guild.name, iconURL: guild.iconURL?.() || undefined });
+      .setFooter(guild.name ? { text: guild.name, iconURL: guild.iconURL?.() || undefined } : null);
     payload = { embeds: [embed], allowedMentions: { parse: [] } };
   } else {
     payload = { content: text, allowedMentions: { users: [user.id] } }; // the plain text may ping the member, nobody else

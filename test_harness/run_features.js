@@ -19,10 +19,10 @@ const express = require('express');
   const G = '777000000000000001';
   const setFlags = async (flags) => { const s = await L.getOrCreateSettings(G); await s.update(flags); };
 
-  await test('every switchable command exists, every column exists, /mod cannot be switched off', async () => {
+  await test('every switchable command exists, every column exists; /mod can be switched off, /help cannot', async () => {
     const names = new Set([...loadCommands().keys()]);
     for (const f of FEATURES) for (const c of f.commands) assert(names.has(c), 'unknown command ' + c);
-    assert(!featureForCommand('mod') && !featureForCommand('help'), 'mod/help must stay on');
+    assert(featureForCommand('mod')?.key === 'moderation' && !featureForCommand('help'), '/mod belongs to «Наказания», /help stays on');
     const s = await L.getOrCreateSettings(G);
     FEATURES.forEach((f) => assert(f.field in s.dataValues, 'no column ' + f.field));
     assert(FEATURES.length === new Set(FEATURES.map((f) => f.field)).size, 'fields are unique');
@@ -88,7 +88,17 @@ const express = require('express');
     assert(r.changed.join() === 'economy,shop', 'changed: ' + r.changed);
     assert(!s.economyEnabled && !s.shopEnabled && s.musicEnabled && s.giveawaysEnabled, 'only economy and the shop are off');
     assert((await sw('nope', { on: '1' })).status === 404, 'unknown module');
-    assert((await sw('moderation', { on: '0' })).status === 404, 'a module that is always on has no switch');
+    // «Наказания» and «Логи сервера» have switches too; the logs stop writing at once
+    r = await (await sw('moderation', { on: '0' })).json();
+    assert(r.ok && !(await db.GuildSettings.findOne({ where: { guildId: G } })).moderationEnabled, 'moderation off');
+    await sw('moderation', { on: '1' });
+    await db.GuildSettings.update({ logForumChannelId: '123456789012345678', logWebhookId: '123456789012345679', logWebhookToken: 't', logThreads: '{"messages":"1"}' }, { where: { guildId: G } });
+    const serverLog = require('../bot/modules/serverLog');
+    serverLog.invalidate(G); assert(await serverLog.getConfig(G), 'logs set up');
+    r = await (await sw('logs', { on: '0' })).json();
+    assert(r.ok && !(await serverLog.getConfig(G)) && !(await serverLog.isOn(G, 'messages')), 'logs off: nothing is written');
+    await sw('logs', { on: '1' });
+    assert(await serverLog.getConfig(G), 'logs back on');
     // without scripts the old form still works
     const post = (b) => fetch(base + '/features', { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(b).toString() });
     assert((await post({ musicEnabled: 'on', levelingEnabled: 'on' })).status === 302, 'redirect');

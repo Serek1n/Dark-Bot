@@ -5,8 +5,8 @@
 
 @media (max-width: 760px) {
   .app-layout { flex-direction: column; }
-  .nav-group { flex-direction: row; }
-  .nav-group-label, .rl { display: none; }
+
+  .rl { display: none; }
   .nl { opacity: 1; }
   .nl small { display: none; }
   .content { padding: 24px 18px; max-width: 100%; }
@@ -119,23 +119,6 @@ input:hover, select:hover, textarea:hover { border-color: var(--fog-dim); }
    Overview: status of features
    ============================================================ */
 
-.status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--hairline-soft);
-  border-radius: var(--radius);
-  background: var(--soft);
-  transition: border-color 0.12s ease, background 0.12s ease;
-}
-.status-item:hover { border-color: var(--hairline); background: var(--panel-raised); }
-.status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--fog-dim); flex-shrink: 0; }
-.status-item.on .status-dot { background: var(--success); box-shadow: 0 0 0 3px var(--success-tint); }
-.status-item .st-name { font-size: var(--fs-14); font-weight: 500; }
-.status-item .st-state { font-size: var(--fs-13); color: var(--fog); }
-
 /* ============================================================
    People: avatar chips, leaderboard rows
    ============================================================ */
@@ -216,21 +199,6 @@ td { vertical-align: middle; word-break: break-word; }
 /* ============================================================
    Sidebar footer: back link + signed-in user with sign-out
    ============================================================ */
-
-.su-logout {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  border-radius: var(--r-6);
-  color: var(--fog);
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
-}
-.su-logout:hover { color: var(--danger); background: var(--danger-tint); }
 
 /* ============================================================
    Public legal pages (/terms, /privacy)

@@ -1,6 +1,7 @@
 // The list of features an admin can switch on and off in the web panel ("Функции").
 // One place for both sides: the panel draws the switches from it, the bot checks the same flags.
-// Moderation commands (/mod) are not listed on purpose: admins should not be able to lock themselves out.
+// Moderation (/mod) and the server logs can be switched off too: the switch is in the panel, so an admin can always turn
+// them back on there.
 const FEATURES = [
   { key: 'leveling', field: 'levelingEnabled', title: 'Уровни', desc: 'Опыт за чат и голос, команды /profile, /top, /calc и /level', commands: ['profile', 'top', 'calc', 'level', 'Profile'], page: 'leveling' },
   { key: 'economy', field: 'economyEnabled', title: 'Экономика', desc: 'Ежедневная награда, баланс и переводы: /daily, /balance, /pay', commands: ['daily', 'balance', 'pay'], page: 'economy' },
@@ -20,6 +21,8 @@ const FEATURES = [
   { key: 'webhooks', field: 'webhooksEnabled', title: 'Вебхуки', desc: 'Команда /webhook: создание вебхуков и отправка сообщений через них (нужно право «Управлять вебхуками»)', commands: ['webhook'], page: 'webhooks' },
   { key: 'voiceRoles', field: 'voiceRolesEnabled', title: 'Голосовые роли', desc: 'Роль, пока участник сидит в голосовом канале', commands: [], page: 'temp-voice' },
   { key: 'interactive', field: 'interactiveEnabled', title: 'Интерактивные сообщения', desc: 'Сообщения с кнопками и списками, которые выдают роли', commands: [], page: 'interactive' },
+  { key: 'moderation', field: 'moderationEnabled', title: 'Наказания', desc: 'Предупреждения, муты, баны и журнал наказаний: /mod', commands: ['mod'], page: 'moderation' },
+  { key: 'logs', field: 'logsEnabled', title: 'Логи сервера', desc: 'События сервера в отдельном форуме', commands: [], page: 'logs' },
   { key: 'report', field: 'reportEnabled', title: 'Жалобы', desc: 'Пункт «Report message» в меню сообщения', commands: ['Report message', 'report', 'Report member'], page: 'moderation' }
 ];
 

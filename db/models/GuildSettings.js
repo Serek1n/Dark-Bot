@@ -150,6 +150,8 @@ module.exports = (sequelize) => {
       // "Доска почёта": messages with enough reactions are copied into this channel.
       starboardEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       interactiveEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      moderationEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      logsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       voiceRolesEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       // reports v2: how many reports one member may send a day, and the warning when someone with reports joins
       reportDailyLimit: { type: DataTypes.INTEGER, defaultValue: 5 },

@@ -74,13 +74,8 @@ input[type=text]:focus-visible, input[type=number]:focus-visible, select:focus-v
 .stat-box { border-radius: var(--radius-lg); box-shadow: var(--card-shadow); padding: 20px 24px; transition: border-color 0.15s ease, transform 0.15s ease; }
 .stat-box:hover { border-color: var(--fog-dim); }
 .stat-box .value { font-size: var(--fs-28); line-height: 1.1; letter-spacing: -0.01em; }
-.status-item { border-radius: var(--r-12); }
 
 /* Overview header: the server itself */
-.hero { display: flex; align-items: center; gap: 24px; margin-bottom: 32px; }
-.hero h1 { margin: 0 0 6px; font-size: var(--fs-34); letter-spacing: -0.015em; line-height: 1.1; }
-.hero .page-intro { margin: 0; color: var(--fog); font-size: var(--fs-15); max-width: 56ch; line-height: 1.55; }
-.hero-icon { width: 76px; height: 76px; border-radius: var(--r-20); flex-shrink: 0; object-fit: cover; box-shadow: 0 0 0 1px var(--hairline); }
 
 /* Server marks without a picture: the first letter of the name */
 .guild-initial {
@@ -90,7 +85,6 @@ input[type=text]:focus-visible, input[type=number]:focus-visible, select:focus-v
 }
 .guild-card .guild-initial { width: 46px; height: 46px; font-size: var(--fs-20); border-radius: var(--r-14); }
 .guild-card img { width: 46px; height: 46px; border-radius: var(--r-14); object-fit: cover; }
-.hero .guild-initial.hero-icon { font-size: var(--fs-34); border-radius: var(--r-20); }
 
 /* Server picker */
 .guild-picker { max-width: 860px; }
@@ -129,9 +123,7 @@ tbody tr:hover { background: var(--soft); }
   .content { padding: 24px 16px 96px; }
   .page-header h1, .content > h1 { font-size: var(--fs-24); }
   .card { padding: 18px 16px; border-radius: var(--r-14); }
-  .hero { gap: 14px; }
-  .hero-icon { width: 56px; height: 56px; border-radius: var(--r-16); }
-  .hero h1 { font-size: var(--fs-24); }
+
   .stat-row { grid-template-columns: repeat(2, 1fr); }
   .two-col { grid-template-columns: 1fr; }
 }

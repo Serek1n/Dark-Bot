@@ -52,6 +52,7 @@ router.post('/:guildId/modules/:key', ensureGuildAccess, async (req, res) => {
     }
   }
   await settings.save();
+  if (changed.includes('logs')) require('../../../bot/modules/serverLog').invalidate(req.params.guildId); // the logs stop/start now, not in 30 s
   if (wantsJson) return res.json({ ok: true, on, changed });
   const back = String(req.body.back || '');
   res.redirect(back.startsWith(`/dashboard/${req.params.guildId}`) ? back : saved(req.params.guildId, 'features'));

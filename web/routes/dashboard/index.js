@@ -18,6 +18,9 @@ router.get('/settings-index.json', (req, res) => {
   res.json({ pages });
 });
 
+// Any change an admin makes on a server's pages: the home page's numbers are counted afresh next time.
+router.post('/:guildId/*', (req, res, next) => { require('../../modules').forgetStats(req.params.guildId); next(); });
+
 for (const page of [
   'overview', 'leveling', 'features', 'economy', 'shop', 'moderation', 'logs', 'automod', 'channelBoosts', 'welcome',
   'levelRoles', 'reactionRoles', 'customCommands', 'tempVoice', 'alerts', 'webhooks', 'changelog', 'replacers', 'interactive', 'giveaways', 'messages'

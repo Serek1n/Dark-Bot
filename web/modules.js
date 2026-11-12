@@ -83,7 +83,7 @@ const LAYOUT = [
   { key: 'polls', group: 'community', pages: [],
     stats: async (g) => { const { Poll } = db(); return [{ value: await Poll.count(where(g, { ended: false })), label: 'идёт сейчас' }]; } },
   { key: 'fun', group: 'community', pages: [] },
-  { key: 'moderation', group: 'moderation', core: true, title: 'Наказания', desc: 'Предупреждения, муты, баны и журнал наказаний: /mod', pages: ['moderation'],
+  { key: 'moderation', group: 'moderation', pages: ['moderation'],
     stats: async (g) => {
       const { Warning, ModLog } = db();
       const [warns, actions] = await Promise.all([Warning.count(where(g)), ModLog.count(where(g))]);
@@ -94,7 +94,7 @@ const LAYOUT = [
     stats: async (g) => { const { Report } = db(); return [{ value: await Report.count(where(g, { status: 'open' })), label: 'новых жалоб' }]; } },
   { key: 'tickets', group: 'moderation', pages: [],
     stats: async (g) => { const { Ticket } = db(); return [{ value: await Ticket.count(where(g, { status: 'open' })), label: 'открытых обращений' }]; } },
-  { key: 'logs', group: 'moderation', core: true, title: 'Логи сервера', desc: 'События сервера в отдельном форуме', pages: ['logs'] },
+  { key: 'logs', group: 'moderation', pages: ['logs'] },
   { key: 'welcome', group: 'server', pages: ['welcome'] },
   { key: 'reactionRoles', group: 'server', pages: ['reaction-roles'],
     stats: async (g) => { const { ReactionRole } = db(); return [{ value: await ReactionRole.count(where(g)), label: 'ролей по реакциям' }]; } },
@@ -155,16 +155,32 @@ function moduleState(settings) {
 /** Modules that depend on this one (the ones offered to switch off with it). */
 const dependentsOf = (key) => MODULES.filter((m) => m.depends.includes(key)).map((m) => m.key);
 
-/** The home page's numbers of every module that has them; a failing count shows as nothing, never breaks the page. */
-async function moduleStats(guildId) {
+/**
+ * The home page's numbers of every module that has them; a failing count shows as nothing, never breaks the page.
+ * About twenty counts and sums over the server's tables: kept for 10 seconds, so admins opening the home page again and
+ * again (or several at once) on a big server don't repeat them.
+ */
+const STATS_TTL = 10_000;
+const statsCache = new Map(); // guildId -> { at, promise }
+async function countModuleStats(guildId) {
   const out = {};
   await Promise.all(MODULES.filter((m) => m.stats).map(async (m) => {
     try { out[m.key] = await m.stats(guildId); } catch (_) { out[m.key] = null; }
   }));
   return out;
 }
+function moduleStats(guildId) {
+  const hit = statsCache.get(guildId);
+  if (hit && Date.now() - hit.at < STATS_TTL) return hit.promise;
+  const promise = countModuleStats(guildId);
+  statsCache.set(guildId, { at: Date.now(), promise });
+  if (statsCache.size > 200) statsCache.delete(statsCache.keys().next().value);
+  return promise;
+}
+/** Forget the numbers of a server (after a change the admin made, so the home page shows it at once). */
+const forgetStats = (guildId) => statsCache.delete(guildId);
 
-module.exports = { GROUPS, MODULES, BY_KEY, ICONS, icon, PAGE_TITLES, PAGE_LABELS, moduleOfPage, modulesOfPage, moduleState, dependentsOf, moduleStats, isOn };
+module.exports = { GROUPS, MODULES, BY_KEY, ICONS, icon, PAGE_TITLES, PAGE_LABELS, moduleOfPage, modulesOfPage, moduleState, dependentsOf, moduleStats, forgetStats, isOn };
 
 // Templates read the modules as `M` (app.locals.M); a template rendered on its own (tests, error pages) finds them here.
 global.__darkModules = module.exports;
