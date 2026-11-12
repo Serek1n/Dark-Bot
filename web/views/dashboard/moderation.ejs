@@ -14,7 +14,7 @@
         <a href="#channels">Каналы</a><a href="#rules">Правила наказаний</a><a href="#journal">Журнал</a>
       </nav>
 
-      <form method="post" class="card" id="channels">
+      <form method="post" class="card g-c1" id="channels">
         <h2>Каналы<span class="sub">Куда бот пишет о наказаниях и куда приходят жалобы</span></h2>
         <div>
           <label>Канал журнала наказаний</label>
@@ -48,7 +48,8 @@
         <button class="btn" type="submit">Сохранить каналы</button>
       </form>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/moderation/rules" class="card" id="rules">
+      <form method="post" action="/dashboard/<%= guild.id %>/moderation/rules" class="plain">
+        <div class="card g-c2" id="rules">
         <h2>Правила наказаний<span class="sub">Как бот наказывает и что делает после нескольких предупреждений</span></h2>
         <div class="rules">
           <label class="rule">
@@ -69,7 +70,9 @@
           </div>
         </div>
 
-        <h3 style="margin-top:22px;">Что делать за предупреждения</h3>
+        </div>
+        <div class="card g-span" id="ladder">
+        <h2>Что делать за предупреждения</h2>
         <% if (thresholds.length) { %>
           <div class="callout">Сейчас: <b><%= thresholds.map(t => t.count + ' → ' + ({ mute: 'мут', kick: 'кик', ban: 'бан' })[t.action] + (t.action !== 'kick' && t.minutes ? ' на ' + formatDuration(t.minutes * 60000) : t.action === 'ban' ? ' навсегда' : '')).join(' · ') %></b></div>
         <% } else { %>
@@ -95,6 +98,7 @@
           </tbody>
         </table></div>
         <div class="hint">Наказание срабатывает, когда у участника становится <b>ровно</b> столько действующих предупреждений. Строки с пустым числом бот пропускает. Мут — от 1 минуты до 40320 (28 дней, предел Discord). Бан: 0 — навсегда, иначе он снимется сам. Для кика срок не нужен.</div>
+        </div>
         <button class="btn" type="submit">Сохранить правила</button>
       </form>
 
@@ -102,7 +106,7 @@
         const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' };
         const base = '/dashboard/' + guild.id + '/moderation';
       %>
-      <div class="card" id="journal">
+      <div class="card g-span" id="journal">
         <h2>Журнал<span class="sub">Последние 50 наказаний. Подробности дела: <code>/mod case</code> и номер, история участника: <code>/mod history</code></span></h2>
         <div class="chips">
           <a class="chip <%= !action ? 'active' : '' %>" href="<%= base %>#journal">Все</a>

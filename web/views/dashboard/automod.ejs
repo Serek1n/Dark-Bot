@@ -64,7 +64,7 @@
           <div class="am-now" id="am-links-now" aria-live="polite"></div>
         </div>
 
-        <div class="card" id="spam">
+        <div class="card g-c1 g-r2" id="spam">
           <h2>Спам и флуд<span class="sub">Включите нужные проверки</span></h2>
           <div class="rules">
             <label class="rule">
@@ -98,7 +98,7 @@
           </div>
         </div>
 
-        <div class="card" id="action">
+        <div class="card g-c2" id="action">
           <h2>Что делать с нарушителем<span class="sub">Сообщение удаляется всегда. Здесь — что ещё будет автору</span></h2>
           <div class="two-col">
             <div>
@@ -117,7 +117,7 @@
           <div class="callout">Предупреждения автомодерации считаются вместе с остальными. Что бот сделает после нескольких предупреждений (мут, кик, бан), задаётся на странице <a href="/dashboard/<%= guild.id %>/moderation#rules" style="color:var(--ember);">«Наказания и журнал»</a>. Один нарушитель получает не больше одного наказания за 8 секунд, даже если продолжает писать.</div>
         </div>
 
-        <div class="card" id="per-rule">
+        <div class="card g-c2" id="per-rule">
           <h2>Особое наказание для отдельных правил<span class="sub">Необязательно</span></h2>
           <p class="card-lead">Все правила наказываются так, как указано в блоке «Что делать с нарушителем». Здесь можно сделать исключение для одного правила: например, за мат — сразу мут на час, за КАПС — только удалить сообщение, а ссылки разрешить в #медиа.</p>
           <% const actText = { delete: 'только удалить сообщение', warn: 'удалить и предупредить', mute: 'удалить и замутить' };

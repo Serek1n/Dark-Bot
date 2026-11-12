@@ -32,7 +32,6 @@
       if (img.complete && img.naturalWidth === 0 && img.getAttribute('src')) broken(img);
     });
     navUi();
-    pageToc();
     quickJump();
     findOnPage();
     templateHelp();
@@ -70,51 +69,6 @@
     if (user) document.addEventListener('click', function (e) { if (user.open && !user.contains(e.target)) user.open = false; });
   }
 
-  // 3) "На этой странице": on wide screens the cards of the page are listed in a column on the left (built from their
-  //    headings, so every page has it); the card on screen is lit while scrolling. Narrow screens keep the buttons on top.
-  function pageToc() {
-    var content = document.querySelector('.app-layout > .content');
-    if (!content || !document.querySelector('.topbar') || content.querySelector('.msg-tabs, .home-split')) { document.body.classList.add('no-toc'); return; } // pages with their own tabs keep them
-    var heads = Array.prototype.filter.call(content.querySelectorAll('.card > h2, section.card h2, .card > .card-head h2'), function (h) {
-      return h.offsetParent !== null || h.closest('[data-pane]');
-    }).filter(function (h) { return !h.closest('[hidden]'); });
-    if (heads.length < 3) { document.body.classList.add('no-toc'); return; }
-    var title = (content.querySelector('.page-header h1, .hero h1, h1') || {}).textContent || '';
-    var toc = document.createElement('nav'); toc.className = 'page-toc'; toc.setAttribute('aria-label', 'На этой странице');
-    var cap = document.createElement('div'); cap.className = 'toc-cap'; cap.textContent = 'На этой странице'; toc.appendChild(cap);
-    var links = [];
-    heads.forEach(function (h, i) {
-      var card = h.closest('.card') || h;
-      if (!card.id) card.id = 'sec-' + (i + 1);
-      var a = document.createElement('a'); a.href = '#' + card.id;
-      var first = h.firstChild && h.firstChild.nodeType === 3 ? h.firstChild.textContent : h.textContent;
-      a.textContent = (first || '').trim() || h.textContent.trim();
-      a.addEventListener('click', function (e) { e.preventDefault(); card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); history.replaceState(null, '', '#' + card.id); });
-      toc.appendChild(a); links.push({ a: a, card: card });
-    });
-    void title;
-    document.body.appendChild(toc);
-    document.body.classList.add('has-toc');
-    // The lit item: the section whose top passed under the bar last; at the very bottom of the page — the last one
-    // (a short last section never reaches the top). A click lights its item right away.
-    var lockUntil = 0;
-    function light(l) { links.forEach(function (x) { x.a.classList.toggle('on', x === l); }); }
-    function update() {
-      if (Date.now() < lockUntil) return;
-      var line = 140, cur = links[0];
-      var atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
-      if (atEnd) cur = links[links.length - 1];
-      else links.forEach(function (l) { if (l.card.getBoundingClientRect().top - line <= 0) cur = l; });
-      light(cur);
-    }
-    links.forEach(function (l) {
-      l.a.addEventListener('click', function () { light(l); lockUntil = Date.now() + 700; });
-    });
-    var ticking = false;
-    window.addEventListener('scroll', function () { if (ticking) return; ticking = true; requestAnimationFrame(function () { ticking = false; update(); }); }, { passive: true });
-    window.addEventListener('resize', update);
-    update();
-  }
 
   // 4) Search: Ctrl+K (⌘K) or "/" opens it. It finds pages and the settings inside them (card headings, fields, switches);
   //    a setting opens its page scrolled to it.

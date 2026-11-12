@@ -1,5 +1,5 @@
 <%# Roles for levels: a part of the "Уровни" page (they used to be a page of their own) %>
-  <div class="card" id="level-roles">
+  <div class="card g-c2" id="level-roles">
     <h2>Роли за уровни</h2>
     <p class="hint" style="margin-top:0">Участник получает роль, когда достигает нужного уровня. Уровень один: он растёт и от сообщений, и от времени в голосовых.</p>
     <% if (!levelRoles.length) { %>
@@ -32,7 +32,7 @@
     <% } %>
   </div>
 
-  <form method="post" action="/dashboard/<%= guild.id %>/level-roles" class="card">
+  <form method="post" action="/dashboard/<%= guild.id %>/level-roles" class="card g-c2">
     <h2>Новая роль за уровень</h2>
     <div>
       <label>Уровень</label>

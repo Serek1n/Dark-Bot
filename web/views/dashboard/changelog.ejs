@@ -11,7 +11,7 @@
         <p class="page-intro">Что нового в боте и веб-панели. Бот может сам писать об обновлениях в канал вашего сервера.</p>
       </div>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/changelog/channel" class="card">
+      <form method="post" action="/dashboard/<%= guild.id %>/changelog/channel" class="card<%= settings.updatesChannelId && latest ? '' : ' g-span' %>">
         <h2>Новости об обновлениях<span class="sub">После каждого обновления бот пришлёт короткий список изменений</span></h2>
         <label>Канал</label>
         <select name="updatesChannelId">
@@ -30,7 +30,7 @@
         </form>
       <% } %>
 
-      <div class="card">
+      <div class="card g-span">
         <h2>Что нового</h2>
         <% if (!releases.length) { %>
           <p class="empty-state">Записей пока нет.</p>

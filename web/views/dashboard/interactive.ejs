@@ -11,8 +11,10 @@
         <p class="page-intro">Бот публикует сообщение с кнопками или выпадающим списком. Нажатие выдаёт, снимает или переключает роль тому, кто нажал, — без реакций и без команд.</p>
       </div>
 
-      <form method="post" class="card" id="imForm">
+      <form method="post" class="card g-span" id="imForm">
         <h2>Новое сообщение с ролями<span class="sub">До <%= max %> сообщений на сервер, до <%= maxItems %> пунктов в каждом</span></h2>
+        <div class="g-split">
+        <div>
         <label>Канал</label>
         <select name="channelId" required>
           <option value="" disabled selected>— выберите —</option>
@@ -37,6 +39,8 @@
         <div class="rules" style="margin-top:12px;">
           <label class="rule"><span class="rule-text"><b>Только одна роль из этого сообщения</b><span>Выбрал новую — предыдущая снимается (цвета ника, команды, регионы).</span></span><input type="checkbox" name="exclusive" /></label>
         </div>
+        </div>
+        <div>
         <h3 class="im-items-title">Пункты</h3>
         <div class="im-items">
           <% for (let i = 0; i < maxItems; i++) { %>
@@ -53,11 +57,13 @@
           <% } %>
         </div>
         <button type="button" class="btn btn-secondary" id="imMore">+ Ещё пункт</button>
+        </div>
+        </div>
         <div class="hint">Пустые пункты (без роли) пропускаются. Эмодзи — обычный или свой в виде <code>&lt;:имя:ID&gt;</code>. Роль бота должна быть выше выдаваемых ролей.</div>
         <button class="btn" type="submit">Опубликовать</button>
       </form>
 
-      <div class="card">
+      <div class="card g-span">
         <h2>Опубликованные</h2>
         <% if (!messages.length) { %>
           <p class="empty-state">Пока нет ни одного.</p>

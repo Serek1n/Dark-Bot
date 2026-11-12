@@ -10,7 +10,9 @@
         <h1>Приветствие, прощание и автороль</h1>
         <p class="page-intro">Сообщение и роль, которые получает новый участник сразу после входа на сервер, и прощание, когда кто-то уходит.</p>
       </div>
-      <form method="post" class="card">
+      <form method="post" class="plain">
+        <div class="card g-c1 g-r2">
+        <h2>Приветствие</h2>
         <div>
           <label>Канал приветствия</label>
           <select name="welcomeChannelId">
@@ -48,7 +50,9 @@
           </select>
           <div class="hint">Бот выдаёт её каждому, кто заходит на сервер.</div>
         </div>
-        <h2 style="margin-top:8px">Прощание</h2>
+        </div>
+        <div class="card g-c2">
+        <h2>Прощание</h2>
         <div>
           <label>Канал прощания</label>
           <select name="leaveChannelId">
@@ -65,7 +69,9 @@
           <%- include('../partials/replacers-help', { target: 'leaveMessage' }) %>
         </div>
         <%- include('../partials/embed-editor', { prefix: 'leaveEmbed', data: settings.leaveEmbed, hint: 'Текст выше пойдёт над эмбедом, его можно оставить пустым.' }) %>
-        <h2 style="margin-top:8px">Возвращение участника</h2>
+        </div>
+        <div class="card g-c2">
+        <h2>Возвращение участника</h2>
         <div class="hint">Если человек вышел с сервера и зашёл снова, он получит обратно роли и никнейм. Его уровень, опыт, монеты, кристаллы, покупки и предупреждения никогда не удаляются при выходе — они продолжаются сами.</div>
         <label class="checkbox-row">
           <input type="checkbox" name="restoreOnRejoin" <%= settings.restoreOnRejoin !== false ? 'checked' : '' %> />
@@ -80,6 +86,7 @@
           <span>Возвращать и роли с правами модератора или администратора (по умолчанию не возвращаются — их выдают заново вручную)</span>
         </label>
         <div class="hint">Не возвращаются роли выше роли бота, роли ботов и подписчиков-бустеров. Забаненный участник после разбана возвращается без ролей.</div>
+        </div>
         <button class="btn" type="submit">Сохранить</button>
       </form>
     </main>

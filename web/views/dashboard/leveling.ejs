@@ -70,14 +70,14 @@
           <div class="hint">Не считаются: боты, канал AFK и те, кто заглушил звук. «1» разрешает копить и в одиночестве, «2» (по умолчанию) защищает от накрутки.</div>
         </div>
 
-        <div class="card">
+        <div class="card g-c2">
           <h2>Награда за новый уровень</h2>
           <label><%= settings.crystalName %> за каждый новый уровень</label>
           <input type="number" name="crystalsPerLevel" value="<%= settings.crystalsPerLevel %>" min="0" max="10000" />
           <div class="hint">0 — ничего не выдавать. Роли за уровни настраиваются в разделе «Роли за уровни».</div>
         </div>
 
-        <div class="card">
+        <div class="card g-c1 g-r3">
           <h2>Поздравление с новым уровнем</h2>
           <label>Куда отправлять поздравление</label>
           <select name="levelUpDestination">
@@ -136,7 +136,7 @@
 
       <%- include('../partials/level-roles-cards') %>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/leveling/adjust" class="card" id="adjust" data-no-guard data-confirm="Изменить уровень участника? Роли за уровни будут выданы или сняты сразу." data-confirm-ok="Изменить" data-confirm-soft>
+      <form method="post" action="/dashboard/<%= guild.id %>/leveling/adjust" class="card g-c1 g-r2" id="adjust" data-no-guard data-confirm="Изменить уровень участника? Роли за уровни будут выданы или сняты сразу." data-confirm-ok="Изменить" data-confirm-soft>
         <h2>Изменить уровень участника</h2>
         <p>Добавьте или уберите уровни, либо задайте точный. Участник окажется в начале нужного уровня, роли за уровни обновятся сразу. Кристаллы за такое изменение не выдаются.</p>
         <% if (locals.adjusted) { %>

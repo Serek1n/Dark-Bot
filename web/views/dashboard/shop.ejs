@@ -12,7 +12,7 @@
       </div>
       <% const n = (v) => Number(v).toLocaleString('ru-RU'); const cn = (c) => c === 'crystals' ? settings.crystalName : settings.currencyName; %>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/shop/settings" class="card">
+      <form method="post" action="/dashboard/<%= guild.id %>/shop/settings" class="card g-c2">
         <h2>Магазин и журнал покупок</h2>
         <div>
           <label>Канал для журнала покупок</label>
@@ -27,7 +27,7 @@
         <button class="btn" type="submit">Сохранить</button>
       </form>
 
-      <div class="card">
+      <div class="card g-c2">
         <h2>Товары <span class="muted">(<%= items.length %> из <%= maxItems %>)</span></h2>
         <% if (!items.length) { %><p class="empty-state">Товаров пока нет. Добавьте первый ниже.</p><% } %>
         <% items.forEach(it => { %>
@@ -50,14 +50,14 @@
       </div>
 
       <% if (items.length < maxItems) { %>
-      <form method="post" action="/dashboard/<%= guild.id %>/shop/items" class="card" data-no-guard>
+      <form method="post" action="/dashboard/<%= guild.id %>/shop/items" class="card g-c1 g-r3" data-no-guard>
         <h2>Новый товар</h2>
         <%- include('../partials/shop-fields', { it: { name: '', description: '', price: 100, currency: 'coins', type: 'item', roleId: null, durationSeconds: null, oncePerUser: false, stock: null, minLevel: 0, deliveryMessage: '', enabled: true }, roles, settings }) %>
         <button class="btn" type="submit">Добавить</button>
       </form>
       <% } %>
 
-      <div class="card">
+      <div class="card g-c2">
         <h2>Роли на время <% if (terms.length) { %><span class="muted">· <%= terms.length %><%= terms.length >= 100 ? '+' : '' %></span><% } %></h2>
         <p class="hint" style="margin-top:0">Купленные в магазине на срок и выданные командой <code>/temprole</code>. Когда срок выйдет, бот снимет роль сам.</p>
         <% if (!terms.length) { %>
@@ -84,7 +84,7 @@
         <% } %>
       </div>
 
-      <div class="card">
+      <div class="card g-span">
         <h2>Покупки <% if (pending) { %><span class="muted">· ждут выдачи: <%= pending %></span><% } %></h2>
         <% if (!purchases.length) { %>
           <p class="empty-state">Покупок пока не было.</p>

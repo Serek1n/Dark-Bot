@@ -15,7 +15,7 @@
         <div class="callout" style="margin-bottom:18px;">Уровни сейчас <b>выключены</b>, поэтому бонусы не действуют. Включить: <a href="/dashboard/<%= guild.id %>/features" style="color:var(--ember);">страница «Функции»</a>.</div>
       <% } %>
 
-      <form method="post" class="card">
+      <form method="post" class="card g-o1">
         <h2>Бонус канала<span class="sub">Если для канала уже есть бонус, он заменится</span></h2>
         <div>
           <label>Канал или категория</label>
@@ -40,7 +40,7 @@
         <button class="btn" type="submit">Добавить</button>
       </form>
 
-      <div class="card">
+      <div class="card g-o3">
         <h2>Бонусы каналов</h2>
         <% if (!rows.length) { %>
           <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg>Бонусов пока нет: везде начисляется как обычно.</p>
@@ -68,7 +68,7 @@
         <% } %>
       </div>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/channel-boosts/roles" class="card">
+      <form method="post" action="/dashboard/<%= guild.id %>/channel-boosts/roles" class="card g-o2">
         <h2>Бонус роли<span class="sub">Например, бустерам ×1,5, а роли «Мут» ×0</span></h2>
         <div>
           <label>Роль</label>
@@ -85,7 +85,7 @@
         <button class="btn" type="submit">Добавить</button>
       </form>
 
-      <div class="card">
+      <div class="card g-o4">
         <h2>Бонусы ролей</h2>
         <% if (!roleRows.length) { %>
           <p class="empty-state">Бонусов ролей пока нет.</p>
@@ -110,7 +110,7 @@
         <% } %>
       </div>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/channel-boosts/modes" class="card">
+      <form method="post" action="/dashboard/<%= guild.id %>/channel-boosts/modes" class="card g-o5 g-span">
         <h2>Как множители складываются</h2>
         <% const roleModeText = { largest: 'Самый большой из ролей участника', smallest: 'Самый маленький из ролей', highest: 'У самой высокой роли с бонусом', add: 'Сумма: каждая роль добавляет свой бонус сверх ×1 (×1,5 и ×2 = ×2,5)', multiply: 'Произведение (×1,5 и ×2 = ×3)' }; %>
         <% const stackText = { multiply: 'Перемножаются (канал ×2 и роль ×1,5 = ×3)', add: 'Складываются (канал ×2 и роль ×1,5 = ×2,5)', largest: 'Действует больший из двух', channel: 'Бонус канала важнее: роль считается только там, где у канала бонуса нет', role: 'Бонус роли важнее: канал считается только у тех, у кого нет бонусной роли' }; %>
