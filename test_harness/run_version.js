@@ -46,7 +46,7 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
   await test('panel: the side menu and the overview show both versions and the bot state', async () => {
     const html = await (await fetch(`${base}/${G}`)).text();
     assert(html.includes(`Бот v${file.bot} · панель v${file.panel}`), 'menu');
-    assert(html.includes('О версии') && html.includes('не в сети'), 'overview card; no bot in this test');
+    assert(html.includes('Бот не в сети'), 'the home header shows the bot state; no bot in this test');
     require('../web/botBridge').setClient({ isReady: () => true, ws: { ping: 42 }, guilds: { cache: new Map([[G, {}]]) } });
     const on = await (await fetch(`${base}/${G}`)).text();
     assert(on.includes('в сети · 42 мс'), 'online');

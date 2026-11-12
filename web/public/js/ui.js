@@ -78,7 +78,7 @@
   // The page keeps its HTML order and its forms (cards inside a <form> stay in it), only the grid positions change.
   function cardColumns() {
     var content = document.querySelector('.app-layout > .content');
-    if (!content || content.querySelector('.home-dash') || !window.matchMedia) return;
+    if (!content || content.querySelector('.home-dash') || !window.matchMedia) return; // the home page has its own two equal cards
     var wide = window.matchMedia('(min-width: 1200px)');
     var GAP = 16, LEVEL = 72; // px between cards; columns closer than this at a section's end are levelled
     var items = [], laidOut = false, queued = false, busy = false;

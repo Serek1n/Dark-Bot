@@ -1,6 +1,23 @@
 [
  {
   "bot": "3.6.6",
+  "panel": "3.13.2",
+  "date": "2026-11-13",
+  "botChanges": [],
+  "panelChanges": [
+   "Главная: «Сейчас на сервере» — строка с цифрами, версии бота и панели — в шапке",
+   "Пустой или короткий журнал не оставляет пустоты: подсказка и кнопки стоят по центру"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Home: \"On the server now\" is a strip of numbers, the versions are in the header",
+    "An empty or short log leaves no void: its note and buttons stand in the middle"
+   ]
+  }
+ },
+ {
+  "bot": "3.6.6",
   "panel": "3.13.1",
   "date": "2026-11-13",
   "botChanges": [],

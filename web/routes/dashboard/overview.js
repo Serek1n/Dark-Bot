@@ -56,15 +56,8 @@ router.get('/:guildId', ensureGuildAccess, async (req, res) => {
   if (on('welcome') && settings.welcomeEnabled && !settings.welcomeChannelId && !settings.autoRoleId) attention.push({ level: 'info', icon: 'welcome', text: 'Приветствие включено, но канал не выбран', href: `${g}/welcome` });
   const offCount = mods ? mods.list.filter((m) => !m.on).length : 0;
   if (offCount) attention.push({ level: 'info', icon: 'modules', text: `Выключено модулей: ${offCount}`, href: `${g}/features` });
-  // The latest changes, one line each, for the "О версии" card.
-  const updates = require('../../../bot/modules/updates');
-  const releases = updates.releases().slice(0, 2).map((r) => updates.inLang(r, req.lang)).map((r) => ({
-    date: String(r.date || '').split('-').reverse().slice(0, 2).join('.'),
-    text: [...(r.panelChanges || []), ...(r.botChanges || [])][0] || ''
-  })).filter((r) => r.text);
   res.render('dashboard/overview', {
     attention,
-    releases,
     stats,
     selected,
     guild,

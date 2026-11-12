@@ -2776,5 +2776,11 @@
  "Сейчас на сервере": "On the server now",
  "Префикс своих текстовых команд": "Prefix for your text commands",
  "Последние изменения": "Latest changes",
- "Настройки уровней →": "Level settings →"
+ "Настройки уровней →": "Level settings →",
+ "Бот ⟦0⟧v⟦1⟧⟦2⟧ · панель ⟦3⟧v": "Bot ⟦0⟧v⟦1⟧⟦2⟧ · panel ⟦3⟧v",
+ "Настроить уровни": "Set up levels",
+ "Настройки уровней⟦0⟧ ⟦1⟧Роли за уровни": "Level settings⟦0⟧ ⟦1⟧Level roles",
+ "Правила наказаний⟦0⟧ ⟦1⟧Автомодерация": "Punishment rules⟦0⟧ ⟦1⟧Automod",
+ "Весь журнал⟦0⟧ ⟦1⟧Правила наказаний": "Whole log⟦0⟧ ⟦1⟧Punishment rules",
+ "· ⟦0⟧ мс": "· ⟦0⟧ ms"
 }

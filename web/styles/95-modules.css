@@ -212,36 +212,37 @@ a.hd-kpi:hover { border-color: var(--field-border); background: var(--panel-rais
 .hd-kpi b { font-size: var(--fs-28); font-weight: 700; color: var(--ember); line-height: 1.1; letter-spacing: -0.02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hd-kpi span { font-size: var(--fs-13); color: var(--fog); }
 
-.hd-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
-.hd-grid > .card { margin: 0; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; min-width: 0; }
+.hd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+.hd-grid > .card { margin: 0; display: flex; flex-direction: column; box-sizing: border-box; min-width: 0; }
+/* an empty list is not a strip of nothing: its note stands in the middle of the card, with where to go next */
+.hd-empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 12px 8px; min-height: 160px; }
+.hd-empty-state p { margin: 0; color: var(--fog); font-size: var(--fs-14); line-height: 1.55; max-width: 380px; }
+.hd-empty-ico { width: 44px; height: 44px; border-radius: var(--r-12); display: grid; place-items: center; background: var(--ember-tint); color: var(--ember); }
+.hd-empty-state .btn-row { margin-top: 2px; justify-content: center; }
+/* a list shorter than its neighbour: the links to go on with stand in the middle of what is left, not at the very bottom */
+.hd-fill { flex: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding-top: 14px; }
 .hd-grid > .card > .card-link { margin-top: auto; padding-top: 12px; }
-.hd-wide { grid-column: span 2; }
+.hd-grid > .g-span { grid-column: 1 / -1; }
 .hd-empty { margin: 0 0 4px; color: var(--fog); font-size: var(--fs-14); line-height: 1.55; }
 
-.hd-live { display: grid; gap: 4px; }
-.hd-live-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: var(--r-10); color: var(--fog); text-decoration: none; font-size: var(--fs-14); }
-.hd-live-row:hover { background: var(--panel-raised); color: var(--paper); }
-.hd-live-row .hp-attn-ico { width: 26px; height: 26px; }
-.hd-live-l { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hd-live { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; padding: 10px 12px; border-radius: var(--r-14); background: var(--panel); border: 1px solid var(--hairline); }
+.hd-live-cap { font-weight: 600; font-size: var(--fs-14); margin-right: 6px; }
+.hd-live-row { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border-radius: var(--r-pill); background: var(--soft); border: 1px solid var(--hairline-soft); color: var(--fog); text-decoration: none; font-size: var(--fs-13); }
+.hd-live-row:hover { border-color: var(--hairline); background: var(--panel-raised); color: var(--paper); }
+.hd-live-row .hp-attn-ico { width: 24px; height: 24px; border-radius: 50%; }
+.hd-live-l { white-space: nowrap; }
 .hd-live-row b { font-weight: 700; color: var(--fog-dim); }
 .hd-live-row.has { color: var(--paper); }
 .hd-live-row.has b { color: var(--ember); }
 .hd-live-row.has .hp-attn-ico { background: var(--ember-tint); color: var(--ember); }
 
 .hd-grid .hp-cmd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.hd-rel { display: grid; gap: 8px; }
-.hd-rel > div { display: flex; gap: 10px; font-size: var(--fs-13); line-height: 1.45; }
-.hd-rel span { color: var(--fog-dim); flex-shrink: 0; min-width: 38px; }
-.hd-rel p { margin: 0; color: var(--paper); }
-#system .hp-sec { margin: 14px 0 8px; }
 
 @media (max-width: 1280px) { .hd-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 1100px) {
-  .hd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hd-wide { grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .hd-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
-  .hd-grid { grid-template-columns: 1fr; }
   .hd-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .hd-kpi { padding: 12px 14px; }
   .hd-kpi b { font-size: var(--fs-24); }
@@ -303,3 +304,4 @@ button, input, select, textarea, optgroup { font-family: inherit; }
 .card > .btn-row.card-foot { margin-top: auto; padding-top: 14px; }
 .import-row input[type=file] { margin: 0; flex: 1 1 220px; min-width: 0; }
 .import-row input[type=file]::file-selector-button { margin-right: 10px; }
+
