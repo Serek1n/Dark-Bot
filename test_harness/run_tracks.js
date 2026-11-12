@@ -4,7 +4,7 @@ const fs = require('fs');
 fs.mkdirSync('./data', { recursive: true });
 ['', '-shm', '-wal'].forEach((x) => fs.rmSync(process.env.DATABASE_PATH + x, { force: true }));
 const path = require('path');
-const ejs = require('ejs');
+const ejs = require('ejs'); require('../web/modules');
 const { makeInteraction, makeUser } = require('./mock');
 
 async function main() {

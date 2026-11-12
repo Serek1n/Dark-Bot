@@ -130,7 +130,7 @@ const { makeInteraction, makeGuild, makeUser } = require('./mock');
     const { formatTerm, parseDuration } = require('../bot/utils/duration');
     assert(formatTerm(864000e3) === '10 д' && formatTerm(36 * 3600e3) === '36 ч' && formatTerm(90 * 60e3) === '90 мин', 'shown back');
     [864000e3, 36 * 3600e3, 90 * 60e3].forEach((ms) => assert(parseDuration(formatTerm(ms)) === ms, 'round trip ' + ms));
-    const ejs = require('ejs'); const path = require('path');
+    const ejs = require('ejs'); require('../web/modules'); const path = require('path');
     const html = await ejs.renderFile(path.join(__dirname, '..', 'web/views/partials/shop-fields.ejs'), { it: { name: 'VPN', price: 5000, currency: 'coins', type: 'role', roleId: 'R1', durationSeconds: 864000, stock: null, minLevel: 0, deliveryMessage: '', enabled: true }, roles: [], settings: { currencyName: 'монеты', crystalName: 'кристаллы' }, termText: formatTerm });
     assert(html.includes('name="duration" value="10 д"') && html.includes('Срок действия роли'), 'form field');
     const line = JSON.stringify((await shop.buildShopPanel({ id: G }, 'x')));

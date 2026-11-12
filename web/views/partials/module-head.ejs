@@ -1,0 +1,41 @@
+<%# The module's own header, inside a page's .page-header (the page keeps its h1 and intro): where it is ("Модули ›
+   group"), its icon, on/off with a switch, the tabs of a module that has several pages, and — when it is off — what that
+   means and a button to switch it on. Pages that are not a module's (home, modules, updates) get nothing. %>
+<% const M = locals.M || global.__darkModules;
+   const own = M.modulesOfPage(active);
+   if (own.length) {
+     const mods = locals.mods || M.moduleState(locals.settings);
+     const st = (k) => mods.list.find((x) => x.key === k) || {};
+     const main = own[0];
+     const mainState = st(main.key);
+     const switchable = own.filter((m) => st(m.key).switchable);
+     const groupTitle = (M.GROUPS.find((g) => g[0] === main.group) || [])[1];
+     const tabs = main.pages.filter((p) => M.PAGE_LABELS[p] || p === main.page);
+     const off = switchable.filter((m) => !st(m.key).on); %>
+  <div class="mh-crumbs"><a href="/dashboard/<%= guild.id %>/features">Модули</a> › <span><%= groupTitle %></span></div>
+  <span class="mh-icon<%= mainState.on ? ' is-on' : '' %>"><%- M.icon(main.key, 24) %></span>
+  <div class="mh-side">
+    <% if (switchable.length === 1) { const m = switchable[0], s = st(m.key); %>
+      <span class="mh-pill<%= s.on ? '' : ' off' %>" data-mod-pill="<%= m.key %>"><%= s.on ? 'Включён' : 'Выключен' %></span>
+      <label class="mod-sw" title="<%= s.on ? 'Выключить модуль' : 'Включить модуль' %>"><input type="checkbox" data-mod-switch="<%= m.key %>" data-mod-title="<%= m.title %>" data-mod-reload<%= s.on ? ' checked' : '' %> aria-label="<%= m.title %>"></label>
+    <% } else if (switchable.length > 1) { %>
+      <% switchable.forEach((m) => { const s = st(m.key); %>
+        <label class="mh-sw-named"><span><%= m.title %></span><span class="mod-sw sm"><input type="checkbox" data-mod-switch="<%= m.key %>" data-mod-title="<%= m.title %>" data-mod-reload<%= s.on ? ' checked' : '' %> aria-label="<%= m.title %>"></span></label>
+      <% }) %>
+    <% } else { %>
+      <span class="mh-pill">Всегда включён</span>
+    <% } %>
+  </div>
+  <% if (tabs.length > 1) { %>
+    <nav class="mh-tabs" aria-label="Страницы модуля">
+      <% tabs.forEach((p) => { %><a href="/dashboard/<%= guild.id %>/<%= p %>" class="<%= p === active ? 'on' : '' %>"<%- p === active ? ' aria-current="page"' : '' %>><%= M.PAGE_LABELS[p] || 'Настройки' %></a><% }) %>
+    </nav>
+  <% } %>
+  <% if (off.length === own.length && off.length) { const m = off[0]; const cmds = (st(m.key).commands || []).filter((c) => !/[A-Z]/.test(c)); %>
+    <div class="mh-off" role="status">
+      <span class="mh-off-ico"><%- M.icon(m.key, 20) %></span>
+      <div><b>Модуль выключен</b><span>Бот его не выполняет, команды модуля не работают.</span> <span>Настройки и данные сохранены — их можно поменять заранее.</span></div>
+      <button type="button" class="btn" data-mod-enable="<%= m.key %>">Включить модуль</button>
+    </div>
+  <% } %>
+<% } %>

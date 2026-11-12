@@ -1,5 +1,6 @@
 const express = require('express');
 const { ensureAuth } = require('../../middleware/ensureAuth');
+require('../../modules'); // the templates read the modules (global.__darkModules) even when the app did not load them
 
 // The panel, one file per page. Every file defines its own full paths (/:guildId/...), so the order here only matters for the first one.
 const router = express.Router();

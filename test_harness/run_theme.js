@@ -1,6 +1,6 @@
 // Theme and side menu: markup, the 17 pages are all in the menu with a description, light theme tokens, theme script.
 const fs = require('fs'); const path = require('path'); const vm = require('vm');
-const ejs = require('ejs');
+const ejs = require('ejs'); require('../web/modules');
 const web = path.join(__dirname, '..', 'web');
 
 (async () => {
@@ -9,14 +9,19 @@ const web = path.join(__dirname, '..', 'web');
   const assert = (c, m) => { if (!c) throw new Error(m); };
   const render = (active) => ejs.renderFile(path.join(web, 'views/partials/sidebar.ejs'), { guild: { id: '123456789012345678', name: 'Т', icon: null }, active, user: { id: '1', username: 'a', avatar: null } });
 
-  await test('menu: 19 links, each with a name and a description, the current page is marked', async () => {
+  await test('menu: every module and every page of a module is listed with a title, the current page is marked; switches for modules', async () => {
     const html = await render('webhooks');
+    const M = require('../web/modules');
     const links = html.match(/<a href="\/dashboard\/123456789012345678[^"]*" class="[^"]*" title="[^"]+"/g) || [];
-    assert(links.length === 19, 'links ' + links.length);
-    assert((html.match(/<small>[^<]+<\/small>/g) || []).length === 19, 'descriptions');
+    const subPages = M.MODULES.flatMap((m) => m.pages.slice(1)).filter((p, i, a) => a.indexOf(p) === i && M.PAGE_LABELS[p] && !M.MODULES.some((o) => o.page === p));
+    assert(links.length === 3 + M.MODULES.length + subPages.length, 'links ' + links.length);
     assert(/href="\/dashboard\/123456789012345678\/webhooks" class="active"/.test(html) && (html.match(/class="active"/g) || []).length === 1, 'one active');
-    assert(html.includes('data-menu-open') && html.includes('data-theme-toggle') && html.includes('data-quick-jump'), 'menu, theme and search buttons');
-    assert(/<a href="\/dashboard\/123456789012345678\/webhooks" class="tb-tab is-on"/.test(html) && /class="tb-group is-on"[^>]*>Сервер</.test(html), 'the current group and its pages are shown on top');
+    assert(html.includes('data-menu-open') && html.includes('data-theme-toggle') && html.includes('data-quick-jump') && html.includes('data-mods-open'), 'menu, modules, theme and search buttons');
+    for (const m of M.MODULES) {
+      if (m.field) assert(html.includes(`data-mod-switch="${m.key}"`), 'no switch: ' + m.key);
+      else assert(!html.includes(`data-mod-switch="${m.key}"`), 'a module that is always on got a switch: ' + m.key);
+    }
+    assert(/class="tb-group tb-mods is-on"/.test(html), 'on a module page "Модули" is lit');
   });
   await test('every page of the panel still has its entry in the menu', async () => {
     const html = await render('x'); const routes = fs.readdirSync(path.join(web, 'routes/dashboard')).map((f) => fs.readFileSync(path.join(web, 'routes/dashboard', f), 'utf8')).join('\n');

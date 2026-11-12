@@ -62,7 +62,6 @@ router.post('/:guildId/leveling/adjust', ensureGuildAccess, async (req, res) => 
 
 router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
-  settings.levelingEnabled = req.body.levelingEnabled === 'on';
   // Chat direction
   settings.chatEnabled = req.body.chatEnabled === 'on';
   const min = clampInt(req.body.xpPerMessageMin, 1, 1000, settings.xpPerMessageMin);

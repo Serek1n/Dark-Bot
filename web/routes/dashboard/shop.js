@@ -62,7 +62,6 @@ router.get('/:guildId/shop', ensureGuildAccess, async (req, res) => {
 
 router.post('/:guildId/shop/settings', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
-  settings.shopEnabled = req.body.shopEnabled === 'on';
   const missing = await pickChannels(req.body, settings, req.params.guildId, { shopLogChannelId: 'post' });
   await settings.save();
   res.redirect(missing.length ? noPerm(req.params.guildId, 'shop', missing) : saved(req.params.guildId, 'shop'));

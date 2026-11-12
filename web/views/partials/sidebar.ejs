@@ -1,28 +1,32 @@
-<%# Panel navigation: groups in the top bar, the pages of the current group as tabs under it; on narrow screens the "≡" button
-   opens the full list. One list below feeds all three. %>
-<% const navGroups = [
-    ["Главное", [["overview", "", "Обзор", "Сводка по серверу", "Обзор — Сводка по серверу", "<rect x=\"3\" y=\"3\" width=\"6\" height=\"6\" rx=\"1.2\"/><rect x=\"11\" y=\"3\" width=\"6\" height=\"6\" rx=\"1.2\"/><rect x=\"3\" y=\"11\" width=\"6\" height=\"6\" rx=\"1.2\"/><rect x=\"11\" y=\"11\" width=\"6\" height=\"6\" rx=\"1.2\"/>"], ["features", "/features", "Функции", "Включение и отключение функций", "Функции — Включение и отключение функций", "<path d=\"M3 6H11M15 6H17M3 14H5M9 14H17\"/><circle cx=\"13\" cy=\"6\" r=\"2\"/><circle cx=\"7\" cy=\"14\" r=\"2\"/>"], ["changelog", "/changelog", "Обновления", "Что нового в боте и панели", "Обновления — Что нового в боте и панели", "<path d=\"M4 9.5H16V16.5H4Z\"/><path d=\"M3 6.5H17V9.5H3Z\"/><path d=\"M10 6.5V16.5M10 6.5C8.5 6.5 6.5 6 6.5 4.5C6.5 3.2 8.5 3 10 6.5ZM10 6.5C11.5 6.5 13.5 6 13.5 4.5C13.5 3.2 11.5 3 10 6.5Z\"/>"]]],
-    ["Сообщество", [["leveling", "/leveling", "Уровни", "Опыт и очки за активность", "Уровни — Опыт и очки за активность", "<path d=\"M3 17V11M9.5 17V7M16 17V3\"/>"], ["economy", "/economy", "Экономика", "Монеты и кристаллы", "Экономика — Монеты и кристаллы", "<circle cx=\"10\" cy=\"10\" r=\"7\"/><path d=\"M12.4 7.6C12 6.9 11.1 6.5 10 6.5C8.6 6.5 7.6 7.2 7.6 8.2C7.6 10.3 12.4 9.2 12.4 11.8C12.4 12.8 11.4 13.5 10 13.5C8.8 13.5 7.9 13.1 7.5 12.3M10 5V6.5M10 13.5V15\"/>"], ["channel-boosts", "/channel-boosts", "Множители", "Бонусы каналов и ролей", "Множители — бонусы каналов и ролей", "<path d=\"M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z\"/>"], ["shop", "/shop", "Магазин", "Товары и покупки", "Магазин — Товары и покупки", "<path d=\"M4 7H16L15.2 16H4.8L4 7Z\"/><path d=\"M7.5 7V6C7.5 4.6 8.6 3.5 10 3.5C11.4 3.5 12.5 4.6 12.5 6V7\"/>"], ["leaderboard", "/leaderboard", "Лидерборд", "Рейтинг участников", "Лидерборд — Рейтинг участников", "<path d=\"M6 4H14V9C14 11.2 12.2 13 10 13C7.8 13 6 11.2 6 9V4Z\"/><path d=\"M6 5H3.5C3.5 7 4.5 8 6 8\"/><path d=\"M14 5H16.5C16.5 7 15.5 8 14 8\"/><path d=\"M10 13V16M7 17H13\"/>"], ["giveaways", "/giveaways", "Розыгрыши", "Идущие и завершённые розыгрыши", "Розыгрыши — Идущие и завершённые розыгрыши", "<path d=\"M3.5 8H16.5V11H3.5Z\"/><path d=\"M4.5 11V16.5H15.5V11M10 8V16.5\"/><path d=\"M10 8C8.4 8 6.5 7.4 6.5 5.6C6.5 4.2 8.5 3.900 10 8ZM10 8C11.6 8 13.5 7.4 13.5 5.6C13.5 4.2 11.5 3.900 10 8Z\"/>"]]],
-    ["Модерация", [["moderation", "/moderation", "Наказания и журнал", "Предупреждения, муты, баны", "Наказания и журнал — Предупреждения, муты, баны", "<path d=\"M10 2.5L16.5 5V9.5C16.5 13.5 13.7 16.8 10 17.5C6.3 16.8 3.5 13.5 3.5 9.5V5L10 2.5Z\"/>"], ["automod", "/automod", "Автомодерация", "Спам, ссылки, капс", "Автомодерация — Спам, ссылки, капс", "<path d=\"M3 6L10 3L17 6V9C17 13 14 16.5 10 17.5C6 16.5 3 13 3 9V6Z\"/><path d=\"M7.5 9.5L9 11L12.5 7.5\"/>"], ["logs", "/logs", "Логи сервера", "События сервера", "Логи сервера — События сервера", "<path d=\"M5 3H12L15.5 6.5V17H5V3Z\"/><path d=\"M12 3V6.5H15.5M7.5 10H13M7.5 13H11\"/>"]]],
-    ["Сервер", [["welcome", "/welcome", "Приветствие", "Приветствие и прощание", "Приветствие — Приветствие и прощание", "<path d=\"M5 17V4.5C5 3.7 5.7 3 6.5 3H12L15 6V17\"/><path d=\"M5 17H15M12 17V3M12 10.2H12.3\"/>"], ["reaction-roles", "/reaction-roles", "Роли по реакциям", "Роли по нажатию на реакцию", "Роли по реакциям — Роли по нажатию на реакцию", "<circle cx=\"10\" cy=\"10\" r=\"7.2\"/><path d=\"M7.3 12C7.9 13 8.9 13.6 10 13.6C11.1 13.6 12.1 13 12.7 12\"/><path d=\"M7.5 8H7.51M12.5 8H12.51\" stroke-width=\"2.2\"/>"], ["interactive", "/interactive", "Интерактивные", "Кнопки и списки с ролями", "Интерактивные — Кнопки и списки с ролями", "<rect x=\"2.5\" y=\"4\" width=\"15\" height=\"12\" rx=\"2\"/><rect x=\"5\" y=\"10\" width=\"4.5\" height=\"3\" rx=\"1\"/><rect x=\"10.5\" y=\"10\" width=\"4.5\" height=\"3\" rx=\"1\"/><path d=\"M5 7H12\"/>"], ["temp-voice", "/temp-voice", "Врем. голосовые", "Личные голосовые комнаты", "Врем. голосовые — Личные голосовые комнаты", "<rect x=\"7.5\" y=\"2.5\" width=\"5\" height=\"8.5\" rx=\"2.5\"/><path d=\"M4.5 9.5C4.5 12.5 7 14.5 10 14.5C13 14.5 15.5 12.5 15.5 9.5M10 14.5V17.5M7 17.5H13\"/>"], ["custom-commands", "/custom-commands", "Кастом-команды", "Свои команды с префиксом", "Кастом-команды — Свои команды с префиксом", "<rect x=\"2.5\" y=\"4\" width=\"15\" height=\"12\" rx=\"1.5\"/><path d=\"M5.5 8L8 10L5.5 12M10.5 12.5H14.5\"/>"], ["alerts", "/alerts", "Оповещения", "Оповещения YouTube и Twitch", "Оповещения — Оповещения YouTube и Twitch", "<path d=\"M5 8C5 5.2 7.2 3 10 3C12.8 3 15 5.2 15 8C15 11.5 16.5 12.5 16.5 13.5H3.5C3.5 12.5 5 11.5 5 8Z\"/><path d=\"M8.3 16C8.6 16.6 9.2 17 10 17C10.8 17 11.4 16.6 11.7 16\"/>"], ["webhooks", "/webhooks", "Вебхуки", "Вебхуки, конструктор, расписание", "Вебхуки — Вебхуки, конструктор, расписание", "<circle cx=\"6\" cy=\"14\" r=\"2.3\"/><circle cx=\"14\" cy=\"14\" r=\"2.3\"/><circle cx=\"10\" cy=\"5.5\" r=\"2.3\"/><path d=\"M10 7.8L7.2 12M8.3 14H11.7M10 7.8L12.8 12\"/>"]]]
-  ];
-   const curGroup = navGroups.find((g) => g[1].some((it) => it[0] === active)) || navGroups[0];
-   const gi = (s) => `<svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${s}</svg>`;
-   const initial = String(guild.name || '?').trim().charAt(0).toUpperCase(); %>
+<%# Panel navigation, built from the modules (web/modules.js): "Главная", "Модули ▾" — every module by group, with a switch
+   for each — and "Обновления". On narrow screens the "≡" button opens the same list. The search (Ctrl+K) reads the links
+   with a title in .nd-nav, so every page of every module is listed there. %>
+<% const M = locals.M || global.__darkModules;
+   const mods = locals.mods || M.moduleState(locals.settings);
+   const gid = guild.id;
+   const curMods = M.modulesOfPage(active);
+   const inModule = curMods.length > 0;
+   const initial = String(guild.name || '?').trim().charAt(0).toUpperCase();
+   const offTitle = 'Выключить модуль', onTitle = 'Включить модуль', coreTitle = 'Этот модуль нельзя выключить', always = 'всегда';
+   const modSwitch = (m, cls) => m.switchable
+     ? '<label class="mod-sw' + (cls ? ' ' + cls : '') + '" title="' + (m.on ? offTitle : onTitle) + '"><input type="checkbox" data-mod-switch="' + m.key + '" data-mod-title="' + m.title + '"' + (m.on ? ' checked' : '') + ' aria-label="' + m.title + '"></label>'
+     : '<span class="mod-core" title="' + coreTitle + '">' + always + '</span>'; %>
 <a class="skip-link" href="#main">Перейти к содержимому</a>
-<header class="topbar" id="topbar">
+<header class="topbar" id="topbar" data-guild="<%= gid %>" data-page-mods="<%= curMods.map((m) => m.key).join(' ') %>">
   <div class="tb-row">
     <button type="button" class="tb-icon tb-burger" data-menu-open aria-label="Все разделы" aria-controls="navDrawer" aria-expanded="false">
       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M3.5 6h13M3.5 10h13M3.5 14h13"/></svg>
     </button>
     <a href="/dashboard" class="tb-guild" title="Все серверы">
-      <% if (guild.icon) { %><img src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png" alt="" class="guild-icon" data-initial="<%= initial %>" />
+      <% if (guild.icon) { %><img src="https://cdn.discordapp.com/icons/<%= gid %>/<%= guild.icon %>.png" alt="" class="guild-icon" data-initial="<%= initial %>" />
       <% } else { %><span class="guild-icon guild-initial" aria-hidden="true"><%= initial %></span><% } %>
       <span class="tb-guild-name"><%= guild.name %></span>
       <svg class="tb-caret" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg>
     </a>
-    <nav class="tb-groups" aria-label="Группы разделов">
-      <% navGroups.forEach((g) => { %><a href="/dashboard/<%= guild.id %><%= g[1][0][1] %>" class="tb-group<%= g === curGroup ? ' is-on' : '' %>"<%- g === curGroup ? ' aria-current="true"' : '' %>><%= g[0] %></a><% }) %>
+    <nav class="tb-groups" aria-label="Разделы панели">
+      <a href="/dashboard/<%= gid %>" class="tb-group<%= active === 'overview' ? ' is-on' : '' %>"<%- active === 'overview' ? ' aria-current="page"' : '' %>>Главная</a>
+      <button type="button" class="tb-group tb-mods<%= inModule || active === 'features' ? ' is-on' : '' %>" data-mods-open aria-expanded="false" aria-controls="modsMenu">Модули <span class="tb-count" data-mods-count><%= mods.on %></span><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg></button>
+      <a href="/dashboard/<%= gid %>/changelog" class="tb-group<%= active === 'changelog' ? ' is-on' : '' %>"<%- active === 'changelog' ? ' aria-current="page"' : '' %>>Обновления</a>
     </nav>
     <div class="tb-actions">
       <button type="button" class="tb-search" data-quick-jump aria-label="Найти раздел или настройку" title="Найти раздел или настройку (Ctrl+K)">
@@ -40,16 +44,35 @@
           <div class="tb-user-menu">
             <div class="tb-user-name"><%= user.global_name || user.username %></div>
             <a href="/dashboard">Все серверы</a>
-            <% if (locals.sys) { %><a href="/dashboard/<%= guild.id %>/changelog">Бот v<%= sys.bot %> · панель v<%= sys.panel %></a><% } %>
+            <% if (locals.sys) { %><a href="/dashboard/<%= gid %>/changelog">Бот v<%= sys.bot %> · панель v<%= sys.panel %></a><% } %>
             <form method="post" action="/auth/logout"><button type="submit">Выйти</button></form>
           </div>
         </details>
       <% } %>
     </div>
   </div>
-  <nav class="tb-tabs" aria-label="Разделы: <%= curGroup[0] %>">
-    <% curGroup[1].forEach((it) => { %><a href="/dashboard/<%= guild.id %><%= it[1] %>" class="tb-tab<%= it[0] === active ? ' is-on' : '' %>"<%- it[0] === active ? ' aria-current="page"' : '' %>><%- gi(it[5]) %><span><%= it[2] %></span></a><% }) %>
-  </nav>
+
+  <div class="mods-menu" id="modsMenu" hidden>
+    <div class="mm-head">
+      <label class="mm-search"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="M13 13L17 17"/></svg><input type="search" placeholder="Найти модуль" aria-label="Найти модуль" data-mods-filter autocomplete="off"></label>
+      <span class="mm-count">Включено <b data-mods-count><%= mods.on %></b> из <%= mods.total %></span>
+      <a class="mm-all" href="/dashboard/<%= gid %>/features">Все модули ›</a>
+    </div>
+    <div class="mm-cols">
+      <% mods.groups.forEach((g) => { %>
+        <div class="mm-col">
+          <div class="mm-cat"><%= g.title %> <small><%= g.modules.filter((m) => m.on).length %>/<%= g.modules.length %></small></div>
+          <% g.modules.forEach((m) => { %>
+            <div class="mm-row<%= m.on ? ' is-on' : ' is-off' %><%= curMods.some((c) => c.key === m.key) ? ' is-cur' : '' %>" data-mod-row="<%= m.key %>" data-mod-name="<%= m.title.toLowerCase() %>">
+              <a href="<%= m.page ? `/dashboard/${gid}/${m.page}` : `/dashboard/${gid}?m=${m.key}` %>"><%- M.icon(m.key, 16) %><span><%= m.title %></span></a>
+              <%- modSwitch(m, 'sm') %>
+            </div>
+          <% }) %>
+        </div>
+      <% }) %>
+    </div>
+    <div class="mm-foot">Переключатель включает и выключает модуль сразу. Настройки и данные выключенного модуля сохраняются.</div>
+  </div>
 </header>
 
 <div class="nav-drawer" id="navDrawer" hidden>
@@ -57,7 +80,7 @@
   <aside class="nd-panel" role="dialog" aria-modal="true" aria-label="Все разделы">
     <div class="nd-head">
       <a href="/dashboard" class="tb-guild" title="Все серверы">
-        <% if (guild.icon) { %><img src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png" alt="" class="guild-icon" data-initial="<%= initial %>" />
+        <% if (guild.icon) { %><img src="https://cdn.discordapp.com/icons/<%= gid %>/<%= guild.icon %>.png" alt="" class="guild-icon" data-initial="<%= initial %>" />
         <% } else { %><span class="guild-icon guild-initial" aria-hidden="true"><%= initial %></span><% } %>
         <span class="tb-guild-name"><%= guild.name %></span>
       </a>
@@ -70,11 +93,22 @@
       Найти раздел или настройку
     </button>
     <nav class="nd-nav" aria-label="Меню панели">
-      <% navGroups.forEach((g) => { %>
+      <div class="nd-group">
+        <a href="/dashboard/<%= gid %>" class="<%= active === 'overview' ? 'active' : '' %>" title="Главная — сводка по серверу"><%- M.icon('home', 17) %><span class="nl"><b>Главная</b><small>Сводка по серверу</small></span></a>
+        <a href="/dashboard/<%= gid %>/features" class="<%= active === 'features' ? 'active' : '' %>" title="Модули — что включено на сервере"><%- M.icon('modules', 17) %><span class="nl"><b>Модули</b><small>Что включено на сервере</small></span></a>
+        <a href="/dashboard/<%= gid %>/changelog" class="<%= active === 'changelog' ? 'active' : '' %>" title="Обновления — что нового в боте и панели"><%- M.icon('changelog', 17) %><span class="nl"><b>Обновления</b><small>Что нового в боте и панели</small></span></a>
+      </div>
+      <% mods.groups.forEach((g) => { %>
         <div class="nd-group">
-          <div class="nd-group-label"><%= g[0] %></div>
-          <% g[1].forEach((it) => { %>
-            <a href="/dashboard/<%= guild.id %><%= it[1] %>" class="<%= active === it[0] ? 'active' : '' %>" title="<%= it[4] %>"><%- gi(it[5]) %><span class="nl"><b><%= it[2] %></b><small><%= it[3] %></small></span></a>
+          <div class="nd-group-label"><%= g.title %></div>
+          <% g.modules.forEach((m) => { %>
+            <div class="nd-mod<%= m.on ? ' is-on' : ' is-off' %>" data-mod-row="<%= m.key %>">
+              <a href="<%= m.page ? `/dashboard/${gid}/${m.page}` : `/dashboard/${gid}?m=${m.key}` %>" class="<%= curMods.some((c) => c.key === m.key) && m.page === active ? 'active' : '' %>" title="<%= m.title %> — <%= m.desc %>"><%- M.icon(m.key, 17) %><span class="nl"><b><%= m.title %></b></span></a>
+              <%- modSwitch(m, 'sm') %>
+            </div>
+            <% m.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && !mods.list.some((o) => o.page === p)).forEach((p) => { %>
+              <a href="/dashboard/<%= gid %>/<%= p %>" class="nd-sub<%= active === p ? ' active' : '' %>" title="<%= M.PAGE_LABELS[p] %> — <%= m.title %>"><span class="nl"><b><%= M.PAGE_LABELS[p] %></b></span></a>
+            <% }) %>
           <% }) %>
         </div>
       <% }) %>
@@ -82,10 +116,13 @@
     <div class="nd-foot">
       <a href="/dashboard" class="nd-foot-link">← Все серверы</a>
       <%- include('lang-switch', { cls: 'nd-foot-link nd-lang', labelCls: '' }) %>
-      <% if (locals.sys) { %><a class="nd-foot-link" href="/dashboard/<%= guild.id %>/changelog">Бот v<%= sys.bot %> · панель v<%= sys.panel %></a><% } %>
+      <% if (locals.sys) { %><a class="nd-foot-link" href="/dashboard/<%= gid %>/changelog">Бот v<%= sys.bot %> · панель v<%= sys.panel %></a><% } %>
     </div>
   </aside>
 </div>
+
+<%# the modules for /js/modules.js: names, commands and what depends on what (for the "switch off?" window) %>
+<script type="application/json" id="mods-data"><%- JSON.stringify(mods.list.map((m) => ({ key: m.key, title: m.title, on: m.on, switchable: m.switchable, depends: m.depends, commands: m.commands }))).replace(/</g, '\\u003c') %></script>
 
 <%# texts of the errors a page may report, read by /js/panel.js (no inline scripts: the page's policy forbids them) %>
 <script type="application/json" id="page-errors"><%- JSON.stringify(locals.errorTexts || {}).replace(/</g, '\\u003c') %></script>
@@ -99,3 +136,4 @@
   </span>
 </div>
 <script src="/js/panel.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
+<script src="/js/modules.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>

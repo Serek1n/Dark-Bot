@@ -6,6 +6,7 @@
     <%- include('../partials/sidebar') %>
     <main class="content" id="main" tabindex="-1">
       <div class="page-header">
+        <%- include('../partials/module-head') %>
         <h1>Магазин</h1>
         <p class="page-intro">Участники тратят монеты и кристаллы командой <code>/shop</code>. Товар — это роль (выдаётся сразу) или «предмет» (текст с выдачей или ручная выдача).</p>
       </div>
@@ -13,7 +14,6 @@
 
       <form method="post" action="/dashboard/<%= guild.id %>/shop/settings" class="card">
         <h2>Магазин и журнал покупок</h2>
-        <label class="checkbox-row"><input type="checkbox" name="shopEnabled" <%= settings.shopEnabled ? 'checked' : '' %> /> Магазин включён</label>
         <div>
           <label>Канал для журнала покупок</label>
           <select name="shopLogChannelId">

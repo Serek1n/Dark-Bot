@@ -47,7 +47,7 @@ html, body { background: var(--ink); }
   body.has-toc .app-layout > .content,
   /* the room is kept from the first paint on pages that will get the column (3+ cards, no own tabs): the content does
      not jump aside when the script adds it; ui.js marks "no-toc" in the rare case it builds none */
-  body:not(.no-toc):not(:has(.msg-tabs)):has(.app-layout > .content > :nth-child(3 of .card)) .app-layout > .content { margin-left: calc(max(20px, calc(50vw - 660px)) + 256px); margin-right: auto; }
+  body:not(.no-toc):not(:has(.msg-tabs)):not(:has(.home-split)):has(.app-layout > .content > :nth-child(3 of .card)) .app-layout > .content { margin-left: calc(max(20px, calc(50vw - 660px)) + 256px); margin-right: auto; }
   body.has-toc .page-toc { display: flex; flex-direction: column; gap: 2px; position: fixed; top: 132px; left: max(20px, calc(50vw - 660px)); width: 220px; max-height: calc(100vh - 160px); overflow-y: auto; padding: 4px 4px 12px; z-index: 5; animation: rise .35s ease both; }
   body.has-toc .content .jump { display: none; }
 }

@@ -74,7 +74,7 @@
   //    headings, so every page has it); the card on screen is lit while scrolling. Narrow screens keep the buttons on top.
   function pageToc() {
     var content = document.querySelector('.app-layout > .content');
-    if (!content || !document.querySelector('.topbar') || content.querySelector('.msg-tabs')) { document.body.classList.add('no-toc'); return; } // pages with their own tabs keep them
+    if (!content || !document.querySelector('.topbar') || content.querySelector('.msg-tabs, .home-split')) { document.body.classList.add('no-toc'); return; } // pages with their own tabs keep them
     var heads = Array.prototype.filter.call(content.querySelectorAll('.card > h2, section.card h2, .card > .card-head h2'), function (h) {
       return h.offsetParent !== null || h.closest('[data-pane]');
     }).filter(function (h) { return !h.closest('[hidden]'); });
@@ -565,6 +565,7 @@
       var box = document.createElement('div'); box.className = 'ask';
       box.innerHTML = '<div class="ask-panel" role="alertdialog" aria-modal="true" aria-labelledby="askText"><p class="ask-text" id="askText"></p><div class="ask-row"><button type="button" class="btn btn-secondary ask-no"></button><button type="button" class="btn ask-yes"></button></div></div>';
       box.querySelector('.ask-text').textContent = text;
+      if (opts.extra) box.querySelector('.ask-panel').insertBefore(opts.extra, box.querySelector('.ask-row')); // more than a sentence: a list, choices
       var yes = box.querySelector('.ask-yes'), no = box.querySelector('.ask-no');
       yes.textContent = opts.ok || 'Да'; no.textContent = opts.cancel || 'Отмена';
       if (opts.danger !== false) yes.classList.add('btn-danger');

@@ -5,82 +5,66 @@
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <main class="content" id="main" tabindex="-1">
-      <div class="hero">
-        <% if (guild.icon) { %><img class="hero-icon" src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png" alt="" data-initial="<%= String(guild.name || '?').trim().charAt(0).toUpperCase() %>" />
-        <% } else { %><span class="hero-icon guild-initial" aria-hidden="true"><%= String(guild.name || '?').trim().charAt(0).toUpperCase() %></span><% } %>
-        <div>
-          <h1><%= guild.name %></h1>
-          <p class="page-intro">Состояние сервера и быстрые переходы. Все настройки бота — здесь, в панели.</p>
-        </div>
+      <%# The home: every module on the left with its number; on the right the chosen one (?m=key) or the server summary. %>
+      <% const M = locals.M || global.__darkModules; const fmtN = (v) => Number(v || 0).toLocaleString('ru-RU').replace(/\s/g, '\u202f');
+         const mods = locals.mods || M.moduleState(settings); const stats = locals.stats || {}; const selected = locals.selected || null;
+         const sel = selected ? mods.list.find((m) => m.key === selected) : null; %>
+      <div class="home-head">
+        <h1><%= guild.name %></h1>
+        <p class="page-intro"><%= guild.approximate_member_count ? fmtN(guild.approximate_member_count) + ' участников · ' : '' %>включено модулей: <%= mods.on %> из <%= mods.total %></p>
       </div>
-
-      <div class="stat-row">
-        <div class="stat-box"><div class="value"><%= guild.approximate_member_count ? guild.approximate_member_count.toLocaleString('ru-RU').replace(/\s/g, '\u202f') : '—' %></div><div class="label">Участников на сервере</div></div>
-        <div class="stat-box"><div class="value"><%= Number(memberCount).toLocaleString('ru-RU') %></div><div class="label">В системе уровней</div></div>
-        <div class="stat-box"><div class="value"><%= Number(warningCount).toLocaleString('ru-RU') %></div><div class="label">Предупреждений</div></div>
-        <div class="stat-box"><div class="value"><%= Number(reactionRoleCount).toLocaleString('ru-RU') %></div><div class="label">Ролей по реакциям</div></div>
-        <div class="stat-box"><div class="value"><%= Number(customCommandCount).toLocaleString('ru-RU') %></div><div class="label">Своих команд</div></div>
-        <div class="stat-box"><div class="value"><%= Number(alertCount).toLocaleString('ru-RU') %></div><div class="label">Оповещений</div></div>
-      </div>
-
-      <%
-        const features = [
-          { name: 'Уровни', on: settings.levelingEnabled, href: 'leveling' },
-          { name: 'Экономика', on: settings.economyEnabled, href: 'economy' },
-          { name: 'Магазин', on: settings.shopEnabled, href: 'shop' },
-          { name: 'Музыка', on: settings.musicEnabled, href: 'features' },
-          { name: 'Автомодерация', on: settings.automodEnabled, href: 'automod' },
-          { name: 'Журнал наказаний', on: !!settings.modLogChannelId, href: 'moderation' },
-          { name: 'Логи сервера', on: !!settings.logForumChannelId && !!settings.logWebhookId, href: 'logs' },
-          { name: 'Приветствие', on: settings.welcomeEnabled && !!settings.welcomeChannelId, href: 'welcome' },
-          { name: 'Автороль', on: settings.welcomeEnabled && !!settings.autoRoleId, href: 'welcome' },
-          { name: 'Временные голосовые', on: settings.tempVoiceEnabled && !!settings.tempVoiceJoinChannelId, href: 'temp-voice' }
-        ];
-      %>
-      <div class="card">
-        <h2>
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M6.8 10.2L9 12.4L13.3 7.8"/></svg>
-          Что включено
-        </h2>
-        <div class="status-grid">
-          <% features.forEach(f => { %>
-            <a class="status-item <%= f.on ? 'on' : '' %>" href="/dashboard/<%= guild.id %>/<%= f.href %>">
-              <span class="status-dot"></span>
-              <span><div class="st-name"><%= f.name %></div><div class="st-state"><%= f.on ? 'Включено' : 'Выключено' %></div></span>
-            </a>
+      <div class="home-split">
+        <nav class="home-list" aria-label="Модули">
+          <a class="hl-row hl-home<%= sel ? '' : ' sel' %>" href="/dashboard/<%= guild.id %>"<%- sel ? '' : ' aria-current="page"' %>><span class="hl-ico"><%- M.icon('home', 15) %></span><span class="hl-name">Сводка по серверу</span></a>
+          <% mods.groups.forEach((g) => { %>
+            <div class="hl-cat"><%= g.title %></div>
+            <% g.modules.forEach((m) => { const st = stats[m.key]; %>
+              <a class="hl-row<%= m.on ? ' is-on' : ' is-off' %><%= sel && sel.key === m.key ? ' sel' : '' %>" data-mod-row="<%= m.key %>" href="/dashboard/<%= guild.id %>?m=<%= m.key %>"<%- sel && sel.key === m.key ? ' aria-current="page"' : '' %>>
+                <span class="hl-ico"><%- M.icon(m.key, 15) %></span><span class="hl-name"><%= m.title %></span>
+                <% if (m.on && st && st[0]) { %><span class="hl-num"><%= fmtN(st[0].value) %></span><% } %>
+                <i class="hl-dot" aria-label="<%= m.on ? 'включён' : 'выключен' %>"></i>
+              </a>
+            <% }) %>
           <% }) %>
-        </div>
-      </div>
+        </nav>
 
-      <div class="card">
-        <h2>
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 6.5V10.5L12.5 12"/></svg>
-          Быстрые переходы
-        </h2>
-        <div class="quick-links">
-          <a href="/dashboard/<%= guild.id %>/moderation">
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5L16.5 5V9.5C16.5 13.5 13.7 16.8 10 17.5C6.3 16.8 3.5 13.5 3.5 9.5V5L10 2.5Z"/></svg>
-            <span class="ql-text">Наказания и журнал<span class="ql-desc">Что делать за предупреждения, журнал наказаний</span></span>
-            <span class="ql-arrow">→</span>
-          </a>
-          <a href="/dashboard/<%= guild.id %>/automod">
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6L10 3L17 6V9C17 13 14 16.5 10 17.5C6 16.5 3 13 3 9V6Z"/><path d="M7.5 9.5L9 11L12.5 7.5"/></svg>
-            <span class="ql-text">Автомодерация<span class="ql-desc">Слова, ссылки, спам, упоминания, заглавные буквы</span></span>
-            <span class="ql-arrow">→</span>
-          </a>
-          <a href="/dashboard/<%= guild.id %>/welcome">
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17V4.5C5 3.7 5.7 3 6.5 3H12L15 6V17"/><path d="M5 17H15M12 17V3M12 10.2H12.3"/></svg>
-            <span class="ql-text">Приветствие и автороль<span class="ql-desc">Что видит новый участник при входе</span></span>
-            <span class="ql-arrow">→</span>
-          </a>
-          <a href="/dashboard/<%= guild.id %>/alerts">
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8C5 5.2 7.2 3 10 3C12.8 3 15 5.2 15 8C15 11.5 16.5 12.5 16.5 13.5H3.5C3.5 12.5 5 11.5 5 8Z"/><path d="M8.3 16C8.6 16.6 9.2 17 10 17C10.8 17 11.4 16.6 11.7 16"/></svg>
-            <span class="ql-text">Оповещения<span class="ql-desc">Подписки на YouTube и Twitch</span></span>
-            <span class="ql-arrow">→</span>
-          </a>
-        </div>
-      </div>
-
+        <section class="home-pane" aria-live="polite">
+        <% if (sel) { const st = stats[sel.key] || []; const cmds = (sel.commands || []).filter((c) => !/[A-Z]/.test(c)); %>
+          <div class="hp-head">
+            <span class="mh-icon<%= sel.on ? ' is-on' : '' %>"><%- M.icon(sel.key, 22) %></span>
+            <div class="hp-title"><h2><%= sel.title %></h2><p><%= sel.desc %></p></div>
+            <div class="mh-side">
+              <% if (sel.switchable) { %>
+                <span class="mh-pill<%= sel.on ? '' : ' off' %>" data-mod-pill="<%= sel.key %>"><%= sel.on ? 'Включён' : 'Выключен' %></span>
+                <label class="mod-sw" title="<%= sel.on ? 'Выключить модуль' : 'Включить модуль' %>"><input type="checkbox" data-mod-switch="<%= sel.key %>" data-mod-title="<%= sel.title %>" data-mod-reload<%= sel.on ? ' checked' : '' %> aria-label="<%= sel.title %>"></label>
+              <% } else { %><span class="mh-pill">Всегда включён</span><% } %>
+            </div>
+          </div>
+          <% if (st.length) { %>
+            <div class="hp-stats"><% st.forEach((x) => { %><div><b><%= fmtN(x.value) %></b><span><%= x.label %></span></div><% }) %></div>
+          <% } %>
+          <% if (cmds.length) { %>
+            <div class="hp-sec">Команды в Discord</div>
+            <div class="hp-cmds"><% cmds.forEach((c) => { %><code>/<%= c %></code><% }) %></div>
+          <% } %>
+          <% if (sel.depends.length) { %>
+            <div class="hp-sec">Нужен для работы</div>
+            <div class="hp-cmds"><% sel.depends.forEach((d) => { const dm = mods.list.find((x) => x.key === d); %><a href="/dashboard/<%= guild.id %>?m=<%= d %>"><%= dm ? dm.title : d %></a><% }) %></div>
+          <% } %>
+          <div class="hp-acts">
+            <% if (sel.page) { %>
+              <a class="btn" href="/dashboard/<%= guild.id %>/<%= sel.page %>">Открыть настройки модуля</a>
+              <% sel.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && !mods.list.some((o) => o.page === p)).forEach((p) => { %><a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/<%= p %>"><%= M.PAGE_LABELS[p] %></a><% }) %>
+            <% } else { %>
+              <p class="hint">У этого модуля нет настроек в панели: он работает командами в Discord.</p>
+            <% } %>
+          </div>
+        <% } else { %>
+          <div class="stat-row">
+            <div class="stat-box"><div class="value"><%= guild.approximate_member_count ? fmtN(guild.approximate_member_count) : '—' %></div><div class="label">Участников на сервере</div></div>
+            <div class="stat-box"><div class="value"><%= fmtN(memberCount) %></div><div class="label">В системе уровней</div></div>
+            <div class="stat-box"><div class="value"><%= fmtN(warningCount) %></div><div class="label">Предупреждений</div></div>
+          </div>
       <%
         const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' };
         const ago = (d) => { const m = Math.max(0, Math.round((Date.now() - new Date(d).getTime()) / 60000)); if (m < 1) return 'только что'; if (m < 60) return m + ' мин назад'; const h = Math.round(m / 60); if (h < 24) return h + ' ч назад'; return Math.round(h / 24) + ' дн назад'; };
@@ -114,7 +98,7 @@
         </div>
       </div>
 
-      <div class="card" style="margin-top:18px;">
+      <div class="card">
         <h2>
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="15" height="12" rx="1.5"/><path d="M5.5 8L8 10L5.5 12M10.5 12.5H14.5"/></svg>
           Команды бота
@@ -133,7 +117,7 @@
       </div>
 
       <% if (locals.sys) { %>
-      <div class="card" id="system" style="margin-top:18px;">
+      <div class="card" id="system">
         <h2>
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 9V14M10 6.2V6.3"/></svg>
           О версии
@@ -145,6 +129,9 @@
         <a class="card-link" href="/dashboard/<%= guild.id %>/changelog">Что нового →</a>
       </div>
       <% } %>
+        <% } %>
+        </section>
+      </div>
     </main>
   </div>
 </body>

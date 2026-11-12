@@ -70,17 +70,28 @@ const express = require('express');
     await setFlags({ reactionRolesEnabled: false }); await require('../bot/events/messageReactionAdd').execute(reaction, { id: 'u', bot: false }); assert(!added.length, 'reaction role ran while off');
     await setFlags({ reactionRolesEnabled: true }); await require('../bot/events/messageReactionAdd').execute(reaction, { id: 'u', bot: false }); assert(added.length === 1, 'reaction role did not run when on');
   });
-  await test('the panel page lists every switch and saves them', async () => {
+  await test('the modules page lists every module with a switch; a switch saves at once, with the modules that need it', async () => {
     const app = express(); app.set('view engine', 'ejs'); app.set('views', path.join(__dirname, '..', 'web', 'views')); app.use(express.urlencoded({ extended: true }));
     app.use('/dashboard', require('../web/routes/dashboard')); app.use((e, q, s, n) => s.status(500).send(String(e.stack)));
     const server = app.listen(0); const base = `http://127.0.0.1:${server.address().port}/dashboard/${G}`;
     const html = await (await fetch(base + '/features')).text();
-    FEATURES.forEach((f) => assert(html.includes(`name="${f.field}"`) && html.includes(f.title), 'missing ' + f.key));
+    FEATURES.forEach((f) => assert(html.includes(`data-mod-switch="${f.key}"`) && html.includes(f.title), 'missing ' + f.key));
+    const sw = (key, body) => fetch(`${base}/modules/${key}`, { method: 'POST', headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() });
+    await setFlags({ economyEnabled: true, shopEnabled: true, giveawaysEnabled: true, musicEnabled: false });
+    let r = await (await sw('music', { on: '1' })).json();
+    assert(r.ok && r.on, 'switch on answered');
+    let s = await db.GuildSettings.findOne({ where: { guildId: G } });
+    assert(s.musicEnabled, 'music is on');
+    // off with a dependent ticked: the shop goes with it; an unrelated key in "also" is ignored
+    r = await (await sw('economy', 'on=0&also=shop&also=music')).json();
+    s = await db.GuildSettings.findOne({ where: { guildId: G } });
+    assert(r.changed.join() === 'economy,shop', 'changed: ' + r.changed);
+    assert(!s.economyEnabled && !s.shopEnabled && s.musicEnabled && s.giveawaysEnabled, 'only economy and the shop are off');
+    assert((await sw('nope', { on: '1' })).status === 404, 'unknown module');
+    assert((await sw('moderation', { on: '0' })).status === 404, 'a module that is always on has no switch');
+    // without scripts the old form still works
     const post = (b) => fetch(base + '/features', { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(b).toString() });
-    let r = await post({ musicEnabled: 'on', levelingEnabled: 'on' });
-    assert(r.status === 302, 'redirect');
-    const s = await db.GuildSettings.findOne({ where: { guildId: G } });
-    assert(s.musicEnabled && s.levelingEnabled && !s.shopEnabled && !s.economyEnabled && !s.automodEnabled && !s.alertsEnabled, 'only the ticked ones are on');
+    assert((await post({ musicEnabled: 'on', levelingEnabled: 'on' })).status === 302, 'redirect');
     server.close();
   });
   results.forEach((r) => console.log(r.ok ? '✅' : '❌', r.l, r.ok ? '' : '\n   ' + r.e));

@@ -6,6 +6,7 @@
     <%- include('../partials/sidebar') %>
     <main class="content" id="main" tabindex="-1">
       <div class="page-header">
+        <%- include('../partials/module-head') %>
         <h1>Автомодерация</h1>
         <p class="page-intro">Бот проверяет каждое сообщение. Если оно нарушает включённое правило, оно удаляется, а автору при желании выдаётся предупреждение или мут.</p>
       </div>
@@ -17,15 +18,6 @@
          const catOf = (c) => (cats[c.parent_id] || {}).name || 'Без категории';
          const textCh2 = channels.filter(c => c.type === 0 || c.type === 5).sort((x, y) => ((cats[x.parent_id] || {}).position ?? -1) - ((cats[y.parent_id] || {}).position ?? -1) || (x.position || 0) - (y.position || 0)); %>
       <form method="post" class="plain">
-        <div class="card">
-          <div class="rules">
-            <label class="rule">
-              <span class="rule-text"><b>Автомодерация включена</b><span>Если выключить, бот перестанет проверять сообщения. Настройки ниже не сбросятся.</span></span>
-              <input type="checkbox" name="automodEnabled" <%= settings.automodEnabled ? 'checked' : '' %> />
-            </label>
-          </div>
-        </div>
-
         <div class="card" id="words">
           <h2>Фильтр слов<span class="sub">Сообщения с этими словами удаляются</span></h2>
           <div class="rules">

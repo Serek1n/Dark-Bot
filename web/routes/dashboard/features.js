@@ -32,6 +32,31 @@ router.post('/:guildId/features', ensureGuildAccess, async (req, res) => {
   res.redirect(saved(req.params.guildId, 'features'));
 });
 
+// One module on or off, from a switch (the top menu, a module's header, the home page, the modules page). Answers JSON
+// for the switch; a form without scripts gets the page back. "also" switches off the modules that depend on this one
+// (Магазин without Экономика) when the person ticked them in the dialog.
+router.post('/:guildId/modules/:key', ensureGuildAccess, async (req, res) => {
+  const { BY_KEY, dependentsOf } = require('../../modules');
+  const m = BY_KEY.get(req.params.key);
+  const wantsJson = String(req.get('accept') || '').includes('application/json');
+  if (!m || !m.field) return wantsJson ? res.status(404).json({ ok: false }) : res.redirect(`/dashboard/${req.params.guildId}/features`);
+  const on = req.body.on === '1' || req.body.on === 'true' || req.body.on === 'on';
+  const settings = await getSettings(req.params.guildId);
+  const changed = [m.key];
+  settings[m.field] = on;
+  if (!on) {
+    const allowed = new Set(dependentsOf(m.key));
+    for (const k of [].concat(req.body.also || [])) {
+      const d = BY_KEY.get(String(k));
+      if (d && d.field && allowed.has(d.key)) { settings[d.field] = false; changed.push(d.key); }
+    }
+  }
+  await settings.save();
+  if (wantsJson) return res.json({ ok: true, on, changed });
+  const back = String(req.body.back || '');
+  res.redirect(back.startsWith(`/dashboard/${req.params.guildId}`) ? back : saved(req.params.guildId, 'features'));
+});
+
 // "Доска почёта" was removed: an old bookmark opens the overview instead of an error.
 router.get('/:guildId/starboard', (req, res) => {
   const id = require('../../utils/common').snowflake(req.params.guildId);

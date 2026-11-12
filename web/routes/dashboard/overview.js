@@ -39,7 +39,12 @@ router.get('/:guildId', ensureGuildAccess, async (req, res) => {
     ModLog.findAll({ where, order: [['createdAt', 'DESC']], limit: 5 })
   ]);
   const users = await getUsers([...topMembers.map((p) => p.userId), ...recentLogs.flatMap((l) => [l.userId, l.moderatorId])]);
+  const { BY_KEY, moduleStats } = require('../../modules');
+  const stats = await moduleStats(req.params.guildId);
+  const selected = BY_KEY.has(String(req.query.m || '')) ? String(req.query.m) : null;
   res.render('dashboard/overview', {
+    stats,
+    selected,
     guild,
     settings,
     topMembers,

@@ -14,7 +14,7 @@ const FEATURES = [
   { key: 'alerts', field: 'alertsEnabled', title: 'Оповещения', desc: 'Уведомления о новых видео YouTube, стримах Twitch и постах Reddit', commands: [], page: 'alerts' },
   { key: 'polls', field: 'pollsEnabled', title: 'Голосования', desc: 'Команда /poll: голосование с эмодзи-ответами', commands: ['poll'], page: null },
   { key: 'giveaways', field: 'giveawaysEnabled', title: 'Розыгрыши', desc: 'Команда /giveaway: призы с таймером и случайными победителями; монеты, кристаллы или роль бот выдаёт сам', commands: ['giveaway'], page: 'giveaways' },
-  { key: 'tickets', field: 'ticketsEnabled', title: 'Обращения (тикеты)', desc: 'Кнопка создаёт приватный канал с командой сервера: /ticket', commands: ['ticket'], page: 'tickets' },
+  { key: 'tickets', field: 'ticketsEnabled', title: 'Обращения (тикеты)', desc: 'Кнопка создаёт приватный канал с командой сервера: /ticket', commands: ['ticket'], page: null },
   { key: 'reminders', field: 'remindersEnabled', title: 'Напоминания', desc: 'Команда /remind: бот упомянет вас через заданное время', commands: ['remind'], page: null },
   { key: 'fun', field: 'funEnabled', title: 'Мини-игры', desc: 'Кубик, монетка, шар предсказаний, камень-ножницы-бумага: /dice, /coinflip, /8ball, /rps', commands: ['dice', 'coinflip', '8ball', 'rps'], page: null },
   { key: 'webhooks', field: 'webhooksEnabled', title: 'Вебхуки', desc: 'Команда /webhook: создание вебхуков и отправка сообщений через них (нужно право «Управлять вебхуками»)', commands: ['webhook'], page: 'webhooks' },

@@ -159,7 +159,7 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
   await test('panel: Russian by default for Russian browsers, English for others; the switch remembers and only goes back to this site', async () => {
     const ru = await fetch(`${base}/dashboard/${G}/features`, { headers: { 'accept-language': 'ru-RU,ru;q=0.9' } }).then((r) => r.text());
     const en = await fetch(`${base}/dashboard/${G}/features`, { headers: { 'accept-language': 'en-US,en;q=0.9' } }).then((r) => r.text());
-    assert(ru.includes('Функции') && en.includes('Bot language on the server') && en.includes('<html lang="en">'), 'by browser');
+    assert(ru.includes('Модули') && en.includes('Bot language on the server') && en.includes('<html lang="en">'), 'by browser');
     const r = await fetch(`${base}/lang/en?next=/dashboard/${G}/shop`, { redirect: 'manual' });
     assert(r.headers.get('set-cookie').includes('lang=en') && r.headers.get('location') === `/dashboard/${G}/shop`);
     for (const evil of ['//evil.com', 'https://evil.com', '/\\evil.com']) assert.strictEqual((await fetch(`${base}/lang/en?next=${encodeURIComponent(evil)}`, { redirect: 'manual' })).headers.get('location'), '/', evil);

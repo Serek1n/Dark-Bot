@@ -25,7 +25,6 @@ router.post('/:guildId/automod', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   const lines = (text, max, len) => [...new Set(String(text || '').split(/\r?\n/).map((w) => w.trim().toLowerCase().slice(0, len)).filter(Boolean))].slice(0, max);
   const ids = (v) => [...new Set([].concat(v ?? []).map(snowflake).filter(Boolean))].slice(0, 200);
-  settings.automodEnabled = req.body.automodEnabled === 'on';
   settings.automodBlockInvites = req.body.automodBlockInvites === 'on';
   settings.automodAntiSpam = req.body.automodAntiSpam === 'on';
   settings.automodSpamMessages = clampInt(req.body.automodSpamMessages, 2, 30, settings.automodSpamMessages);

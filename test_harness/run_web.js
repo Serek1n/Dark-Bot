@@ -137,10 +137,12 @@ const express = require('express');
     assert(!(await db.ShopItem.findByPk(it.id)), 'deleted');
   });
   await test('shop settings and daily streak settings save', async () => {
-    await post('/shop/settings', { shopEnabled: 'on', shopLogChannelId: '123456789012345678' });
+    await (await S()).update({ shopEnabled: true });
+    await post('/shop/settings', { shopLogChannelId: '123456789012345678' });
     let s = await S(); assert(s.shopEnabled && s.shopLogChannelId === '123456789012345678', 'shop settings');
     await post('/shop/settings', {});
-    s = await S(); assert(!s.shopEnabled && !s.shopLogChannelId, 'shop off');
+    // on/off belongs to the module switch now: the settings form leaves it as it is
+    s = await S(); assert(s.shopEnabled && !s.shopLogChannelId, 'log channel cleared, the shop still on');
     await post('/economy', { currencyName: 'A', crystalName: 'B', dailyCoins: '50', dailyStreakBonus: '7', dailyStreakMax: '5' });
     s = await S(); assert(s.dailyStreakBonus === 7 && s.dailyStreakMax === 5, 'streak');
   });

@@ -1,6 +1,31 @@
 [
  {
   "bot": "3.6.5",
+  "panel": "3.10.0",
+  "date": "2026-11-12",
+  "botChanges": [],
+  "panelChanges": [
+   "Панель собрана из модулей: меню «Модули» с поиском и переключателями",
+   "Главная: слева все модули с цифрами, справа выбранный модуль или сводка",
+   "У страницы модуля общая шапка: группа, статус, переключатель, вкладки",
+   "Выключение модуля предупреждает, что перестанет работать, и о зависимых",
+   "Страница выключенного модуля показывает это и кнопку «Включить модуль»",
+   "«Функции» стали «Модулями»; панель стала компактнее"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "The panel is built of modules: a \"Modules\" menu with search and switches",
+    "Home: every module with its numbers on the left, the chosen one on the right",
+    "Every module page has one header: group, status, switch and tabs",
+    "Turning a module off says what stops working and offers its dependents",
+    "A module that is off says so on its page, with a \"Turn on\" button",
+    "\"Features\" became \"Modules\"; the panel is more compact"
+   ]
+  }
+ },
+ {
+  "bot": "3.6.5",
   "panel": "3.9.0",
   "date": "2026-11-12",
   "botChanges": [

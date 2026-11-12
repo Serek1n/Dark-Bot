@@ -1,14 +1,34 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><%- include('../partials/head', { title: guild.name + ' — Функции' }) %></head>
+<head><%- include('../partials/head', { title: guild.name + ' — Модули' }) %></head>
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <main class="content" id="main" tabindex="-1">
       <div class="page-header">
-        <h1>Функции</h1>
-        <p class="page-intro">Включайте только то, что нужно серверу. Выключенная функция сразу перестаёт работать, а все её настройки и данные сохраняются: после включения всё вернётся как было.</p>
+        <h1>Модули</h1>
+        <p class="page-intro">Включайте только то, что нужно серверу. Переключатель срабатывает сразу: выключенный модуль перестаёт работать и пропадает из работающих, а все его настройки и данные сохраняются — после включения всё вернётся как было.</p>
       </div>
+      <% const M = locals.M || global.__darkModules; const mods = locals.mods || M.moduleState(settings); %>
+      <% mods.groups.forEach((g) => { %>
+        <section class="card mods-group">
+          <h2><%= g.title %> <small><%= g.modules.filter((m) => m.on).length %> из <%= g.modules.length %></small></h2>
+          <% g.modules.forEach((m) => { const cmds = (m.commands || []).filter((c) => !/[A-Z]/.test(c)); %>
+            <div class="mods-row<%= m.on ? ' is-on' : ' is-off' %>" data-mod-row="<%= m.key %>">
+              <span class="mh-icon<%= m.on ? ' is-on' : '' %>"><%- M.icon(m.key, 18) %></span>
+              <div class="mods-main">
+                <div class="mods-title"><%= m.title %><% if (m.depends.length) { %> <span class="mods-dep">нужна «<%= m.depends.map((d) => (mods.list.find((x) => x.key === d) || {}).title).join('», «') %>»</span><% } %></div>
+                <div class="mods-desc"><%= m.desc %></div>
+                <% if (cmds.length) { %><div class="mods-cmds"><% cmds.forEach((c) => { %><code>/<%= c %></code><% }) %></div><% } %>
+              </div>
+              <% if (m.page) { %><a class="mods-open" href="/dashboard/<%= guild.id %>/<%= m.page %>">Настроить ›</a><% } %>
+              <% if (m.switchable) { %>
+                <label class="mod-sw" title="<%= m.on ? 'Выключить модуль' : 'Включить модуль' %>"><input type="checkbox" data-mod-switch="<%= m.key %>" data-mod-title="<%= m.title %>"<%= m.on ? ' checked' : '' %> aria-label="<%= m.title %>"></label>
+              <% } else { %><span class="mod-core" title="Этот модуль нельзя выключить">всегда</span><% } %>
+            </div>
+          <% }) %>
+        </section>
+      <% }) %>
       <form method="post" action="/dashboard/<%= guild.id %>/language" class="card lang-card" data-no-guard>
         <h2>Язык бота на сервере</h2>
         <div class="two-col">
@@ -22,22 +42,6 @@
           <div><button class="btn" type="submit">Сохранить язык</button></div>
         </div>
         <p class="hint">На этом языке бот отвечает на команды и пишет сообщения. «Язык по умолчанию» — тот, что выбран в настройках сервера Discord. Тексты, которые вы написали сами, бот не переводит. Язык этой панели меняется кнопкой с глобусом вверху.</p>
-      </form>
-      <form method="post">
-        <div class="switch-list">
-          <% features.forEach(f => { %>
-            <div class="checkbox-row feature-row">
-              <label for="f_<%= f.key %>">
-                <span class="feature-title"><%= f.title %></span>
-                <span class="feature-desc"><%= f.desc %></span>
-                <% if (f.commands.length) { %><span class="feature-cmds"><% const menuName = { 'Profile': 'меню «Profile»', 'Report message': 'меню «Report message»', 'Report member': 'меню «Report member»' }; f.commands.forEach(c => { %><code><%= menuName[c] || (c.includes(' ') ? c : '/' + c) %></code> <% }) %></span><% } %>
-              </label>
-              <% if (f.page) { %><a class="feature-link" href="/dashboard/<%= guild.id %>/<%= f.page %>">Настроить</a><% } %>
-              <input type="checkbox" id="f_<%= f.key %>" name="<%= f.field %>" <%= settings[f.field] ? 'checked' : '' %> />
-            </div>
-          <% }) %>
-        </div>
-        <button class="btn" type="submit">Сохранить</button>
       </form>
     </main>
   </div>

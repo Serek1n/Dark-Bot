@@ -2,7 +2,18 @@ const { getBotGuildIds } = require('../discordApi');
 const { refreshUserGuilds, isStale } = require('../utils/userGuilds');
 const { asyncHandler } = require('../utils/asyncHandler');
 
-const { hasManageAccess } = require('../utils/common');
+const { hasManageAccess, getSettings } = require('../utils/common');
+
+// What the top menu ("Модули ▾") and the module headers need on every page of a server: which modules are on.
+async function withModules(req, res, next) {
+  if (res.locals) {
+    try {
+      const { moduleState } = require('../modules');
+      res.locals.mods = moduleState(await getSettings(req.params.guildId));
+    } catch (_) { res.locals.mods = null; } // the page builds the list from its own settings; it still opens
+  }
+  next();
+}
 
 async function ensureGuildAccess(req, res, next) {
   const { guildId } = req.params;
@@ -18,7 +29,7 @@ async function ensureGuildAccess(req, res, next) {
       return res.status(404).render('error', { message: 'Бот не добавлен на этот сервер.' });
     }
     req.guildAccess = { manageable: true, viaOwnerOverride: true };
-    return next();
+    return withModules(req, res, next);
   }
 
   // The rights are re-read from Discord (at most every 20 s per user), so an admin who lost the role loses the panel quickly,
@@ -39,7 +50,7 @@ async function ensureGuildAccess(req, res, next) {
 
   // Kept for pages that need more than "Manage Server" (webhooks: "Manage Webhooks").
   req.guildAccess = { manageable: true, owner: Boolean(guild.owner), permissions: String(guild.permissions || '0') };
-  next();
+  return withModules(req, res, next);
 }
 
 module.exports = { ensureGuildAccess: asyncHandler(ensureGuildAccess) };

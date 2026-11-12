@@ -6,18 +6,11 @@
     <%- include('../partials/sidebar') %>
     <main class="content" id="main" tabindex="-1">
       <div class="page-header">
+        <%- include('../partials/module-head') %>
         <h1>Система уровней</h1>
         <p class="page-intro">Один общий уровень растёт от сообщений и от времени в голосовых каналах. Для каждого источника свои настройки.</p>
       </div>
       <form method="post">
-        <div class="card">
-          <div class="checkbox-row">
-            <input type="checkbox" id="levelingEnabled" name="levelingEnabled" <%= settings.levelingEnabled ? 'checked' : '' %> />
-            <label for="levelingEnabled" style="margin:0;">Включить систему уровней</label>
-          </div>
-          <div class="hint">Уровень один: его опыт складывается из сообщений и времени в голосе. Источники настраиваются отдельно, а голосовой опыт ещё и ведёт свой рейтинг. Валюты настраиваются на странице «Экономика».</div>
-        </div>
-
         <div class="card">
           <h2>Опыт за сообщения<span class="sub">Сколько дают за сообщение в текстовом чате</span></h2>
           <div class="checkbox-row">

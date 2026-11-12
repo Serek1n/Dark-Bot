@@ -40,6 +40,7 @@ app.locals.assetV = assetVersion();
 app.locals.errorTexts = require('../bot/utils/discordErrors').ERROR_TEXT; // texts for error codes carried in links
 app.locals.termText = require('../bot/utils/duration').formatTerm; // "10 д" in the shop form
 app.locals.tplRef = require('../bot/utils/replacers').REFERENCE; // the names offered under template fields
+app.locals.M = require('./modules'); // the modules: the top menu and the module headers read it
 
 const panelI18n = require('./i18n');
 app.use(panelI18n.englishScripts); // /js/*.js?v=…-en: the same scripts with English texts
