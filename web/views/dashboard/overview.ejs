@@ -22,23 +22,9 @@
           </div>
         </div>
       </div>
-      <div class="home-split">
-        <nav class="home-list" aria-label="Модули">
-          <a class="hl-row hl-home<%= sel ? '' : ' sel' %>" href="/dashboard/<%= guild.id %>"<%- sel ? '' : ' aria-current="page"' %>><span class="hl-ico"><%- M.icon('home', 15) %></span><span class="hl-name">Сводка по серверу</span></a>
-          <% mods.groups.forEach((g) => { %>
-            <div class="hl-cat"><%= g.title %></div>
-            <% g.modules.forEach((m) => { const st = stats[m.key]; %>
-              <a class="hl-row<%= m.on ? ' is-on' : ' is-off' %><%= sel && sel.key === m.key ? ' sel' : '' %>" data-mod-row="<%= m.key %>" href="/dashboard/<%= guild.id %>?m=<%= m.key %>"<%- sel && sel.key === m.key ? ' aria-current="page"' : '' %>>
-                <span class="hl-ico"><%- M.icon(m.key, 15) %></span><span class="hl-name"><%= m.title %></span>
-                <% if (m.on && st && st[0]) { %><span class="hl-num"><%= fmtN(st[0].value) %></span><% } %>
-                <i class="hl-dot" aria-label="<%= m.on ? 'включён' : 'выключен' %>"></i>
-              </a>
-            <% }) %>
-          <% }) %>
-        </nav>
-
-        <section class="home-pane" aria-live="polite">
+      <div class="home-split home-dash">
         <% if (sel) { const st = stats[sel.key] || []; const cmds = (sel.commands || []).filter((c) => !/[A-Z]/.test(c)); %>
+        <section class="home-pane" aria-live="polite">
           <a class="hp-back" href="/dashboard/<%= guild.id %>">‹ Сводка по серверу</a>
           <div class="hp-head">
             <span class="mh-icon<%= sel.on ? ' is-on' : '' %>"><%- M.icon(sel.key, 22) %></span>
@@ -69,88 +55,126 @@
               <p class="hint">У этого модуля нет настроек в панели: он работает командами в Discord.</p>
             <% } %>
           </div>
+        </section>
         <% } else { %>
-          <% const att = locals.attention || []; %>
-          <% if (att.length) { %>
-          <div class="card hp-attn">
-            <h2>Требует внимания <span class="hp-attn-n"><%= att.length %></span></h2>
-            <div class="hp-attn-list">
-              <% att.forEach((a) => { %><a class="hp-attn-row <%= a.level %>" href="<%= a.href %>"><span class="hp-attn-ico"><%- M.icon(a.icon, 15) %></span><span class="hp-attn-text"><%= a.text %></span><span class="hp-attn-go" aria-hidden="true">›</span></a><% }) %>
-            </div>
-          </div>
-          <% } %>
-          <div class="stat-row hp-kpis">
-            <div class="stat-box"><div class="value"><%= guild.approximate_member_count ? fmtN(guild.approximate_member_count) : '—' %></div><div class="label">Участников на сервере</div></div>
-            <div class="stat-box"><div class="value"><%= fmtN(memberCount) %></div><div class="label">В системе уровней</div></div>
-            <div class="stat-box"><div class="value"><%= fmtN(warningCount) %></div><div class="label">Предупреждений</div></div>
-            <div class="stat-box"><div class="value"><%= mods.on %>/<%= mods.total %></div><div class="label">Модулей включено</div></div>
-          </div>
       <%
+        const g = '/dashboard/' + guild.id;
+        const isOn = (k) => { const m = mods.list.find((x) => x.key === k); return !m || m.on; };
+        const sv = (k, i) => (stats[k] && stats[k][i || 0] ? stats[k][i || 0].value : 0);
         const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' };
         const ago = (d) => { const m = Math.max(0, Math.round((Date.now() - new Date(d).getTime()) / 60000)); if (m < 1) return 'только что'; if (m < 60) return m + ' мин назад'; const h = Math.round(m / 60); if (h < 24) return h + ' ч назад'; return Math.round(h / 24) + ' дн назад'; };
+        const att = locals.attention || [];
+        const kpis = [
+          { v: guild.approximate_member_count ? fmtN(guild.approximate_member_count) : '—', l: 'Участников на сервере', href: null },
+          { v: fmtN(memberCount), l: 'В системе уровней', href: g + '/leaderboard' },
+          { v: fmtN(sv('economy')), l: 'Монет в обороте', href: g + '/economy', key: 'economy' },
+          { v: fmtN(warningCount), l: 'Предупреждений', href: g + '/moderation' },
+          { v: fmtN(sv('moderation', 1)), l: 'Действий модераторов', href: g + '/moderation' },
+          { v: mods.on + '/' + mods.total, l: 'Модулей включено', href: g + '/features' }
+        ];
+        const live = [
+          { key: 'report', l: 'Новых жалоб', href: g + '/moderation' },
+          { key: 'tickets', l: 'Открытых обращений', href: g + '?m=tickets' },
+          { key: 'giveaways', l: 'Розыгрышей идёт', href: g + '/giveaways' },
+          { key: 'polls', l: 'Голосований идёт', href: g + '?m=polls' },
+          { key: 'tempVoice', l: 'Голосовых комнат', href: g + '/temp-voice' },
+          { key: 'reminders', l: 'Напоминаний ждут', href: g + '?m=reminders' },
+          { key: 'shop', i: 1, l: 'Покупок в магазине', href: g + '/shop' },
+          { key: 'alerts', l: 'Подписок на оповещения', href: g + '/alerts' }
+        ].filter((x) => isOn(x.key));
+        const rel = locals.releases || [];
       %>
-      <div class="grid-2">
-        <div class="card">
-          <h2>Топ по опыту</h2>
-          <% if (!topMembers.length) { %>
-            <p class="empty-state">Пока никто не заработал опыт.</p>
-          <% } else { %>
-            <div class="mini-list">
-              <% topMembers.forEach((p, i) => { const u = users[p.userId] || { name: p.userId, avatar: '' }; %>
-                <div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="val">ур. <%= p.level %></span></div>
-              <% }) %>
-            </div>
-            <a class="card-link" href="/dashboard/<%= guild.id %>/leaderboard">Весь лидерборд →</a>
+          <% if (att.length) { %>
+          <div class="hd-attn" role="status">
+            <span class="hd-attn-title">Требует внимания <span class="hp-attn-n"><%= att.length %></span></span>
+            <% att.forEach((a) => { %><a class="hd-attn-chip <%= a.level %>" href="<%= a.href %>"><span class="hp-attn-ico"><%- M.icon(a.icon, 14) %></span><span><%= a.text %></span></a><% }) %>
+          </div>
           <% } %>
-        </div>
-        <div class="card">
-          <h2>Последние действия модераторов</h2>
-          <% if (!recentLogs.length) { %>
-            <p class="empty-state">Действий пока нет.</p>
-          <% } else { %>
-            <div class="mini-list">
-              <% recentLogs.forEach(l => { const u = users[l.userId] || { name: l.userId, avatar: '' }; %>
-                <div class="mini-row"><span class="badge badge-<%= l.action %>"><%= actionRu[l.action] || l.action %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="when"><%= ago(l.createdAt) %></span></div>
-              <% }) %>
+          <div class="hd-kpis">
+            <% kpis.forEach((k) => { if (k.key && !isOn(k.key)) return; %>
+              <% if (k.href) { %><a class="hd-kpi" href="<%= k.href %>"><b><%= k.v %></b><span><%= k.l %></span></a><% } else { %><div class="hd-kpi"><b><%= k.v %></b><span><%= k.l %></span></div><% } %>
+            <% }) %>
+          </div>
+
+          <div class="hd-grid">
+            <div class="card hd-card">
+              <h2>Топ по опыту</h2>
+              <% if (!topMembers.length) { %>
+                <p class="hd-empty">Пока никто не заработал опыт. Он начисляется за сообщения и время в голосовых каналах.</p>
+                <a class="card-link" href="<%= g %>/leveling">Настроить уровни →</a>
+              <% } else { %>
+                <div class="mini-list">
+                  <% topMembers.forEach((p, i) => { const u = users[p.userId] || { name: p.userId, avatar: '' }; %>
+                    <div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="val">ур. <%= p.level %></span></div>
+                  <% }) %>
+                </div>
+                <a class="card-link" href="<%= g %>/leaderboard">Весь лидерборд →</a>
+              <% } %>
             </div>
-            <a class="card-link" href="/dashboard/<%= guild.id %>/moderation">Весь журнал →</a>
-          <% } %>
-        </div>
-      </div>
 
-      <div class="card">
-        <h2>
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="15" height="12" rx="1.5"/><path d="M5.5 8L8 10L5.5 12M10.5 12.5H14.5"/></svg>
-          Команды бота
-        </h2>
-        <p class="hp-cmd-intro">Настройки сервера делаются только здесь, в панели. В Discord остались команды для участников и модераторов:</p>
-        <div class="cmd-grid hp-cmd-grid">
-          <div><code>/profile</code><br>Карточка: уровень, место, баланс</div>
-          <div><code>/top</code><br>Лидеры: общий и по голосу</div>
-          <div><code>/play</code><br>Музыка, управление кнопками</div>
-          <div><code>/daily</code> <code>/balance</code> <code>/pay</code><br>Награда, баланс и переводы</div>
-          <div><code>/shop</code><br>Магазин: роли и предметы за валюту</div>
-          <div><code>/mod</code><br>Наказания, дела и история, очистка, замок канала</div>
-          <div><code>/help</code><br>Подсказка по ролям</div>
-        </div>
-        <p>Префикс своих текстовых команд: <code><%= settings.prefix %></code></p>
-      </div>
+            <div class="card hd-card">
+              <h2>Последние действия модераторов</h2>
+              <% if (!recentLogs.length) { %>
+                <p class="hd-empty">Действий пока нет. Здесь появятся предупреждения, муты, кики и баны — из команды /mod и автомодерации.</p>
+                <a class="card-link" href="<%= g %>/moderation">Правила наказаний →</a>
+              <% } else { %>
+                <div class="mini-list">
+                  <% recentLogs.forEach(l => { const u = users[l.userId] || { name: l.userId, avatar: '' }; %>
+                    <div class="mini-row"><span class="badge badge-<%= l.action %>"><%= actionRu[l.action] || l.action %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="when"><%= ago(l.createdAt) %></span></div>
+                  <% }) %>
+                </div>
+                <a class="card-link" href="<%= g %>/moderation">Весь журнал →</a>
+              <% } %>
+            </div>
 
-      <% if (locals.sys) { %>
-      <div class="card" id="system">
-        <h2>
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 9V14M10 6.2V6.3"/></svg>
-          О версии
-        </h2>
-        <div class="sys-grid">
-          <div><small>Бот</small><b>v<%= sys.bot %></b><span class="sys-state <%= sys.botOnline ? 'on' : 'off' %>"><%= sys.botOnline ? 'в сети' + (sys.ping !== null ? ' · ' + sys.ping + ' мс' : '') : 'не в сети' %></span></div>
-          <div><small>Веб-панель</small><b>v<%= sys.panel %></b><span class="sys-state on">работает</span></div>
-        </div>
-        <a class="card-link" href="/dashboard/<%= guild.id %>/changelog">Что нового →</a>
-      </div>
-      <% } %>
+            <div class="card hd-card">
+              <h2>Сейчас на сервере</h2>
+              <div class="hd-live">
+                <% live.forEach((x) => { const v = Number(sv(x.key, x.i)) || 0; %>
+                  <a class="hd-live-row<%= v ? ' has' : '' %>" href="<%= x.href %>"><span class="hp-attn-ico"><%- M.icon(x.key, 14) %></span><span class="hd-live-l"><%= x.l %></span><b><%= fmtN(v) %></b></a>
+                <% }) %>
+              </div>
+            </div>
+
+            <div class="card hd-card hd-wide">
+              <h2>
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="15" height="12" rx="1.5"/><path d="M5.5 8L8 10L5.5 12M10.5 12.5H14.5"/></svg>
+                Команды бота
+              </h2>
+              <p class="hp-cmd-intro">Настройки сервера делаются только здесь, в панели. В Discord остались команды для участников и модераторов:</p>
+              <div class="cmd-grid hp-cmd-grid">
+                <div><code>/profile</code><br>Карточка: уровень, место, баланс</div>
+                <div><code>/top</code><br>Лидеры: общий и по голосу</div>
+                <div><code>/play</code><br>Музыка, управление кнопками</div>
+                <div><code>/daily</code> <code>/balance</code> <code>/pay</code><br>Награда, баланс и переводы</div>
+                <div><code>/shop</code><br>Магазин: роли и предметы за валюту</div>
+                <div><code>/mod</code><br>Наказания, дела и история, очистка, замок канала</div>
+                <div><code>/help</code><br>Подсказка по ролям</div>
+                <div><code><%= settings.prefix %></code><br>Префикс своих текстовых команд</div>
+              </div>
+            </div>
+
+            <div class="card hd-card" id="system">
+              <h2>
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7.5"/><path d="M10 9V14M10 6.2V6.3"/></svg>
+                О версии
+              </h2>
+              <% if (locals.sys) { %>
+              <div class="sys-grid">
+                <div><small>Бот</small><b>v<%= sys.bot %></b><span class="sys-state <%= sys.botOnline ? 'on' : 'off' %>"><%= sys.botOnline ? 'в сети' + (sys.ping !== null ? ' · ' + sys.ping + ' мс' : '') : 'не в сети' %></span></div>
+                <div><small>Веб-панель</small><b>v<%= sys.panel %></b><span class="sys-state on">работает</span></div>
+              </div>
+              <% } %>
+              <% if (rel.length) { %>
+                <div class="hp-sec">Последние изменения</div>
+                <div class="hd-rel">
+                  <% rel.forEach((r) => { %><div><span><%= r.date %></span><p><%= r.text %></p></div><% }) %>
+                </div>
+              <% } %>
+              <a class="card-link" href="<%= g %>/changelog">Что нового →</a>
+            </div>
+          </div>
         <% } %>
-        </section>
       </div>
     </main>
   </div>

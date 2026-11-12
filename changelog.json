@@ -1,6 +1,25 @@
 [
  {
   "bot": "3.6.5",
+  "panel": "3.11.0",
+  "date": "2026-11-12",
+  "botChanges": [],
+  "panelChanges": [
+   "Главная во всю ширину: 6 цифр, топ, журнал, «Сейчас на сервере», команды и версия",
+   "Список модулей слева с главной убран — модули открываются из верхнего меню",
+   "Шрифт всей панели — Manrope, как на карточках бота"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Full-width home: 6 numbers, top, log, \"On the server now\", commands and version",
+    "The module list on the left of the home page is gone: modules open from the top menu",
+    "The whole panel uses Manrope, the same font as the bot cards"
+   ]
+  }
+ },
+ {
+  "bot": "3.6.5",
   "panel": "3.10.6",
   "date": "2026-11-12",
   "botChanges": [],

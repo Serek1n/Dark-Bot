@@ -79,7 +79,7 @@
 .msg-hookrows .muted { min-width: 70px; }
 
 /* The preview copies Discord's dark theme on purpose, in both panel themes */
-.msg-preview { background: var(--dc-bg); color: var(--dc-text); border-radius: var(--r-12); padding: 16px; font-family: 'gg sans', 'Noto Sans', var(--font-ui); font-size: var(--fs-15); line-height: 1.375; overflow-wrap: anywhere; border: 1px solid var(--dc-deep); }
+.msg-preview { background: var(--dc-bg); color: var(--dc-text); border-radius: var(--r-12); padding: 16px; font-family: var(--font-ui); font-size: var(--fs-15); line-height: 1.375; overflow-wrap: anywhere; border: 1px solid var(--dc-deep); }
 .dm-msg { display: flex; gap: 14px; }
 .dm-avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex: 0 0 40px; background: var(--dc-blurple); display: grid; place-items: center; color: #fff; font-weight: 700; }
 .dm-avatar img { width: 100%; height: 100%; object-fit: cover; }

@@ -2758,5 +2758,22 @@
  "‹ Сводка по серверу": "‹ Server summary",
  "Требует внимания": "Needs attention",
  "Всё в порядке: бот в сети, журналы настроены, новых жалоб нет.": "All is well: the bot is online, the logs are set up, no new reports.",
- "Модулей включено": "Modules on"
+ "Модулей включено": "Modules on",
+ "Монет в обороте": "Coins in circulation",
+ "Действий модераторов": "Moderator actions",
+ "Новых жалоб": "New reports",
+ "Открытых обращений": "Open tickets",
+ "Розыгрышей идёт": "Giveaways running",
+ "Голосований идёт": "Polls running",
+ "Голосовых комнат": "Voice rooms",
+ "Напоминаний ждут": "Reminders pending",
+ "Покупок в магазине": "Shop purchases",
+ "Подписок на оповещения": "Alert subscriptions",
+ "Пока никто не заработал опыт. Он начисляется за сообщения и время в голосовых каналах.": "No one has earned XP yet. It comes from messages and time in voice channels.",
+ "Настроить уровни →": "Set up levels →",
+ "Действий пока нет. Здесь появятся предупреждения, муты, кики и баны — из команды /mod и автомодерации.": "No actions yet. Warnings, mutes, kicks and bans from /mod and automod will show up here.",
+ "Правила наказаний →": "Punishment rules →",
+ "Сейчас на сервере": "On the server now",
+ "Префикс своих текстовых команд": "Prefix for your text commands",
+ "Последние изменения": "Latest changes"
 }

@@ -26,9 +26,9 @@ test('the client has the drawer, the tabs and the find-on-page jump', () => {
   const idx = fs.readFileSync(path.join(__dirname, '..', 'web', 'routes', 'dashboard', 'index.js'), 'utf8');
   assert(idx.indexOf("router.get('/settings-index.json'") < idx.indexOf('router.use(require'), 'the route comes before /:guildId pages');
 });
-test('the panel font is Onest, served from the panel itself', () => {
+test('the panel font is Manrope (same as the bot cards), served from the panel itself', () => {
   const css = fs.readFileSync(path.join(__dirname, '..', 'web', 'public', 'css', 'fonts.css'), 'utf8');
-  assert(css.includes("font-family: 'Onest'") && fs.existsSync(path.join(__dirname, '..', 'web', 'public', 'fonts', 'onest-cyrillic-wght-normal.woff2')));
+  assert(css.includes("font-family: 'Manrope'") && fs.existsSync(path.join(__dirname, '..', 'web', 'public', 'fonts', 'manrope-cyrillic-wght-normal.woff2')));
 });
 console.log(results.join('\n')); console.log(`\n${results.length - failed}/${results.length} passed`);
 process.exit(failed ? 1 : 0);
