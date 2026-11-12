@@ -1,0 +1,63 @@
+/* Login page: starfield and hero */
+/* ============================================================
+   Starfield backdrop — one quiet decorative moment, used only
+   on the login hero. A few fixed dots + a soft ember glow.
+   ============================================================ */
+
+[data-theme="light"] .night-sky { background: var(--ink); }
+.night-sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 900px 500px at 50% -10%, rgba(227, 168, 87, 0.10), transparent 60%),
+    radial-gradient(1px 1px at 12% 22%, #fff, transparent),
+    radial-gradient(1px 1px at 78% 15%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 35% 65%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 88% 72%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 60% 38%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 20% 82%, rgba(255,255,255,0.5), transparent),
+    var(--ink);
+  opacity: 0.9;
+}
+
+.crescent {
+  width: 56px;
+  height: 56px;
+  display: block;
+}
+
+/* ============================================================
+   Login hero
+   ============================================================ */
+
+.login-page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 24px;
+  text-align: center;
+  padding: 24px;
+}
+.login-page .wordmark {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.login-page h1 {
+  font-size: var(--fs-34);
+  margin: 0;
+  color: var(--paper);
+}
+.login-page p {
+  color: var(--fog);
+  max-width: 440px;
+  font-size: var(--fs-16);
+  line-height: 1.6;
+  margin: 0;
+}
+.login-page .btn { margin-top: 6px; }

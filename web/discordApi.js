@@ -1,14 +1,10 @@
-const axios = require('axios');
 const { getClient } = require('./botBridge');
 
 // With the bot in the same process everything below is read from its cache; REST is the fallback (panel started alone, or a server the bot has not loaded).
 const cachedGuild = (guildId) => getClient()?.guilds.cache.get(guildId) || null;
 
-const botApi = axios.create({
-  baseURL: 'https://discord.com/api/v10',
-  headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` },
-  timeout: 10000
-});
+// Through discord.js when the bot runs here (rate limits are respected), through axios when the panel runs alone.
+const botApi = require('./discordRest').createBotApi();
 
 // Small TTL cache. Every dashboard page used to hit Discord 2-4 times; with several admins
 // clicking around that burns through rate limits and slows pages down.

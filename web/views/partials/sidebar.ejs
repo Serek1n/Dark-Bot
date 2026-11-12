@@ -87,79 +87,8 @@
   </aside>
 </div>
 
-<script>
-  (function () {
-    var params = new URLSearchParams(location.search);
-    // Error texts by code; the link only carries the code, so it cannot be used to show someone else's words.
-    var reasons = <%- JSON.stringify(locals.errorTexts || {}).replace(/</g, '\\u003c') %>;
-    function needText(list) {
-      var names = { view: 'Просмотр канала', send: 'Отправлять сообщения', embed: 'Встраивать ссылки', history: 'Читать историю сообщений', react: 'Добавлять реакции', connect: 'Подключаться', manage: 'Управлять каналами', move: 'Перемещать участников', files: 'Прикреплять файлы' };
-      var parts = String(list || '').split(',');
-      if (parts.indexOf('gone') >= 0) return 'Канал не найден — возможно, его удалили. Настройка не изменена';
-      var need = parts.map(function (k) { return names[k]; }).filter(Boolean).map(function (n) { return '«' + n + '»'; });
-      return 'Бот не сможет работать в этом канале: не хватает прав ' + need.join(', ') + '. Выдайте их боту в настройках канала — канал не сохранён';
-    }
-    var kinds = {
-      saved: ['Изменения сохранены', false],
-      deleted: ['Удалено', false],
-      invalid: ['Не удалось сохранить: проверьте заполнение полей', true],
-      revoked: ['Роль снята', false],
-      refunded: ['Покупка возвращена: деньги у покупателя', false],
-      gwended: ['Розыгрыш завершён', false],
-      gwreroll: ['Победители выбраны заново', false],
-      nobot: ['Бот сейчас не в сети — попробуйте через минуту', true],
-      revokefail: ['Discord не дал снять роль: проверьте, что роль бота выше', true],
-      badterm: ['Не понял срок действия: напишите, например, 10д, 12ч или 1мес (от 1 минуты до 366 дней)', true],
-      started: ['Выдача ролей запущена', false],
-      running: ['Выдача ролей уже идёт', true],
-      nomessage: ['Сообщение не найдено в выбранном канале', true],
-      notesent: ['Запись об обновлении отправлена в канал', false],
-      rolenotallowed: ['Эту роль выдавать нельзя: у бота нет права «Управлять ролями», роль выше роли бота или вашей, управляется интеграцией либо даёт права модерации', true],
-      noperm: [needText(params.get('need')), true],
-      isbot: ['У ботов нет профиля, уровня и баланса — выберите участника', true],
-      notmember: ['Этого пользователя нет на сервере', true],
-      toomany: ['Достигнут предел записей для сервера', true],
-      badchannel: ['Выберите канал этого сервера', true],
-      badlogin: ['Неверный логин Twitch: латиница, цифры и _, от 3 до 25 символов', true],
-      granted: ['Баланс участника обновлён', false],
-      adjusted: ['Уровень участника изменён', false],
-      baduser: ['Укажите корректный ID участника', true],
-      logready: ['Форум логов готов: темы созданы', false],
-      logoff: ['Логи отключены', false],
-      lognoforum: ['Выберите именно форум — обычные каналы не подходят', true],
-      logperm: ['Не хватает прав у бота: нужны «Управлять каналами» и «Управлять вебхуками»', true],
-      rules: ['Правила наказаний сохранены', false],
-      created: ['Вебхук создан', false],
-      wpanel: ['Панель управления вебхуками размещена', false],
-      vpanel: ['Панель управления комнатами размещена', false],
-      whsent: ['Сообщение отправлено', false],
-      msgsaved: ['Заготовка сохранена', false],
-      msgsched: ['Сообщение запланировано', false],
-      msgtest: ['Тестовое сообщение отправлено', false],
-      msgfail: ['Не удалось отправить: причина указана в записи', true],
-      msgpast: ['Все даты этой записи уже прошли — измените её', true],
-      msgnoright: ['Для вебхука нужно право «Управлять вебхуками»', true],
-      whfail: [reasons[params.get('reason')] || 'Не удалось выполнить действие', true],
-      logfail: ['Не удалось создать темы. Проверьте права бота в этом форуме', true]
-    };
-    for (var key in kinds) {
-      if (!params.has(key)) continue;
-      var t = document.createElement('div');
-      t.className = 'toast' + (kinds[key][1] ? ' error' : '');
-      t.setAttribute('role', 'status');
-      t.innerHTML = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="' +
-        (kinds[key][1] ? 'M10 6V11M10 14H10.01' : 'M4.5 10.5L8.2 14L15.5 6') + '"/></svg><span></span>';
-      t.lastChild.textContent = kinds[key][0];
-      document.body.appendChild(t);
-      setTimeout(function () { t.remove(); }, kinds[key][0].length > 90 ? 8000 : 3600);
-      params.delete(key);
-      params.delete('need');
-      var q = params.toString();
-      history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash);
-      break;
-    }
-  })();
-</script>
+<%# texts of the errors a page may report, read by /js/panel.js (no inline scripts: the page's policy forbids them) %>
+<script type="application/json" id="page-errors"><%- JSON.stringify(locals.errorTexts || {}).replace(/</g, '\\u003c') %></script>
 
 <%# hidden until something is edited: "inert" keeps its buttons out of the Tab order meanwhile %>
 <div class="save-bar" id="saveBar" inert>
@@ -169,43 +98,4 @@
     <button type="button" class="btn" id="sbSave">Сохранить изменения</button>
   </span>
 </div>
-<script>
-  // Shows a "save" bar once any settings form is edited, and warns before leaving with unsaved changes.
-  // The forms come after the sidebar in the page, so wait until they exist.
-  document.addEventListener('DOMContentLoaded', function () {
-    var bar = document.getElementById('saveBar');
-    var forms = Array.prototype.filter.call(document.querySelectorAll('.content form[method=post]'), function (f) {
-      return f.querySelector('input:not([type=hidden]):not([type=file]), select, textarea') && !f.hasAttribute('data-no-guard');
-    });
-    // Every edited form is remembered: saving one block must not silently drop changes made in another.
-    var dirty = [], submitting = false;
-    function mark(f) { if (dirty.indexOf(f) < 0) dirty.push(f); bar.classList.add('show'); bar.inert = false; bar.removeAttribute('inert'); document.body.classList.add('has-save-bar'); }
-    function post(f) { return fetch(f.action || location.href, { method: 'POST', body: new URLSearchParams(new FormData(f)), credentials: 'same-origin' }); }
-    // Saves the other edited forms in the background, then submits this one normally.
-    function submitAll(main) {
-      var others = dirty.filter(function (f) { return f !== main; });
-      submitting = true;
-      Promise.all(others.map(post)).catch(function () {}).then(function () { main.requestSubmit ? main.requestSubmit() : main.submit(); });
-    }
-    // The bar appears by itself on any change, wherever the page is scrolled, so a settings form needs no own "Save" button
-    // at its very end. Buttons that do something else (add, publish, delete) stay.
-    forms.forEach(function (f) {
-      Array.prototype.forEach.call(f.querySelectorAll('button[type=submit], button:not([type])'), function (b) {
-        if (/^\s*(Сохранить|Save)/i.test(b.textContent) && !b.classList.contains('btn-danger')) b.classList.add('sb-replaced');
-      });
-    });
-    forms.forEach(function (f) {
-      f.addEventListener('input', function () { mark(f); });
-      f.addEventListener('change', function () { mark(f); });
-      f.addEventListener('submit', function (e) {
-        if (submitting) return;
-        var others = dirty.filter(function (x) { return x !== f; });
-        if (others.length && confirm('В другом блоке на этой странице есть несохранённые изменения. Сохранить их тоже?')) { e.preventDefault(); submitAll(f); return; }
-        submitting = true;
-      });
-    });
-    document.getElementById('sbSave').addEventListener('click', function () { if (dirty.length) submitAll(dirty[dirty.length - 1]); });
-    document.getElementById('sbReset').addEventListener('click', function () { submitting = true; location.reload(); });
-    window.addEventListener('beforeunload', function (e) { if (dirty.length && !submitting) { e.preventDefault(); e.returnValue = ''; } });
-  });
-</script>
+<script src="/js/panel.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>

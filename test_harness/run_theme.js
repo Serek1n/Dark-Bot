@@ -26,7 +26,7 @@ const web = path.join(__dirname, '..', 'web');
     }
   });
   await test('stylesheet: light theme overrides every colour token of the dark one', async () => {
-    const css = fs.readFileSync(path.join(web, 'public/css/style.css'), 'utf8');
+    const css = require('../web/styles').stylesheet().text;
     const block = (re) => css.match(re)[1];
     const names = (b) => new Set((b.match(/--[a-z-]+(?=:)/g) || []));
     const dark = names(block(/:root \{([\s\S]*?)\n\}/)); const light = names(block(/\[data-theme="light"\] \{([\s\S]*?)\n\}/));

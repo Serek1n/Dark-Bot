@@ -1,6 +1,6 @@
 const express = require('express');
 const { ensureGuildAccess } = require('../../middleware/ensureGuildAccess');
-const { getGuildChannels, getGuildRoles, getGuild, botApi } = require('../../discordApi');
+const { getGuildChannels, getGuildRoles, getGuild } = require('../../discordApi');
 const { VoiceRole } = require('../../../db');
 const { roleGuard } = require('../../utils/roles');
 const { snowflake, saved, getSettings } = require('../../utils/common');
@@ -69,13 +69,7 @@ router.post('/:guildId/temp-voice/panel', ensureGuildAccess, async (req, res) =>
   const settings = await getSettings(guildId);
   const payload = require('../../../bot/modules/voiceRoom').panelPayload();
   try {
-    const { data } = await botApi.post(`/channels/${channelId}/messages`, i18nOut({ embeds: payload.embeds.map((e) => e.toJSON()), components: payload.components.map((r) => r.toJSON()), allowed_mentions: { parse: [] } }, guildId));
-    if (settings.tempVoicePanelChannelId && settings.tempVoicePanelMessageId) { // the older panel is replaced, not left next to the new one
-      await botApi.delete(`/channels/${settings.tempVoicePanelChannelId}/messages/${settings.tempVoicePanelMessageId}`).catch(() => {});
-    }
-    settings.tempVoicePanelChannelId = channelId;
-    settings.tempVoicePanelMessageId = data.id;
-    await settings.save();
+    await require('../../../services/panelMessages').postPanel(settings, channelId, payload, { channel: 'tempVoicePanelChannelId', message: 'tempVoicePanelMessageId' }, (b) => i18nOut(b, guildId));
     res.redirect(saved(guildId, 'temp-voice', 'vpanel'));
   } catch (err) {
     const { errorKey } = require('../../../bot/utils/discordErrors');

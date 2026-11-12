@@ -44,7 +44,7 @@
                 <button class="btn btn-danger" type="submit" form="shopdel-<%= it.id %>">Удалить</button>
               </div>
             </form>
-            <form id="shopdel-<%= it.id %>" method="post" action="/dashboard/<%= guild.id %>/shop/items/<%= it.id %>/delete" data-no-guard data-confirm="Удалить товар «<%= it.name %>»?" onsubmit="return confirm(this.dataset.confirm)"></form>
+            <form id="shopdel-<%= it.id %>" method="post" action="/dashboard/<%= guild.id %>/shop/items/<%= it.id %>/delete" data-no-guard data-confirm="Удалить товар «<%= it.name %>»?" data-confirm-ok="Удалить"></form>
           </details>
         <% }) %>
       </div>
@@ -73,7 +73,7 @@
                   <td><%= shopId ? 'магазин' + (it ? ': ' + it.name : '') : '/temprole' %></td>
                   <td><time datetime="<%= end.toISOString() %>" title="<%= end.toISOString() %>"><%= end.toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %></time></td>
                   <td>
-                    <form method="post" action="/dashboard/<%= guild.id %>/shop/terms/<%= t.id %>/revoke" data-no-guard onsubmit="return confirm('Снять роль сейчас, не дожидаясь конца срока?')">
+                    <form method="post" action="/dashboard/<%= guild.id %>/shop/terms/<%= t.id %>/revoke" data-no-guard data-confirm="Снять роль сейчас, не дожидаясь конца срока?" data-confirm-ok="Снять роль">
                       <button class="btn btn-danger" type="submit"<%= r && r.blocked ? ' disabled title="' + r.blocked + '"' : '' %>>Снять</button>
                     </form>
                   </td>
@@ -105,7 +105,7 @@
                         <form method="post" action="/dashboard/<%= guild.id %>/shop/purchases/<%= p.id %>/deliver" data-no-guard><button class="btn" type="submit">Выдано</button></form>
                       <% } %>
                       <% if (p.status !== 'refunded') { %>
-                        <form method="post" action="/dashboard/<%= guild.id %>/shop/purchases/<%= p.id %>/refund" data-no-guard data-confirm="Вернуть <%= n(p.price) %> <%= cn(p.currency) %> покупателю?<%= p.itemType === 'role' ? ' Роль будет снята.' : '' %>" onsubmit="return confirm(this.dataset.confirm)"><button class="btn btn-danger" type="submit">Вернуть</button></form>
+                        <form method="post" action="/dashboard/<%= guild.id %>/shop/purchases/<%= p.id %>/refund" data-no-guard data-confirm="Вернуть <%= n(p.price) %> <%= cn(p.currency) %> покупателю?<%= p.itemType === 'role' ? ' Роль будет снята.' : '' %>" data-confirm-ok="Вернуть"><button class="btn btn-danger" type="submit">Вернуть</button></form>
                       <% } %>
                     </div>
                   </td>

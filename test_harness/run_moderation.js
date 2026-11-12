@@ -394,7 +394,10 @@ const { makeUser, makeInteraction } = require('./mock');
   });
   await test('panel: the save bar script waits for the page (the forms come after the sidebar), and every table can scroll sideways', async () => {
     const html = await (await fetch(base2 + '/automod')).text();
-    assert(/DOMContentLoaded[\s\S]{0,80}\n\s+var bar = document\.getElementById\('saveBar'\)/.test(html), 'save bar script must run after the forms exist');
+    // the save bar lives in /js/panel.js, loaded with "defer" (it runs when the whole page, forms included, is parsed)
+    assert(/<script src="\/js\/panel\.js[^"]*" defer><\/script>/.test(html), 'panel.js is deferred');
+    const panelJs = fs.readFileSync(path.join(__dirname, '..', 'web', 'public', 'js', 'panel.js'), 'utf8');
+    assert(/DOMContentLoaded[\s\S]{0,80}\n\s+var bar = document\.getElementById\('saveBar'\)/.test(panelJs), 'save bar script must run after the forms exist');
     for (const f of fs.readdirSync(path.join(__dirname, '..', 'web', 'views', 'dashboard'))) {
       const t = fs.readFileSync(path.join(__dirname, '..', 'web', 'views', 'dashboard', f), 'utf8');
       assert(!t.includes('<table') || t.includes('table-scroll'), f + ': a table without a scroll wrapper breaks the phone layout');

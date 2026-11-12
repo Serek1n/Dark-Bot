@@ -1,5 +1,42 @@
 [
  {
+  "bot": "3.6.1",
+  "panel": "3.8.0",
+  "date": "2026-11-12",
+  "botChanges": [
+   "Запросы к Discord из панели и конструктора идут через бота и учитывают лимиты Discord",
+   "Смена уровня в /level и в панели — одна общая функция"
+  ],
+  "panelChanges": [
+   "Выпадающие списки больше не уходят под соседние карточки и не обрезаются",
+   "Подтверждения — в окне панели: понятный текст, «Отмена» по умолчанию",
+   "Изменение баланса и уровня участника спрашивает подтверждение",
+   "Таблицы на телефоне показываются карточками, без прокрутки вбок",
+   "Текст и подсказки не вылезают за края карточек на узких экранах",
+   "Единые размеры текста, углов и отступов; стили разбиты на части",
+   "Страница не прыгает при появлении колонки «На этой странице»",
+   "Страницы не выполняют встроенных скриптов: защита от внедрённого кода",
+   "Переключатели крупнее, у полей в таблицах есть подписи"
+  ],
+  "en": {
+   "botChanges": [
+    "Panel and builder requests to Discord go through the bot, within Discord’s limits",
+    "Changing a level in /level and in the panel is one shared function"
+   ],
+   "panelChanges": [
+    "Dropdowns no longer go under the next card and are not cut off",
+    "Confirmations open in the panel’s own window: clear text, “Cancel” by default",
+    "Changing a member’s balance or level asks for confirmation",
+    "Tables on phones are shown as cards, without sideways scrolling",
+    "Text and hints no longer run out of the cards on narrow screens",
+    "One scale of text sizes, corners and spacing; the styles are split into parts",
+    "The page no longer jumps when the “On this page” column appears",
+    "Pages run no inline scripts: protection against injected code",
+    "Bigger switches, fields in tables have captions"
+   ]
+  }
+ },
+ {
   "bot": "3.6.0",
   "panel": "3.7.0",
   "date": "2026-11-11",

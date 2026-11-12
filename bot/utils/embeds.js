@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require('discord.js');
 
-// Matches the web dashboard's design tokens (see web/public/css/style.css)
+// Matches the web dashboard's design tokens (see web/styles/00-tokens.css)
 // so the bot's replies and the panel feel like one product.
 const COLORS = {
   primary: 0xe3a857, // ember — brand accent

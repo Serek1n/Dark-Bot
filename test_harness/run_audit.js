@@ -83,7 +83,8 @@ const assert = require('assert');
     const views = path.join(__dirname, '..', 'web', 'views');
     const sidebar = fs.readFileSync(path.join(views, 'partials', 'sidebar.ejs'), 'utf8');
     assert(sidebar.includes('class="skip-link" href="#main"'), 'skip link');
-    assert(/id="saveBar" inert/.test(sidebar) && sidebar.includes("bar.removeAttribute('inert')"), 'save bar is inert until something is edited');
+    const panelJs = fs.readFileSync(path.join(__dirname, '..', 'web', 'public', 'js', 'panel.js'), 'utf8');
+    assert(/id="saveBar" inert/.test(sidebar) && panelJs.includes("bar.removeAttribute('inert')"), 'save bar is inert until something is edited');
     for (const f of fs.readdirSync(path.join(views, 'dashboard'))) {
       const html = fs.readFileSync(path.join(views, 'dashboard', f), 'utf8');
       if (!html.includes("include('../partials/sidebar')")) continue;
@@ -93,7 +94,7 @@ const assert = require('assert');
     const ui = fs.readFileSync(path.join(__dirname, '..', 'web', 'public', 'js', 'ui.js'), 'utf8');
     assert(ui.includes("label:not([for])") && ui.includes('lab.htmlFor = field.id'), 'captions are tied to their fields');
     assert(ui.includes('role="combobox"') && ui.includes('aria-activedescendant') && ui.includes('opener.focus()'), 'search: announced results, focus goes back');
-    const css = fs.readFileSync(path.join(__dirname, '..', 'web', 'public', 'css', 'style.css'), 'utf8');
+    const css = require('../web/styles').stylesheet().text;
     assert(css.includes('--field-border') && !/\.rail-slot|\.sidebar-guild/.test(css), 'visible field edges; the old side menu styles are gone');
   });
 
@@ -102,6 +103,64 @@ const assert = require('assert');
     assert(index.includes("process.once('SIGTERM'") && index.includes('flushAll()'), 'voice time is written on stop');
     const ignore = fs.readFileSync(path.join(__dirname, '..', '.dockerignore'), 'utf8');
     assert(/^\.env$/m.test(ignore) && /^data$/m.test(ignore) && /^\.git$/m.test(ignore));
+  });
+
+  await test('one REST client: through discord.js when the bot runs (route, query, audit reason, body), errors in the shape callers read', async () => {
+    const bridge = require('../web/botBridge');
+    const seen = [];
+    const fake = { isReady: () => true, rest: {
+      get: async (route, o) => { seen.push(['get', route, o.query && o.query.toString(), o.reason]); if (route === '/gone') { const e = new Error('Unknown Channel'); e.status = 404; e.code = 10003; e.rawError = { code: 10003, message: 'Unknown Channel' }; throw e; } return { ok: route }; },
+      put: async (route, o) => { seen.push(['put', route, 'body' in o, o.reason]); },
+      post: async (route, o) => { seen.push(['post', route, JSON.stringify(o.body)]); return { id: 'NEW' }; }
+    } };
+    bridge.setClient(fake);
+    try {
+      const api = require('../web/discordRest').createBotApi();
+      assert.deepStrictEqual((await api.get('/guilds/1?with_counts=true', { params: { limit: 5 } })).data, { ok: '/guilds/1' });
+      assert.deepStrictEqual(seen[0], ['get', '/guilds/1', 'with_counts=true&limit=5', undefined]);
+      await api.put('/guilds/1/members/2/roles/3', null, { headers: { 'X-Audit-Log-Reason': encodeURIComponent('Уровень изменён') } });
+      assert.deepStrictEqual(seen[1], ['put', '/guilds/1/members/2/roles/3', false, 'Уровень изменён'], 'no body for an empty PUT, the reason decoded');
+      assert.strictEqual((await api.post('/channels/1/messages', { content: 'x' })).data.id, 'NEW');
+      const err = await api.get('/gone').catch((e) => e);
+      assert.strictEqual(err.response.status, 404); assert.strictEqual(err.response.data.code, 10003);
+      assert.strictEqual(require('../bot/utils/discordErrors').errorKey(err) !== undefined, true);
+    } finally { bridge.setClient(null); }
+  });
+
+  await test('the stylesheet: parts in a fixed order, one file for the browser, scales instead of loose numbers', async () => {
+    const styles = require('../web/styles');
+    const names = styles.parts();
+    assert.deepStrictEqual(names, [...names].sort(), 'parts are read in the order of their numbers');
+    assert(names[0].startsWith('00-tokens'), 'tokens come first');
+    const css = styles.stylesheet().text;
+    assert(!/font-size:\s*[\d.]+(px|rem)/.test(css), 'every text size is a token of the scale');
+    assert(!/border-radius:[^;}]*\d+px/.test(css), 'every corner is a token of the scale');
+    assert(/--fs-14: 14px/.test(css) && /--r-pill: 999px/.test(css) && /--dc-blurple/.test(css));
+    assert(!fs.existsSync(path.join(__dirname, '..', 'web', 'public', 'css', 'style.css')), 'no second copy that could drift');
+  });
+
+  await test('pages run no inline scripts (the policy forbids them) and ask with the panel\'s own window', async () => {
+    const views = path.join(__dirname, '..', 'web', 'views');
+    const walk = (d) => fs.readdirSync(d).flatMap((f) => { const p = path.join(d, f); return fs.statSync(p).isDirectory() ? walk(p) : [p]; });
+    for (const f of walk(views).filter((x) => x.endsWith('.ejs'))) {
+      const html = fs.readFileSync(f, 'utf8');
+      assert(!/<script>/.test(html), path.basename(f) + ': inline script');
+      assert(!/\son(click|submit|change|input|load|error|keydown)=/i.test(html), path.basename(f) + ': inline handler');
+    }
+    const index = fs.readFileSync(path.join(__dirname, '..', 'web', 'index.js'), 'utf8');
+    assert(/script-src 'self';/.test(index) && !/script-src[^;]*unsafe-inline/.test(index), 'script-src without unsafe-inline');
+    const js = fs.readdirSync(path.join(__dirname, '..', 'web', 'public', 'js')).map((f) => fs.readFileSync(path.join(__dirname, '..', 'web', 'public', 'js', f), 'utf8')).join('\n');
+    assert(!/[^.\w]confirm\(/.test(js.replace(/darkConfirm\(/g, '')), 'no browser confirm() left');
+  });
+
+  await test('services: /level and the panel change a level through one function', async () => {
+    const { adjustLevel } = require('../services/levels');
+    assert.strictEqual(require('../bot/commands/leveling/level').adjustLevel, adjustLevel, 'the command uses the service');
+    const r = await adjustLevel(G, '850000000000000001', 'set', 7);
+    assert.strictEqual(r.level, 7);
+    assert.strictEqual((await db.MemberProfile.findOne({ where: { guildId: G, userId: '850000000000000001' } })).level, 7);
+    const src = fs.readFileSync(path.join(__dirname, '..', 'web', 'routes', 'dashboard', 'leveling.js'), 'utf8');
+    assert(src.includes("require('../../../services/levels').adjustLevel"), 'the panel uses the service');
   });
 
   for (const r of results) console.log(`${r.ok ? '✅' : '❌'} ${r.l} ${r.ok ? '' : '\n   ' + r.e}`);

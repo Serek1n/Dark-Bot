@@ -142,8 +142,8 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     s = await db.GuildSettings.findByPk(G);
     loc = await post('/moderation', { modLogChannelId: s.reportChannelId, reportChannelId: s.reportChannelId });
     assert(loc.includes('saved=1'), loc);
-    const sidebar = fs.readFileSync(path.join(__dirname, '..', 'web', 'views', 'partials', 'sidebar.ejs'), 'utf8');
-    assert(sidebar.includes("noperm: [needText(params.get('need')), true]") && sidebar.includes('не хватает прав'), 'the message on the page');
+    const toasts = fs.readFileSync(path.join(__dirname, '..', 'web', 'public', 'js', 'panel.js'), 'utf8'); // the toasts of every page
+    assert(toasts.includes("noperm: [needText(params.get('need')), true]") && toasts.includes('не хватает прав'), 'the message on the page');
   });
 
   await test('logs: "what not to log" keeps only this server\'s channels and roles; the bot skips them', async () => {

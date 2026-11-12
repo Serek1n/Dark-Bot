@@ -455,7 +455,7 @@
       case 'ts-clear': state.embeds[e].timestamp = ''; renderEmbeds(); break;
       case 'add-button': if (state.buttons.length < 25) { state.buttons.push({ label: '', url: '' }); renderButtons(); } break;
       case 'button-del': state.buttons.splice(+b.getAttribute('data-b'), 1); renderButtons(); break;
-      case 'clear': if (confirm('Очистить редактор?')) { state = fromMessage({}); savedId = 0; $('#m-savename').value = ''; $('#m-ref').value = ''; syncRef(); syncSaveButtons(); renderAll(); status($('#m-status'), ''); } return;
+      case 'clear': window.darkConfirm('Очистить редактор? Несохранённое сообщение пропадёт.', { ok: 'Очистить' }).then(function (ok) { if (!ok) return; state = fromMessage({}); savedId = 0; $('#m-savename').value = ''; $('#m-ref').value = ''; syncRef(); syncSaveButtons(); renderAll(); status($('#m-status'), ''); }); return;
       case 'send': send(false); return;
       case 'edit': send(true); return;
       case 'load': loadMessage(); return;
@@ -485,8 +485,11 @@
 
   // ---------- send / edit / load ----------
   function send(edit) {
+    if (edit) { window.darkConfirm('Заменить уже отправленное сообщение этим?', { ok: 'Заменить' }).then(function (ok) { if (ok) doSend(true); }); return; }
+    doSend(false);
+  }
+  function doSend(edit) {
     var st = $('#m-status');
-    if (edit && !confirm('Заменить уже отправленное сообщение этим?')) return;
     status(st, 'Отправляю…');
     api('/send', { target: readTarget(), message: toMessage(), messageRef: edit ? $('#m-ref').value.trim() : '' }).then(function (r) {
       if (!r.ok) return status(st, r.error, true);

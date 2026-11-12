@@ -1,0 +1,93 @@
+/* Later passes: compact search, accessibility, narrow screens, confirmation window, tables on phones */
+/* 2026-11c: compact search, a backing for "На этой странице", quicker motion */
+.qj { padding: 12vh 16px 16px !important; align-items: flex-start !important; }
+.qj-panel { max-width: 560px !important; height: auto !important; max-height: min(520px, 76vh) !important; border-radius: var(--r-16) !important; border: 1px solid var(--hairline) !important; }
+.qj-list { flex: 0 1 auto; max-height: 380px; }
+.qj-item .qj-ic { display: grid; place-items: center; flex-direction: initial; width: 32px; height: 32px; flex: 0 0 32px; border-radius: var(--r-10); }
+.qj-item .qj-ic svg { width: 16px; height: 16px; display: block; margin: 0; }
+.qj-item .qj-txt { display: flex; flex-direction: column; }
+.qj-item { padding: 8px 10px; }
+.qj-item b { font-size: var(--fs-14); }
+.qj-item small { font-size: var(--fs-12); }
+.qj-field .qj-input { padding: 14px 0; font-size: var(--fs-16); }
+@media (max-width: 760px) {
+  .qj { padding: 10px 10px 10px !important; }
+  .qj-panel { max-width: none !important; max-height: 70vh !important; }
+  .qj-list { max-height: calc(70vh - 60px); }
+}
+
+@media (min-width: 1280px) {
+  body.has-toc .page-toc { background: var(--panel); border: 1px solid var(--hairline); border-radius: var(--r-14); padding: 12px 8px 10px; max-height: calc(100vh - 160px); }
+}
+.toc-cap { padding: 2px 10px 8px; }
+
+.app-layout > .content > * { animation-duration: .18s; }
+.app-layout > .content > *:nth-child(2) { animation-delay: .015s; }
+.app-layout > .content > *:nth-child(3) { animation-delay: .03s; }
+.app-layout > .content > *:nth-child(4) { animation-delay: .045s; }
+.app-layout > .content > *:nth-child(n+5) { animation-delay: .06s; }
+body.has-toc .page-toc { animation-duration: .18s; }
+details[open] > :not(summary), .tb-user-menu, .ms-list:not([hidden]), .fs-pop { animation-duration: .1s; }
+.qj { transition-duration: .08s; }
+.qj-panel { transition-duration: .1s; }
+.nd-panel { animation-duration: .14s; }
+.nd-backdrop { animation-duration: .12s; }
+.page-toc a, .page-toc a::before { transition-duration: .1s; }
+.tb-group, .tb-icon, .tb-search, .btn, .nd-nav a, .ms-item, .card .rule, .tb-tab, .fs-btn, .fs-chev { transition-duration: .1s; }
+.toast { animation-duration: .15s; }
+
+/* 2026-11d: accessibility pass */
+.skip-link { position: fixed; left: 12px; top: -60px; z-index: 2000; padding: 10px 16px; border-radius: var(--r-10); background: var(--ember); color: var(--on-ember); font-weight: 600; font-size: var(--fs-14); text-decoration: none; transition: top .1s ease; }
+.skip-link:focus { top: 12px; outline: none; box-shadow: var(--focus-ring); }
+main.content:focus { outline: none; }
+input:hover, select:hover, textarea:hover, .fs-btn:hover { border-color: var(--fog); }
+.card-link { display: inline-flex; align-items: center; min-height: 24px; }
+.feature-link { min-height: 24px; line-height: 24px; }
+@media (pointer: coarse) {
+  .tb-guild, .chip, .lang-fab, .theme-fab, .nd-nav a { min-height: 44px; }
+  .lang-fab, .theme-fab { min-width: 44px; }
+  .tpl-chip { min-height: 40px; padding: 8px 12px; font-size: var(--fs-13); }
+  .card-link, .content summary { min-height: 44px; }
+  .feature-link { min-height: 44px; line-height: 44px; }
+  .num-step { display: none; } /* the on-screen keyboard does it better than 17px arrows */
+  .content textarea { min-height: 44px; }
+}
+.checkbox-row .cr-text { flex: 1; min-width: 0; }
+
+/* 2026-11e: nothing runs out of its card on narrow screens */
+.hint, p.hint, .muted, .card label, .card td { overflow-wrap: anywhere; }
+.hint code, .tpl-body code { white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .rule-ctl { flex-wrap: wrap; row-gap: 6px; }
+  .rule-ctl .unit { white-space: normal; }
+  .rule-ctl input[type=number] { width: 84px; }
+}
+
+/* confirmation window (ui.js: darkConfirm) */
+.ask { position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; padding: 16px; background: var(--backdrop); opacity: 0; transition: opacity .1s ease; }
+.ask.in { opacity: 1; }
+.ask-panel { width: 100%; max-width: 420px; padding: 24px 24px 18px; border-radius: var(--r-16); background: var(--panel); border: 1px solid var(--hairline); box-shadow: 0 24px 60px var(--shadow-pop); transform: translateY(6px) scale(.98); transition: transform .12s ease; }
+.ask.in .ask-panel { transform: none; }
+.ask-text { margin: 0 0 18px; font-size: var(--fs-15); line-height: 1.5; color: var(--paper); overflow-wrap: anywhere; }
+.ask-row { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.ask-row .btn { min-width: 110px; }
+@media (max-width: 560px) { .ask { align-items: end; } .ask-row .btn { flex: 1; } }
+@media (prefers-reduced-motion: reduce) { .ask, .ask-panel { transition: none; } }
+
+/* tables on phones: each row is a small card, each cell has the column name as its caption (ui.js sets data-label) */
+@media (max-width: 640px) {
+  .table-scroll:has(> table.rt) { overflow: visible; }
+  table.rt, table.rt tbody, table.rt tr, table.rt td { display: block; width: 100%; min-width: 0; }
+  table.rt { min-width: 0; }
+  table.rt thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  table.rt tr { margin: 0 0 10px; padding: 6px 12px; border: 1px solid var(--hairline); border-radius: var(--r-12); background: var(--soft); }
+  table.rt tbody tr:hover { background: var(--soft); }
+  table.rt td { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--hairline-soft); text-align: right; white-space: normal !important; }
+  table.rt td:last-child { border-bottom: 0; }
+  table.rt td[data-label]::before { content: attr(data-label); flex: 0 0 auto; max-width: 45%; color: var(--fog-dim); font-size: var(--fs-13); text-align: left; }
+  table.rt td:not([data-label]), table.rt td.rt-wide { justify-content: flex-start; text-align: left; }
+  table.rt td > * { min-width: 0; }
+  table.rt td input:not([type=checkbox]), table.rt td select, table.rt td .fs { width: 55% !important; max-width: 55%; flex: 0 0 55%; }
+  table.rt td:last-child:has(> form), table.rt td:last-child:has(> .btn) { justify-content: flex-end; flex-wrap: wrap; }
+  .table-wrap:has(table.rt) { overflow: visible; }
+}

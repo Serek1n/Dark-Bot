@@ -2,28 +2,14 @@
 // Only for those with "Manage Server". The member lands at the start of the new level; level roles follow at once
 // (a lower level takes away the roles that are no longer reached). No crystals are paid for such a change.
 const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
-const { MemberProfile } = require('../../../db');
-const { computeLevelAdjust, getOrCreateSettings, MAX_LEVEL } = require('../../modules/leveling');
+const { getOrCreateSettings, MAX_LEVEL } = require('../../modules/leveling');
 const { computeAdjustRoleChanges, getLevelRoles } = require('../../modules/levelRoles');
 const embeds = require('../../utils/embeds');
 
 const amountOpt = (min) => (o) => o.setName('amount').setDescription('Сколько уровней').setMinValue(min).setMaxValue(MAX_LEVEL).setRequired(true);
 const userOpt = (o) => o.setName('user').setDescription('Участник').setRequired(true);
 
-/** Changes the level in the database without losing XP the bot adds at the same moment. Returns the result or null. */
-async function adjustLevel(guildId, userId, mode, amount) {
-  await MemberProfile.findOrCreate({ where: { guildId, userId } });
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const p = await MemberProfile.findOne({ where: { guildId, userId } });
-    const next = computeLevelAdjust(p, mode, amount);
-    const [changed] = await MemberProfile.update(
-      { xp: next.xp, level: next.level, chatXp: next.chatXp, voiceXp: next.voiceXp },
-      { where: { guildId, userId, xp: p.xp, chatXp: p.chatXp, voiceXp: p.voiceXp } }
-    );
-    if (changed) return next;
-  }
-  return null;
-}
+const { adjustLevel } = require('../../../services/levels'); // the same as "Изменить уровень участника" in the panel
 
 module.exports = {
   adjustLevel,

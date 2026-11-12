@@ -82,7 +82,7 @@
                 <strong><%= h.name %></strong> · <%= channel ? '#' + channel.name : h.channel_id %> · ID <code><%= h.id %></code>
                 <details>
                   <summary>Показать ссылку</summary>
-                  <input type="text" readonly value="https://discord.com/api/webhooks/<%= h.id %>/<%= h.token %>" onclick="this.select()" />
+                  <input type="text" readonly value="https://discord.com/api/webhooks/<%= h.id %>/<%= h.token %>" data-select-all />
                 </details>
                 <details>
                   <summary>Отправить сообщение</summary>
@@ -102,7 +102,7 @@
                   </form>
                 </details>
               </div>
-              <form method="post" action="/dashboard/<%= guild.id %>/webhooks/<%= h.id %>/delete" data-confirm="Удалить вебхук «<%= h.name %>»? Сервисы, которые используют его ссылку, перестанут работать." onsubmit="return confirm(this.dataset.confirm)">
+              <form method="post" action="/dashboard/<%= guild.id %>/webhooks/<%= h.id %>/delete" data-confirm="Удалить вебхук «<%= h.name %>»? Сервисы, которые используют его ссылку, перестанут работать." data-confirm-ok="Удалить">
                 <button class="btn btn-danger" type="submit">Удалить</button>
               </form>
             </div>

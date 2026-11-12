@@ -141,7 +141,7 @@
         <button class="btn" type="submit">Сохранить</button>
       </form>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/leveling/adjust" class="card" id="adjust" data-no-guard>
+      <form method="post" action="/dashboard/<%= guild.id %>/leveling/adjust" class="card" id="adjust" data-no-guard data-confirm="Изменить уровень участника? Роли за уровни будут выданы или сняты сразу." data-confirm-ok="Изменить" data-confirm-soft>
         <h2>Изменить уровень участника</h2>
         <p>Добавьте или уберите уровни, либо задайте точный. Участник окажется в начале нужного уровня, роли за уровни обновятся сразу. Кристаллы за такое изменение не выдаются.</p>
         <% if (locals.adjusted) { %>
@@ -183,50 +183,11 @@
         <h2>Импорт уровней</h2>
         <p>Перенос из экспорта Lacuna или из экспорта этого бота (файл <code>.json</code>). Чужой опыт нельзя разделить на чат и голос, он считается чатовым. Экспорт Dark восстанавливает опыт чата и голоса отдельно и кристаллы. Существующие значения не уменьшаются.</p>
         <input type="file" id="importFile" aria-label="Файл с уровнями" accept=".json,application/json" />
-        <button class="btn" type="button" id="importBtn">Импортировать</button>
+        <button class="btn" type="button" id="importBtn" data-url="/dashboard/<%= guild.id %>/leveling/import">Импортировать</button>
         <div class="hint" id="importStatus"></div>
       </div>
 
-      <script>
-        (function () {
-          var btn = document.getElementById('importBtn');
-          var input = document.getElementById('importFile');
-          var status = document.getElementById('importStatus');
-          btn.addEventListener('click', function () {
-            var file = input.files[0];
-            if (!file) { status.textContent = 'Выберите файл.'; return; }
-            status.textContent = 'Читаю файл…';
-            file.text().then(function (text) {
-              var users;
-              try { users = JSON.parse(text); } catch (e) { status.textContent = 'Это не JSON-файл.'; return; }
-              btn.disabled = true;
-              status.textContent = 'Импортирую…';
-              return fetch('/dashboard/<%= guild.id %>/leveling/import', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ users: users })
-              }).then(function (r) {
-                return r.text().then(function (body) {
-                  var data = null;
-                  try { data = JSON.parse(body); } catch (e) {}
-                  if (data && data.ok) {
-                    status.textContent = 'Готово: импортировано ' + data.imported + ', пропущено ' + data.skipped + '.';
-                  } else if (data) {
-                    status.textContent = 'Ошибка: ' + data.error;
-                  } else if (r.status === 413) {
-                    status.textContent = 'Файл слишком большой для nginx (увеличьте client_max_body_size, см. README).';
-                  } else if (r.redirected || r.status === 401 || r.status === 403) {
-                    status.textContent = 'Сессия истекла или нет прав (HTTP ' + r.status + '). Обновите страницу и войдите заново.';
-                  } else {
-                    status.textContent = 'Сервер ответил HTTP ' + r.status + '. Проверьте pm2 logs dark-web.';
-                  }
-                });
-              });
-            }).catch(function (e) { status.textContent = 'Не удалось связаться с сервером: ' + (e && e.message ? e.message : e); })
-              .then(function () { btn.disabled = false; });
-          });
-        })();
-      </script>
+
     </main>
   </div>
 </body>

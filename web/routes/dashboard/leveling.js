@@ -29,21 +29,10 @@ router.post('/:guildId/leveling/adjust', ensureGuildAccess, async (req, res) => 
   const problem = await require('../../utils/members').memberProblem(guildId, userId);
   if (problem) return res.redirect(saved(guildId, 'leveling', problem) + '#adjust');
   const mode = ['add', 'remove', 'set'].includes(req.body.mode) ? req.body.mode : 'add';
-  const { computeLevelAdjust, MAX_LEVEL } = require('../../../bot/modules/leveling');
+  const { MAX_LEVEL } = require('../../../bot/modules/leveling');
   const amount = clampInt(req.body.amount, mode === 'set' ? 0 : 1, MAX_LEVEL, mode === 'set' ? 0 : 1);
 
-  await MemberProfile.findOrCreate({ where: { guildId, userId } });
-  // The bot adds experience at the same time: write only if nobody changed the row since it was read, otherwise read again.
-  let result = null;
-  for (let attempt = 0; attempt < 5 && !result; attempt++) {
-    const profile = await MemberProfile.findOne({ where: { guildId, userId } });
-    const next = computeLevelAdjust(profile, mode, amount);
-    const [changed] = await MemberProfile.update(
-      { xp: next.xp, level: next.level, chatXp: next.chatXp, voiceXp: next.voiceXp },
-      { where: { guildId, userId, xp: profile.xp, chatXp: profile.chatXp, voiceXp: profile.voiceXp } }
-    );
-    if (changed) result = next;
-  }
+  const result = await require('../../../services/levels').adjustLevel(guildId, userId, mode, amount); // the same as /level
   if (!result) return res.redirect(saved(guildId, 'leveling', 'invalid'));
 
   // Level roles (best effort: the member may have left, or the bot may not be allowed to give a role).

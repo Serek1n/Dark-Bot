@@ -1,0 +1,153 @@
+/* Theme tokens, light theme, scales */
+/* ============================================================
+   Dark Dashboard — design tokens
+   A night-watch control panel: cool near-black base, one warm
+   ember accent used sparingly, serif display type for character,
+   monospace for data read-outs.
+   ============================================================ */
+
+:root {
+  --ink: #0e1016;
+  --rail: #12151d;
+  --panel: #161922;
+  --panel-raised: #1d2130;
+  --hairline: #272b38;
+  --field-border: #5f6680; /* edges of inputs: 3:1 against the card (WCAG 1.4.11) */
+  --hairline-soft: #1f2330;
+  --paper: #eceef5;
+  --fog: #a0a6ba;
+  --fog-dim: #8a90a6;
+
+  --ember: #9a93ff;
+  --ember-hover: #aca6ff;
+  --ember-tint: rgba(139, 131, 255, 0.16);
+  --ember-tint-strong: rgba(139, 131, 255, 0.26);
+  --on-ember: #0e1016;
+
+  --signal: #6b8afa;
+  --signal-tint: rgba(107, 138, 250, 0.14);
+
+  --danger: #ff8d93;
+  --danger-tint: rgba(255, 141, 147, 0.14);
+
+  --success: #5cb98a;
+  --success-tint: rgba(92, 185, 138, 0.14);
+
+  --soft: rgba(255, 255, 255, 0.02);
+  --legal-text: #c9c6bf;
+  --gold: #f0c36e; --silver: #c3c7d1; --bronze: #d08c58;
+
+  --font-display: 'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-ui: 'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  --radius: 8px; /* = --r-8 */
+}
+
+/* Scales and fixed colours: the same in both themes.
+   Text: 11 12 13 14 15 16 18 20 24 28 34 48 px. Corners: 4 6 8 10 12 14 16 20 px and "pill".
+   Spacing (padding, margin, gap) stays on a 2 px grid up to 20 px, then 24 28 32 40 48 56 64 72 96. */
+:root {
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-15: 15px;
+  --fs-16: 16px;
+  --fs-18: 18px;
+  --fs-20: 20px;
+  --fs-24: 24px;
+  --fs-28: 28px;
+  --fs-34: 34px;
+  --fs-48: 48px;
+  --r-4: 4px;
+  --r-6: 6px;
+  --r-8: 8px;
+  --r-10: 10px;
+  --r-12: 12px;
+  --r-14: 14px;
+  --r-16: 16px;
+  --r-20: 20px;
+  --r-pill: 999px;
+  /* Discord's own dark theme, copied by the message previews on purpose (in both panel themes) */
+  --dc-bg: #313338; --dc-surface: #2b2d31; --dc-deep: #1e1f22; --dc-embed: #202225; --dc-text: #dbdee1; --dc-heading: #f2f3f5;
+  --dc-muted: #949ba4; --dc-footer: #b5bac1; --dc-line: #4e5058; --dc-hover: #3f4147; --dc-blurple: #5865f2; --dc-link: #00a8fc;
+  --dc-mention: #c9cdfb; --dc-mention-bg: rgba(88, 101, 242, 0.3);
+  /* shadows and the dimmed page behind windows */
+  --shadow-pop: rgba(0, 0, 0, 0.5); --backdrop: rgba(6, 7, 10, 0.62);
+}
+
+/* Light theme: the same names, different values (the choice is kept in the browser, see js/theme.js). */
+[data-theme="light"] {
+  --ink: #f4f5f8;
+  --rail: #ffffff;
+  --panel: #ffffff;
+  --panel-raised: #eef0f5;
+  --hairline: #dfe2ea;
+  --field-border: #8a90a3;
+  --hairline-soft: #eceef4;
+  --paper: #16181d;
+  --fog: #565b6b;
+  --fog-dim: #5f6474;
+
+  --ember: #4338ca;
+  --ember-hover: #3730a3;
+  --ember-tint: #e9e8ff;
+  --ember-tint-strong: #dad8ff;
+  --on-ember: #ffffff;
+
+  --signal: #3446c4;
+  --signal-tint: #e4e8fb;
+
+  --danger: #b3262e;
+  --danger-tint: #fbe6e7;
+
+  --success: #1d7a4d;
+  --success-tint: #e1f4ea;
+
+  --soft: rgba(20, 24, 40, 0.03);
+  --legal-text: #3a3d47;
+  --gold: #946300; --silver: #5b6070; --bronze: #99542a;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+html { color-scheme: dark; }
+html[data-theme="light"] { color-scheme: light; }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-ui);
+  font-size: var(--fs-15);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.012em; }
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--panel-raised);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-4);
+  padding: 1px 6px;
+  color: var(--ember);
+}
+
+::selection { background: var(--ember-tint-strong); color: var(--paper); }
+
+:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+  border-radius: var(--r-4);
+}

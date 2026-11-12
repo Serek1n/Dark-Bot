@@ -74,11 +74,11 @@
   //    headings, so every page has it); the card on screen is lit while scrolling. Narrow screens keep the buttons on top.
   function pageToc() {
     var content = document.querySelector('.app-layout > .content');
-    if (!content || !document.querySelector('.topbar') || content.querySelector('.msg-tabs')) return; // pages with their own tabs keep them
+    if (!content || !document.querySelector('.topbar') || content.querySelector('.msg-tabs')) { document.body.classList.add('no-toc'); return; } // pages with their own tabs keep them
     var heads = Array.prototype.filter.call(content.querySelectorAll('.card > h2, section.card h2, .card > .card-head h2'), function (h) {
       return h.offsetParent !== null || h.closest('[data-pane]');
     }).filter(function (h) { return !h.closest('[hidden]'); });
-    if (heads.length < 3) return;
+    if (heads.length < 3) { document.body.classList.add('no-toc'); return; }
     var title = (content.querySelector('.page-header h1, .hero h1, h1') || {}).textContent || '';
     var toc = document.createElement('nav'); toc.className = 'page-toc'; toc.setAttribute('aria-label', 'На этой странице');
     var cap = document.createElement('div'); cap.className = 'toc-cap'; cap.textContent = 'На этой странице'; toc.appendChild(cap);
@@ -402,6 +402,19 @@
       lab.htmlFor = field.id;
     });
     Array.prototype.forEach.call(document.querySelectorAll('thead th:not([scope])'), function (th) { th.setAttribute('scope', 'col'); });
+    // On a phone a table row becomes a card: every cell says which column it belongs to (CSS shows it as a caption).
+    Array.prototype.forEach.call(document.querySelectorAll('.content table'), function (t) {
+      var heads = t.tHead ? Array.prototype.map.call(t.tHead.rows[0] ? t.tHead.rows[0].cells : [], function (th) { return { text: th.textContent.trim(), span: th.colSpan || 1 }; }) : [];
+      if (!heads.length) return;
+      var names = []; heads.forEach(function (h) { for (var k = 0; k < h.span; k++) names.push(k ? '' : h.text); });
+      Array.prototype.forEach.call(t.tBodies, function (tb) {
+        Array.prototype.forEach.call(tb.rows, function (tr) {
+          var col = 0;
+          Array.prototype.forEach.call(tr.cells, function (td) { if (names[col] && !td.hasAttribute('data-label')) td.setAttribute('data-label', names[col]); var fld = names[col] && td.querySelector('input:not([type=hidden]), select, textarea'); if (fld && !(fld.labels && fld.labels.length) && !fld.getAttribute('aria-label')) fld.setAttribute('aria-label', names[col]); if (td.colSpan > 1) td.classList.add('rt-wide'); col += td.colSpan || 1; });
+        });
+      });
+      t.classList.add('rt');
+    });
   })();
 
   document.querySelectorAll('.pick').forEach(multiPick);
@@ -422,8 +435,10 @@
     btn.innerHTML = '<span class="fs-val"></span><svg class="fs-chev" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg>';
     var val = btn.querySelector('.fs-val'); if (sel.id) val.id = sel.id + '-val';
     wrap.appendChild(btn);
+    // The list lives at the top level of the page (not inside the card) with fixed coordinates: no card below it,
+    // no card that clips its content and no animated block can cover or cut it.
     var pop = document.createElement('div'); pop.className = 'fs-pop'; pop.hidden = true;
-    wrap.appendChild(pop);
+    document.body.appendChild(pop);
     var items = [], active = -1, search = null;
     function label() {
       var o = sel.options[sel.selectedIndex];
@@ -472,17 +487,29 @@
       var v = visible(); setActive(v.length ? items.indexOf(v[0]) : -1);
     }
     function place() {
-      var r = btn.getBoundingClientRect(), below = window.innerHeight - r.bottom, above = r.top;
-      wrap.classList.toggle('up', below < 280 && above > below);
+      var r = btn.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = window.innerHeight;
+      var below = vh - r.bottom, above = r.top, up = below < 300 && above > below;
+      var width = wrap.classList.contains('fs-inline') ? Math.max(r.width, 220) : Math.max(r.width, 220);
+      width = Math.min(width, vw - 16);
+      var left = Math.max(8, Math.min(r.left, vw - width - 8));
+      pop.style.left = left + 'px'; pop.style.width = width + 'px';
+      if (up) { pop.style.top = 'auto'; pop.style.bottom = (vh - r.top + 6) + 'px'; } else { pop.style.bottom = 'auto'; pop.style.top = (r.bottom + 6) + 'px'; }
+      wrap.classList.toggle('up', up); pop.classList.toggle('up', up);
+      var room = Math.max(140, (up ? above : below) - 24 - (search ? 54 : 0));
+      var list = pop.querySelector('.fs-list'); if (list) list.style.maxHeight = Math.min(280, room) + 'px';
+      // the field went under the top bar or off the screen while scrolling: the list goes with it
+      if (r.bottom < 0 || r.top > vh) close();
     }
+    var follow = function () { if (!pop.hidden) place(); };
     function open() {
       if (sel.disabled) return;
       if (openSelect && openSelect !== close) openSelect();
-      build(); place(); pop.hidden = false; wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); openSelect = close;
+      build(); pop.hidden = false; place(); wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); openSelect = close;
+      window.addEventListener('scroll', follow, true); window.addEventListener('resize', follow);
       var cur = items.findIndex(function (x) { return x.o.selected; }); setActive(cur);
       if (search) search.focus();
     }
-    function close() { pop.hidden = true; wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); if (openSelect === close) openSelect = null; }
+    function close() { pop.hidden = true; wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); if (openSelect === close) openSelect = null; window.removeEventListener('scroll', follow, true); window.removeEventListener('resize', follow); }
     function choose(o) {
       var changed = sel.value !== o.value;
       setValue.call(sel, o.value); label(); close(); btn.focus();
@@ -501,7 +528,7 @@
     btn.addEventListener('keydown', keys);
     sel.addEventListener('focus', function () { btn.focus(); });
     sel.addEventListener('change', label);
-    document.addEventListener('pointerdown', function (e) { if (!pop.hidden && !wrap.contains(e.target)) close(); });
+    document.addEventListener('pointerdown', function (e) { if (!pop.hidden && !wrap.contains(e.target) && !pop.contains(e.target)) close(); });
     // scripts set .value / .selectedIndex / .disabled / .hidden directly: the button follows
     var proto = HTMLSelectElement.prototype;
     var setValue = Object.getOwnPropertyDescriptor(proto, 'value').set;
@@ -525,4 +552,69 @@
       list.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType !== 1) return; if (n.matches && n.matches('input[type=number]')) stepper(n); if (n.querySelectorAll) n.querySelectorAll('input[type=number]').forEach(stepper); if (fine && n.closest && n.closest('.content')) { if (n.matches('select')) fancySelect(n); if (n.querySelectorAll) n.querySelectorAll('select').forEach(fancySelect); } }); });
     }).observe(document.body, { childList: true, subtree: true });
   }
+
+  // 10) Confirmation in the panel's own window instead of the browser's grey box: it says what will happen, the
+  //     dangerous button is red and "Отмена" has the focus, so Enter on a stray press cancels. Used by forms and
+  //     buttons with data-confirm (the text) and by scripts through window.darkConfirm(text, options) → Promise<boolean>.
+  var askOpen = null;
+  function darkConfirm(text, opts) {
+    opts = opts || {};
+    if (askOpen) askOpen(false);
+    return new Promise(function (resolve) {
+      var opener = document.activeElement;
+      var box = document.createElement('div'); box.className = 'ask';
+      box.innerHTML = '<div class="ask-panel" role="alertdialog" aria-modal="true" aria-labelledby="askText"><p class="ask-text" id="askText"></p><div class="ask-row"><button type="button" class="btn btn-secondary ask-no"></button><button type="button" class="btn ask-yes"></button></div></div>';
+      box.querySelector('.ask-text').textContent = text;
+      var yes = box.querySelector('.ask-yes'), no = box.querySelector('.ask-no');
+      yes.textContent = opts.ok || 'Да'; no.textContent = opts.cancel || 'Отмена';
+      if (opts.danger !== false) yes.classList.add('btn-danger');
+      document.body.appendChild(box);
+      var hidden = [];
+      Array.prototype.forEach.call(document.body.children, function (el) { if (el !== box && el.tagName !== 'SCRIPT' && !el.inert) { el.inert = true; hidden.push(el); } });
+      requestAnimationFrame(function () { box.classList.add('in'); });
+      no.focus();
+      function done(v) {
+        if (askOpen !== done) return; askOpen = null;
+        hidden.forEach(function (el) { el.inert = false; });
+        box.remove(); document.removeEventListener('keydown', key, true);
+        if (opener && opener.focus && document.contains(opener)) opener.focus();
+        resolve(v);
+      }
+      function key(e) {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+        else if (e.key === 'Tab') { e.preventDefault(); (document.activeElement === yes ? no : yes).focus(); }
+      }
+      askOpen = done;
+      yes.addEventListener('click', function () { done(true); });
+      no.addEventListener('click', function () { done(false); });
+      box.addEventListener('mousedown', function (e) { if (e.target === box) done(false); });
+      document.addEventListener('keydown', key, true);
+    });
+  }
+  window.darkConfirm = darkConfirm;
+  // a form with data-confirm: asked once, then sent as it would have been (with the same button)
+  document.addEventListener('submit', function (e) {
+    var f = e.target; var text = f && f.getAttribute && f.getAttribute('data-confirm');
+    if (!text) return;
+    if (f.__confirmed) { f.__confirmed = false; return; }
+    e.preventDefault(); e.stopPropagation();
+    var by = e.submitter || null;
+    var askText = (by && by.getAttribute('data-confirm')) || text;
+    darkConfirm(askText, { ok: f.getAttribute('data-confirm-ok') || (by && by.getAttribute('data-confirm-ok')) || 'Да', danger: !f.hasAttribute('data-confirm-soft') }).then(function (ok) {
+      if (!ok) return; f.__confirmed = true;
+      if (f.requestSubmit) f.requestSubmit(by && by.form === f ? by : undefined); else f.submit();
+    });
+  }, true);
+  // a single button with its own question (in a form that otherwise needs none)
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('button[data-confirm]');
+    if (!b || !b.form || b.form.hasAttribute('data-confirm')) return;
+    if (b.__confirmed) { b.__confirmed = false; return; }
+    e.preventDefault(); e.stopPropagation();
+    darkConfirm(b.getAttribute('data-confirm'), { ok: b.getAttribute('data-confirm-ok') || 'Да' }).then(function (ok) {
+      if (!ok) return; b.__confirmed = true; b.click();
+    });
+  }, true);
+  // a read-only field with a link: one click selects it whole
+  document.addEventListener('click', function (e) { var t = e.target; if (t && t.matches && t.matches('input[data-select-all]')) t.select(); });
 })();

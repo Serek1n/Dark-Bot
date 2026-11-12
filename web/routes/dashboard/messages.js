@@ -18,14 +18,7 @@ const MAX_SAVED = 50;
 const CHANNEL_TYPES = [0, 2, 5, 13, 15, 16];
 const ZONES = ['Europe/Kaliningrad', 'Europe/Moscow', 'Europe/Samara', 'Asia/Yekaterinburg', 'Asia/Omsk', 'Asia/Novosibirsk', 'Asia/Krasnoyarsk', 'Asia/Irkutsk', 'Asia/Yakutsk', 'Asia/Vladivostok', 'Asia/Magadan', 'Asia/Kamchatka', 'Europe/Minsk', 'Europe/Kyiv', 'Asia/Almaty', 'Asia/Tashkent', 'Asia/Tbilisi', 'Asia/Yerevan', 'Asia/Baku', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'America/Los_Angeles', 'UTC'];
 
-const MANAGE_WEBHOOKS = 1n << 29n; const ADMINISTRATOR = 1n << 3n; const MENTION_EVERYONE = 1n << 17n;
-function rights(req) {
-  const a = req.guildAccess || {};
-  let perms = 0n;
-  try { perms = BigInt(a.permissions || '0'); } catch { perms = 0n; }
-  const full = Boolean(a.viaOwnerOverride || a.owner || (perms & ADMINISTRATOR));
-  return { webhooks: full || Boolean(perms & MANAGE_WEBHOOKS), everyone: full || Boolean(perms & MENTION_EVERYONE) };
-}
+const rights = require('../../utils/rights').panelRights;
 
 const who = (req) => req.user?.id || null;
 // errors go back as text for the page; an English viewer gets them in English

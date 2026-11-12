@@ -69,7 +69,7 @@
                   <span class="rv"><%= m.kind === 'select' ? 'список' : 'кнопки' %> · <%= { toggle: 'переключение', add: 'выдача', remove: 'снятие' }[m.mode] %><%= m.exclusive ? ' · одна роль' : '' %></span>
                   <span class="rdate">
                     <% if (m.messageId) { %><a class="btn btn-secondary" href="https://discord.com/channels/<%= guild.id %>/<%= m.channelId %>/<%= m.messageId %>" target="_blank" rel="noopener">Открыть</a><% } %>
-                    <form method="post" action="/dashboard/<%= guild.id %>/interactive/<%= m.id %>/delete" data-no-guard style="display:inline;" onsubmit="return confirm('Удалить сообщение и его кнопки?')"><button class="btn btn-danger" type="submit">Удалить</button></form>
+                    <form method="post" action="/dashboard/<%= guild.id %>/interactive/<%= m.id %>/delete" data-no-guard style="display:inline;" data-confirm="Удалить сообщение и его кнопки?" data-confirm-ok="Удалить"><button class="btn btn-danger" type="submit">Удалить</button></form>
                   </span>
                 </div>
                 <p style="margin:8px 0 6px;white-space:pre-wrap;"><%= m.content.length > 200 ? m.content.slice(0, 200) + '…' : m.content %></p>

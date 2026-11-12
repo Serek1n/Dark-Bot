@@ -81,7 +81,7 @@
           <button class="btn" type="submit" name="action" value="save">Сохранить</button>
           <% if (settings.logForumChannelId) { %>
             <button class="btn btn-secondary" type="submit" name="action" value="setup">Пересоздать недостающие темы</button>
-            <button class="btn btn-danger" type="submit" name="action" value="off" onclick="return confirm('Отключить логи? Темы в форуме останутся, но бот перестанет в них писать.')">Отключить</button>
+            <button class="btn btn-danger" type="submit" name="action" value="off" data-confirm="Отключить логи? Темы в форуме останутся, но бот перестанет в них писать." data-confirm-ok="Отключить">Отключить</button>
           <% } %>
         </div>
         <p class="hint">Первое сохранение с выбранным форумом создаёт теги, вебхук и темы. Если тему удалили вручную — нажмите «Пересоздать недостающие темы». Изменения доходят до бота в течение полуминуты.</p>

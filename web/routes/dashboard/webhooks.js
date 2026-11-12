@@ -1,6 +1,6 @@
 const express = require('express');
 const { ensureGuildAccess } = require('../../middleware/ensureGuildAccess');
-const { getGuildChannels, getGuild, botApi } = require('../../discordApi');
+const { getGuildChannels, getGuild } = require('../../discordApi');
 const { GuildSettings } = require('../../../db');
 const { snowflake, saved, getSettings } = require('../../utils/common');
 
@@ -17,13 +17,8 @@ const BOT_ID = () => process.env.DISCORD_CLIENT_ID;
 
 // The page shows webhook links (whoever has one can post as that webhook) and creates webhooks in any channel, hidden ones
 // included: "Manage Server" is not enough, it takes "Manage Webhooks" or administrator rights, like in Discord itself.
-const MANAGE_WEBHOOKS = 1n << 29n;
-const ADMINISTRATOR = 1n << 3n;
 function needWebhookRights(req, res, next) {
-  const a = req.guildAccess || {};
-  let perms = 0n;
-  try { perms = BigInt(a.permissions || '0'); } catch { perms = 0n; }
-  if (a.viaOwnerOverride || a.owner || (perms & (MANAGE_WEBHOOKS | ADMINISTRATOR)) !== 0n) return next();
+  if (require('../../utils/rights').panelRights(req).webhooks) return next();
   return res.status(403).render('error', { message: 'Для раздела «Вебхуки» нужно право «Управлять вебхуками» на этом сервере.' });
 }
 // Changes are refused while the feature is switched off on the "Функции" page.
@@ -72,13 +67,7 @@ router.post('/:guildId/webhooks/panel', webhookLimit, ensureGuildAccess, needWeb
   const settings = await getSettings(guildId);
   const payload = require('../../../bot/modules/webhookPanel').panelPayload();
   try {
-    const { data } = await botApi.post(`/channels/${channelId}/messages`, i18nOut({ embeds: payload.embeds.map((e) => e.toJSON()), components: payload.components.map((r) => r.toJSON()), allowed_mentions: { parse: [] } }, guildId));
-    if (settings.webhookPanelChannelId && settings.webhookPanelMessageId) { // the older panel is replaced, not left next to the new one
-      await botApi.delete(`/channels/${settings.webhookPanelChannelId}/messages/${settings.webhookPanelMessageId}`).catch(() => {});
-    }
-    settings.webhookPanelChannelId = channelId;
-    settings.webhookPanelMessageId = data.id;
-    await settings.save();
+    await require('../../../services/panelMessages').postPanel(settings, channelId, payload, { channel: 'webhookPanelChannelId', message: 'webhookPanelMessageId' }, (b) => i18nOut(b, guildId));
     res.redirect(saved(guildId, 'webhooks', 'wpanel'));
   } catch (err) {
     res.redirect(webhookPage(guildId, 'whfail', webhooks.explainKey(err) === 'perm' ? 'panelperm' : 'panel'));

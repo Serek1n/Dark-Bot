@@ -31,9 +31,9 @@
               </div>
               <div class="gw-actions">
                 <% if (!g.ended) { %>
-                  <form method="post" action="/dashboard/<%= guild.id %>/giveaways/<%= g.id %>/end" data-no-guard data-confirm="Завершить розыгрыш «<%= g.prize %>» сейчас и выбрать победителей?" onsubmit="return confirm(this.dataset.confirm)"><button class="btn" type="submit" <%= botOnline ? '' : 'disabled' %>>Завершить сейчас</button></form>
+                  <form method="post" action="/dashboard/<%= guild.id %>/giveaways/<%= g.id %>/end" data-no-guard data-confirm="Завершить розыгрыш «<%= g.prize %>» сейчас и выбрать победителей?" data-confirm-ok="Завершить"><button class="btn" type="submit" <%= botOnline ? '' : 'disabled' %>>Завершить сейчас</button></form>
                 <% } else { %>
-                  <form method="post" action="/dashboard/<%= guild.id %>/giveaways/<%= g.id %>/reroll" data-no-guard data-confirm="Выбрать новых победителей розыгрыша «<%= g.prize %>»?" onsubmit="return confirm(this.dataset.confirm)"><button class="btn btn-secondary" type="submit" <%= botOnline && entries ? '' : 'disabled' %>>Перевыбрать</button></form>
+                  <form method="post" action="/dashboard/<%= guild.id %>/giveaways/<%= g.id %>/reroll" data-no-guard data-confirm="Выбрать новых победителей розыгрыша «<%= g.prize %>»?" data-confirm-ok="Выбрать заново"><button class="btn btn-secondary" type="submit" <%= botOnline && entries ? '' : 'disabled' %>>Перевыбрать</button></form>
                 <% } %>
               </div>
             </div>

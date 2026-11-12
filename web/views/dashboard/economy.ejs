@@ -53,7 +53,7 @@
       </form>
 
       <div class="grid-2" style="margin-top:18px;">
-        <form method="post" action="/dashboard/<%= guild.id %>/economy/grant" class="card" data-no-guard>
+        <form method="post" action="/dashboard/<%= guild.id %>/economy/grant" class="card" data-no-guard data-confirm="Изменить баланс участника? Вернуть прежнее значение можно только обратной операцией." data-confirm-ok="Изменить" data-confirm-soft>
           <h2>Начислить или списать вручную</h2>
           <div>
             <label>ID участника</label>

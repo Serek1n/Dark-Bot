@@ -219,63 +219,6 @@
       </form>
     </main>
   </div>
-  <script>
-    // "Сейчас: …" under the word and link filters says in plain words what will happen with the current ticks and lists.
-    (function () {
-      var form = document.querySelector('form.plain');
-      var box = function (k) { return form.querySelector('[data-am="' + k + '"]'); };
-      var lines = function (ta) { return ta.value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean); };
-      var list = function (a) { var shown = a.slice(0, 5).map(function (x) { return '«' + x + '»'; }).join(', '); return a.length > 5 ? shown + ' и ещё ' + (a.length - 5) : shown; };
-      function update() {
-        var words = lines(document.getElementById('am-words')); var prof = box('profanity').checked;
-        var w = !words.length && !prof ? 'Сейчас слова не проверяются.'
-          : 'Сейчас удаляются сообщения ' + (prof ? 'с матом' : '') + (prof && words.length ? ' и ' : '') + (words.length ? 'со словами ' + list(words) : '') + '.';
-        document.getElementById('am-words-now').textContent = w;
-        var allow = lines(document.getElementById('am-allow')); var links = box('links').checked; var inv = box('invites').checked;
-        var l;
-        if (links) l = allow.length ? 'Сейчас удаляются все ссылки, кроме ссылок на ' + list(allow) + '.' : 'Сейчас удаляются все ссылки — исключений нет.';
-        else if (inv) l = 'Сейчас удаляются только приглашения на другие серверы. Остальные ссылки разрешены.';
-        else l = 'Сейчас ссылки не проверяются.';
-        document.getElementById('am-links-now').textContent = l;
-        document.getElementById('am-allow-wrap').classList.toggle('am-idle', !links);
-      }
-      form.addEventListener('input', update); form.addEventListener('change', update); update();
 
-      // Special punishments: only rules that have one are shown; "Добавить" opens a rule, "Убрать" clears and hides it.
-      var add = document.getElementById('pr-add'); var none = document.querySelector('.pr-empty');
-      var acts = { delete: 'только удалить сообщение', warn: 'удалить и предупредить', mute: 'удалить и замутить' };
-      function summary(d) {
-        var k = d.getAttribute('data-rule');
-        var a = d.querySelector('[name="rule_' + k + '_action"]').value; var m = d.querySelector('[name="rule_' + k + '_mute"]').value;
-        var ch = d.querySelectorAll('[name="rule_' + k + '_ch"]:checked').length; var ro = d.querySelectorAll('[name="rule_' + k + '_roles"]:checked').length;
-        var parts = [];
-        if (a) parts.push(acts[a] + (a === 'mute' && m ? ' на ' + m + ' мин' : '')); else if (m) parts.push('мут на ' + m + ' мин');
-        if (ch) parts.push('не действует в ' + ch + ' кан.');
-        if (ro) parts.push('не действует для ' + ro + ' рол.');
-        d.querySelector('.pr-sum').textContent = parts.length ? parts.join(' · ') : 'настройте ниже';
-      }
-      function syncAdd() {
-        var shown = document.querySelectorAll('.rule-cfg:not([hidden])').length;
-        none.hidden = shown > 0;
-        Array.prototype.forEach.call(add.options, function (o) { if (!o.value) return; var d = document.querySelector('.rule-cfg[data-rule="' + o.value + '"]'); o.hidden = o.disabled = !d.hidden; });
-      }
-      add.addEventListener('change', function () {
-        var d = document.querySelector('.rule-cfg[data-rule="' + add.value + '"]'); if (!d) return;
-        d.hidden = false; d.open = true; add.value = ''; syncAdd(); d.querySelector('select').focus();
-      });
-      Array.prototype.forEach.call(document.querySelectorAll('.rule-cfg'), function (d) {
-        d.addEventListener('input', function () { summary(d); }); d.addEventListener('change', function () { summary(d); });
-        d.querySelector('.pr-remove').addEventListener('click', function () {
-          d.querySelectorAll('select').forEach(function (x) { x.value = ''; });
-          d.querySelectorAll('input[type=number]').forEach(function (x) { x.value = ''; });
-          d.querySelectorAll('input[type=checkbox]').forEach(function (x) { x.checked = false; });
-          d.querySelectorAll('.ms-x').forEach(function (x) { x.click(); });
-          summary(d); d.open = false; d.hidden = true; syncAdd();
-          form.dispatchEvent(new Event('change', { bubbles: true }));
-        });
-      });
-      syncAdd();
-    })();
-  </script>
 </body>
 </html>

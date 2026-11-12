@@ -28,7 +28,8 @@ app.disable('x-powered-by');
 const fs = require('fs');
 function assetVersion() {
   let newest = 0;
-  for (const f of ['css/style.css', 'css/fonts.css', 'js/theme.js', 'js/ui.js', 'js/public-top.js', 'js/interactive.js']) {
+  try { newest = require('./styles').stylesheet().mtimeMs; } catch (_) { /* no parts: ignore */ }
+  for (const f of ['css/fonts.css', 'js/theme.js', 'js/ui.js', 'js/panel.js', 'js/messages.js', 'js/public-top.js', 'js/interactive.js']) {
     try {
       newest = Math.max(newest, fs.statSync(path.join(__dirname, 'public', f)).mtimeMs);
     } catch (_) { /* missing file: ignore */ }
@@ -44,6 +45,13 @@ const panelI18n = require('./i18n');
 app.use(panelI18n.englishScripts); // /js/*.js?v=…-en: the same scripts with English texts
 // gzip for pages, styles and scripts (about 5 times smaller on the wire); fonts are already packed
 app.use(require('compression')({ threshold: 1024 }));
+// the stylesheet is assembled from web/styles/NN-*.css (see web/styles/index.js)
+app.get('/css/style.css', (req, res) => {
+  const css = require('./styles').stylesheet();
+  res.set({ 'Content-Type': 'text/css; charset=utf-8', 'Cache-Control': 'public, max-age=604800', ETag: css.etag });
+  if (req.headers['if-none-match'] === css.etag) return res.status(304).end();
+  res.send(css.text);
+});
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '7d',
   setHeaders: (res, file) => { if (file.endsWith('.woff2')) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); } // fonts never change under the same name
@@ -61,7 +69,7 @@ app.use((req, res, next) => {
     'Cross-Origin-Resource-Policy': 'same-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
     'Content-Security-Policy':
-      "default-src 'self'; img-src 'self' https://cdn.discordapp.com data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+      "default-src 'self'; img-src 'self' https://cdn.discordapp.com data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
   });
   if (httpsSite) res.set('Strict-Transport-Security', 'max-age=31536000'); // the browser stays on https for a year
   // Pages of the panel hold private data (webhook links, member lists): never kept in a shared or browser cache, never shown by "Back" after logout.

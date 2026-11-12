@@ -4,7 +4,7 @@
 const axios = require('axios');
 
 const API = 'https://discord.com/api/v10';
-const botApi = axios.create({ baseURL: API, timeout: 10000, headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` } });
+const botApi = require('../../web/discordRest').createBotApi(); // through discord.js when the bot runs (rate limits respected)
 const plainApi = axios.create({ baseURL: API, timeout: 10000 }); // webhook links carry their own token: no bot token is sent with them
 
 const LIMITS = { content: 2000, embeds: 10, title: 256, description: 4096, fields: 25, fieldName: 256, fieldValue: 1024, footer: 2048, author: 256, total: 6000, rows: 5, buttons: 5, label: 80, username: 80 };

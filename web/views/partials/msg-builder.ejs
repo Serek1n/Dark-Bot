@@ -147,7 +147,7 @@
                   <div class="msg-item-main"><b><%= m.name %></b><span class="muted">изменено <time datetime="<%= new Date(m.updatedAt).toISOString() %>"><%= new Date(m.updatedAt).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %></time></span></div>
                   <div class="msg-item-actions">
                     <button type="button" class="btn btn-secondary" data-open-saved="<%= m.id %>">Открыть</button>
-                    <form method="post" action="/dashboard/<%= guild.id %>/messages/saved/<%= m.id %>/delete" data-no-guard data-confirm="Удалить заготовку «<%= m.name %>»?" onsubmit="return confirm(this.dataset.confirm)"><button type="submit" class="btn btn-danger">Удалить</button></form>
+                    <form method="post" action="/dashboard/<%= guild.id %>/messages/saved/<%= m.id %>/delete" data-no-guard data-confirm="Удалить заготовку «<%= m.name %>»?" data-confirm-ok="Удалить"><button type="submit" class="btn btn-danger">Удалить</button></form>
                   </div>
                 </div>
               <% }) %>
@@ -180,7 +180,7 @@
                     <button type="button" class="btn btn-secondary" data-edit-schedule="<%= s.id %>">Изменить</button>
                     <form method="post" action="/dashboard/<%= guild.id %>/messages/schedule/<%= s.id %>/test" data-no-guard><button type="submit" class="btn btn-secondary">Тест</button></form>
                     <form method="post" action="/dashboard/<%= guild.id %>/messages/schedule/<%= s.id %>/toggle" data-no-guard><button type="submit" class="btn btn-secondary"><%= s.enabled ? 'Выключить' : 'Включить' %></button></form>
-                    <form method="post" action="/dashboard/<%= guild.id %>/messages/schedule/<%= s.id %>/delete" data-no-guard data-confirm="Удалить запись «<%= s.name %>»?" onsubmit="return confirm(this.dataset.confirm)"><button type="submit" class="btn btn-danger">Удалить</button></form>
+                    <form method="post" action="/dashboard/<%= guild.id %>/messages/schedule/<%= s.id %>/delete" data-no-guard data-confirm="Удалить запись «<%= s.name %>»?" data-confirm-ok="Удалить"><button type="submit" class="btn btn-danger">Удалить</button></form>
                   </div>
                 </div>
               <% }) %>
