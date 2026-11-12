@@ -187,12 +187,12 @@ const roleMember = (ids, positions = {}) => ({ roles: { cache: new Map(ids.map((
     await db.GuildSettings.update({ levelingEnabled: true }, { where: { guildId: G } });
     assert.strictEqual((await fetch(`${root}/top/${G}`)).status, 404, 'off by default');
     assert.strictEqual((await fetch(`${root}/top/abc`)).status, 404);
-    assert((await post('/leaderboard/public', { leaderboardPublic: 'on', leaderboardMinLevel: '5' })).includes('saved'));
+    assert((await post('/leveling/public', { leaderboardPublic: 'on', leaderboardMinLevel: '5' })).includes('saved'));
     const r = await fetch(`${root}/top/${G}`); const html = await r.text();
     assert.strictEqual(r.status, 200);
     assert(html.includes('Тёмный клуб') && html.includes('u03') && html.includes('u02') && !html.includes('u01') && !html.includes('u00'), 'levels 6 and 9 only');
     assert(!/<script>/.test(html), 'no inline script');
-    const panel = await (await fetch(base + '/leaderboard')).text(); assert(panel.includes(`/top/${G}`), 'the link is shown in the panel');
+    const panel = await (await fetch(base + '/leveling')).text(); assert(panel.includes(`/top/${G}`) && panel.includes('id="public-top"'), 'the link is shown on the levels page');
   });
 
   server.close();

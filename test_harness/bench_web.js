@@ -22,7 +22,7 @@ const express = require('express');
   app.use('/dashboard', require('../web/routes/dashboard'));
   app.use((err, req, res, next) => res.status(500).send(String(err.stack)));
   const server = app.listen(0); const base = `http://127.0.0.1:${server.address().port}/dashboard/${G}`;
-  for (const p of ['', '/leveling', '/economy', '/shop', '/moderation', '/leaderboard', '/leaderboard?track=voice', '/leaderboard?q=n1000']) {
+  for (const p of ['', '/leveling', '/economy', '/shop', '/moderation']) {
     await fetch(base + p); // warm up
     const t = process.hrtime.bigint(); let bytes = 0;
     for (let i = 0; i < 10; i++) { const r = await fetch(base + p); bytes = (await r.text()).length; if (r.status !== 200) throw new Error(p + ' ' + r.status); }

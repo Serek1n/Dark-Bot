@@ -41,8 +41,7 @@ const ICONS = {
   home: '<rect x="3" y="3" width="6" height="6" rx="1.2"/><rect x="11" y="3" width="6" height="6" rx="1.2"/><rect x="3" y="11" width="6" height="6" rx="1.2"/><rect x="11" y="11" width="6" height="6" rx="1.2"/>',
   modules: '<path d="M3 6H11M15 6H17M3 14H5M9 14H17"/><circle cx="13" cy="6" r="2"/><circle cx="7" cy="14" r="2"/>',
   changelog: '<path d="M4 9.5H16V16.5H4Z"/><path d="M3 6.5H17V9.5H3Z"/><path d="M10 6.5V16.5"/>',
-  boosts: '<path d="M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z"/>',
-  leaderboard: '<path d="M6 4H14V9C14 11.2 12.2 13 10 13C7.8 13 6 11.2 6 9V4Z"/><path d="M10 13V16M7 17H13"/>'
+  boosts: '<path d="M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z"/>'
 };
 
 const icon = (key, size = 18) =>
@@ -56,7 +55,7 @@ const n = (v) => Number(v || 0);
 // core: always on, no switch. depends: switching this one off is offered for these too (they lose their sense without it).
 // stats: the numbers on the home page — [{ value, label }], the first one also goes into the module list.
 const LAYOUT = [
-  { key: 'leveling', group: 'community', pages: ['leveling', 'leaderboard', 'channel-boosts'],
+  { key: 'leveling', group: 'community', pages: ['leveling', 'channel-boosts'],
     stats: async (g) => {
       const { MemberProfile, LevelRole } = db();
       const [members, roles] = await Promise.all([MemberProfile.count(where(g)), LevelRole.count(where(g))]);
@@ -135,7 +134,7 @@ const BY_KEY = new Map(MODULES.map((m) => [m.key, m]));
 // Pages that are not a module's: what to show in their header instead.
 const PAGE_TITLES = { overview: 'Главная', features: 'Модули', changelog: 'Обновления' };
 // The tabs of a module with several pages (its header shows them; the search finds each).
-const PAGE_LABELS = { leveling: 'Настройки', leaderboard: 'Таблица лидеров', 'channel-boosts': 'Множители', moderation: 'Наказания и журнал' };
+const PAGE_LABELS = { leveling: 'Настройки', 'channel-boosts': 'Множители', moderation: 'Наказания и журнал' };
 
 /** The module a page belongs to (its first owner), or null. */
 const moduleOfPage = (page) => MODULES.find((m) => m.pages.includes(page)) || null;

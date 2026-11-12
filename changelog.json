@@ -1,6 +1,23 @@
 [
  {
   "bot": "3.6.5",
+  "panel": "3.12.1",
+  "date": "2026-11-12",
+  "botChanges": [],
+  "panelChanges": [
+   "Страница «Таблица лидеров» убрана из панели; топ остаётся в Discord: /top",
+   "Публичная страница рейтинга настраивается в «Уровнях»"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "The \"Leaderboard\" page is gone from the panel; the top stays in Discord: /top",
+    "The public leaderboard page is set up in \"Levels\""
+   ]
+  }
+ },
+ {
+  "bot": "3.6.5",
   "panel": "3.12.0",
   "date": "2026-11-12",
   "botChanges": [],

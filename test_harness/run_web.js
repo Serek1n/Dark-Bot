@@ -31,7 +31,7 @@ const express = require('express');
   const S = () => db.GuildSettings.findOne({ where: { guildId: '777000000000000001' } });
 
   await test('GET all pages return 200', async () => {
-    for (const p of ['', '/leveling', '/economy', '/level-roles', '/shop', '/leaderboard', '/leaderboard?track=voice', '/leaderboard?track=chat']) {
+    for (const p of ['', '/leveling', '/economy', '/level-roles', '/shop']) {
       const r = await fetch(base + p); assert(r.status === 200, `${p || '/'} -> ${r.status}: ${(await r.text()).slice(0, 200)}`);
     }
   });
@@ -77,9 +77,11 @@ const express = require('express');
     const p = await db.MemberProfile.findOne({ where: { userId: '100000000000000009' } });
     assert(Number(p.chatXp) === 300 && Number(p.voiceXp) === 700 && Number(p.crystals) === 6 && Number(p.xp) === 1000, 'restored ' + [p.chatXp, p.voiceXp, p.crystals]);
   });
-  await test('leaderboard tab lists members of the chosen direction only', async () => {
-    const h = await (await fetch(base + '/leaderboard?track=voice')).text();
-    assert(h.includes('n100000000000000009'), 'member missing');
+  await test('the leaderboard page is gone from the panel: old links land on the levels page', async () => {
+    const r = await fetch(base + '/leaderboard?track=voice', { redirect: 'manual' });
+    assert(r.status === 301 && r.headers.get('location').endsWith('/leveling'), 'redirect ' + r.status);
+    const home = await (await fetch(base + '')).text();
+    assert(!home.includes('/leaderboard') && !home.includes('Таблица лидеров'), 'no links left');
   });
 
   await test('overview shows the real commands and no stale ones; top and recent actions render', async () => {
@@ -113,9 +115,8 @@ const express = require('express');
     const page = await (await fetch(base + '/economy')).text();
     assert(page.includes('в обороте') && page.includes('Самые богатые'), 'stats');
   });
-  await test('every page ships the unsaved-changes bar and a search box on the leaderboard', async () => {
+  await test('every page ships the unsaved-changes bar', async () => {
     for (const p of ['/leveling', '/economy', '/welcome']) assert((await (await fetch(base + p)).text()).includes('id="saveBar"'), p);
-    assert((await (await fetch(base + '/leaderboard')).text()).includes('id="lbSearch"'), 'search');
   });
 
   await test('shop: create, edit, validate, delete', async () => {

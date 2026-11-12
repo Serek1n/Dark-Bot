@@ -25,7 +25,7 @@ const web = path.join(__dirname, '..', 'web');
   });
   await test('every page of the panel still has its entry in the menu', async () => {
     const html = await render('x'); const routes = fs.readdirSync(path.join(web, 'routes/dashboard')).map((f) => fs.readFileSync(path.join(web, 'routes/dashboard', f), 'utf8')).join('\n');
-    for (const p of ['features', 'leveling', 'economy', 'channel-boosts', 'shop', 'leaderboard', 'moderation', 'logs', 'automod', 'welcome', 'reaction-roles', 'custom-commands', 'temp-voice', 'alerts', 'webhooks']) {
+    for (const p of ['features', 'leveling', 'economy', 'channel-boosts', 'shop', 'moderation', 'logs', 'automod', 'welcome', 'reaction-roles', 'custom-commands', 'temp-voice', 'alerts', 'webhooks']) {
       assert(html.includes(`/dashboard/123456789012345678/${p}"`), 'missing in menu: ' + p);
       assert(routes.includes(`'/:guildId/${p}'`), 'route gone: ' + p);
     }

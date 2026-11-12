@@ -1,5 +1,4 @@
 const express = require('express');
-const { Op } = require('sequelize');
 const { ensureGuildAccess } = require('../../middleware/ensureGuildAccess');
 const { getGuildChannels, getGuild, getUsers, botApi } = require('../../discordApi');
 const { MemberProfile, LevelRole } = require('../../../db');
@@ -19,7 +18,8 @@ router.get('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
     adjusted = { name: users[q.u]?.name || q.u, from: clampInt(q.from, 0, 1000, 0), to: clampInt(q.to, 0, 1000, 0), roles: ['ok', 'fail', 'none'].includes(q.roles) ? q.roles : 'none' };
   }
   const rolesPart = await require('./levelRoles').levelRolesData(req.params.guildId, req.user?.id);
-  res.render('dashboard/leveling', { guild, settings, channels, adjusted, prefillUser: snowflake(q.user) || '', ...rolesPart, active: 'leveling' });
+  const publicUrl = `${(process.env.WEB_BASE_URL || '').replace(/\/+$/, '')}/top/${req.params.guildId}`;
+  res.render('dashboard/leveling', { guild, settings, channels, adjusted, publicUrl, prefillUser: snowflake(q.user) || '', ...rolesPart, active: 'leveling' });
 });
 
 // Manual level change: add, take away or set an exact level. Roles for levels are updated right away.
@@ -152,26 +152,16 @@ router.get('/:guildId/leveling/export', ensureGuildAccess, async (req, res) => {
   res.send(JSON.stringify(data, null, 2));
 });
 
-router.get('/:guildId/leaderboard', ensureGuildAccess, async (req, res) => {
-  const guild = await getGuild(req.params.guildId);
-  const tracks = { total: ['xp', 'level'], voice: ['voiceSeconds', 'level'] };
-  const track = tracks[req.query.track] ? req.query.track : 'total';
-  const [xpField, levelField] = tracks[track];
-  const where = track === 'total' ? { guildId: req.params.guildId } : { guildId: req.params.guildId, [xpField]: { [Op.gt]: 0 } };
-  const top = await MemberProfile.findAll({ where, order: [[xpField, 'DESC']], limit: 50 });
-  const users = await getUsers(top.map((p) => p.userId));
-  const settings = await getSettings(req.params.guildId);
-  const publicUrl = `${(process.env.WEB_BASE_URL || '').replace(/\/+$/, '')}/top/${req.params.guildId}`;
-  res.render('dashboard/leaderboard', { guild, top, users, track, xpField, levelField, settings, publicUrl, active: 'leaderboard' });
-});
+// The leaderboard page is gone from the panel (the top lives in Discord: /top); old links land on the levels page.
+router.get('/:guildId/leaderboard', ensureGuildAccess, (req, res) => res.redirect(301, `/dashboard/${req.params.guildId}/leveling`));
 
-// The public leaderboard page: on/off and the level from which members appear there.
-router.post('/:guildId/leaderboard/public', ensureGuildAccess, async (req, res) => {
+// The public leaderboard page: on/off and the level from which members appear there (a card on the levels page).
+router.post('/:guildId/leveling/public', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   settings.leaderboardPublic = req.body.leaderboardPublic === 'on';
   settings.leaderboardMinLevel = clampInt(req.body.leaderboardMinLevel, 0, 1000, 0);
   await settings.save();
-  res.redirect(`/dashboard/${req.params.guildId}/leaderboard?saved=1`);
+  res.redirect(`/dashboard/${req.params.guildId}/leveling?saved=1#public-top`);
 });
 
 module.exports = router;

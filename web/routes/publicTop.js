@@ -1,5 +1,5 @@
 // The public leaderboard (an idea from Polaris): /top/<server id> opens without signing in, but only for servers whose
-// admins switched it on (panel → Таблица лидеров). Shows the top 100 by total XP from the chosen minimum level.
+// admins switched it on (panel → Уровни → «Публичная страница рейтинга»). Shows the top 100 by total XP from the chosen minimum level.
 const express = require('express');
 const { Op } = require('sequelize');
 const { MemberProfile, GuildSettings } = require('../../db');
