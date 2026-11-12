@@ -88,74 +88,50 @@ function makeCanvas(w, h) {
   return { canvas, ctx };
 }
 
-/** Draws a circular avatar; falls back to a letter badge when the image can't be loaded. */
-async function drawAvatar(ctx, url, name, cx, cy, radius) {
-  try {
-    if (!url) throw new Error('no avatar');
-    const img = await loadAvatar(url);
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(img, cx - radius, cy - radius, radius * 2, radius * 2);
-    ctx.restore();
-  } catch {
-    const grad = ctx.createLinearGradient(cx - radius, cy - radius, cx + radius, cy + radius);
-    grad.addColorStop(0, '#2b2e37');
-    grad.addColorStop(1, '#1b1d23');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fill();
-    const letter = (String(name || '?').trim()[0] || '?').toUpperCase();
-    ctx.fillStyle = COLORS.ember;
-    ctx.font = `${Math.round(radius * 0.95)}px CardSansBold, CardFallbackBold`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(letter, cx, cy + radius * 0.04);
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-  }
-}
-
-/** Small crescent-moon mark (the Dark logo) used as a quiet watermark. */
-function drawCrescent(ctx, cx, cy, r, color, alpha = 1) {
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  // Clip to "everything outside the bite circle", then fill the full moon: leaves a crescent
-  // without erasing anything already painted on the card.
-  ctx.beginPath();
-  ctx.rect(cx - r * 2, cy - r * 2, r * 4, r * 4);
-  ctx.arc(cx + r * 0.42, cy - r * 0.2, r * 0.82, 0, Math.PI * 2, true);
-  ctx.clip('evenodd');
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function paintBackground(ctx, W, H, glowX, glowY) {
+/** The card itself: a flat dark rounded surface with a 1px inner edge so it reads on Discord's dark theme. */
+function paintCard(ctx, W, H) {
   ctx.fillStyle = COLORS.bg;
-  roundRect(ctx, 0, 0, W, H, 22);
+  roundRect(ctx, 0, 0, W, H, 24);
   ctx.fill();
-
-  const glow = ctx.createRadialGradient(glowX, glowY, 10, glowX, glowY, 260);
-  glow.addColorStop(0, 'rgba(227,168,87,0.17)');
-  glow.addColorStop(1, 'rgba(227,168,87,0)');
-  ctx.save();
-  roundRect(ctx, 0, 0, W, H, 22);
-  ctx.clip();
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
-  ctx.restore();
-
-  // 1px inner border so the card reads as a surface on Discord's dark theme
   ctx.strokeStyle = 'rgba(255,255,255,0.05)';
   ctx.lineWidth = 1;
-  roundRect(ctx, 0.5, 0.5, W - 1, H - 1, 22);
+  roundRect(ctx, 0.5, 0.5, W - 1, H - 1, 24);
   ctx.stroke();
+}
+
+/** A tile on the card: the panel colour with a hairline edge (or a coloured one). */
+function paintTile(ctx, x, y, w, h, r = 16, edge = COLORS.hairline) {
+  ctx.fillStyle = COLORS.panel;
+  roundRect(ctx, x, y, w, h, r);
+  ctx.fill();
+  ctx.strokeStyle = edge;
+  ctx.lineWidth = 1;
+  roundRect(ctx, x + 0.5, y + 0.5, w - 1, h - 1, r);
+  ctx.stroke();
+}
+
+/** A progress line with a soft glow at its head. */
+function paintBar(ctx, x, y, w, h, ratio, from = COLORS.emberDeep, to = COLORS.emberLight, glow = true) {
+  ctx.fillStyle = COLORS.track;
+  roundRect(ctx, x, y, w, h, h / 2);
+  ctx.fill();
+  if (!(ratio > 0)) return;
+  const fw = Math.max(h, w * Math.min(1, ratio));
+  const g = ctx.createLinearGradient(x, 0, x + fw, 0);
+  g.addColorStop(0, from);
+  g.addColorStop(1, to);
+  ctx.fillStyle = g;
+  roundRect(ctx, x, y, fw, h, h / 2);
+  ctx.fill();
+  if (!glow) return;
+  ctx.save();
+  ctx.shadowColor = 'rgba(240,192,120,0.8)';
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = to;
+  ctx.beginPath();
+  ctx.arc(x + fw - h / 2, y + h / 2, h / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 // A big figure in a column of fixed width: the full number, made smaller when it is long, and shortened
@@ -193,10 +169,12 @@ function voiceStat(totalSeconds) {
 }
 
 /** Rounded-square avatar in an ember frame; a letter badge when the picture can't be loaded. */
-async function drawSquareAvatar(ctx, url, name, x, y, size, radius) {
-  ctx.fillStyle = COLORS.ember;
-  roundRect(ctx, x - 4, y - 4, size + 8, size + 8, radius + 4);
-  ctx.fill();
+async function drawSquareAvatar(ctx, url, name, x, y, size, radius, frame = COLORS.ember, fw = 4) {
+  if (frame) {
+    ctx.fillStyle = frame;
+    roundRect(ctx, x - fw, y - fw, size + fw * 2, size + fw * 2, radius + fw);
+    ctx.fill();
+  }
   ctx.save();
   roundRect(ctx, x, y, size, size, radius);
   ctx.clip();
@@ -235,13 +213,7 @@ async function drawRankCard(data) {
   const H = 376;
   const { canvas, ctx } = makeCanvas(W, H);
 
-  ctx.fillStyle = COLORS.bg;
-  roundRect(ctx, 0, 0, W, H, 24);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  ctx.lineWidth = 1;
-  roundRect(ctx, 0.5, 0.5, W - 1, H - 1, 24);
-  ctx.stroke();
+  paintCard(ctx, W, H);
 
   await drawSquareAvatar(ctx, data.avatarURL, data.username, 40, 32, 132, 26);
 
@@ -270,30 +242,8 @@ async function drawRankCard(data) {
   ctx.fillText(truncateToWidth(ctx, `${fmt(data.level)} уровень${place}`, right - left - xpW - 24), left, 120);
 
   // XP bar with a soft glow at its head
-  const barY = 142;
-  const barH = 10;
-  const barW = right - left;
-  ctx.fillStyle = COLORS.track;
-  roundRect(ctx, left, barY, barW, barH, barH / 2);
-  ctx.fill();
   const ratio = data.xpNeeded > 0 ? Math.max(0, Math.min(1, data.xpIntoLevel / data.xpNeeded)) : 0;
-  if (ratio > 0) {
-    const fw = Math.max(barH, barW * ratio);
-    const fillGrad = ctx.createLinearGradient(left, 0, left + fw, 0);
-    fillGrad.addColorStop(0, COLORS.emberDeep);
-    fillGrad.addColorStop(1, COLORS.emberLight);
-    ctx.fillStyle = fillGrad;
-    roundRect(ctx, left, barY, fw, barH, barH / 2);
-    ctx.fill();
-    ctx.save();
-    ctx.shadowColor = 'rgba(240,192,120,0.8)';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = COLORS.emberLight;
-    ctx.beginPath();
-    ctx.arc(left + fw - barH / 2, barY + barH / 2, barH / 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
+  paintBar(ctx, left, 142, right - left, 10, ratio);
 
   // Three groups of two numbers
   const groups = [
@@ -308,13 +258,7 @@ async function drawRankCard(data) {
   const gw = (W - gx0 * 2 - gap * 2) / 3;
   groups.forEach(([title, items], i) => {
     const gx = gx0 + i * (gw + gap);
-    ctx.fillStyle = COLORS.panel;
-    roundRect(ctx, gx, gy, gw, gh, 16);
-    ctx.fill();
-    ctx.strokeStyle = COLORS.hairline;
-    ctx.lineWidth = 1;
-    roundRect(ctx, gx + 0.5, gy + 0.5, gw - 1, gh - 1, 16);
-    ctx.stroke();
+    paintTile(ctx, gx, gy, gw, gh);
 
     ctx.fillStyle = COLORS.ember;
     roundRect(ctx, gx + 20, gy + 22, 4, 14, 2);
@@ -358,124 +302,112 @@ function renderRankCard(data) {
   return promise;
 }
 
+// The leaderboard in the profile card's style: a heading with an ember mark, then one tile per member —
+// place, framed square avatar, name with a progress line, and the level (or voice time) on the right.
 async function renderLeaderboard(data) {
   ensureFonts();
   const rows = data.rows.slice(0, 10);
   const W = 900;
-  const HEADER = 96;
-  const ROW = 64;
-  const PAD_BOTTOM = 22;
-  const H = HEADER + rows.length * ROW + PAD_BOTTOM;
+  const HEADER = 112;
+  const ROW = 72;
+  const TILE = 62;
+  const PAD_BOTTOM = 26;
+  const H = HEADER + rows.length * ROW - (ROW - TILE) + PAD_BOTTOM;
   const { canvas, ctx } = makeCanvas(W, H);
+  paintCard(ctx, W, H);
 
-  paintBackground(ctx, W, H, 110, 40);
-  drawCrescent(ctx, 56, 52, 16, COLORS.ember, 1);
-
+  const left = 36;
+  const right = W - 36;
   ctx.textBaseline = 'alphabetic';
+
+  // Page counter first, so the title beside it knows how much room it has
+  let pillW = 0;
+  if (data.pages > 1) {
+    const text = `стр. ${data.page} / ${data.pages}`;
+    ctx.font = '15px CardSansBold, CardFallbackBold';
+    pillW = ctx.measureText(text).width + 28;
+    ctx.fillStyle = COLORS.raised;
+    roundRect(ctx, right - pillW, 38, pillW, 32, 16);
+    ctx.fill();
+    ctx.fillStyle = COLORS.paper;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, right - pillW / 2, 54.5);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+  const titleW = right - left - 20 - pillW - 20;
+  ctx.fillStyle = COLORS.ember;
+  roundRect(ctx, left, 36, 5, 50, 2.5);
+  ctx.fill();
   ctx.fillStyle = COLORS.paper;
   ctx.font = '30px CardSansBold, CardFallbackBold';
-  ctx.fillText(data.heading || 'Таблица лидеров', 90, 52);
+  ctx.fillText(truncateToWidth(ctx, data.heading || 'Таблица лидеров', titleW), left + 20, 62);
   ctx.fillStyle = COLORS.fog;
   ctx.font = '15px CardSans, CardFallback';
-  ctx.fillText(truncateToWidth(ctx, data.title || '', 600), 90, 76);
-  if (data.pages > 1) {
-    ctx.textAlign = 'right';
-    ctx.font = '16px CardMonoBold, CardFallbackBold';
-    ctx.fillText(`стр. ${data.page} / ${data.pages}`, W - 52, 60);
-    ctx.textAlign = 'left';
-  }
+  ctx.fillText(truncateToWidth(ctx, data.title || '', titleW), left + 20, 85);
 
   const medal = [COLORS.ember, COLORS.silver, COLORS.bronze];
   const maxXp = Math.max(1, Number(data.maxXp) || 0, ...rows.map((r) => Number(r.xp) || 0));
-
-  const avatars = await Promise.all(
-    rows.map(async (r) => {
-      try {
-        return r.avatarURL ? await loadAvatar(r.avatarURL) : null;
-      } catch {
-        return null;
-      }
-    })
-  );
+  // all avatars are fetched at once; drawing below then takes them from the cache
+  await Promise.all(rows.map((r) => (r.avatarURL ? loadAvatar(r.avatarURL).catch(() => null) : null)));
 
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     const y = HEADER + i * ROW;
-    const mid = y + ROW / 2;
+    const mid = y + TILE / 2;
+    const place = r.rank <= 3 ? medal[r.rank - 1] : null;
+    paintTile(ctx, left, y, right - left, TILE, 16, r.rank === 1 ? 'rgba(227,168,87,0.45)' : COLORS.hairline);
 
-    if (i % 2 === 0) {
-      ctx.fillStyle = 'rgba(255,255,255,0.025)';
-      roundRect(ctx, 24, y + 4, W - 48, ROW - 8, 14);
+    // Place: a filled badge for the first three, a plain number after them
+    const bx = left + 16;
+    if (place) {
+      ctx.fillStyle = place;
+      roundRect(ctx, bx, mid - 16, 32, 32, 10);
       ctx.fill();
     }
-
-    // Rank badge
-    const top3 = r.rank <= 3;
-    if (top3) {
-      ctx.fillStyle = medal[r.rank - 1];
-      ctx.beginPath();
-      ctx.arc(62, mid, 15, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#14161b';
-    } else {
-      ctx.fillStyle = COLORS.fog;
-    }
-    ctx.font = '16px CardMonoBold, CardFallbackBold';
+    ctx.fillStyle = place ? COLORS.bg : COLORS.fog;
+    ctx.font = `${r.rank >= 100 ? 13 : 16}px CardSansBold, CardFallbackBold`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(String(r.rank), 62, mid + 1);
+    ctx.fillText(String(r.rank), bx + 16, mid + 1);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
 
-    // Avatar
-    const ax = 116;
-    if (avatars[i]) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(ax, mid, 22, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(avatars[i], ax - 22, mid - 22, 44, 44);
-      ctx.restore();
-    } else {
-      await drawAvatar(ctx, null, r.name, ax, mid, 22);
-    }
-    if (top3) {
-      ctx.strokeStyle = medal[r.rank - 1];
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(ax, mid, 24, 0, Math.PI * 2);
-      ctx.stroke();
-    }
+    // Avatar: a square, framed in the medal colour for the first three
+    const ax = left + 66;
+    const as = 40;
+    await drawSquareAvatar(ctx, r.avatarURL, r.name, ax, mid - as / 2, as, 11, place, 3);
 
-    // Name + xp bar
-    ctx.fillStyle = COLORS.paper;
-    ctx.font = '20px CardSansBold, CardFallbackBold';
-    ctx.fillText(truncateToWidth(ctx, r.name, 480), 156, mid - 4);
-
-    const bx = 156;
-    const bw = 520;
-    const by = mid + 8;
-    ctx.fillStyle = COLORS.track;
-    roundRect(ctx, bx, by, bw, 6, 3);
-    ctx.fill();
-    const w = Math.max(6, (bw * (Number(r.xp) || 0)) / maxXp);
-    ctx.fillStyle = top3 ? medal[r.rank - 1] : COLORS.emberDeep;
-    roundRect(ctx, bx, by, w, 6, 3);
-    ctx.fill();
-
-    // Level + XP, right aligned
+    // Level (or voice time) and XP on the right; measured first so the name and the line stop before them
+    const big = r.sub || `ур. ${r.level}`;
+    const small = r.small || `${fmt(r.xp)} XP`;
+    ctx.font = '22px CardSansBold, CardFallbackBold';
+    const bigW = ctx.measureText(big).width;
+    ctx.font = '13px CardSans, CardFallback';
+    const smallW = ctx.measureText(small).width;
+    const sideW = Math.max(110, bigW, smallW);
     ctx.textAlign = 'right';
-    ctx.fillStyle = COLORS.ember;
-    ctx.font = '24px CardMonoBold, CardFallbackBold';
-    ctx.fillText(r.sub || `ур. ${r.level}`, W - 52, mid - 2);
+    ctx.fillStyle = place || COLORS.paper;
+    ctx.font = '22px CardSansBold, CardFallbackBold';
+    ctx.fillText(big, right - 20, mid + 2);
     ctx.fillStyle = COLORS.fog;
-    ctx.font = '14px CardMonoBold, CardFallbackBold';
-    ctx.fillText(r.small || `${fmt(r.xp)} XP`, W - 52, mid + 18);
+    ctx.font = '13px CardSans, CardFallback';
+    ctx.fillText(small, right - 20, mid + 20);
     ctx.textAlign = 'left';
+
+    // Name and progress line
+    const nx = ax + as + 20;
+    const nw = right - 20 - sideW - 28 - nx;
+    ctx.fillStyle = COLORS.paper;
+    ctx.font = '19px CardSansBold, CardFallbackBold';
+    ctx.fillText(truncateToWidth(ctx, r.name, nw), nx, mid - 3);
+    const from = place || COLORS.emberDeep;
+    const to = r.rank === 1 ? COLORS.emberLight : place || COLORS.ember;
+    paintBar(ctx, nx, mid + 9, nw, 6, (Number(r.xp) || 0) / maxXp, from, to, r.rank === 1);
   }
 
   return canvas.encode('png');
 }
 
-module.exports = { renderRankCard, renderLeaderboard, cardKit: { ensureFonts, makeCanvas, paintBackground, drawAvatar, drawCrescent, truncateToWidth, COLORS } };
+module.exports = { renderRankCard, renderLeaderboard, cardKit: { ensureFonts, makeCanvas, paintCard, paintTile, drawSquareAvatar, truncateToWidth, COLORS } };

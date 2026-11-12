@@ -1,5 +1,22 @@
 [
  {
+  "bot": "3.6.5",
+  "panel": "3.9.0",
+  "date": "2026-11-12",
+  "botChanges": [
+   "Таблица лидеров в стиле новой карточки профиля: плитки, аватары в рамках",
+   "Карточка приветствия в том же стиле"
+  ],
+  "panelChanges": [],
+  "en": {
+   "botChanges": [
+    "The leaderboard in the new profile card's style: tiles, framed avatars",
+    "The welcome card in the same style"
+   ],
+   "panelChanges": []
+  }
+ },
+ {
   "bot": "3.6.4",
   "panel": "3.9.0",
   "date": "2026-11-12",

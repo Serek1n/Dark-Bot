@@ -1,45 +1,53 @@
-// The picture that goes with the welcome message: the new member's avatar, a greeting and the member count.
+// The picture that goes with the welcome message, in the profile card's style: the new member's avatar in
+// an ember frame, a greeting, their name, the server and the member count.
 const { cardKit } = require('./rankCard');
 
 async function renderWelcomeCard({ username, avatarURL, serverName, memberCount }) {
-  const { ensureFonts, makeCanvas, paintBackground, drawAvatar, drawCrescent, truncateToWidth, COLORS } = cardKit;
+  const { ensureFonts, makeCanvas, paintCard, drawSquareAvatar, truncateToWidth, COLORS } = cardKit;
   ensureFonts();
   const W = 900;
   const H = 300;
   const { canvas, ctx } = makeCanvas(W, H);
+  paintCard(ctx, W, H);
 
-  paintBackground(ctx, W, H, 150, 150);
-  drawCrescent(ctx, W - 38, 38, 14, COLORS.ember, 0.55);
+  const size = 172;
+  await drawSquareAvatar(ctx, avatarURL, username, 48, (H - size) / 2, size, 32);
 
-  const cx = 150;
-  const cy = 150;
-  const R = 82;
-  await drawAvatar(ctx, avatarURL, username, cx, cy, R);
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = COLORS.ember;
-  ctx.beginPath();
-  ctx.arc(cx, cy, R + 3, 0, Math.PI * 2);
-  ctx.stroke();
-
-  const left = 270;
+  const left = 268;
+  const maxW = W - left - 44;
   ctx.textBaseline = 'alphabetic';
+
   ctx.fillStyle = COLORS.ember;
-  ctx.font = '22px CardSansBold, CardFallbackBold';
-  ctx.fillText('ДОБРО ПОЖАЛОВАТЬ', left, 98);
+  roundRectFill(ctx, left, 76, 4, 16, 2);
+  ctx.font = '15px CardSansBold, CardFallbackBold';
+  ctx.fillText('ДОБРО ПОЖАЛОВАТЬ', left + 14, 90);
 
   ctx.fillStyle = COLORS.paper;
   ctx.font = '44px CardSansBold, CardFallbackBold';
-  ctx.fillText(truncateToWidth(ctx, username, W - left - 50), left, 154);
+  ctx.fillText(truncateToWidth(ctx, username, maxW), left, 146);
 
   ctx.fillStyle = COLORS.fog;
-  ctx.font = '22px CardSans, CardFallback';
-  ctx.fillText(truncateToWidth(ctx, `на сервер ${serverName}`, W - left - 50), left, 196);
+  ctx.font = '20px CardSans, CardFallback';
+  ctx.fillText(truncateToWidth(ctx, `на сервер ${serverName}`, maxW), left, 182);
+
   if (memberCount) {
-    ctx.fillStyle = COLORS.silver;
-    ctx.font = '20px CardSans, CardFallback';
-    ctx.fillText(`Вы наш участник № ${memberCount}`, left, 236);
+    const text = `Вы наш участник № ${memberCount}`;
+    ctx.font = '15px CardSansBold, CardFallbackBold';
+    const w = Math.min(maxW, ctx.measureText(text).width + 30);
+    ctx.fillStyle = COLORS.raised;
+    roundRectFill(ctx, left, 204, w, 34, 17);
+    ctx.fillStyle = COLORS.emberLight;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(truncateToWidth(ctx, text, w - 30), left + 15, 221.5);
+    ctx.textBaseline = 'alphabetic';
   }
   return canvas.encode('png'); // encoded off the main thread: a join must not freeze the bot and the panel
+}
+
+function roundRectFill(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.fill();
 }
 
 module.exports = { renderWelcomeCard };
