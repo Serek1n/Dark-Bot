@@ -220,3 +220,10 @@ a.hh-chip:hover { color: var(--paper); border-color: var(--field-border); }
   .hl-ico { width: 24px; height: 24px; }
 }
 .home-list { position: static; max-height: none; overflow: visible; }
+
+/* ---------- one grid: blocks side by side are as tall as the tallest one; their links sit at the bottom ---------- */
+.grid-2 { align-items: stretch; }
+.grid-2 > .card, .grid-2 > form.card { height: 100%; display: flex; flex-direction: column; box-sizing: border-box; }
+.grid-2 > .card > .card-link { margin-top: auto; padding-top: 12px; }
+.grid-2 > .card > .empty-state { flex: 1; display: grid; place-items: center; margin: 0; }
+.grid-2 > .card > form:last-child, .grid-2 > form.card > .btn:last-child { margin-top: auto; }

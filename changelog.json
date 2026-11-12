@@ -1,6 +1,21 @@
 [
  {
   "bot": "3.6.5",
+  "panel": "3.10.5",
+  "date": "2026-11-12",
+  "botChanges": [],
+  "panelChanges": [
+   "Блоки в одном ряду одинаковой высоты, ссылки «Весь …» прижаты к низу карточки"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Cards side by side are equally tall; their \"See all\" links sit at the bottom"
+   ]
+  }
+ },
+ {
+  "bot": "3.6.5",
   "panel": "3.10.4",
   "date": "2026-11-12",
   "botChanges": [],
