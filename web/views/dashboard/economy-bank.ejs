@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Центробанк' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Центробанк</h1>
+        <p class="page-intro">Сколько монет на сервере, откуда они берутся и куда уходят. Если денег становится слишком много, банк плавно уменьшает награды, чтобы монеты не обесценивались.</p>
+      </div>
+      <% const n = (v) => Math.round(Number(v || 0)).toLocaleString('ru-RU');
+         const bankOn = on.includes('bank'); const seasonsOn = on.includes('seasons');
+         const cur = settings.currencyName || 'монет';
+         const infl = report.inflation; const target = report.params.inflationTarget;
+         const fmtDate = (d) => new Date(d).toLocaleDateString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: 'numeric', month: 'long', year: 'numeric' }); %>
+      <div class="stat-row">
+        <div class="stat-box"><div class="value"><%= n(report.now.coins) %></div><div class="label"><%= cur %> на руках</div></div>
+        <div class="stat-box"><div class="value"><%= infl === null ? '—' : (infl > 0 ? '+' : '') + infl.toFixed(1) + '%' %></div><div class="label">За неделю<%= infl === null ? ' (нужна неделя данных)' : '' %></div></div>
+        <div class="stat-box"><div class="value"><%= Math.round(report.rate * 100) %>%</div><div class="label">Награды от обычных</div></div>
+      </div>
+
+      <% if (bankOn) { %>
+      <div class="card g-c1">
+        <h2>Денежная масса за 30 дней</h2>
+        <% const pts = report.supply.map((s) => Number(s.coins)); %>
+        <% if (pts.length < 2) { %>
+          <p class="empty-state">График появится через пару дней: банк записывает итог каждую полночь (UTC).</p>
+        <% } else { const W = 600, H = 140, max = Math.max(...pts), min = Math.min(...pts), span = Math.max(1, max - min);
+             const xy = pts.map((v, i) => [(i / (pts.length - 1)) * W, H - 8 - ((v - min) / span) * (H - 16)]);
+             const line = xy.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' '); %>
+          <svg class="econ-chart" viewBox="0 0 600 140" preserveAspectRatio="none" role="img" aria-label="Денежная масса: от <%= n(pts[0]) %> до <%= n(pts[pts.length - 1]) %>">
+            <path class="area" d="<%= line %> L600 140 L0 140 Z" /><path class="line" d="<%= line %>" vector-effect="non-scaling-stroke" />
+          </svg>
+          <p class="hint">От <%= n(pts[0]) %> до <%= n(pts[pts.length - 1]) %> <%= cur %>. Цель — рост не больше <%= target %>% в неделю.</p>
+        <% } %>
+      </div>
+      <div class="card g-c2">
+        <h2>Неравенство</h2>
+        <% if (!report.people) { %>
+          <p class="empty-state">Пока ни у кого нет денег.</p>
+        <% } else { %>
+          <p style="margin-top:0">Половина всех монет — у <b><%= report.halfShare.toFixed(report.halfShare < 10 ? 1 : 0) %>%</b> участников (<%= n(report.halfPeople) %> из <%= n(report.people) %>).</p>
+          <div class="econ-gauge" aria-hidden="true"><i style="width:<%= Math.max(1, Math.min(100, report.halfShare)).toFixed(1) %>%"></i></div>
+          <p class="hint">Чем меньше процент, тем сильнее деньги собраны у немногих. Коэффициент Джини: <%= report.gini.toFixed(2) %> (0 — у всех поровну, 1 — всё у одного).</p>
+        <% } %>
+      </div>
+      <div class="card g-c1">
+        <h2>Откуда приходят деньги</h2>
+        <% if (!report.sources.length) { %><p class="empty-state">За 30 дней ничего не пришло.</p><% } else { const top = report.sources[0].amount || 1; %>
+          <div class="econ-bars"><% report.sources.forEach((s) => { %><div class="econ-bar"><span><%= s.label %></span><i style="width:<%= Math.max(1, (s.amount / top) * 100).toFixed(1) %>%"></i><b><%= n(s.amount) %></b></div><% }) %></div>
+        <% } %>
+      </div>
+      <div class="card g-c2">
+        <h2>Куда уходят</h2>
+        <% if (!report.sinks.length) { %><p class="empty-state">За 30 дней монеты никуда не уходили: значит, их становится только больше.</p><% } else { const top = report.sinks[0].amount || 1; %>
+          <div class="econ-bars"><% report.sinks.forEach((s) => { %><div class="econ-bar sink"><span><%= s.label %></span><i style="width:<%= Math.max(1, (s.amount / top) * 100).toFixed(1) %>%"></i><b><%= n(s.amount) %></b></div><% }) %></div>
+        <% } %>
+      </div>
+      <div class="card<%= seasonsOn ? ' g-c1' : ' g-span' %>">
+        <h2>Подстройка наград</h2>
+        <p style="margin-top:0">Сейчас награды за чат, голос и <code>/daily</code> — <b><%= Math.round(report.rate * 100) %>%</b> от заданных.
+          <% if (report.params.autoRate) { %>Раз в сутки банк сравнивает рост денег с целью (<%= target %>% в неделю): выше — награды на 10% меньше, меньше половины цели — на 5% больше. Ниже <%= report.params.minRate %>% они не опустятся.<% } else { %>Автоподстройка выключена в настройках раздела.<% } %></p>
+        <% if (report.rate < 1) { %>
+          <form method="post" action="/dashboard/<%= guild.id %>/economy-bank/rate-reset" data-no-guard data-confirm="Вернуть награды к обычным (100%)?" data-confirm-ok="Вернуть"><button class="btn btn-secondary" type="submit">Вернуть 100%</button></form>
+        <% } %>
+        <a class="card-link" href="/dashboard/<%= guild.id %>/economy">Цель и пределы — в настройках экономики →</a>
+      </div>
+      <% } %>
+
+      <% if (seasonsOn) { const end = seasonEnd; %>
+      <div class="card<%= bankOn ? ' g-c2' : ' g-span' %>">
+        <h2>Сезон <%= settings.seasonNumber || 1 %></h2>
+        <p style="margin-top:0"><% if (settings.seasonStartedAt) { %>Начался <%= fmtDate(settings.seasonStartedAt) %><% } else { %>Начнётся после сохранения настроек<% } %><% if (end) { %>, закончится <%= fmtDate(end) %><% } %>. В конце сезона монеты обнуляются, лучшие <%= seasonParams.top %> по богатству получают значок в профиль. Кристаллы и роли остаются.</p>
+        <% if (lastBadges.length) { %>
+          <h3 class="econ-sub">Итоги сезона <%= (settings.seasonNumber || 1) - 1 %></h3>
+          <div class="mini-list">
+            <% lastBadges.forEach((b) => { const u = users[b.userId] || { name: b.userId, avatar: '' }; %>
+              <div class="mini-row"><span class="rk"><%= b.place %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="val"><%= n(b.amount) %></span></div>
+            <% }) %>
+          </div>
+        <% } %>
+        <div class="btn-row card-foot">
+          <form method="post" action="/dashboard/<%= guild.id %>/economy-bank/season-end" data-no-guard data-confirm="Завершить сезон сейчас? Монеты всех участников обнулятся, лучшие получат значки. Отменить нельзя." data-confirm-ok="Завершить сезон"><button class="btn btn-danger" type="submit">Завершить сезон сейчас</button></form>
+        </div>
+      </div>
+      <% } %>
+    </main>
+  </div>
+</body>
+</html>

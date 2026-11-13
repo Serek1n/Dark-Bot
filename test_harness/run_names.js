@@ -15,7 +15,7 @@ const { makeInteraction, makeUser } = require('./mock');
 
   await test('exactly the expected commands are registered, old names are gone', async () => {
     const names = [...cmds.keys()].sort();
-    assert(names.join() === ['8ball', 'Profile', 'Report member', 'Report message', 'balance', 'calc', 'coinflip', 'daily', 'dice', 'giveaway', 'help', 'level', 'mod', 'pay', 'play', 'poll', 'profile', 'remind', 'report', 'rps', 'serverinfo', 'shop', 'temprole', 'ticket', 'top', 'userinfo', 'voice', 'webhook'].sort().join(), names.join());
+    assert(names.join() === ['8ball', 'Profile', 'Report member', 'Report message', 'balance', 'calc', 'coinflip', 'daily', 'deal', 'dice', 'gift', 'giveaway', 'help', 'level', 'mod', 'pay', 'play', 'poll', 'profile', 'remind', 'report', 'rps', 'serverinfo', 'shop', 'temprole', 'ticket', 'top', 'userinfo', 'voice', 'webhook', 'work'].sort().join(), names.join());
   });
   await test('all names/options are valid for Discord (lowercase, 1-32 chars) and descriptions <= 100', async () => {
     const re = /^[-_\p{L}\p{N}]{1,32}$/u;
@@ -27,7 +27,8 @@ const { makeInteraction, makeUser } = require('./mock');
   });
   await test('/daily, /balance, /pay', async () => {
     assert(text(await run('daily', { user: makeUser('n1') })).includes('Награда получена'), 'daily');
-    assert(text(await run('balance', { user: makeUser('n1') })).includes('Баланс'), 'balance');
+    const bal = await run('balance', { user: makeUser('n1') }); // the card (a picture), or the embed when drawing fails
+    assert(bal._replies.some((r) => r.files && r.files.length) || text(bal).includes('Баланс'), 'balance');
     const pay = await run('pay', { user: makeUser('n1'), options: { 'user': makeUser('n2'), 'amount': 10 } });
     assert(text(pay).includes('Перевод выполнен'), text(pay));
   });

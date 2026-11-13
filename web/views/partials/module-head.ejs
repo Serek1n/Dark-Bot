@@ -10,7 +10,7 @@
      const mainState = st(main.key);
      const switchable = own.filter((m) => st(m.key).switchable);
      const groupTitle = (M.GROUPS.find((g) => g[0] === main.group) || [])[1];
-     const tabs = main.pages.filter((p) => M.PAGE_LABELS[p] || p === main.page);
+     const tabs = main.pages.filter((p) => (M.PAGE_LABELS[p] || p === main.page) && M.pageVisible(p, locals.settings));
      const off = switchable.filter((m) => !st(m.key).on); %>
   <div class="mh-crumbs"><a href="/dashboard/<%= guild.id %>/features">Модули</a> › <span><%= groupTitle %></span></div>
   <span class="mh-icon<%= mainState.on ? ' is-on' : '' %>"><%- M.icon(main.key, 24) %></span>

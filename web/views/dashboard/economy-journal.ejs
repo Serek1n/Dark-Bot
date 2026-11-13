@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Журнал экономики' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Журнал экономики</h1>
+        <p class="page-intro">Каждая операция с деньгами: переводы, покупки, награды, сделки и действия администрации. Доход за чат, голос и уровни считается суммой за день и виден участнику в <code>/balance</code>.</p>
+      </div>
+      <% const n = (v) => Math.round(Number(v || 0)).toLocaleString('ru-RU');
+         const name = (id) => (id && users[id] ? users[id].name : id || '—');
+         const cur = (c) => (c === 'crystals' ? settings.crystalName : settings.currencyName);
+         const fmtDate = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+         const q = (extra) => { const p = new URLSearchParams(); if (f.user) p.set('user', f.user); if (f.kind) p.set('kind', f.kind); if (f.days !== 30) p.set('days', f.days); if (f.flag) p.set('flag', f.flag); Object.entries(extra || {}).forEach(([k, v]) => p.set(k, v)); const s = p.toString(); return s ? '?' + s : ''; };
+         const pages = Math.max(1, Math.ceil(total / 50)); %>
+
+      <% if (suspicious.length || holds.length) { %>
+      <% if (suspicious.length) { %>
+      <div class="card g-c1">
+        <h2>Подозрительные цепочки</h2>
+        <p class="hint" style="margin-top:0">Получили переводы от трёх и больше новичков за неделю — так часто перекачивают монеты со вторых аккаунтов.</p>
+        <div class="mini-list">
+          <% suspicious.forEach((s) => { %>
+            <div class="mini-row"><span class="person"><span><%= name(s.userId) %></span></span><span class="val"><%= s.senders %> новичков · <%= n(s.total) %></span><a class="btn btn-secondary" href="<%= q({ user: s.userId, flag: 'newbie', page: 0 }) %>">Смотреть</a></div>
+          <% }) %>
+        </div>
+      </div>
+      <% } %>
+      <% if (holds.length) { %>
+      <div class="card <%= suspicious.length ? 'g-c2' : 'g-span' %>">
+        <h2>Переводы новичкам в ожидании</h2>
+        <div class="table-wrap"><div class="table-scroll"><table>
+          <thead><tr><th>От</th><th>Кому</th><th>Сумма</th><th>Придёт</th><th></th></tr></thead>
+          <tbody>
+            <% holds.forEach((h) => { %>
+              <tr>
+                <td><%= name(h.fromId) %></td><td><%= name(h.toId) %></td><td class="econ-amt"><%= n(h.amount) %> <%= cur(h.currency) %></td><td><%= fmtDate(h.releaseAt) %></td>
+                <td><form method="post" action="/dashboard/<%= guild.id %>/economy-journal/hold/<%= h.id %>/return" data-no-guard data-confirm="Вернуть перевод отправителю?" data-confirm-ok="Вернуть"><button class="btn btn-danger" type="submit">Вернуть</button></form></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table></div></div>
+      </div>
+      <% } %>
+      <% } %>
+
+      <div class="card g-span">
+        <h2>Операции <span class="muted">· <%= n(total) %></span></h2>
+        <form method="get" class="econ-filters" data-no-guard>
+          <div><label for="f_user">ID участника</label><input id="f_user" type="text" name="user" inputmode="numeric" pattern="[0-9]{15,25}" value="<%= f.user %>" placeholder="Все" /></div>
+          <div><label for="f_kind">Операция</label><select id="f_kind" name="kind"><option value="">Все</option><% Object.entries(KIND_LABELS).filter(([k]) => !['chat', 'voice', 'level'].includes(k)).forEach(([k, l]) => { %><option value="<%= k %>" <%= f.kind === k ? 'selected' : '' %>><%= l %></option><% }) %></select></div>
+          <div><label for="f_days">За сколько дней</label><select id="f_days" name="days"><% [1, 7, 30, 90, 365].forEach((d) => { %><option value="<%= d %>" <%= f.days === d ? 'selected' : '' %>><%= d %></option><% }) %></select></div>
+          <div><label for="f_flag">Отметка</label><select id="f_flag" name="flag"><option value="">Любая</option><option value="newbie" <%= f.flag ? 'selected' : '' %>>От новичков</option></select></div>
+          <button class="btn" type="submit">Показать</button>
+        </form>
+        <% if (!rows.length) { %>
+          <p class="empty-state">Ничего не найдено. Операции появляются с этого обновления.</p>
+        <% } else { %>
+          <div class="table-wrap" style="margin-top:14px"><div class="table-scroll"><table>
+            <thead><tr><th>Когда</th><th>Участник</th><th>Операция</th><th>С кем</th><th>Сумма</th><th>Заметка</th></tr></thead>
+            <tbody>
+              <% rows.forEach((r) => { %>
+                <tr>
+                  <td><%= fmtDate(r.createdAt) %></td>
+                  <td><a href="<%= q({ user: r.userId, page: 0 }) %>"><%= name(r.userId) %></a></td>
+                  <td><%= KIND_LABELS[r.kind] || r.kind %><% if (r.flag === 'newbie') { %><span class="econ-flag">новичок</span><% } %></td>
+                  <td><%= r.otherId ? name(r.otherId) : '—' %></td>
+                  <td class="econ-amt<%= r.amount > 0 ? ' plus' : '' %>"><%= r.amount > 0 ? '+' : '−' %><%= n(Math.abs(r.amount)) %> <%= cur(r.currency) %></td>
+                  <td class="muted"><%= String(r.note || '').replace(/tax:(\d+)/, 'налог $1') %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div></div>
+          <% if (pages > 1) { %>
+            <div class="btn-row">
+              <% if (page > 0) { %><a class="btn btn-secondary" href="<%= q({ page: page - 1 }) %>">← Новее</a><% } %>
+              <span class="muted" style="align-self:center">Страница <%= page + 1 %> из <%= pages %></span>
+              <% if (page < pages - 1) { %><a class="btn btn-secondary" href="<%= q({ page: page + 1 }) %>">Старше →</a><% } %>
+            </div>
+          <% } %>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

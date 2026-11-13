@@ -61,7 +61,7 @@ const LAYOUT = [
       const [members, roles] = await Promise.all([MemberProfile.count(where(g)), LevelRole.count(where(g))]);
       return [{ value: members, label: 'участников в системе' }, { value: roles, label: 'ролей за уровни' }];
     } },
-  { key: 'economy', group: 'community', pages: ['economy'],
+  { key: 'economy', group: 'community', pages: ['economy', 'economy-bank', 'economy-treasury', 'economy-deals', 'economy-journal'],
     stats: async (g) => {
       const { MemberProfile } = db();
       const [coins, crystals, holders] = await Promise.all([MemberProfile.sum('balance', where(g)), MemberProfile.sum('crystals', where(g)),
@@ -134,7 +134,11 @@ const BY_KEY = new Map(MODULES.map((m) => [m.key, m]));
 // Pages that are not a module's: what to show in their header instead.
 const PAGE_TITLES = { overview: 'Главная', features: 'Модули', changelog: 'Обновления' };
 // The tabs of a module with several pages (its header shows them; the search finds each).
-const PAGE_LABELS = { leveling: 'Настройки', 'channel-boosts': 'Множители', moderation: 'Наказания и журнал' };
+const PAGE_LABELS = { leveling: 'Настройки', 'channel-boosts': 'Множители', moderation: 'Наказания и журнал',
+  economy: 'Настройки', 'economy-bank': 'Центробанк', 'economy-treasury': 'Казна и цели', 'economy-deals': 'Сделки и коды', 'economy-journal': 'Журнал' };
+// A page shown only while one of these economy sections is on (bot/modules/econ/config.js).
+const PAGE_NEEDS = { 'economy-bank': ['bank', 'seasons'], 'economy-treasury': ['treasury', 'goals'], 'economy-deals': ['deals', 'gifts'] };
+const pageVisible = (page, settings) => !PAGE_NEEDS[page] || PAGE_NEEDS[page].some((k) => require('../bot/modules/econ/config').isOn(settings, k));
 
 /** The module a page belongs to (its first owner), or null. */
 const moduleOfPage = (page) => MODULES.find((m) => m.pages.includes(page)) || null;
@@ -180,7 +184,7 @@ function moduleStats(guildId) {
 /** Forget the numbers of a server (after a change the admin made, so the home page shows it at once). */
 const forgetStats = (guildId) => statsCache.delete(guildId);
 
-module.exports = { GROUPS, MODULES, BY_KEY, ICONS, icon, PAGE_TITLES, PAGE_LABELS, moduleOfPage, modulesOfPage, moduleState, dependentsOf, moduleStats, forgetStats, isOn };
+module.exports = { GROUPS, MODULES, BY_KEY, ICONS, icon, PAGE_TITLES, PAGE_LABELS, PAGE_NEEDS, pageVisible, moduleOfPage, modulesOfPage, moduleState, dependentsOf, moduleStats, forgetStats, isOn };
 
 // Templates read the modules as `M` (app.locals.M); a template rendered on its own (tests, error pages) finds them here.
 global.__darkModules = module.exports;

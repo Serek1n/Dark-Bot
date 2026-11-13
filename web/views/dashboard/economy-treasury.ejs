@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Казна и цели' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Казна и цели</h1>
+        <p class="page-intro">Казна — общие деньги сервера: в неё идёт налог с переводов, покупок и сделок. Общие цели — то, на что сервер копит вместе.</p>
+      </div>
+      <% const n = (v) => Math.round(Number(v || 0)).toLocaleString('ru-RU');
+         const cur = settings.currencyName || 'монет';
+         const trOn = on.includes('treasury'); const goalsOn = on.includes('goals');
+         const open = goals.filter((g) => g.status === 'open');
+         const fmtDate = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+         const STATUS = { open: 'Идёт сбор', done: 'Собрана', failed: 'Не успели', cancelled: 'Отменена' }; %>
+      <div class="stat-row">
+        <div class="stat-box"><div class="value"><%= n(treasury) %></div><div class="label"><%= cur %> в казне</div></div>
+        <div class="stat-box"><div class="value"><%= n(activeCount) %></div><div class="label">Активны за неделю</div></div>
+        <div class="stat-box"><div class="value"><%= open.length %></div><div class="label">Целей идёт сейчас</div></div>
+      </div>
+      <% if (!hasChannel) { %>
+        <div class="card g-span"><p style="margin:0"><b>Нужен канал событий.</b> Карточки целей, розыгрыши и голосования казны бот публикует в канале событий. <a href="/dashboard/<%= guild.id %>/economy">Выберите его в настройках экономики →</a></p></div>
+      <% } %>
+
+      <% if (trOn) { %>
+      <form method="post" action="/dashboard/<%= guild.id %>/economy-treasury/vote" class="card g-c1 g-r2" data-no-guard>
+        <h2>Голосование: на что потратить</h2>
+        <p class="hint" style="margin-top:0">Отметьте два или три варианта — бот опубликует голосование в канале событий и сам выполнит то, что победит.</p>
+        <div class="rules">
+          <label class="rule"><span class="rule-text"><b>Раздать поровну</b><span>Всем, кто был активен за неделю.</span></span><input type="checkbox" name="v_split" checked /></label>
+        </div>
+        <label for="v_split_amount">Сколько раздать всего</label>
+        <input id="v_split_amount" type="number" name="v_split_amount" min="1" value="<%= Math.max(1, Math.floor(treasury / 2)) %>" />
+        <div class="rules" style="margin-top:14px">
+          <label class="rule"><span class="rule-text"><b>Розыгрыш</b><span>Длится сутки, призы платит казна.</span></span><input type="checkbox" name="v_give" checked /></label>
+        </div>
+        <div class="two-col">
+          <div><label for="v_give_amount">Приз каждому</label><input id="v_give_amount" type="number" name="v_give_amount" min="1" value="<%= Math.max(1, Math.floor(treasury / 4)) %>" /></div>
+          <div><label for="v_give_winners">Победителей</label><input id="v_give_winners" type="number" name="v_give_winners" min="1" max="20" value="1" /></div>
+        </div>
+        <% if (goalsOn && open.length) { %>
+          <div class="rules" style="margin-top:14px">
+            <label class="rule"><span class="rule-text"><b>Вложить в общую цель</b></span><input type="checkbox" name="v_goal" /></label>
+          </div>
+          <div class="two-col">
+            <div><label for="v_goal_id">Цель</label><select id="v_goal_id" name="v_goal_id"><% open.forEach((g) => { %><option value="<%= g.id %>"><%= g.title %></option><% }) %></select></div>
+            <div><label for="v_goal_amount">Сколько</label><input id="v_goal_amount" type="number" name="v_goal_amount" min="1" value="<%= Math.max(1, Math.floor(treasury / 2)) %>" /></div>
+          </div>
+        <% } %>
+        <label for="vote_hours">Голосование длится, ч</label>
+        <input id="vote_hours" type="number" name="hours" min="1" max="168" value="24" />
+        <button class="btn" type="submit"<%= hasChannel ? '' : ' disabled' %>>Начать голосование</button>
+      </form>
+      <form method="post" action="/dashboard/<%= guild.id %>/economy-treasury/split" class="card g-c2" data-no-guard data-confirm="Раздать деньги из казны всем активным участникам?" data-confirm-ok="Раздать">
+        <h2>Раздать сейчас</h2>
+        <p class="hint" style="margin-top:0">Без голосования: поровну всем, кто писал или сидел в голосовых за последнюю неделю (сейчас <%= n(activeCount) %>).</p>
+        <label for="split_amount">Сколько всего</label>
+        <input id="split_amount" type="number" name="amount" min="1" value="<%= Math.max(1, treasury) %>" />
+        <button class="btn" type="submit"<%= treasury > 0 ? '' : ' disabled' %>>Раздать</button>
+      </form>
+      <form method="post" action="/dashboard/<%= guild.id %>/economy-treasury/giveaway" class="card g-c2" data-no-guard>
+        <h2>Розыгрыш из казны</h2>
+        <div class="two-col">
+          <div><label for="give_amount">Приз каждому</label><input id="give_amount" type="number" name="amount" min="1" value="<%= Math.max(1, Math.floor(treasury / 2)) %>" /></div>
+          <div><label for="give_winners">Победителей</label><input id="give_winners" type="number" name="winners" min="1" max="20" value="1" /></div>
+        </div>
+        <label for="give_hours">Длится, ч</label>
+        <input id="give_hours" type="number" name="hours" min="1" max="336" value="24" />
+        <button class="btn" type="submit"<%= hasChannel && treasury > 0 ? '' : ' disabled' %>>Запустить</button>
+      </form>
+      <% } %>
+
+      <% if (goalsOn) { %>
+      <form method="post" action="/dashboard/<%= guild.id %>/economy-treasury/goal" class="card g-c1" data-no-guard>
+        <h2>Новая общая цель</h2>
+        <label for="goal_title">Название</label>
+        <input id="goal_title" type="text" name="title" maxlength="80" placeholder="Например, неделя двойного опыта" required />
+        <div class="two-col">
+          <div><label for="goal_target">Собрать, <%= cur %></label><input id="goal_target" type="number" name="target" min="10" value="5000" /></div>
+          <div><label for="goal_days">Срок, дней</label><input id="goal_days" type="number" name="days" min="1" max="60" value="7" /></div>
+        </div>
+        <label for="goal_action">Что будет, когда соберём</label>
+        <select id="goal_action" name="action">
+          <option value="boost">Буст опыта для всех</option>
+          <option value="role">Роль каждому, кто вложился</option>
+          <option value="announce">Просто объявление (награду вы выдаёте сами)</option>
+        </select>
+        <div class="two-col">
+          <div><label for="goal_mult">Буст: множитель</label><input id="goal_mult" type="number" name="boostMult" min="1.1" max="3" step="0.1" value="2" /></div>
+          <div><label for="goal_hours">Буст: часов</label><input id="goal_hours" type="number" name="boostHours" min="1" max="336" value="24" /></div>
+        </div>
+        <label for="goal_role">Роль (для «роль каждому»)</label>
+        <select id="goal_role" name="roleId"><option value="">—</option><% roles.forEach((r) => { %><option value="<%= r.id %>">@<%= r.name %></option><% }) %></select>
+        <label for="goal_reward">Описание награды (для объявления)</label>
+        <input id="goal_reward" type="text" name="reward" maxlength="200" placeholder="Например, турнир с призами в субботу" />
+        <p class="hint">Если к сроку не соберём, бот вернёт каждому его вклад.</p>
+        <button class="btn" type="submit"<%= hasChannel ? '' : ' disabled' %>>Открыть сбор</button>
+      </form>
+      <div class="card g-c2">
+        <h2>Цели</h2>
+        <% if (!goals.length) { %>
+          <p class="empty-state">Целей пока не было. Первая появится в канале событий с кнопками «Вложить».</p>
+        <% } else { goals.forEach((g) => { const pct = Math.min(100, (g.raised / Math.max(1, g.target)) * 100); const top = contribs.filter((c) => c.goalId === g.id).slice(0, 3); %>
+          <div class="econ-goal">
+            <div class="econ-goal-top"><b><%= g.title %></b><span class="muted"><%= STATUS[g.status] || g.status %><%= g.status === 'open' ? ' · до ' + fmtDate(g.endsAt) : '' %></span></div>
+            <div class="econ-gauge" aria-hidden="true"><i style="width:<%= pct.toFixed(1) %>%"></i></div>
+            <div class="hint" style="margin-top:0"><%= n(g.raised) %> из <%= n(g.target) %> <%= cur %><%= top.length ? ' · больше всех: ' + top.map((c) => c.userId ? (users[c.userId] || { name: c.userId }).name : 'казна').join(', ') : '' %></div>
+            <% if (g.status === 'open') { %>
+              <div class="btn-row">
+                <% if (trOn) { %>
+                  <form method="post" action="/dashboard/<%= guild.id %>/economy-treasury/goal/<%= g.id %>/fund" data-no-guard class="econ-fund">
+                    <input type="number" name="amount" min="1" value="<%= Math.max(1, Math.min(treasury, g.target - g.raised)) %>" aria-label="Сколько вложить из казны" />
+                    <button class="btn btn-secondary" type="submit"<%= treasury > 0 ? '' : ' disabled' %>>Вложить из казны</button>
+                  </form>
+                <% } %>
+                <form method="post" action="/dashboard/<%= guild.id %>/economy-treasury/goal/<%= g.id %>/cancel" data-no-guard data-confirm="Отменить цель «<%= g.title %>»? Все вложения вернутся." data-confirm-ok="Отменить цель"><button class="btn btn-danger" type="submit">Отменить</button></form>
+              </div>
+            <% } %>
+          </div>
+        <% }) } %>
+      </div>
+      <% } %>
+    </main>
+  </div>
+</body>
+</html>

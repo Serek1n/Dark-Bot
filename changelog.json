@@ -1,5 +1,36 @@
 [
  {
+  "bot": "3.7.0",
+  "panel": "3.14.0",
+  "date": "2026-11-13",
+  "botChanges": [
+   "Экономика: /work, /gift (подарочные коды), /deal (сделка с гарантом)",
+   "/balance — карточка: монеты, кристаллы, место, график за 30 дней, история операций",
+   "Защита от накрутки: лимит переводов в сутки, переводы новичкам приходят позже",
+   "Центробанк сам подстраивает награды, если монет становится слишком много",
+   "Казна с налогами и голосованием, общие цели сервера, сезоны со значками в профиле",
+   "Вкладка «Богатство» в /top; бот объявляет новое в экономике в канале событий"
+  ],
+  "panelChanges": [
+   "Экономика: выбор режима — простая, готовый набор или детальная настройка разделов",
+   "Новые вкладки: Центробанк, Казна и цели, Сделки и коды, Журнал операций"
+  ],
+  "en": {
+   "botChanges": [
+    "Economy: /work, /gift (gift codes), /deal (escrow deal)",
+    "/balance is a card: coins, crystals, rank, a 30-day chart, transaction history",
+    "Anti-abuse: a daily transfer limit, transfers to newcomers arrive later",
+    "The central bank adjusts rewards by itself when there are too many coins",
+    "A treasury with taxes and votes, server goals, seasons with profile badges",
+    "A \"Wealth\" tab in /top; the bot announces economy news in an events channel"
+   ],
+   "panelChanges": [
+    "Economy: pick a mode — simple, a ready preset or a detailed setup of sections",
+    "New tabs: Central bank, Treasury and goals, Deals and codes, Journal"
+   ]
+  }
+ },
+ {
   "bot": "3.6.6",
   "panel": "3.13.2",
   "date": "2026-11-13",

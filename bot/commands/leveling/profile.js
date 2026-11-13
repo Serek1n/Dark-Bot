@@ -146,7 +146,8 @@ module.exports = {
           chatXp: Number(profile.chatXp || 0),
           voiceXp: Number(profile.voiceXp || 0),
           messageCount: Number(profile.messageCount),
-          voiceSeconds: Number(profile.voiceSeconds || 0) + pendingSeconds(interaction.guild.id, target.id)
+          voiceSeconds: Number(profile.voiceSeconds || 0) + pendingSeconds(interaction.guild.id, target.id),
+          badge: await require('../../modules/econ/seasons').badgeText(interaction.guild.id, target.id).catch(() => null)
         });
         const attachment = new AttachmentBuilder(png, { name: 'rank.png' });
         return interaction.editReply({ files: [attachment] });

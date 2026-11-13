@@ -8,7 +8,7 @@ const logger = require('../utils/logger');
 
 const PAGE_SIZE = 10;
 const PREFIX = 'top';
-const CATS = { total: { field: 'xp', label: 'Общий', heading: 'Таблица лидеров' }, voice: { field: 'voiceSeconds', label: 'Голос', heading: 'Лидеры голоса' } };
+const CATS = { total: { field: 'xp', label: 'Общий', heading: 'Таблица лидеров' }, voice: { field: 'voiceSeconds', label: 'Голос', heading: 'Лидеры голоса' }, wealth: { field: 'balance', label: 'Богатство', heading: 'Самые богатые', econ: 'wealthTop' } };
 const catOf = (c) => (CATS[c] ? c : 'total');
 
 // Speed: the picture costs ~150 ms to encode, Discord lookups of names cost more. So
@@ -65,9 +65,12 @@ function navRow(page, pages, userId, cat) {
   );
 }
 
-function catRow(active, userId) {
+// the wealth tab is shown only where the economy's "wealth top" is switched on
+const catsFor = (settings) => Object.entries(CATS).filter(([, c]) => !c.econ || require('./econ/config').isOn(settings, c.econ));
+
+function catRow(active, userId, settings) {
   return new ActionRowBuilder().addComponents(
-    ...Object.entries(CATS).map(([key, c]) =>
+    ...catsFor(settings).map(([key, c]) =>
       new ButtonBuilder()
         .setCustomId(`${PREFIX}:cat:0:${userId}:${key}`)
         .setLabel(c.label)
@@ -79,7 +82,9 @@ function catRow(active, userId) {
 
 /** Builds one page of the leaderboard: PNG + navigation buttons (or an embed if drawing fails). */
 async function buildTopPage(client, guild, requestedPage, userId, category = 'total', { prefetch = true } = {}) {
-  const cat = catOf(category);
+  const settings = await require('./leveling').getOrCreateSettings(guild.id).catch(() => null);
+  let cat = catOf(category);
+  if (CATS[cat].econ && !require('./econ/config').isOn(settings, CATS[cat].econ)) cat = 'total';
   const c = CATS[cat];
   // nobody with zero experience is ranked: an empty profile (someone who never wrote a word) is not a place in the top
   const where = { guildId: guild.id, [c.field]: { [Op.gt]: 0 } };
@@ -90,13 +95,13 @@ async function buildTopPage(client, guild, requestedPage, userId, category = 'to
 
   const profiles = await MemberProfile.findAll({
     where,
-    attributes: ['userId', 'level', 'xp', 'voiceSeconds'],
+    attributes: ['userId', 'level', 'xp', 'voiceSeconds', 'balance'],
     order: [[c.field, 'DESC'], ['id', 'ASC']],
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
     raw: true
   });
-  const components = [...(pages > 1 ? [navRow(page, pages, userId, cat)] : []), catRow(cat, userId)];
+  const components = [...(pages > 1 ? [navRow(page, pages, userId, cat)] : []), catRow(cat, userId, settings)];
 
   try {
     const rows = await Promise.all(
@@ -109,8 +114,8 @@ async function buildTopPage(client, guild, requestedPage, userId, category = 'to
           level: p.level,
           xp: Number(p[c.field]),
           // The voice board ranks by hours spent in voice (the same number as on the profile card).
-          sub: cat === 'voice' ? formatDuration(p.voiceSeconds) : null,
-          small: cat === 'voice' ? `ур. ${p.level}` : null
+          sub: cat === 'voice' ? formatDuration(p.voiceSeconds) : cat === 'wealth' ? `${p.balance} ${settings?.currencyName || 'монет'}` : null,
+          small: cat !== 'total' ? `ур. ${p.level}` : null
         };
       })
     );
@@ -132,7 +137,7 @@ async function buildTopPage(client, guild, requestedPage, userId, category = 'to
     const medals = ['🥇', '🥈', '🥉'];
     const lines = profiles.map((p, i) => {
       const rank = page * PAGE_SIZE + i + 1;
-      return `${medals[rank - 1] || `**${rank}.**`}  <@${p.userId}>  —  уровень ${p.level} · ${cat === 'voice' ? formatDuration(p.voiceSeconds) : p.xp + ' XP'}`;
+      return `${medals[rank - 1] || `**${rank}.**`}  <@${p.userId}>  —  уровень ${p.level} · ${cat === 'voice' ? formatDuration(p.voiceSeconds) : cat === 'wealth' ? `${p.balance} ${settings?.currencyName || 'монет'}` : p.xp + ' XP'}`;
     });
     return {
       files: [],

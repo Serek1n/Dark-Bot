@@ -13,7 +13,7 @@ const web = path.join(__dirname, '..', 'web');
     const html = await render('webhooks');
     const M = require('../web/modules');
     const links = html.match(/<a href="\/dashboard\/123456789012345678[^"]*" class="[^"]*" title="[^"]+"/g) || [];
-    const subPages = M.MODULES.flatMap((m) => m.pages.slice(1)).filter((p, i, a) => a.indexOf(p) === i && M.PAGE_LABELS[p] && !M.MODULES.some((o) => o.page === p));
+    const subPages = M.MODULES.flatMap((m) => m.pages.slice(1)).filter((p, i, a) => a.indexOf(p) === i && M.PAGE_LABELS[p] && !M.MODULES.some((o) => o.page === p) && M.pageVisible(p, undefined)); // economy pages of sections that are off are not listed
     assert(links.length === 3 + M.MODULES.length + subPages.length, 'links ' + links.length);
     assert(/href="\/dashboard\/123456789012345678\/webhooks" class="active"/.test(html) && (html.match(/class="active"/g) || []).length === 1, 'one active');
     assert(html.includes('data-menu-open') && html.includes('data-theme-toggle') && html.includes('data-quick-jump') && html.includes('data-mods-open'), 'menu, modules, theme and search buttons');

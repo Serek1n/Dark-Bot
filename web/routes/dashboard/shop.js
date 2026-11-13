@@ -108,6 +108,7 @@ router.post('/:guildId/shop/purchases/:id/refund', ensureGuildAccess, async (req
   if (!changed) return res.redirect(saved(guildId, 'shop', 'invalid'));
   const { credit } = require('../../../bot/modules/wallet');
   await credit(guildId, purchase.userId, purchase.currency === 'crystals' ? 'crystals' : 'balance', purchase.price);
+  await require('../../../bot/modules/econ/ledger').record({ guildId, userId: purchase.userId, currency: purchase.currency === 'crystals' ? 'crystals' : 'coins', amount: purchase.price, kind: 'refund', note: purchase.itemName }).catch(() => {});
   if (purchase.itemId) await ShopItem.increment('stock', { by: 1, where: { id: purchase.itemId, guildId, stock: { [Op.ne]: null } } }).catch(() => {});
   if (purchase.itemType === 'role' && purchase.roleId) {
     // A role on a term may have been bought several times (each purchase prolongs it). Returning one purchase takes back

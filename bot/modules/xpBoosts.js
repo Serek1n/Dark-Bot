@@ -74,7 +74,13 @@ function totalBoost(settings, channelBoost, member) {
   const role = roleBoostFor(settings, member);
   const mode = STACK_MODES.includes(settings?.boostStacking) ? settings.boostStacking : 'multiply';
   const ch = channelBoost || { xp: 1, coins: 1 };
-  return { xp: stack(ch.xp, role.xp, mode), coins: stack(ch.coins, role.coins, mode) };
+  const out = { xp: stack(ch.xp, role.xp, mode), coins: stack(ch.coins, role.coins, mode) };
+  // A server goal's reward: more XP for everyone until a set time.
+  const until = settings?.xpBoostUntil ? new Date(settings.xpBoostUntil).getTime() : 0;
+  if (until > Date.now() && Number(settings.xpBoostMult) > 1) out.xp = Math.min(MAX_TOTAL, out.xp * Number(settings.xpBoostMult));
+  // The central bank's rate: coin rewards a little smaller while there is too much money (bot/modules/econ/bank.js).
+  out.coins *= require('./econ/bank').rateOf(settings);
+  return out;
 }
 
 module.exports = { roleBoostFor, totalBoost, combineRoles, stack, ROLE_MODES, STACK_MODES, MAX_TOTAL };

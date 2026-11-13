@@ -204,7 +204,7 @@ async function drawSquareAvatar(ctx, url, name, x, y, size, radius, frame = COLO
  * numbers below in three groups — economy, activity, experience — two figures each.
  * @param {{ username: string, avatarURL?: string, level: number, xpIntoLevel: number, xpNeeded: number,
  *   balance: number, currencyName: string, crystals?: number, crystalName?: string, messageCount: number,
- *   voiceSeconds?: number, chatXp?: number, voiceXp?: number, rank?: number, totalMembers?: number }} data
+ *   voiceSeconds?: number, chatXp?: number, voiceXp?: number, rank?: number, totalMembers?: number, badge?: string }} data
  * @returns {Promise<Buffer>}
  */
 async function drawRankCard(data) {
@@ -230,9 +230,19 @@ async function drawRankCard(data) {
   ctx.fillText(xpText, right, 120);
   ctx.textAlign = 'left';
 
+  // a season badge ("Сезон 3 · #1") as a small pill at the top right; the name leaves room for it
+  let badgeW = 0;
+  if (data.badge) {
+    ctx.font = '13px CardSansBold, CardFallbackBold';
+    badgeW = ctx.measureText(data.badge).width + 24;
+    ctx.strokeStyle = COLORS.ember; ctx.lineWidth = 1.5;
+    roundRect(ctx, right - badgeW, 40, badgeW, 26, 13); ctx.stroke();
+    ctx.fillStyle = COLORS.emberLight; ctx.textAlign = 'right';
+    ctx.fillText(data.badge, right - 12, 58); ctx.textAlign = 'left';
+  }
   ctx.fillStyle = COLORS.paper;
   ctx.font = '36px CardSansBold, CardFallbackBold';
-  ctx.fillText(truncateToWidth(ctx, data.username, right - left), left, 88);
+  ctx.fillText(truncateToWidth(ctx, data.username, right - left - (badgeW ? badgeW + 16 : 0)), left, 88);
 
   let place = '';
   if (data.rank && data.totalMembers) place = `  ·  #${fmt(data.rank)} из ${fmt(data.totalMembers)}`;

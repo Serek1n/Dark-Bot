@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Сделки и коды' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Сделки и коды</h1>
+        <p class="page-intro">Сделки с гарантом (<code>/deal</code>): бот держит деньги покупателя, пока обе стороны не подтвердят. Подарочные коды (<code>/gift</code>): одноразовые коды на сумму.</p>
+      </div>
+      <% const n = (v) => Math.round(Number(v || 0)).toLocaleString('ru-RU');
+         const cur = settings.currencyName || 'монет';
+         const name = (id) => (users[id] || { name: id }).name;
+         const dealsOn = on.includes('deals'); const giftsOn = on.includes('gifts');
+         const STATUS = { pending: 'Ждёт продавца', active: 'В работе', disputed: 'Спор', done: 'Оплачена', refunded: 'Возврат' };
+         const fmtDate = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); %>
+
+      <% if (dealsOn) { const disputed = deals.filter((d) => d.status === 'disputed').length; %>
+      <div class="card g-span">
+        <h2>Сделки <% if (disputed) { %><span class="muted">· спорных: <%= disputed %></span><% } %></h2>
+        <% if (!deals.length) { %>
+          <p class="empty-state">Сделок пока не было. Участник открывает её командой <code>/deal @продавец сумма «что сделать»</code>.</p>
+        <% } else { %>
+          <div class="table-wrap"><div class="table-scroll"><table>
+            <thead><tr><th>Что</th><th>Покупатель</th><th>Продавец</th><th>Сумма</th><th>Статус</th><th>Открыта</th><th></th></tr></thead>
+            <tbody>
+              <% deals.forEach((d) => { const live = ['pending', 'active', 'disputed'].includes(d.status); %>
+                <tr>
+                  <td><%= d.title %><% if (d.outcome) { %><div class="hint" style="margin:0"><%= d.outcome %></div><% } %></td>
+                  <td><%= name(d.buyerId) %></td>
+                  <td><%= name(d.sellerId) %></td>
+                  <td class="econ-amt"><%= n(d.amount) %> <%= cur %></td>
+                  <td><%= STATUS[d.status] || d.status %><%= d.status === 'disputed' ? ' ⚠' : '' %></td>
+                  <td><%= fmtDate(d.createdAt) %></td>
+                  <td>
+                    <% if (live) { %>
+                      <div class="btn-row" style="margin:0">
+                        <form method="post" action="/dashboard/<%= guild.id %>/economy-deals/<%= d.id %>/resolve" data-no-guard data-confirm="Отдать <%= n(d.amount) %> продавцу?" data-confirm-ok="Продавцу"><input type="hidden" name="to" value="seller" /><button class="btn btn-secondary" type="submit">Продавцу</button></form>
+                        <form method="post" action="/dashboard/<%= guild.id %>/economy-deals/<%= d.id %>/resolve" data-no-guard data-confirm="Вернуть <%= n(d.amount) %> покупателю?" data-confirm-ok="Вернуть"><input type="hidden" name="to" value="buyer" /><button class="btn btn-danger" type="submit">Вернуть</button></form>
+                      </div>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div></div>
+        <% } %>
+      </div>
+      <% } %>
+
+      <% if (giftsOn) { const unused = codes.filter((c) => !c.redeemedBy).length; %>
+      <form method="post" action="/dashboard/<%= guild.id %>/economy-deals/codes" class="card g-c1" data-no-guard>
+        <h2>Выпустить коды</h2>
+        <p class="hint" style="margin-top:0">Для конкурсов, партнёров и стримов. Каждый код можно забрать один раз командой <code>/gift redeem</code>.</p>
+        <div class="two-col">
+          <div><label for="code_count">Сколько кодов</label><input id="code_count" type="number" name="count" min="1" max="100" value="10" /></div>
+          <div><label for="code_amount">Сумма каждого</label><input id="code_amount" type="number" name="amount" min="1" value="100" /></div>
+        </div>
+        <label for="code_source">Откуда деньги</label>
+        <select id="code_source" name="source">
+          <option value="treasury"<%= on.includes('treasury') ? '' : ' disabled' %>>Из казны (вся сумма списывается сразу)</option>
+          <option value="mint"<%= on.includes('treasury') ? '' : ' selected' %>>Новые монеты</option>
+        </select>
+        <p class="hint">Участники тоже делают коды из своих денег: до <%= giftParams.maxPerDay %> в день, от <%= giftParams.minAmount %> <%= cur %>.</p>
+        <button class="btn" type="submit">Выпустить</button>
+      </form>
+      <div class="card g-c2">
+        <h2>Коды администрации <% if (codes.length) { %><span class="muted">· свободных: <%= unused %></span><% } %></h2>
+        <% if (!codes.length) { %>
+          <p class="empty-state">Кодов пока нет.</p>
+        <% } else { %>
+          <div class="table-wrap"><div class="table-scroll"><table>
+            <thead><tr><th>Код</th><th>Сумма</th><th>Кто забрал</th><th></th></tr></thead>
+            <tbody>
+              <% codes.slice(0, 40).forEach((c) => { %>
+                <tr>
+                  <td><code><%= c.code %></code></td>
+                  <td class="econ-amt"><%= n(c.amount) %></td>
+                  <td><%= c.redeemedBy ? name(c.redeemedBy) : '—' %></td>
+                  <td><% if (!c.redeemedBy) { %><form method="post" action="/dashboard/<%= guild.id %>/economy-deals/codes/<%= c.id %>/revoke" data-no-guard data-confirm="Отозвать код <%= c.code %>?" data-confirm-ok="Отозвать"><button class="btn btn-danger" type="submit">Отозвать</button></form><% } %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div></div>
+          <div class="btn-row card-foot">
+            <a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/economy-deals/codes.csv?unused">Свободные коды (CSV)</a>
+            <a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/economy-deals/codes.csv">Все (CSV)</a>
+          </div>
+        <% } %>
+      </div>
+      <% } %>
+    </main>
+  </div>
+</body>
+</html>

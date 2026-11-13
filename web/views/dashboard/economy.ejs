@@ -10,14 +10,60 @@
         <h1>Экономика</h1>
         <p class="page-intro">Две валюты с разными источниками. Сколько выдавать за чат и голос, настраивается на странице «Уровни».</p>
       </div>
-      <% const n = (v) => Number(v).toLocaleString('ru-RU'); %>
+      <% const n = (v) => Number(v).toLocaleString('ru-RU');
+         const ec = locals.econ || { FEATURES: [], PRESETS: [], mode: 'simple', preset: 'calm', flags: {}, on: [], params: {} }; %>
       <div class="stat-row">
         <div class="stat-box"><div class="value"><%= n(stats.coinsTotal) %></div><div class="label"><%= settings.currencyName %> в обороте</div></div>
         <div class="stat-box"><div class="value"><%= n(stats.crystalsTotal) %></div><div class="label"><%= settings.crystalName %> в обороте</div></div>
         <div class="stat-box"><div class="value"><%= n(stats.holders) %></div><div class="label">Участников с деньгами</div></div>
       </div>
-      <form method="post">
-        <div class="card">
+      <form method="post" data-econ-form>
+        <div class="card g-span econ-setup">
+          <h2>Как устроена экономика</h2>
+          <p class="hint" style="margin-top:0">Начните с простой — её хватает большинству серверов. Набор или детальная настройка добавляют новые возможности; их можно выключить в любой момент, деньги участников останутся.</p>
+          <div class="econ-modes" role="radiogroup" aria-label="Режим экономики">
+            <label class="msg-radio"><input type="radio" name="mode" value="simple" <%= ec.mode === 'simple' ? 'checked' : '' %> /><span><b>Простая</b><small>Монеты, кристаллы, <code>/daily</code>, <code>/pay</code> и магазин. Ничего лишнего.</small></span></label>
+            <label class="msg-radio"><input type="radio" name="mode" value="preset" <%= ec.mode === 'preset' ? 'checked' : '' %> /><span><b>Готовый набор</b><small>Выберите набор возможностей и отметьте, какие из них хотите настроить под себя.</small></span></label>
+            <label class="msg-radio"><input type="radio" name="mode" value="custom" <%= ec.mode === 'custom' ? 'checked' : '' %> /><span><b>Детально</b><small>Сами включаете нужные разделы и задаёте их числа.</small></span></label>
+          </div>
+
+          <div class="econ-pane" data-econ-pane="preset"<%= ec.mode === 'preset' ? '' : ' hidden' %>>
+            <h3 class="econ-sub">Набор</h3>
+            <div class="econ-presets" role="radiogroup" aria-label="Набор">
+              <% ec.PRESETS.forEach((p) => { %>
+                <label class="msg-radio"><input type="radio" name="preset" value="<%= p.key %>" <%= ec.preset === p.key ? 'checked' : '' %> /><span><b><%= p.title %></b><small><%= p.desc %></small></span></label>
+              <% }) %>
+            </div>
+            <p class="hint">Отмеченное «Настроить» открывает числа раздела. Неотмеченные разделы работают с обычными значениями.</p>
+            <input type="hidden" name="tune__present" value="1" />
+          </div>
+
+          <div class="econ-feats" data-econ-pane="preset custom"<%= ec.mode === 'simple' ? ' hidden' : '' %>>
+            <% ec.FEATURES.forEach((f) => { const p = ec.params[f.key]; const inPresets = ec.PRESETS.filter((x) => x.features.includes(f.key)).map((x) => x.key).join(' '); const isOn = ec.on.includes(f.key); %>
+              <div class="econ-feat<%= isOn ? ' is-on' : '' %>" data-feat="<%= f.key %>" data-in="<%= inPresets %>">
+                <div class="ef-head">
+                  <div class="ef-text"><b><%= f.title %></b><span><%= f.short %></span></div>
+                  <span class="mod-sw sm" data-ef-custom><input type="checkbox" name="f_<%= f.key %>" <%= ec.flags[f.key] === true ? 'checked' : '' %> aria-label="<%= f.title %>" /></span>
+                  <% if (f.params.length) { %><label class="ef-tune" data-ef-preset><input type="checkbox" name="tune_<%= f.key %>" checked /> Настроить</label><% } %>
+                </div>
+                <% if (f.params.length) { %>
+                  <div class="ef-params">
+                    <% f.params.forEach((q) => { const name = `p_${f.key}_${q.key}`; %>
+                      <% if (q.type === 'bool') { %>
+                        <label class="rule ef-bool"><span class="rule-text"><b><%= q.label %></b></span><input type="hidden" name="<%= name %>__present" value="1" /><input type="checkbox" name="<%= name %>" <%= p[q.key] ? 'checked' : '' %> /></label>
+                      <% } else { %>
+                        <div><label for="<%= name %>"><%= q.label %><%= q.unit ? ', ' + q.unit : '' %></label><input id="<%= name %>" type="number" name="<%= name %>" value="<%= p[q.key] %>" min="<%= q.min %>" max="<%= q.max %>" /><% if (q.hint) { %><div class="hint"><%= q.hint %></div><% } %></div>
+                      <% } %>
+                    <% }) %>
+                  </div>
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+          <p class="econ-simple" data-econ-pane="simple"<%= ec.mode === 'simple' ? '' : ' hidden' %>>Работает только основа. Журнал операций и карточка <code>/balance</code> с графиком есть всегда — они ничего не меняют в правилах.</p>
+        </div>
+
+        <div class="card g-c1 g-r2">
           <h2><%= settings.currencyName %></h2>
           <p>Основная валюта. Приходит за сообщения и время в голосовом канале, а также за ежедневную награду. Участники могут переводить её друг другу: <code>/pay</code>.</p>
           <div class="two-col">
@@ -42,12 +88,27 @@
             </div>
           </div>
         </div>
-        <div class="card">
+        <div class="card g-c2">
           <h2><%= settings.crystalName %></h2>
           <p>Редкая валюта. Выдаётся только за новые уровни (сколько за каждый, задаётся на странице «Уровни»).</p>
           <div>
             <label>Название</label>
             <input type="text" name="crystalName" value="<%= settings.crystalName %>" maxlength="24" />
+          </div>
+        </div>
+        <div class="card g-c2">
+          <h2>События бота</h2>
+          <p class="hint" style="margin-top:0">Канал, куда бот пишет о жизни экономики: новые цели и их итоги, голосования казны, конец сезона.</p>
+          <label for="eventsChannelId">Канал событий</label>
+          <select id="eventsChannelId" name="eventsChannelId">
+            <option value="">Не присылать</option>
+            <% (locals.channels || []).forEach((c) => { %><option value="<%= c.id %>" <%= settings.economyEventsChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+          </select>
+          <label style="margin-top:14px;">Когда включаете новые разделы</label>
+          <div class="econ-evmodes">
+            <label class="msg-radio"><input type="radio" name="eventsMode" value="summary" <%= (settings.economyEventsMode || 'summary') === 'summary' ? 'checked' : '' %> /><span><b>Одно сообщение</b><small>Сразу простыми словами, что именно включено.</small></span></label>
+            <label class="msg-radio"><input type="radio" name="eventsMode" value="each" <%= settings.economyEventsMode === 'each' ? 'checked' : '' %> /><span><b>По отдельности</b><small>Каждый раздел — своё объявление.</small></span></label>
+            <label class="msg-radio"><input type="radio" name="eventsMode" value="quiet" <%= settings.economyEventsMode === 'quiet' ? 'checked' : '' %> /><span><b>Без объявлений</b><small>Включение не объявляется, остальные события приходят.</small></span></label>
           </div>
         </div>
         <button class="btn" type="submit">Сохранить</button>
@@ -84,9 +145,11 @@
               <% }) %>
             </div>
           <% } %>
+          <a class="card-link" href="/dashboard/<%= guild.id %>/economy-journal">Журнал всех операций →</a>
         </div>
       </div>
     </main>
   </div>
+  <script src="/js/economy.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
 </body>
 </html>

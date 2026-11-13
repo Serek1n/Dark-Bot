@@ -305,3 +305,48 @@ button, input, select, textarea, optgroup { font-family: inherit; }
 .import-row input[type=file] { margin: 0; flex: 1 1 220px; min-width: 0; }
 .import-row input[type=file]::file-selector-button { margin-right: 10px; }
 
+
+/* ---------- economy: the mode choice, its sections, the central bank and the journal ---------- */
+.econ-modes, .econ-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.econ-evmodes { display: grid; gap: 8px; }
+.econ-sub { font-size: var(--fs-15); margin: 18px 0 8px; }
+.econ-simple { margin: 14px 0 0; color: var(--fog-dim); }
+.econ-feats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; align-items: stretch; }
+.econ-feat { border: 1px solid var(--hairline); border-radius: var(--r-10); padding: 12px 14px; }
+.econ-feat.is-on { border-color: var(--ember); background: var(--ember-tint); }
+.ef-head { display: flex; align-items: flex-start; gap: 12px; }
+.ef-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ef-text span { color: var(--fog-dim); font-size: var(--fs-13); }
+.ef-tune { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs-13); white-space: nowrap; cursor: pointer; }
+.ef-tune input { width: auto; margin: 0; }
+.ef-params { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; margin-top: 8px; }
+.ef-params label { margin-top: 8px; font-size: var(--fs-13); }
+.ef-params .ef-bool { grid-column: 1 / -1; margin-top: 10px; }
+.ef-params[hidden], .econ-feat[hidden], [data-ef-custom][hidden], [data-ef-preset][hidden] { display: none; }
+.econ-bars { display: grid; gap: 8px; margin: 6px 0 0; }
+.econ-bar { display: grid; grid-template-columns: minmax(0, 12em) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: var(--fs-13); }
+.econ-bar i { display: block; height: 8px; border-radius: var(--r-4); background: var(--ember); min-width: 2px; }
+.econ-bar.sink i { background: var(--fog-dim); }
+.econ-bar b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.econ-chart { width: 100%; height: 140px; display: block; margin-top: 8px; }
+.econ-chart path.line { fill: none; stroke: var(--ember); stroke-width: 2; }
+.econ-chart path.area { fill: var(--ember-tint); stroke: none; }
+.econ-gauge { height: 10px; border-radius: var(--r-pill); background: var(--hairline); overflow: hidden; margin: 8px 0 4px; }
+.econ-gauge i { display: block; height: 100%; background: var(--ember); }
+.econ-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 10px; align-items: end; }
+.econ-filters label { margin-top: 0; }
+.econ-filters > .btn { align-self: end; min-height: 44px; }
+.econ-amt { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.econ-amt.plus { color: var(--success); }
+.econ-flag { font-size: var(--fs-12); padding: 1px 6px; border-radius: var(--r-6); border: 1px solid var(--ember); color: var(--ember); margin-left: 6px; }
+.econ-fund { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; align-items: center; margin: 0; flex: 0 1 auto; }
+.econ-fund > .btn { margin: 0; flex: none; }
+.econ-fund > :first-child { width: 10em; flex: none; }
+.econ-fund input { margin: 0; }
+.econ-goal + .econ-goal { border-top: 1px solid var(--hairline); padding-top: 14px; margin-top: 14px; }
+.econ-goal .econ-goal-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+@media (max-width: 900px) {
+  .econ-modes, .econ-presets, .econ-feats { grid-template-columns: minmax(0, 1fr); }
+  .econ-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) { .ef-params { grid-template-columns: minmax(0, 1fr); } .econ-filters { grid-template-columns: minmax(0, 1fr); } }

@@ -199,7 +199,12 @@ async function addGain(guildId, userId, { track, xp, coins, settings, message = 
        WHERE guildId = ? AND userId = ? RETURNING *`,
       { replacements: [xp, xp, coins, now, ...(message ? [now] : []), guildId, userId], type: QueryTypes.SELECT, transaction }
     );
-    return settleLevel(rows[0], xp, coins, settings, transaction);
+    const result = await settleLevel(rows[0], xp, coins, settings, transaction);
+    // the economy's journal: today's income from chat or voice, and the crystals of a new level (summed per day)
+    const ledger = require('./econ/ledger');
+    if (coins > 0) await ledger.earn(guildId, userId, track, 'coins', coins, transaction);
+    if (result.crystals > 0) await ledger.earn(guildId, userId, 'level', 'crystals', result.crystals, transaction);
+    return result;
   });
 }
 
@@ -284,6 +289,9 @@ function grantVoiceXpBatch(guildId, userIds, amount, coinMultiplier = 1) {
       );
       const rows = await sequelize.query('SELECT * FROM member_profiles WHERE guildId = ? AND userId IN (?)', { replacements: [guildId, ids], type: QueryTypes.SELECT, transaction });
       for (const row of rows) results.set(row.userId, await settleLevel(row, xp, coins, settings, transaction));
+      const ledger = require('./econ/ledger');
+      if (coins > 0) await ledger.earnMany(guildId, ids, 'voice', 'coins', coins, transaction);
+      for (const [id, r] of results) if (r.crystals > 0) await ledger.earn(guildId, id, 'level', 'crystals', r.crystals, transaction);
     });
     return results;
   });

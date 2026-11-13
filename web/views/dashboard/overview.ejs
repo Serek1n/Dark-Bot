@@ -51,7 +51,7 @@
           <div class="hp-acts">
             <% if (sel.page) { %>
               <a class="btn" href="/dashboard/<%= guild.id %>/<%= sel.page %>">Открыть настройки модуля</a>
-              <% sel.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && !mods.list.some((o) => o.page === p)).forEach((p) => { %><a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/<%= p %>"><%= M.PAGE_LABELS[p] %></a><% }) %>
+              <% sel.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && !mods.list.some((o) => o.page === p) && M.pageVisible(p, locals.settings)).forEach((p) => { %><a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/<%= p %>"><%= M.PAGE_LABELS[p] %></a><% }) %>
             <% } else { %>
               <p class="hint">У этого модуля нет настроек в панели: он работает командами в Discord.</p>
             <% } %>

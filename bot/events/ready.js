@@ -34,6 +34,7 @@ module.exports = {
     startGiveawayScheduler(client); // ends giveaways when their time is up
     startReminderScheduler(client); // sends due reminders
     startPollScheduler(client); // posts the results of timed polls
+    require('../modules/econ').startEconomyScheduler(); // held transfers, goals, deals, seasons, the central bank's day
     require('../modules/scheduledMessages').startScheduledMessages(); // messages from the panel on a schedule
     // Profiles of bots (the bot itself included) made before /profile, /economy pay and the panel checked for them: out of the top.
     (async () => {

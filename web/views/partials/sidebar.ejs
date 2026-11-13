@@ -105,7 +105,7 @@
               <a href="<%= m.page ? `/dashboard/${gid}/${m.page}` : `/dashboard/${gid}?m=${m.key}` %>" class="<%= curMods.some((c) => c.key === m.key) && m.page === active ? 'active' : '' %>" title="<%= m.title %> — <%= m.desc %>"><%- M.icon(m.key, 17) %><span class="nl"><b><%= m.title %></b></span></a>
               <%- modSwitch(m, 'sm') %>
             </div>
-            <% m.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && !mods.list.some((o) => o.page === p)).forEach((p) => { %>
+            <% m.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && !mods.list.some((o) => o.page === p) && M.pageVisible(p, locals.settings)).forEach((p) => { %>
               <a href="/dashboard/<%= gid %>/<%= p %>" class="nd-sub<%= active === p ? ' active' : '' %>" title="<%= M.PAGE_LABELS[p] %> — <%= m.title %>"><span class="nl"><b><%= M.PAGE_LABELS[p] %></b></span></a>
             <% }) %>
           <% }) %>

@@ -85,6 +85,11 @@ module.exports = {
       return;
     }
 
+    if (require('../modules/econ/components').isEconomyComponent(interaction)) {
+      try { await require('../modules/econ/components').handleEconomyComponent(interaction); } catch (err) { logger.error('Economy action failed:', err); await tellFailed(interaction); }
+      return;
+    }
+
     if (require('../modules/interactive').isInteractive(interaction)) {
       await require('../modules/interactive').handleInteractive(interaction); // answers its own errors
       return;

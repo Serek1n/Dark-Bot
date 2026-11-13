@@ -9,7 +9,6 @@ const { withLock } = require('../utils/lock');
 const { isEnabled } = require('../utils/features');
 const { getOrCreateSettings } = require('./leveling');
 
-const { credit } = require('./wallet');
 const { canSelfGive } = require('../utils/safeRole');
 const { formatTerm } = require('../utils/duration');
 
@@ -38,7 +37,7 @@ async function grantRewards(guild, giveaway, winnerIds) {
     if (done.has(id)) continue;
     try {
       if (giveaway.rewardType === 'coins' || giveaway.rewardType === 'crystals') {
-        await credit(giveaway.guildId, id, giveaway.rewardType === 'coins' ? 'balance' : 'crystals', giveaway.rewardAmount);
+        await require('./econ/ledger').give(giveaway.guildId, id, giveaway.rewardType === 'coins' ? 'balance' : 'crystals', giveaway.rewardAmount, 'giveaway', { note: `#${giveaway.id}` });
       } else if (giveaway.rewardType === 'role') {
         if (!role || !canSelfGive(role, guild)) throw new Error('роль недоступна');
         const member = await guild.members.fetch(id);

@@ -160,7 +160,8 @@ async function main() {
     const g = require('./mock').makeGuild({ id: 'g1' });
     const i = makeInteraction({ guild: g, subcommand: 'balance', user: makeUser('b') });
     await economy.execute(i);
-    assert(text(i).includes('Кристаллы') && text(i).includes('Монеты'), text(i));
+    // the balance is a card now (a picture with both currencies); the embed with both names is its fallback
+    assert(i._replies.some((r) => r.files && r.files.length) || (text(i).includes('Кристаллы') && text(i).includes('Монеты')), 'balance reply');
     const pay = makeInteraction({ guild: g, subcommand: 'pay', user: makeUser('b'), options: { 'user': makeUser('rcv'), 'amount': 3, 'currency': 'crystals' } });
     await economy.execute(pay);
     assert(text(pay).includes('Перевод выполнен') && text(pay).includes('кристаллы'), text(pay));

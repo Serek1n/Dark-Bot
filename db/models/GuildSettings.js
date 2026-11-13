@@ -70,6 +70,19 @@ module.exports = (sequelize) => {
 
       // Feature switches (web panel, page "Функции"); leveling/shop/automod have their own flags above and below
       economyEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      // Economy sections (bot/modules/econ/config.js): simple | preset | custom, which sections are on, their numbers
+      economyMode: { type: DataTypes.STRING, defaultValue: 'simple' },
+      economyPreset: { type: DataTypes.STRING, allowNull: true },
+      economyFeatures: { type: DataTypes.TEXT, defaultValue: '{}' },
+      economyParams: { type: DataTypes.TEXT, defaultValue: '{}' },
+      economyEventsChannelId: { type: DataTypes.STRING, allowNull: true }, // where the bot announces economy events
+      economyEventsMode: { type: DataTypes.STRING, defaultValue: 'summary' }, // each | summary | quiet
+      treasury: { type: DataTypes.INTEGER, defaultValue: 0 }, // the server's own coins (taxes); changed only additively
+      econRate: { type: DataTypes.FLOAT, defaultValue: 1 }, // the central bank's multiplier of coin rewards
+      xpBoostUntil: { type: DataTypes.DATE, allowNull: true }, // a goal's reward: more XP for everyone until then
+      xpBoostMult: { type: DataTypes.FLOAT, defaultValue: 1 },
+      seasonNumber: { type: DataTypes.INTEGER, defaultValue: 1 },
+      seasonStartedAt: { type: DataTypes.DATE, allowNull: true },
       musicEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       welcomeEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       reactionRolesEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },

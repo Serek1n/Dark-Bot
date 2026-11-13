@@ -156,6 +156,13 @@ function purchaseItem({ guild, member, itemId }) {
       }
       if (term) await purchase.update({ expiresAt: term.expiresAt }).catch(() => {});
     }
+    // The journal of the economy and the shop tax: a share of what is spent on coins goes to the server's treasury instead of vanishing.
+    await require('./econ/ledger').record({ guildId: guild.id, userId: member.id, currency: item.currency === 'crystals' ? 'crystals' : 'coins', amount: -item.price, kind: 'shop', note: item.name }).catch(() => {});
+    const econ = require('./econ/config');
+    if (field === 'balance' && econ.isOn(settings, 'treasury')) {
+      const tax = Math.floor(item.price * econ.params(settings, 'treasury').shopTax / 100);
+      if (tax > 0) await require('./econ/ledger').treasuryAdd(guild.id, tax).catch(() => {});
+    }
     return { ok: true, item, purchase, settings, balanceAfter, currencyName: cName, extended: Boolean(term?.extended) };
   });
 }

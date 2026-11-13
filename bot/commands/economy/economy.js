@@ -1,7 +1,8 @@
-const { SlashCommandBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { Op } = require('sequelize');
 const { getOrCreateProfile, getOrCreateSettings } = require('../../modules/leveling');
-const { transfer } = require('../../modules/wallet');
-const { sequelize } = require('../../../db');
+const ledger = require('../../modules/econ/ledger');
+const { sequelize, MemberProfile } = require('../../../db');
 const { QueryTypes } = require('sequelize');
 const embeds = require('../../utils/embeds');
 const { withLock } = require('../../utils/lock');
@@ -52,16 +53,35 @@ module.exports = {
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'balance') {
-      const profile = await getOrCreateProfile(interaction.guild.id, interaction.user.id);
-      const settings = await getOrCreateSettings(interaction.guild.id);
-      const embed = embeds
-        .baseEmbed()
-        .setTitle('Баланс')
-        .addFields(
+      const guildId = interaction.guild.id;
+      const userId = interaction.user.id;
+      const [profile, settings] = await Promise.all([getOrCreateProfile(guildId, userId), getOrCreateSettings(guildId)]);
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const button = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`ebal:hist:${userId}`).setLabel('История операций').setStyle(ButtonStyle.Secondary));
+      try {
+        const balance = Number(profile.balance) || 0;
+        const [rank, total, deltas, ops, badge] = await Promise.all([
+          balance > 0 ? MemberProfile.count({ where: { guildId, balance: { [Op.gt]: balance } } }).then((n) => n + 1) : null,
+          MemberProfile.count({ where: { guildId, balance: { [Op.gt]: 0 } } }),
+          ledger.dailyDeltas(guildId, userId, 30),
+          ledger.history(guildId, userId, { limit: 6 }),
+          require('../../modules/econ/seasons').badgeText(guildId, userId).catch(() => null)
+        ]);
+        const png = await require('../../modules/econ/balanceCard').renderBalanceCard({
+          username: interaction.member?.displayName || interaction.user.globalName || interaction.user.username,
+          avatarURL: interaction.user.displayAvatarURL({ extension: 'png', size: 256 }),
+          balance, crystals: Number(profile.crystals || 0), currencyName: settings.currencyName, crystalName: settings.crystalName,
+          rank, total, deltas, ops, badge
+        });
+        return interaction.editReply({ files: [new AttachmentBuilder(png, { name: 'balance.png' })], components: [button] });
+      } catch (err) {
+        require('../../utils/logger').error('Balance card failed, falling back to embed:', err);
+        const embed = embeds.baseEmbed().setTitle('Баланс').addFields(
           { name: cap(settings.currencyName), value: `${profile.balance}`, inline: true },
           { name: cap(settings.crystalName), value: `${profile.crystals}`, inline: true }
         );
-      return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        return interaction.editReply({ embeds: [embed], components: [button] });
+      }
     }
 
     if (sub === 'daily') {
@@ -81,7 +101,8 @@ module.exports = {
         const base = Math.max(0, Number(settings.dailyCoins) || 0);
         const maxDays = Math.max(1, Number(settings.dailyStreakMax) || 1);
         const bonus = Math.max(0, Number(settings.dailyStreakBonus) || 0) * (Math.min(streak, maxDays) - 1);
-        const amount = base + bonus;
+        // the central bank may make rewards a little smaller while there is too much money (bot/modules/econ/bank.js)
+        const amount = Math.round((base + bonus) * require('../../modules/econ/bank').rateOf(settings));
         // Compare-and-set in ONE statement: the reward is paid only if the last claim is still older than a day, so even two
         // processes (the bot and the web panel) can never both pay it, and the coins are added to the balance, not written over it.
         const now = new Date();
@@ -91,6 +112,7 @@ module.exports = {
           { replacements: [amount, streak, now, now, guildId, userId, new Date(now.getTime() - DAY_MS)], type: QueryTypes.SELECT }
         );
         if (!rows.length) return { wait: DAY_MS };
+        await ledger.record({ guildId, userId, amount, kind: 'daily', note: streak > 1 ? `серия ${streak}` : null }).catch(() => {});
         return { balance: Number(rows[0].balance), currency: settings.currencyName, amount, base, bonus, streak };
       });
 
@@ -131,15 +153,22 @@ module.exports = {
       const crystals = interaction.options.getString('currency') === 'crystals';
       const field = crystals ? 'crystals' : 'balance';
       const currency = crystals ? settings.crystalName : settings.currencyName;
-      // The take-away ("only if enough") and the credit are two statements of ONE transaction: both happen or neither does.
-      const ok = await transfer(guildId, interaction.user.id, target.id, field, amount);
-      if (!ok) return interaction.reply({ embeds: [embeds.error('Недостаточно средств.')], flags: MessageFlags.Ephemeral });
+      // The take-away ("only if enough") and the credit are two statements of ONE transaction: both happen or neither does. The server's
+      // sections add their rules: the treasury's tax, the daily limit, a delay for newcomers (bot/modules/econ/pay.js).
+      const who = (id, m) => ({ id, joinedTimestamp: m?.joinedTimestamp, joinedAt: m?.joinedAt }); // the newcomer rule reads when they joined
+      const receiver = who(target.id, interaction.options.getMember?.('user'));
+      const r = await require('../../modules/econ/pay').pay(settings, guildId, who(interaction.user.id, interaction.member), receiver, field, amount);
+      if (!r.ok && r.reason === 'limit') return interaction.reply({ embeds: [embeds.error(`Лимит переводов — ${r.limit} ${currency} в сутки. Сегодня можно ещё ${r.left}.`)], flags: MessageFlags.Ephemeral });
+      if (!r.ok) return interaction.reply({ embeds: [embeds.error('Недостаточно средств.')], flags: MessageFlags.Ephemeral });
+      const extra = [];
+      if (r.tax) extra.push({ name: 'Налог в казну', value: `${r.tax} ${currency}`, inline: true });
+      if (r.held) extra.push({ name: 'Придёт', value: `<t:${Math.floor(r.releaseAt.getTime() / 1000)}:R> — получатель недавно на сервере`, inline: false });
 
       const embed = embeds
         .baseEmbed(embeds.COLORS.success)
         .setTitle('✓ Перевод выполнен')
         .setDescription(`<@${interaction.user.id}> → <@${target.id}>`)
-        .addFields({ name: 'Сумма', value: `${amount} ${currency}`, inline: true });
+        .addFields({ name: 'Сумма', value: `${amount} ${currency}`, inline: true }, ...extra);
       return interaction.reply({ embeds: [embed] });
     }
   }

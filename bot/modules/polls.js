@@ -49,6 +49,8 @@ async function finish(client, poll) {
   } else if (channel) {
     await channel.send({ embeds: [embed] }).catch(() => {});
   }
+  // a treasury vote: the bot carries out the winning option (bot/modules/econ/treasury.js)
+  if (poll.action) await require('./econ/treasury').runVote(poll, counts).catch((err) => logger.error(`Treasury vote ${poll.id} failed:`, err.message));
 }
 
 async function tick(client) {
