@@ -41,6 +41,7 @@ const ICONS = {
   home: '<rect x="3" y="3" width="6" height="6" rx="1.2"/><rect x="11" y="3" width="6" height="6" rx="1.2"/><rect x="3" y="11" width="6" height="6" rx="1.2"/><rect x="11" y="11" width="6" height="6" rx="1.2"/>',
   modules: '<path d="M3 6H11M15 6H17M3 14H5M9 14H17"/><circle cx="13" cy="6" r="2"/><circle cx="7" cy="14" r="2"/>',
   changelog: '<path d="M4 9.5H16V16.5H4Z"/><path d="M3 6.5H17V9.5H3Z"/><path d="M10 6.5V16.5"/>',
+  events: '<path d="M3.5 8V12H6L12.5 15.5V4.5L6 8H3.5Z"/><path d="M15 7.5C15.8 8.2 16.3 9.1 16.3 10C16.3 10.9 15.8 11.8 15 12.5M6.5 12L7.5 16.5"/>',
   boosts: '<path d="M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z"/>'
 };
 
@@ -107,6 +108,14 @@ const LAYOUT = [
     stats: async (g) => { const { CustomCommand } = db(); return [{ value: await CustomCommand.count(where(g)), label: 'команд' }]; } },
   { key: 'alerts', group: 'tools', pages: ['alerts'],
     stats: async (g) => { const { Alert } = db(); return [{ value: await Alert.count(where(g)), label: 'подписок' }]; } },
+  { key: 'events', group: 'tools', pages: ['events'],
+    stats: async (g) => {
+      const { GuildSettings } = db();
+      const s = await GuildSettings.findOne(where(g));
+      const be = require('../bot/modules/botEvents');
+      const r = be.read(s);
+      return [{ value: be.TYPES.filter((t) => r.types[t.key].on).length, label: 'событий включено' }];
+    } },
   { key: 'webhooks', group: 'tools', pages: ['webhooks'] },
   { key: 'reminders', group: 'tools', pages: [],
     stats: async (g) => { const { Reminder } = db(); return [{ value: await Reminder.count(where(g)), label: 'напоминаний ждут' }]; } },

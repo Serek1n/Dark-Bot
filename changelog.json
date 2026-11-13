@@ -1,5 +1,30 @@
 [
  {
+  "bot": "3.7.1",
+  "panel": "3.15.0",
+  "date": "2026-11-13",
+  "botChanges": [
+   "Каждое событие бота можно выключить или отправлять в свой канал",
+   "Новые разделы: сводка, отдельные сообщения, оба (в выбранном порядке) или ничего"
+  ],
+  "panelChanges": [
+   "Новый модуль «События бота»: все события, примеры, каналы, порядок объявлений",
+   "Оттуда же можно сразу начать цель, голосование, розыгрыш казны или конец сезона",
+   "В экономике — краткий блок «События бота» со ссылкой на модуль"
+  ],
+  "en": {
+   "botChanges": [
+    "Each bot event can be switched off or sent to its own channel",
+    "New sections: a summary, separate messages, both (in the chosen order) or nothing"
+   ],
+   "panelChanges": [
+    "New \"Bot events\" module: all events, examples, channels, announcement order",
+    "Start a goal, a vote, a treasury giveaway or a season end right from there",
+    "The economy page has a short \"Bot events\" block linking to the module"
+   ]
+  }
+ },
+ {
   "bot": "3.7.0",
   "panel": "3.14.0",
   "date": "2026-11-13",

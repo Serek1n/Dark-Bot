@@ -22,7 +22,7 @@
         <div class="stat-box"><div class="value"><%= open.length %></div><div class="label">Целей идёт сейчас</div></div>
       </div>
       <% if (!hasChannel) { %>
-        <div class="card g-span"><p style="margin:0"><b>Нужен канал событий.</b> Карточки целей, розыгрыши и голосования казны бот публикует в канале событий. <a href="/dashboard/<%= guild.id %>/economy">Выберите его в настройках экономики →</a></p></div>
+        <div class="card g-span"><p style="margin:0"><b>Нужен модуль «События бота» с каналом.</b> Карточки целей, розыгрыши и голосования казны бот публикует как события. <a href="/dashboard/<%= guild.id %>/events">Настроить события →</a></p></div>
       <% } %>
 
       <% if (trOn) { %>

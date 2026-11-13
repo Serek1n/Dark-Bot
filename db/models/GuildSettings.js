@@ -76,7 +76,9 @@ module.exports = (sequelize) => {
       economyFeatures: { type: DataTypes.TEXT, defaultValue: '{}' },
       economyParams: { type: DataTypes.TEXT, defaultValue: '{}' },
       economyEventsChannelId: { type: DataTypes.STRING, allowNull: true }, // where the bot announces economy events
-      economyEventsMode: { type: DataTypes.STRING, defaultValue: 'summary' }, // each | summary | quiet
+      economyEventsMode: { type: DataTypes.STRING, defaultValue: 'summary' }, // each | summary | quiet — read only when botEvents has no choice of its own yet
+      botEventsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true }, // the "События бота" module
+      botEvents: { type: DataTypes.TEXT, defaultValue: '{}' }, // JSON, see bot/modules/botEvents.js
       treasury: { type: DataTypes.INTEGER, defaultValue: 0 }, // the server's own coins (taxes); changed only additively
       econRate: { type: DataTypes.FLOAT, defaultValue: 1 }, // the central bank's multiplier of coin rewards
       xpBoostUntil: { type: DataTypes.DATE, allowNull: true }, // a goal's reward: more XP for everyone until then

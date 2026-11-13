@@ -82,6 +82,22 @@ const express = require('express');
     const j = await get('/economy-journal?kind=work');
     assert(j.text.includes('Курьер') && j.text.includes('Работа'), 'journal row');
   });
+  await test('bot events page: renders, saves order and switches, refuses a foreign channel, links back from economy', async () => {
+    let r = await get('/events');
+    assert(r.status === 200, r.text.slice(0, 300));
+    assert(r.text.includes('Что присылает бот') && r.text.includes('Начать событие сейчас') && r.text.includes('Пример сообщения'), 'blocks');
+    const save = await post('/events', { channelId: '123456789012345678', summary: 'on', each: 'on', order: 'each-first', on_goal_done: 'on', ch_goal_done: '999999999999999999' });
+    assert(save.status === 302, 'saved');
+    const be = require('../bot/modules/botEvents').read(await S());
+    assert(be.summary && be.each && be.order === 'each-first' && be.types.goal_done.on && !be.types.season_end.on, 'stored');
+    assert(be.types.goal_done.channelId === null, 'foreign channel refused');
+    const eco = await get('/economy');
+    assert(eco.text.includes('/events"') && eco.text.includes('отдельное сообщение на каждый раздел, затем сводка'), 'economy explains and links');
+    const ex = await post('/events/example/goal_done', {});
+    assert(/events\?(tr_post|example)/.test(ex.headers.get('location')), ex.headers.get('location'));
+    const q = await post('/economy-treasury/split', { amount: '1', back: 'events' });
+    assert(q.headers.get('location').includes('/events?'), 'quick start returns to events');
+  });
   await test('actions: split, goal fund and cancel, deal resolve, codes batch, csv, revoke, season end', async () => {
     let r = await post('/economy-treasury/split', { amount: '100' });
     assert(r.headers.get('location').includes('split=1'), r.headers.get('location'));

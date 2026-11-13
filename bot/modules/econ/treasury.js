@@ -40,7 +40,7 @@ async function split(guildId, amount) {
 async function giveaway(settings, { amount, winners, hours }) {
   const guildId = settings.guildId;
   const c = require('../../../web/botBridge').getClient?.();
-  const ch = await events.channelOf(settings, c);
+  const ch = await events.channelOf(settings, c, 'giveaway');
   if (!ch) return { error: 'channel' };
   const total = amount * winners;
   if (!(await inTransaction((t) => ledger.treasuryTake(guildId, total, t)))) return { error: 'treasury' };
@@ -70,7 +70,7 @@ const describe = (o, settings, goal) => o.kind === 'split' ? `Раздать ${f
  */
 async function startVote(settings, options, hours) {
   const c = require('../../../web/botBridge').getClient?.();
-  const ch = await events.channelOf(settings, c);
+  const ch = await events.channelOf(settings, c, 'vote');
   if (!ch) return { error: 'channel' };
   const goals = await EconomyGoal.findAll({ where: { guildId: settings.guildId, status: 'open' }, raw: true });
   const labels = options.map((o) => describe(o, settings, goals.find((g) => g.id === Number(o.goalId))));
@@ -93,7 +93,7 @@ async function runVote(poll, counts) {
   const settings = await GuildSettings.findOne({ where: { guildId: poll.guildId } });
   const best = Math.max(0, ...counts);
   const i = best > 0 ? counts.indexOf(best) : -1;
-  if (i < 0) { await events.post(settings, embeds.info('Голосование по казне закончилось без голосов — казна не тронута.')); return null; }
+  if (i < 0) { await events.post(settings, embeds.info('Голосование по казне закончилось без голосов — казна не тронута.'), null, 'vote_result'); return null; }
   const o = action.options[i];
   let r;
   if (o.kind === 'split') r = await split(poll.guildId, o.amount);
@@ -101,7 +101,7 @@ async function runVote(poll, counts) {
   else r = await toGoal(poll.guildId, Number(o.goalId), o.amount);
   const failed = r?.error || r?.ok === false;
   await events.post(settings, failed ? embeds.error('Казна не смогла выполнить решение голосования: в ней не хватает денег или цель уже закрыта.')
-    : embeds.success(`Решение голосования выполнено: ${describe(o, settings, await EconomyGoal.findByPk(Number(o.goalId)))}.`));
+    : embeds.success(`Решение голосования выполнено: ${describe(o, settings, await EconomyGoal.findByPk(Number(o.goalId)))}.`), null, 'vote_result');
   return r;
 }
 

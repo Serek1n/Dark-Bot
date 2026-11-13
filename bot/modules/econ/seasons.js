@@ -44,7 +44,7 @@ async function endSeason(settings) {
   GuildSettings.update({ updatedAt: new Date() }, { where: { guildId } }).catch(() => {}); // clears the bot's settings cache
   const lines = winners.map((w, i) => `${i + 1}. <@${w.userId}> — ${fmt(w.balance)} ${settings.currencyName || 'монет'}`);
   await events.post(settings, embeds.baseEmbed(embeds.COLORS.success).setTitle(`Сезон ${number} завершён`)
-    .setDescription(`${lines.length ? `Лучшие по богатству получают значок «Сезон ${number}» в профиль:\n${lines.join('\n')}\n\n` : ''}Монеты обнулились, кристаллы и роли остались. Начался сезон ${number + 1}!`));
+    .setDescription(`${lines.length ? `Лучшие по богатству получают значок «Сезон ${number}» в профиль:\n${lines.join('\n')}\n\n` : ''}Монеты обнулились, кристаллы и роли остались. Начался сезон ${number + 1}!`), null, 'season_end');
   return winners;
 }
 

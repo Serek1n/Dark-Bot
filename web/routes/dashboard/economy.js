@@ -8,6 +8,8 @@ const config = require('../../../bot/modules/econ/config');
 const ledger = require('../../../bot/modules/econ/ledger');
 
 const router = express.Router();
+// a form sent from the "События бота" page goes back there
+const backTo = (req, page) => (req.body?.back === 'events' ? 'events' : page);
 const econ = (name) => require(`../../../bot/modules/econ/${name}`);
 const bridge = () => require('../../botBridge');
 const textChannels = async (guildId) => (await getGuildChannels(guildId)).filter((c) => c.type === 0 || c.type === 5);
@@ -34,6 +36,7 @@ router.get('/:guildId/economy', ensureGuildAccess, async (req, res) => {
   const users = await getUsers(richest.map((p) => p.userId));
   const params = Object.fromEntries(config.KEYS.map((k) => [k, config.params(settings, k)]));
   res.render('dashboard/economy', {
+    events: { enabled: require('../../../bot/modules/botEvents').read(settings).enabled, plan: require('../../../bot/modules/botEvents').activationPlan(settings) },
     guild, settings, channels, stats: { coinsTotal: coinsTotal || 0, crystalsTotal: crystalsTotal || 0, holders }, richest, users, active: 'economy',
     econ: { FEATURES: config.FEATURES, PRESETS: config.PRESETS, mode: config.MODES.includes(settings.economyMode) ? settings.economyMode : 'simple', preset: config.PRESET_BY_KEY[settings.economyPreset] ? settings.economyPreset : 'calm', flags: config.parse(settings.economyFeatures), on: config.enabledKeys(settings), params }
   });
@@ -89,9 +92,9 @@ router.get('/:guildId/economy-bank', ensureGuildAccess, guard('economy-bank'), a
   res.render('dashboard/economy-bank', { guild, settings, report, seasonEnd: econ('seasons').endOf(settings), lastBadges, users, on: config.enabledKeys(settings), seasonParams: config.params(settings, 'seasons'), active: 'economy-bank' });
 });
 router.post('/:guildId/economy-bank/season-end', ensureGuildAccess, guard('economy-bank'), async (req, res) => {
-  if (!config.isOn(req.econSettings, 'seasons')) return res.redirect(saved(req.params.guildId, 'economy-bank', 'invalid'));
+  if (!config.isOn(req.econSettings, 'seasons')) return res.redirect(saved(req.params.guildId, backTo(req, 'economy-bank'), 'invalid'));
   await econ('seasons').endSeason(req.econSettings);
-  res.redirect(saved(req.params.guildId, 'economy-bank', 'seasonend'));
+  res.redirect(saved(req.params.guildId, backTo(req, 'economy-bank'), 'seasonend'));
 });
 router.post('/:guildId/economy-bank/rate-reset', ensureGuildAccess, guard('economy-bank'), async (req, res) => {
   req.econSettings.econRate = 1; await req.econSettings.save();
@@ -109,37 +112,37 @@ router.get('/:guildId/economy-treasury', ensureGuildAccess, guard('economy-treas
   const contribs = open.length ? await sequelize.query(`SELECT goalId, userId, amount FROM economy_goal_contribs WHERE goalId IN (${open.map(() => '?').join(',')}) AND amount > 0 ORDER BY amount DESC`,
     { replacements: open.map((g) => g.id), type: require('sequelize').QueryTypes.SELECT }) : [];
   const users = await getUsers([...new Set(contribs.map((c) => c.userId).filter(Boolean))]);
-  res.render('dashboard/economy-treasury', { guild, settings, roles: roles.filter((r) => r.name !== '@everyone' && !r.managed), treasury, activeCount: active.length, goals, contribs, users, on: config.enabledKeys(settings), hasChannel: Boolean(settings.economyEventsChannelId), active: 'economy-treasury' });
+  res.render('dashboard/economy-treasury', { guild, settings, roles: roles.filter((r) => r.name !== '@everyone' && !r.managed), treasury, activeCount: active.length, goals, contribs, users, on: config.enabledKeys(settings), hasChannel: Boolean(require('../../../bot/modules/botEvents').read(settings).enabled && settings.economyEventsChannelId), active: 'economy-treasury' });
 });
 router.post('/:guildId/economy-treasury/split', ensureGuildAccess, guard('economy-treasury'), async (req, res) => {
   const r = await econ('treasury').split(req.params.guildId, clampInt(req.body.amount, 1, 1e9, 0));
-  res.redirect(saved(req.params.guildId, 'economy-treasury', r.error ? `tr_${r.error}` : 'split'));
+  res.redirect(saved(req.params.guildId, backTo(req, 'economy-treasury'), r.error ? `tr_${r.error}` : 'split'));
 });
 router.post('/:guildId/economy-treasury/giveaway', ensureGuildAccess, guard('economy-treasury'), async (req, res) => {
   const r = await econ('treasury').giveaway(req.econSettings, { amount: clampInt(req.body.amount, 1, 1e9, 100), winners: clampInt(req.body.winners, 1, 20, 1), hours: clampInt(req.body.hours, 1, 336, 24) });
-  res.redirect(saved(req.params.guildId, 'economy-treasury', r.error ? `tr_${r.error}` : 'trgive'));
+  res.redirect(saved(req.params.guildId, backTo(req, 'economy-treasury'), r.error ? `tr_${r.error}` : 'trgive'));
 });
 router.post('/:guildId/economy-treasury/vote', ensureGuildAccess, guard('economy-treasury'), async (req, res) => {
   const b = req.body; const options = [];
   if (b.v_split === 'on') options.push({ kind: 'split', amount: clampInt(b.v_split_amount, 1, 1e9, 100) });
   if (b.v_give === 'on') options.push({ kind: 'giveaway', amount: clampInt(b.v_give_amount, 1, 1e9, 100), winners: clampInt(b.v_give_winners, 1, 20, 1), hours: 24 });
   if (b.v_goal === 'on' && clampInt(b.v_goal_id, 1, 2147483647, 0)) options.push({ kind: 'goal', goalId: clampInt(b.v_goal_id, 1, 2147483647, 0), amount: clampInt(b.v_goal_amount, 1, 1e9, 100) });
-  if (options.length < 2) return res.redirect(saved(req.params.guildId, 'economy-treasury', 'tr_two'));
+  if (options.length < 2) return res.redirect(saved(req.params.guildId, backTo(req, 'economy-treasury'), 'tr_two'));
   const r = await econ('treasury').startVote(req.econSettings, options, clampInt(b.hours, 1, 168, 24));
-  res.redirect(saved(req.params.guildId, 'economy-treasury', r.error ? `tr_${r.error}` : 'trvote'));
+  res.redirect(saved(req.params.guildId, backTo(req, 'economy-treasury'), r.error ? `tr_${r.error}` : 'trvote'));
 });
 router.post('/:guildId/economy-treasury/goal', ensureGuildAccess, guard('economy-treasury'), async (req, res) => {
   const b = req.body;
   const action = ['boost', 'role', 'announce'].includes(b.action) ? b.action : 'announce';
   if (action === 'role') {
     const roleId = snowflake(b.roleId);
-    if (!roleId || (await require('../../utils/roles').roleGuard(req.params.guildId, req.user?.id)).check(roleId)) return res.redirect(saved(req.params.guildId, 'economy-treasury', 'rolenotallowed'));
+    if (!roleId || (await require('../../utils/roles').roleGuard(req.params.guildId, req.user?.id)).check(roleId)) return res.redirect(saved(req.params.guildId, backTo(req, 'economy-treasury'), 'rolenotallowed'));
   }
   const r = await econ('goals').create(req.econSettings, {
     title: String(b.title || '').trim().slice(0, 80) || 'Общая цель', target: clampInt(b.target, 10, 1e9, 1000), days: clampInt(b.days, 1, 60, 7), action,
     boostMult: Math.min(3, Math.max(1.1, Number(b.boostMult) || 2)), boostHours: clampInt(b.boostHours, 1, 336, 24), roleId: snowflake(b.roleId), reward: String(b.reward || '').slice(0, 200)
   });
-  res.redirect(saved(req.params.guildId, 'economy-treasury', r.error ? `goal_${r.error}` : 'goalmade'));
+  res.redirect(saved(req.params.guildId, backTo(req, 'economy-treasury'), r.error ? `goal_${r.error}` : 'goalmade'));
 });
 router.post('/:guildId/economy-treasury/goal/:id/fund', ensureGuildAccess, guard('economy-treasury'), async (req, res) => {
   const r = await econ('treasury').toGoal(req.params.guildId, clampInt(req.params.id, 1, 2147483647, 0), clampInt(req.body.amount, 1, 1e9, 0));

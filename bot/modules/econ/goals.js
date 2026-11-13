@@ -61,15 +61,17 @@ async function create(settings, { title, target, days, action, boostMult, boostH
   const guildId = settings.guildId;
   const max = config.params(settings, 'goals').maxOpen;
   if ((await EconomyGoal.count({ where: { guildId, status: 'open' } })) >= max) return { error: 'max' };
-  if (!settings.economyEventsChannelId) return { error: 'channel' };
+  const botEvents = require('../botEvents');
+  const channelId = botEvents.isOn(settings, 'goal_open') ? botEvents.channelIdFor(settings, 'goal_open') : null;
+  if (!channelId) return { error: 'channel' }; // the card with its buttons is the goal: without a channel nobody could chip in
   const goal = await EconomyGoal.create({
     guildId, title: String(title).slice(0, 100), target, endsAt: new Date(Date.now() + days * 86400000),
     action: ['boost', 'role', 'announce'].includes(action) ? action : 'announce',
     boostMult: action === 'boost' ? boostMult : null, boostHours: action === 'boost' ? boostHours : null,
     roleId: action === 'role' ? roleId : null, reward: reward ? String(reward).slice(0, 200) : null,
-    channelId: settings.economyEventsChannelId
+    channelId
   });
-  const msg = await events.post(settings, await card(goal, settings));
+  const msg = await events.post(settings, await card(goal, settings), null, 'goal_open');
   if (msg) await goal.update({ messageId: msg.id });
   require('../../utils/scheduler').poke('economy');
   return { goal, posted: !!msg };
@@ -126,7 +128,7 @@ async function complete(goal, settings) {
   }
   await refreshCard(goal, settings);
   const extra = goal.action === 'boost' ? `Опыт ×${goal.boostMult} для всех на ${goal.boostHours} ч — уже действует.` : goal.action === 'role' ? `Роль выдана вкладчикам: ${given}.` : (goal.reward || '');
-  await events.post(settings, embeds.baseEmbed(embeds.COLORS.success).setTitle(`Цель собрана: ${goal.title}`).setDescription(`Сервер собрал ${fmt(goal.target)} ${settings.currencyName || 'монет'}. ${extra}`.trim()));
+  await events.post(settings, embeds.baseEmbed(embeds.COLORS.success).setTitle(`Цель собрана: ${goal.title}`).setDescription(`Сервер собрал ${fmt(goal.target)} ${settings.currencyName || 'монет'}. ${extra}`.trim()), null, 'goal_done');
 }
 
 /** Gives everyone their money back (time ran out, or the admin cancelled). */
@@ -147,7 +149,7 @@ async function refundAll(goal, status) {
   if (!done) return false;
   goal.status = status;
   await refreshCard(goal, settings);
-  await events.post(settings, embeds.baseEmbed(embeds.COLORS.danger).setTitle(`${status === 'failed' ? 'Не успели' : 'Цель отменена'}: ${goal.title}`).setDescription(`Собрано ${fmt(goal.raised)} из ${fmt(goal.target)}. Все вложения вернулись.`));
+  await events.post(settings, embeds.baseEmbed(embeds.COLORS.danger).setTitle(`${status === 'failed' ? 'Не успели' : 'Цель отменена'}: ${goal.title}`).setDescription(`Собрано ${fmt(goal.raised)} из ${fmt(goal.target)}. Все вложения вернулись.`), null, 'goal_failed');
   return true;
 }
 

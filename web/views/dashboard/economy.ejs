@@ -96,20 +96,20 @@
             <input type="text" name="crystalName" value="<%= settings.crystalName %>" maxlength="24" />
           </div>
         </div>
-        <div class="card g-c2">
+        <% const bev = locals.events || { enabled: true, plan: '' }; %>
+        <div class="card g-c2 ev-link-card">
           <h2>События бота</h2>
-          <p class="hint" style="margin-top:0">Канал, куда бот пишет о жизни экономики: новые цели и их итоги, голосования казны, конец сезона.</p>
-          <label for="eventsChannelId">Канал событий</label>
+          <p class="hint" style="margin-top:0">Что даёт: бот сам объявляет на сервере жизнь экономики — карточки общих целей с кнопками «Вложить», их итоги, голосования и розыгрыши казны, конец сезона и новые включённые разделы.</p>
+          <% if (!bev.enabled) { %>
+            <p class="ev-state off">Модуль «События бота» выключен — цели, голосования и розыгрыши казны не публикуются.</p>
+          <% } %>
+          <label for="eventsChannelId">Общий канал событий</label>
           <select id="eventsChannelId" name="eventsChannelId">
-            <option value="">Не присылать</option>
+            <option value="">Не выбран</option>
             <% (locals.channels || []).forEach((c) => { %><option value="<%= c.id %>" <%= settings.economyEventsChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
           </select>
-          <label style="margin-top:14px;">Когда включаете новые разделы</label>
-          <div class="econ-evmodes">
-            <label class="msg-radio"><input type="radio" name="eventsMode" value="summary" <%= (settings.economyEventsMode || 'summary') === 'summary' ? 'checked' : '' %> /><span><b>Одно сообщение</b><small>Сразу простыми словами, что именно включено.</small></span></label>
-            <label class="msg-radio"><input type="radio" name="eventsMode" value="each" <%= settings.economyEventsMode === 'each' ? 'checked' : '' %> /><span><b>По отдельности</b><small>Каждый раздел — своё объявление.</small></span></label>
-            <label class="msg-radio"><input type="radio" name="eventsMode" value="quiet" <%= settings.economyEventsMode === 'quiet' ? 'checked' : '' %> /><span><b>Без объявлений</b><small>Включение не объявляется, остальные события приходят.</small></span></label>
-          </div>
+          <% if (bev.plan) { %><p class="hint">Новые разделы: <%= bev.plan %>.</p><% } %>
+          <a class="card-link" href="/dashboard/<%= guild.id %>/events">Что присылать, куда и в каком порядке — в модуле «События бота» →</a>
         </div>
         <button class="btn" type="submit">Сохранить</button>
       </form>

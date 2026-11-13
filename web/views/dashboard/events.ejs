@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — События бота' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>События бота</h1>
+        <p class="page-intro">Всё, что бот объявляет на сервере сам: что именно, куда и в каком порядке. Здесь же можно посмотреть пример каждого сообщения и сразу начать событие.</p>
+      </div>
+      <% const n = (v) => Math.round(Number(v || 0)).toLocaleString('ru-RU');
+         const chName = (id) => { const c = channels.find((x) => x.id === id); return c ? '#' + c.name : null; };
+         const total = TYPES.length; const onCount = TYPES.filter((t) => cfg.types[t.key].on).length;
+         const base = '/dashboard/' + guild.id;
+         const sectionOff = (t) => t.section && !econ.on.includes(t.section);
+         const Mods = locals.M || global.__darkModules; %>
+      <div class="stat-row">
+        <div class="stat-box"><div class="value"><%= onCount %> из <%= total %></div><div class="label">Событий включено</div></div>
+        <div class="stat-box"><div class="value ev-val"><%= chName(cfg.channelId) || '—' %></div><div class="label">Общий канал</div></div>
+        <div class="stat-box"><div class="value"><%= TYPES.filter((t) => !sectionOff(t)).length %></div><div class="label">Могут наступить сейчас</div></div>
+      </div>
+      <% if (!cfg.enabled) { %>
+        <div class="card g-span"><p style="margin:0"><b>Модуль выключен.</b> Бот ничего не объявляет: общие цели, голосования и розыгрыши казны нельзя начать. Включите его переключателем в шапке страницы.</p></div>
+      <% } %>
+
+      <form method="post" data-events-form>
+        <div class="card g-c1">
+          <h2>Куда присылать</h2>
+          <label for="channelId">Общий канал событий</label>
+          <select id="channelId" name="channelId">
+            <option value="">Не выбран</option>
+            <% channels.forEach((c) => { %><option value="<%= c.id %>" <%= cfg.channelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+          </select>
+          <p class="hint">Сюда идут все события, у которых ниже не выбран свой канал. Боту нужны права «Отправлять сообщения», «Встраивать ссылки» и «Добавлять реакции».</p>
+          <% const routes = {}; TYPES.filter((t) => cfg.types[t.key].on).forEach((t) => { const id = cfg.types[t.key].channelId || cfg.channelId || ''; (routes[id] = routes[id] || []).push(t.title); }); %>
+          <h3 class="econ-sub">Куда что идёт</h3>
+          <div class="ev-routes">
+            <% Object.entries(routes).forEach(([id, list]) => { %>
+              <div class="ev-route"><b class="<%= id ? '' : 'ev-nochan' %>"><%= id ? (chName(id) || id) : 'Канал не выбран — не отправится' %></b><span><%= list.join(', ') %></span></div>
+            <% }) %>
+            <% if (!Object.keys(routes).length) { %><p class="empty-state">Все события выключены.</p><% } %>
+          </div>
+        </div>
+        <div class="card g-c2">
+          <h2>Когда включаются новые разделы</h2>
+          <p class="hint" style="margin-top:0">Как бот объявит, что администратор включил разделы экономики. Можно сводку, отдельные сообщения, оба варианта или ничего.</p>
+          <div class="rules">
+            <label class="rule"><span class="rule-text"><b>Сводка одним сообщением</b><span>Сразу простыми словами, что именно включено.</span></span><input type="checkbox" name="summary" <%= cfg.summary ? 'checked' : '' %> /></label>
+            <label class="rule"><span class="rule-text"><b>Отдельное сообщение на каждый раздел</b><span>Каждый раздел — своё объявление с подробностями.</span></span><input type="checkbox" name="each" <%= cfg.each ? 'checked' : '' %> /></label>
+          </div>
+          <div class="ev-order" data-ev-order<%= cfg.summary && cfg.each ? '' : ' hidden' %>>
+            <label style="margin-top:12px">Порядок</label>
+            <div class="econ-evmodes">
+              <label class="msg-radio"><input type="radio" name="order" value="summary-first" <%= cfg.order !== 'each-first' ? 'checked' : '' %> /><span><b>Сначала сводка</b><small>Потом по сообщению на раздел.</small></span></label>
+              <label class="msg-radio"><input type="radio" name="order" value="each-first" <%= cfg.order === 'each-first' ? 'checked' : '' %> /><span><b>Сначала разделы</b><small>Сводка — последним сообщением.</small></span></label>
+            </div>
+          </div>
+          <p class="ev-plan">Сейчас: <b data-ev-plan><%= plan %></b>.</p>
+        </div>
+
+        <div class="card g-span">
+          <h2>Что присылает бот</h2>
+          <p class="hint" style="margin-top:0">У каждого события — когда оно наступает, пример сообщения и свой канал (по умолчанию общий). Обязательные события выключить нельзя: само сообщение — это инструмент, через его кнопки или реакции участники и действуют.</p>
+          <div class="ev-group-head">
+            <b>Экономика</b>
+            <span class="ev-links"><a href="<%= base %>/economy">Разделы экономики</a><a href="<%= base %>/economy-treasury">Казна и цели</a><a href="<%= base %>/economy-bank">Сезоны</a></span>
+          </div>
+          <div class="ev-list">
+            <% TYPES.forEach((t) => { const st = cfg.types[t.key]; const off = sectionOff(t); %>
+              <div class="ev-row<%= st.on ? ' is-on' : '' %>">
+                <div class="ev-main">
+                  <div class="ev-title"><b><%= t.title %></b><% if (t.required) { %><span class="ev-badge">обязательное</span><% } %><% if (off) { %><span class="ev-badge muted">раздел «<%= econ.titles[t.section] %>» выключен</span><% } %></div>
+                  <div class="ev-when"><%= t.when %>.<%= t.why ? ' ' + t.why : '' %></div>
+                  <details class="ev-example"><summary>Пример сообщения</summary><div class="ev-embed"><% t.example.split('\n').forEach((line, i) => { %><div class="<%= i ? '' : 'ev-embed-title' %>"><%= line %></div><% }) %></div></details>
+                </div>
+                <div class="ev-side">
+                  <% if (t.required) { %>
+                    <span class="ev-always">Всегда</span>
+                  <% } else { %>
+                    <span class="mod-sw sm"><input type="checkbox" name="on_<%= t.key %>" <%= st.on ? 'checked' : '' %> aria-label="<%= t.title %>" /></span>
+                  <% } %>
+                  <select name="ch_<%= t.key %>" aria-label="Канал: <%= t.title %>">
+                    <option value="">Общий канал</option>
+                    <% channels.forEach((c) => { %><option value="<%= c.id %>" <%= st.channelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+                  </select>
+                  <button class="btn btn-secondary" type="submit" formaction="<%= base %>/events/example/<%= t.key %>" formnovalidate>Отправить пример</button>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+
+      <div class="card g-span">
+          <h2>Начать событие сейчас</h2>
+          <div class="ev-quick-grid">
+          <% const canGoal = econ.on.includes('goals'); const canTr = econ.on.includes('treasury'); const canSeason = econ.on.includes('seasons'); %>
+          <% if (!canGoal && !canTr && !canSeason) { %>
+            <p class="empty-state">Начать можно общую цель, голосование или розыгрыш казны и конец сезона — включите эти разделы в экономике.</p>
+            <a class="card-link" href="<%= base %>/economy">Разделы экономики →</a>
+          <% } %>
+          <% if (canGoal) { %>
+            <form method="post" action="<%= base %>/economy-treasury/goal" class="ev-quick" data-no-guard>
+              <h3 class="econ-sub" style="margin-top:0">Общая цель</h3>
+              <input type="hidden" name="back" value="events" /><input type="hidden" name="boostMult" value="2" /><input type="hidden" name="boostHours" value="24" />
+              <label for="q_goal_title">Название</label>
+              <input id="q_goal_title" type="text" name="title" maxlength="80" placeholder="Например, сутки двойного опыта" required />
+              <div class="two-col">
+                <div><label for="q_goal_target">Собрать</label><input id="q_goal_target" type="number" name="target" min="10" value="5000" /></div>
+                <div><label for="q_goal_days">Срок, дней</label><input id="q_goal_days" type="number" name="days" min="1" max="60" value="7" /></div>
+              </div>
+              <label for="q_goal_action">Награда</label>
+              <select id="q_goal_action" name="action"><option value="boost">Опыт ×2 для всех на сутки</option><option value="announce">Просто объявление</option></select>
+              <div class="btn-row"><button class="btn" type="submit"<%= cfg.enabled ? '' : ' disabled' %>>Открыть сбор</button><a class="btn btn-secondary" href="<%= base %>/economy-treasury">Больше настроек</a></div>
+            </form>
+          <% } %>
+          <% if (canTr) { %>
+            <form method="post" action="<%= base %>/economy-treasury/vote" class="ev-quick" data-no-guard>
+              <h3 class="econ-sub">Голосование казны <span class="muted">· в казне <%= n(econ.treasury) %></span></h3>
+              <input type="hidden" name="back" value="events" /><input type="hidden" name="v_split" value="on" /><input type="hidden" name="v_give" value="on" /><input type="hidden" name="v_give_winners" value="1" />
+              <p class="hint" style="margin-top:0">Два варианта: раздать поровну активным или разыграть. Бот сам выполнит то, что победит.</p>
+              <div class="two-col">
+                <div><label for="q_v_split">Раздать всего</label><input id="q_v_split" type="number" name="v_split_amount" min="1" value="<%= Math.max(1, Math.floor(econ.treasury / 2)) %>" /></div>
+                <div><label for="q_v_give">Или приз в розыгрыше</label><input id="q_v_give" type="number" name="v_give_amount" min="1" value="<%= Math.max(1, Math.floor(econ.treasury / 2)) %>" /></div>
+              </div>
+              <label for="q_v_hours">Голосование длится, ч</label>
+              <input id="q_v_hours" type="number" name="hours" min="1" max="168" value="24" />
+              <div class="btn-row"><button class="btn" type="submit"<%= cfg.enabled ? '' : ' disabled' %>>Начать голосование</button><a class="btn btn-secondary" href="<%= base %>/economy-treasury">Свои варианты</a></div>
+            </form>
+            <form method="post" action="<%= base %>/economy-treasury/giveaway" class="ev-quick" data-no-guard>
+              <h3 class="econ-sub">Розыгрыш из казны</h3>
+              <input type="hidden" name="back" value="events" /><input type="hidden" name="hours" value="24" />
+              <div class="two-col">
+                <div><label for="q_g_amount">Приз каждому</label><input id="q_g_amount" type="number" name="amount" min="1" value="<%= Math.max(1, Math.floor(econ.treasury / 2)) %>" /></div>
+                <div><label for="q_g_win">Победителей</label><input id="q_g_win" type="number" name="winners" min="1" max="20" value="1" /></div>
+              </div>
+              <button class="btn" type="submit"<%= cfg.enabled && econ.treasury > 0 ? '' : ' disabled' %>>Запустить на сутки</button>
+            </form>
+          <% } %>
+          <% if (canSeason) { %>
+            <form method="post" action="<%= base %>/economy-bank/season-end" class="ev-quick" data-no-guard data-confirm="Завершить сезон сейчас? Монеты всех участников обнулятся, лучшие получат значки. Отменить нельзя." data-confirm-ok="Завершить сезон">
+              <h3 class="econ-sub">Конец сезона</h3>
+              <input type="hidden" name="back" value="events" />
+              <p class="hint" style="margin-top:0">Сезон <%= settings.seasonNumber || 1 %> закончится сейчас: монеты обнулятся, лучшие получат значки.</p>
+              <button class="btn btn-danger" type="submit">Завершить сезон сейчас</button>
+            </form>
+          <% } %>
+          </div>
+      </div>
+      <div class="card g-span">
+          <h2>Связанные модули</h2>
+          <div class="ev-mods">
+            <a class="ev-mod" href="<%= base %>/economy"><%- Mods.icon('economy') %><span><b>Экономика</b><small>Включите общие цели, казну или сезоны — их события появятся здесь. Там же выбирается общий канал.</small></span></a>
+            <a class="ev-mod" href="<%= base %>/economy-treasury"><%- Mods.icon('economy') %><span><b>Казна и цели</b><small>Полные формы: голосование со своими вариантами, цели с ролью, вложение из казны.</small></span></a>
+            <a class="ev-mod" href="<%= base %>/giveaways"><%- Mods.icon('giveaways') %><span><b>Розыгрыши</b><small>Обычные розыгрыши ведутся там, в своём канале; розыгрыши из казны — событие экономики.</small></span></a>
+            <a class="ev-mod" href="<%= base %>/alerts"><%- Mods.icon('alerts') %><span><b>Оповещения</b><small>Новые видео YouTube, стримы Twitch и посты Reddit — отдельный модуль со своими каналами.</small></span></a>
+          </div>
+        </div>
+    </main>
+  </div>
+  <script src="/js/events.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
+</body>
+</html>

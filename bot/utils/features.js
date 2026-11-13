@@ -22,6 +22,7 @@ const FEATURES = [
   { key: 'voiceRoles', field: 'voiceRolesEnabled', title: 'Голосовые роли', desc: 'Роль, пока участник сидит в голосовом канале', commands: [], page: 'temp-voice' },
   { key: 'interactive', field: 'interactiveEnabled', title: 'Интерактивные сообщения', desc: 'Сообщения с кнопками и списками, которые выдают роли', commands: [], page: 'interactive' },
   { key: 'moderation', field: 'moderationEnabled', title: 'Наказания', desc: 'Предупреждения, муты, баны и журнал наказаний: /mod', commands: ['mod'], page: 'moderation' },
+  { key: 'events', field: 'botEventsEnabled', title: 'События бота', desc: 'Что бот объявляет на сервере: общие цели, голосования казны, конец сезона, новые разделы экономики', commands: [], page: 'events' },
   { key: 'logs', field: 'logsEnabled', title: 'Логи сервера', desc: 'События сервера в отдельном форуме', commands: [], page: 'logs' },
   { key: 'report', field: 'reportEnabled', title: 'Жалобы', desc: 'Пункт «Report message» в меню сообщения', commands: ['Report message', 'report', 'Report member'], page: 'moderation' }
 ];
