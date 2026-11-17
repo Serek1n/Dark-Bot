@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Сообщество в каталоге' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Сообщество в каталоге</h1>
+        <p class="page-intro">Карточка сервера в публичном каталоге <a href="/communities" target="_blank" rel="noopener">«Сообщества DARK»</a>: участники находят сервер, голосуют за него и переходят по приглашению. Продвижение оплачивается DARK Coins — отдельной валютой платформы.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const fmt = (n) => Number(n || 0).toLocaleString('ru-RU');
+         const ST = { published: 'Опубликовано', pending: 'Ждёт проверки', hidden: 'Скрыто', blocked: 'Заблокировано' };
+         const chip = { published: 'badge-unban', pending: 'badge-note', hidden: 'badge-mute', blocked: 'badge-ban' };
+         const cats = c ? c.cats : []; const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); %>
+      <% if (error) { %><div class="card g-span mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
+      <% if (done === 'bought') { %><div class="card g-span appeal-ok"><p style="margin:0">Продвижение куплено и уже работает.</p></div><% } %>
+      <% if (done === 'dup') { %><div class="card g-span appeal-ok"><p style="margin:0">Эта покупка уже проведена — повторно ничего не списано.</p></div><% } %>
+      <form method="post" action="<%= g %>/community" class="card g-c1 g-r2">
+        <h2>Карточка</h2>
+        <label for="cmName">Название</label>
+        <input id="cmName" type="text" name="name" maxlength="60" required value="<%= c ? c.name : guild.name %>" />
+        <label for="cmShort">Коротко о сервере</label>
+        <input id="cmShort" type="text" name="shortDesc" maxlength="160" required value="<%= c ? c.shortDesc : '' %>" placeholder="Одна-две фразы для карточки в каталоге" />
+        <label for="cmDesc">Подробное описание</label>
+        <textarea id="cmDesc" name="description" rows="6" maxlength="4000" placeholder="Чем живёт сервер, правила, события, кого вы ждёте"><%= c ? c.description || '' : '' %></textarea>
+        <label>Категории (до трёх)</label>
+        <div class="cm-pick"><% C.CATEGORIES.forEach(([k, l, e]) => { %><label class="cm-pick-item"><input type="checkbox" name="categories" value="<%= k %>" <%= cats.includes(k) ? 'checked' : '' %> /><span><span><%= e %></span> <span><%= l %></span></span></label><% }) %></div>
+        <label for="cmTags">Теги через запятую</label>
+        <input id="cmTags" type="text" name="tags" maxlength="200" value="<%= c ? c.tags : '' %>" placeholder="minecraft, общение, ивенты" />
+        <div class="two-col">
+          <div><label for="cmInv">Ссылка-приглашение</label><input id="cmInv" type="text" inputmode="url" name="inviteUrl" maxlength="120" required value="<%= c ? c.inviteUrl : '' %>" placeholder="https://discord.gg/код" /></div>
+          <div><label for="cmBan">Баннер (необязательно)</label><input id="cmBan" type="text" inputmode="url" name="bannerUrl" maxlength="300" value="<%= c ? c.bannerUrl || '' : '' %>" placeholder="https://cdn.discordapp.com/…" /></div>
+        </div>
+        <div class="hint">Приглашение — бессрочное, иначе ссылка в каталоге перестанет работать. Баннер — картинка с <%= C.BANNER_HOSTS.join(', ') %>. Аватар и число участников бот берёт с сервера сам.</div>
+        <button class="btn" type="submit"><%= c ? 'Сохранить' : 'Добавить в каталог' %></button>
+      </form>
+      <div class="card g-c2">
+        <div class="appeal-status"><h2>Состояние</h2><% if (c) { %><span class="badge <%= chip[c.status] %>"><%= ST[c.status] %></span><% } else { %><span class="badge badge-note">Не в каталоге</span><% } %></div>
+        <% if (!c) { %>
+          <p class="hint" style="margin-top:0">Заполните карточку слева — сервер появится в каталоге<%= plat.premoderation ? ' после проверки модерацией платформы' : ' сразу' %>.</p>
+          <h3 class="econ-sub">Как это работает</h3>
+          <ol class="ap-steps">
+            <li>Карточку видят все на странице «Сообщества» — без входа в Discord.</li>
+            <li>Кнопка «Присоединиться» ведёт по вашей ссылке-приглашению; каждый переход считается.</li>
+            <li>Участники голосуют раз в 12 часов — голоса поднимают сервер в «Популярных».</li>
+            <li>Аватар и число участников бот обновляет сам. Скрыть или убрать карточку можно в любой момент.</li>
+            <li>Продвижение ниже покупается за DARK Coins и включается сразу.</li>
+          </ol>
+        <% } else { %>
+          <% if (c.moderationNote) { %><p class="appeal-reason"><small>Комментарий модерации</small><span><%= c.moderationNote %></span></p><% } %>
+          <div class="cm-stats small">
+            <div><b><%= fmt(c.votes) %></b><small>голосов</small></div>
+            <div><b><%= fmt(c.views) %></b><small>просмотров</small></div>
+            <div><b><%= fmt(c.clicks) %></b><small>переходов</small></div>
+          </div>
+          <% const max = Math.max(1, ...stats.series.map((s) => s.views)); %>
+          <div class="cm-spark" aria-label="Просмотры за 30 дней"><% stats.series.forEach((s) => { %><i style="height:<%= Math.max(3, Math.round(s.views / max * 100)) %>%" title="<%= s.day %>: <%= s.views %>"></i><% }) %></div>
+          <p class="hint" style="margin-top:4px">Просмотры за 30 дней · за последние 7 дней: <b><%= stats.series.slice(-7).reduce((n, s) => n + s.views, 0) %></b> просмотров, <b><%= stats.series.slice(-7).reduce((n, s) => n + s.clicks, 0) %></b> переходов, <b><%= stats.series.slice(-7).reduce((n, s) => n + s.votes, 0) %></b> голосов.</p>
+          <div class="btn-row">
+            <% if (c.status === 'published') { %><a class="btn btn-secondary" href="/communities/<%= c.id %>" target="_blank" rel="noopener">Открыть в каталоге</a><% } %>
+            <% if (c.status === 'published' || c.status === 'hidden') { %>
+              <form method="post" action="<%= g %>/community/visible" data-no-guard><input type="hidden" name="visible" value="<%= c.status === 'hidden' ? '1' : '0' %>" /><button class="btn btn-secondary" type="submit"><%= c.status === 'hidden' ? 'Показать в каталоге' : 'Скрыть из каталога' %></button></form>
+            <% } %>
+            <% if (c.status !== 'blocked') { %>
+              <form method="post" action="<%= g %>/community/delete" data-no-guard data-confirm="Убрать сервер из каталога? Голоса и статистика удалятся." data-confirm-ok="Убрать"><button class="btn btn-danger" type="submit">Убрать из каталога</button></form>
+            <% } %>
+          </div>
+        <% } %>
+      </div>
+      <div class="card g-c2 cm-promo-card">
+        <div class="appeal-status"><h2>Продвижение</h2><span class="cm-balance"><span>Ваш баланс:</span> <b><%= fmt(balance) %></b> <span>DARK Coins</span></span></div>
+        <p class="hint" style="margin-top:0">DARK Coins — валюта платформы, не связана с монетами серверов. Их начисляет только администрация платформы DARK; реальных платежей пока нет. Покупка списывает монеты с вашего баланса и включает продвижение сразу; по окончании срока оно выключится само.</p>
+        <div class="cm-promos">
+          <% Object.entries(C.PROMOS).forEach(([k, p]) => { const active = c && c.promo[k]; %>
+            <form method="post" action="<%= g %>/community/buy" class="cm-promo <%= active ? 'on' : '' %>" data-no-guard>
+              <input type="hidden" name="kind" value="<%= k %>" /><input type="hidden" name="key" value="<%= key %>-<%= k %>" />
+              <b><%= p.label %></b>
+              <small><%= p.desc %></small>
+              <div class="cm-price"><b><%= fmt(plat.prices[k]) %></b> <span><%= p.perDay ? 'DARK Coins в день' : 'DARK Coins' %></span></div>
+              <% if (active) { %><small class="cm-active"><span>Действует до</span> <%= when(active.endsAt) %></small><% } %>
+              <% if (p.perDay) { %><select name="days" aria-label="Срок"><% C.DAYS.forEach((d) => { %><option value="<%= d %>"><%= d %> дн. — <%= fmt(plat.prices[k] * d) %></option><% }) %></select><% } else { %><div class="cm-once">Разово, на 24 часа</div><% } %>
+              <button class="btn" type="submit"<%= !c || c.status !== 'published' ? ' disabled' : '' %>><%= active && k !== 'bump' ? 'Продлить' : 'Купить' %></button>
+            </form>
+          <% }) %>
+        </div>
+        <% if (c && stats.promotions.length) { %>
+          <h3 class="econ-sub">История покупок</h3>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Когда</th><th>Что</th><th>Срок</th><th>Цена</th><th>До</th></tr></thead>
+            <tbody><% stats.promotions.forEach((p) => { %><tr><td class="nowrap"><%= when(p.createdAt) %></td><td><%= C.PROMOS[p.kind] ? C.PROMOS[p.kind].label : p.kind %></td><td class="nowrap"><%= p.days %> дн.</td><td class="nowrap"><%= fmt(p.price) %></td><td class="nowrap"><%= when(p.endsAt) %></td></tr><% }) %></tbody>
+          </table></div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

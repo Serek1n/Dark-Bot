@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: c.name }) %></head>
+<body>
+  <div class="night-sky"></div>
+  <main class="cm-page">
+    <p class="cm-back"><a href="/communities">← Все сообщества</a></p>
+    <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); %>
+    <% if (msg === 'voted') { %><div class="card appeal-ok"><p style="margin:0">Спасибо, ваш голос учтён! Проголосовать снова можно через 12 часов.</p></div><% } %>
+    <% if (msg === 'reported') { %><div class="card appeal-ok"><p style="margin:0">Жалоба отправлена модерации платформы.</p></div><% } %>
+    <% if (error) { %><div class="card mod-alert"><p style="margin:0"><%= error %></p></div><% } %>
+    <section class="cm-show <%= c.highlighted ? 'hl' : '' %>">
+      <div class="cm-banner"<% if (c.bannerUrl) { %> style="background-image:url('<%= c.bannerUrl %>')"<% } %>></div>
+      <div class="cm-show-head">
+        <% if (c.icon) { %><img class="cm-icon big" src="<%= c.icon %>" alt="" width="96" height="96" /><% } else { %><span class="cm-icon big cm-letter"><%= c.name.charAt(0).toUpperCase() %></span><% } %>
+        <div class="cm-show-title">
+          <h1><%= c.name %></h1>
+          <p class="page-intro"><%= c.shortDesc %></p>
+        </div>
+        <div class="cm-show-act">
+          <a class="btn" href="/communities/<%= c.id %>/join" rel="nofollow">Присоединиться</a>
+          <form method="post" action="/communities/<%= c.id %>/vote"><button class="btn btn-secondary" type="submit">▲ <span>Голосовать</span></button></form>
+        </div>
+      </div>
+      <div class="cm-stats">
+        <div><b><%= fmt(c.memberCount) %></b><small>участников</small></div>
+        <div><b><%= fmt(c.votes) %></b><small>голосов</small></div>
+        <div><b><%= fmt(c.views) %></b><small>просмотров</small></div>
+        <div><b><%= fmt(c.clicks) %></b><small>переходов</small></div>
+      </div>
+    </section>
+    <div class="cm-show-grid">
+      <div class="card">
+        <h2>О сообществе</h2>
+        <p class="appeal-text"><%= c.description || c.shortDesc %></p>
+      </div>
+      <div class="card">
+        <h2>Категории и теги</h2>
+        <div class="cm-tags">
+          <% c.cats.forEach((k) => { const cat = C.CATEGORY[k]; if (cat) { %><a class="cm-tag" href="/communities?category=<%= k %>"><span><%= cat.emoji %></span> <span><%= cat.label %></span></a><% } }) %>
+          <% c.tagList.forEach((t) => { %><a class="cm-tag muted" href="/communities?q=<%= encodeURIComponent(t) %>">#<%= t %></a><% }) %>
+        </div>
+        <h3 class="econ-sub">Приглашение</h3>
+        <p class="ap-link"><code><%= c.inviteUrl %></code></p>
+        <details class="cm-report">
+          <summary>Пожаловаться</summary>
+          <form method="post" action="/communities/<%= c.id %>/report">
+            <label for="cmRep">Что не так с этим сообществом</label>
+            <textarea id="cmRep" name="reason" rows="3" maxlength="500" required></textarea>
+            <button class="btn btn-danger" type="submit">Отправить жалобу</button>
+          </form>
+        </details>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

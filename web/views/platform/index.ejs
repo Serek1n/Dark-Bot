@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: 'Платформа DARK' }) %></head>
+<body>
+  <div class="night-sky"></div>
+  <main class="cm-page">
+    <header class="cm-hero"><div><h1>Платформа DARK</h1><p class="page-intro">Только для владельцев платформы: DARK Coins, цены продвижения, модерация каталога.</p></div><a class="btn btn-secondary" href="/communities">Каталог</a></header>
+    <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); const name = (id) => (id ? (users[id] || { name: id }).name : '—');
+       const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+       const KIND = { grant: 'Начисление', revoke: 'Списание', promo: 'Продвижение' };
+       const DONE = { coins: 'Операция проведена.', dup: 'Эта операция уже была проведена — повтор ничего не изменил.', settings: 'Настройки сохранены.', moderated: 'Решение сохранено.', report: 'Жалоба закрыта.' }; %>
+    <% if (error) { %><div class="card mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
+    <% if (done && DONE[done]) { %><div class="card appeal-ok"><p style="margin:0"><%= DONE[done] %></p></div><% } %>
+    <div class="cm-show-grid">
+      <div class="card">
+        <h2>DARK Coins</h2>
+        <form method="get" action="/platform" class="ach-find"><input name="user" type="text" inputmode="numeric" value="<%= userId || '' %>" placeholder="ID пользователя Discord" aria-label="ID пользователя" /><button class="btn btn-secondary" type="submit">Найти</button></form>
+        <% if (userId) { %>
+          <p class="cm-balance" style="margin:14px 0"><span><%= name(userId) %>:</span> <b><%= fmt(balance) %></b> <span>DARK Coins</span></p>
+          <form method="post" action="/platform/coins">
+            <input type="hidden" name="userId" value="<%= userId %>" /><input type="hidden" name="key" value="<%= key %>" />
+            <div class="two-col">
+              <div><label for="pfAmt">Сумма</label><input id="pfAmt" type="number" name="amount" min="1" max="10000000" required /></div>
+              <div><label for="pfOp">Операция</label><select id="pfOp" name="op"><option value="grant">Начислить</option><option value="revoke">Списать</option></select></div>
+            </div>
+            <label for="pfNote">Причина (в журнал)</label>
+            <input id="pfNote" type="text" name="note" maxlength="200" required placeholder="Например: награда за ивент платформы" />
+            <button class="btn" type="submit">Провести</button>
+          </form>
+        <% } %>
+        <h3 class="econ-sub">Самые большие балансы</h3>
+        <% if (!top.length) { %><p class="empty-state">Пока ни у кого нет DARK Coins.</p><% } else { %>
+          <div class="mini-list"><% top.forEach((w) => { %><a class="mini-row" href="/platform?user=<%= w.userId %>"><span class="person"><span><%= name(w.userId) %></span></span><b><%= fmt(w.balance) %></b></a><% }) %></div>
+        <% } %>
+      </div>
+      <form method="post" action="/platform/settings" class="card">
+        <h2>Цены продвижения</h2>
+        <% Object.entries(C.PROMOS).forEach(([k, p]) => { %>
+          <label for="pr_<%= k %>"><%= p.label %>, <%= p.perDay ? 'DARK Coins в день' : 'DARK Coins' %></label>
+          <input id="pr_<%= k %>" type="number" name="price_<%= k %>" min="1" max="1000000" value="<%= settings.prices[k] %>" />
+        <% }) %>
+        <div class="rules"><label class="rule"><span class="rule-text"><b>Предмодерация</b><span>Новые сообщества появляются в каталоге только после одобрения.</span></span><input type="checkbox" name="premoderation" <%= settings.premoderation ? 'checked' : '' %> /></label></div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Журнал DARK Coins<%= userId ? ' · ' + name(userId) : '' %></h2>
+      <% if (!log.length) { %><p class="empty-state">Операций ещё не было.</p><% } else { %>
+        <div class="table-scroll"><table>
+          <thead><tr><th>№</th><th>Когда</th><th>Кому</th><th>Что</th><th>Сумма</th><th>Баланс после</th><th>Кто</th><th>Причина</th></tr></thead>
+          <tbody><% log.forEach((t) => { %><tr><td>#<%= t.id %></td><td class="nowrap"><%= when(t.createdAt) %></td><td class="nowrap"><%= name(t.userId) %></td><td class="nowrap"><%= KIND[t.kind] || t.kind %></td><td class="nowrap"><%= t.amount > 0 ? '+' : '' %><%= fmt(t.amount) %></td><td class="nowrap"><%= fmt(t.balanceAfter) %></td><td class="nowrap"><%= name(t.actorId) %></td><td class="muted"><%= t.note || '' %></td></tr><% }) %></tbody>
+        </table></div>
+      <% } %>
+    </div>
+    <div class="card">
+      <h2>Модерация каталога</h2>
+      <% const modForm = (c) => { %>
+        <form method="post" action="/platform/moderate" class="cm-mod">
+          <input type="hidden" name="id" value="<%= c.id %>" />
+          <input type="text" name="note" maxlength="300" placeholder="Комментарий владельцу" aria-label="Комментарий" />
+          <select name="status" aria-label="Решение"><option value="published">Опубликовать</option><option value="hidden">Скрыть</option><option value="blocked">Заблокировать</option></select>
+          <button class="btn btn-secondary" type="submit">Применить</button>
+        </form>
+      <% }; %>
+      <% if (pending.length) { %>
+        <h3 class="econ-sub">Ждут проверки</h3>
+        <div class="appeal-list"><% pending.forEach((c) => { %><div class="appeal-row"><div class="appeal-main"><b><a href="/communities/<%= c.id %>"><%= c.name %></a></b><span class="muted"><%= c.shortDesc %></span></div><div class="appeal-act"><% modForm(c) %></div></div><% }) %></div>
+      <% } %>
+      <% if (reports.length) { %>
+        <h3 class="econ-sub">Жалобы</h3>
+        <div class="appeal-list"><% reports.forEach((r) => { const c = byId.get(r.communityId); %>
+          <div class="appeal-row"><div class="appeal-main"><b><%= c ? c.name : '#' + r.communityId %></b><span class="muted"><%= r.reason %></span></div>
+            <div class="appeal-act"><form method="post" action="/platform/reports/<%= r.id %>/close"><button class="btn btn-secondary" type="submit">Закрыть жалобу</button></form></div></div>
+        <% }) %></div>
+      <% } %>
+      <h3 class="econ-sub">Все сообщества</h3>
+      <% if (!listed.length) { %><p class="empty-state">Каталог пуст.</p><% } else { %>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Сообщество</th><th>Состояние</th><th>Голоса</th><th>Решение</th></tr></thead>
+          <tbody><% listed.forEach((c) => { %><tr><td><a href="/communities/<%= c.id %>"><%= c.name %></a><div class="muted"><%= c.guildId %></div></td><td class="nowrap"><%= ({ published: 'Опубликовано', pending: 'Ждёт проверки', hidden: 'Скрыто', blocked: 'Заблокировано' })[c.status] || c.status %></td><td><%= c.votes %></td><td><% modForm(c) %></td></tr><% }) %></tbody>
+        </table></div>
+      <% } %>
+    </div>
+  </main>
+</body>
+</html>

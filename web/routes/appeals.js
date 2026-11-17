@@ -8,11 +8,7 @@ const router = express.Router();
 const ap = () => require('../../bot/modules/appeals');
 const db = () => require('../../db');
 
-// Signed in, else to Discord and back here.
-function signedIn(req, res, next) {
-  if (req.isAuthenticated?.()) return next();
-  res.redirect(`/auth/login?next=${encodeURIComponent(req.originalUrl)}`);
-}
+const { signedIn } = require('../middleware/ensureAuth');
 const fileLimit = rateLimit({ windowMs: 10 * 60 * 1000, max: 10, message: 'Слишком много попыток подать апелляцию. Подождите 10 минут.' });
 
 async function guildsOf(ids) {

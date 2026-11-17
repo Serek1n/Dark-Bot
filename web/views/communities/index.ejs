@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: 'Сообщества' }) %></head>
+<body>
+  <div class="night-sky"></div>
+  <main class="cm-page">
+    <header class="cm-hero">
+      <div>
+        <h1>Сообщества DARK</h1>
+        <p class="page-intro">Серверы Discord, где живёт бот Dark. Найдите своё место, голосуйте за любимые и добавьте свой сервер из панели.</p>
+      </div>
+      <% if (locals.user) { %><a class="btn btn-secondary" href="/dashboard">Добавить свой сервер</a><% } else { %><a class="btn btn-secondary" href="/auth/login?next=%2Fcommunities">Войти через Discord</a><% } %>
+    </header>
+    <% const qs = (patch) => { const o = Object.assign({}, f, { page: '' }, patch); return '/communities?' + Object.keys(o).filter((k) => o[k] && !(k === 'sort' && o[k] === 'popular')).map((k) => k + '=' + encodeURIComponent(o[k])).join('&'); };
+       const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); %>
+    <form class="cm-search" method="get" action="/communities" role="search">
+      <input type="text" inputmode="search" name="q" value="<%= f.q %>" placeholder="Название, описание или тег" aria-label="Поиск сообществ" />
+      <% if (f.category) { %><input type="hidden" name="category" value="<%= f.category %>" /><% } %>
+      <select name="sort" aria-label="Сортировка"><% Object.entries(C.SORTS).forEach(([k, l]) => { %><option value="<%= k %>" <%= f.sort === k ? 'selected' : '' %>><%= l %></option><% }) %></select>
+      <button class="btn" type="submit">Найти</button>
+    </form>
+    <nav class="chips cm-cats" aria-label="Категории">
+      <a class="chip <%= !f.category ? 'active' : '' %>" href="<%= qs({ category: '' }) %>">Все</a>
+      <% C.CATEGORIES.forEach(([k, l, e]) => { %><a class="chip <%= f.category === k ? 'active' : '' %>" href="<%= qs({ category: k }) %>"><span><%= e %></span> <span><%= l %></span></a><% }) %>
+    </nav>
+    <% if (featured.length) { %>
+      <section class="cm-featured">
+        <h2>Рекомендуем</h2>
+        <div class="cm-feat-row">
+          <% featured.forEach((c) => { %>
+            <a class="cm-feat" href="/communities/<%= c.id %>">
+              <% if (c.icon) { %><img src="<%= c.icon %>" alt="" width="48" height="48" loading="lazy" /><% } else { %><span class="cm-letter"><%= c.name.charAt(0).toUpperCase() %></span><% } %>
+              <span><b><%= c.name %></b><small><%= fmt(c.memberCount) %> <span>участников</span></small></span>
+            </a>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+    <p class="cm-count muted"><span>Найдено:</span> <b><%= total %></b></p>
+    <% if (!items.length) { %>
+      <div class="card"><p class="empty-state">Ничего не нашлось. Попробуйте другой запрос или категорию.</p></div>
+    <% } else { %>
+      <div class="cm-grid">
+        <% items.forEach((c) => { %>
+          <article class="cm-card <%= c.highlighted ? 'hl' : '' %> <%= c.pinned ? 'pinned' : '' %>">
+            <div class="cm-card-top">
+              <% if (c.icon) { %><img class="cm-icon" src="<%= c.icon %>" alt="" width="56" height="56" loading="lazy" /><% } else { %><span class="cm-icon cm-letter"><%= c.name.charAt(0).toUpperCase() %></span><% } %>
+              <div class="cm-title">
+                <h3><a href="/communities/<%= c.id %>"><%= c.name %></a></h3>
+                <div class="cm-meta"><span>👥 <%= fmt(c.memberCount) %></span><span>▲ <%= fmt(c.votes) %></span></div>
+              </div>
+              <% if (c.pinned) { %><span class="cm-badge">📌 <span>Закреплено</span></span><% } else if (c.bumped || c.highlighted) { %><span class="cm-badge">⚡ <span>Продвигается</span></span><% } %>
+            </div>
+            <p class="cm-desc"><%= c.shortDesc %></p>
+            <div class="cm-tags">
+              <% c.cats.forEach((k) => { const cat = C.CATEGORY[k]; if (cat) { %><a class="cm-tag" href="<%= qs({ category: k }) %>"><span><%= cat.emoji %></span> <span><%= cat.label %></span></a><% } }) %>
+              <% c.tagList.slice(0, 3).forEach((t) => { %><span class="cm-tag muted">#<%= t %></span><% }) %>
+            </div>
+            <div class="cm-actions">
+              <a class="btn btn-secondary" href="/communities/<%= c.id %>">Подробнее</a>
+              <a class="btn" href="/communities/<%= c.id %>/join" rel="nofollow">Присоединиться</a>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+      <% if (pages > 1) { %>
+        <nav class="cm-pager" aria-label="Страницы">
+          <% if (page > 1) { %><a class="btn btn-secondary" href="<%= qs({ page: page - 1 }) %>">← Назад</a><% } %>
+          <span class="muted"><span>Страница</span> <%= page %> <span>из</span> <%= pages %></span>
+          <% if (page < pages) { %><a class="btn btn-secondary" href="<%= qs({ page: page + 1 }) %>">Дальше →</a><% } %>
+        </nav>
+      <% } %>
+    <% } %>
+    <p class="hint" style="text-align:center;">Сообщества добавляют их администраторы · Dark</p>
+  </main>
+</body>
+</html>

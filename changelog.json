@@ -1,5 +1,36 @@
 [
  {
+  "bot": "3.12.0",
+  "panel": "3.21.0",
+  "date": "2026-11-17",
+  "botChanges": [
+   "DARK Coins: отдельная валюта платформы для продвижения, не связана с монетами серверов",
+   "Начислять и списывать DARK Coins может только владелец платформы; всё пишется в журнал",
+   "Без двойных списаний и ухода в минус, даже при одновременных запросах"
+  ],
+  "panelChanges": [
+   "Каталог «Сообщества DARK»: карточки, поиск, категории, сортировка, страницы",
+   "Страница сообщества: описание, статистика, «Присоединиться», голосование, жалоба",
+   "«Сообщество в каталоге»: своя карточка, статистика за 30 дней, продвижение за DARK Coins",
+   "Продвижение: поднятие, закрепление, выделение, рекомендации — включается само",
+   "Страница платформы: DARK Coins, цены, предмодерация, модерация каталога и жалобы"
+  ],
+  "en": {
+   "botChanges": [
+    "DARK Coins: the platform's own currency for promotion, unrelated to server coins",
+    "Only the platform owner gives and takes DARK Coins; every move is journaled",
+    "No double charges and no negative balances, even with simultaneous requests"
+   ],
+   "panelChanges": [
+    "The \"DARK Communities\" catalog: cards, search, categories, sorting, pages",
+    "A community page: description, statistics, Join, voting, report",
+    "\"Community listing\": your card, 30-day statistics, promotion for DARK Coins",
+    "Promotion: bump, pin, highlight, featured — starts and ends by itself",
+    "The platform page: DARK Coins, prices, pre-moderation, catalog moderation and reports"
+   ]
+  }
+ },
+ {
   "bot": "3.11.0",
   "panel": "3.20.0",
   "date": "2026-11-17",

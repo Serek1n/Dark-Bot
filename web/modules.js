@@ -43,6 +43,7 @@ const ICONS = {
   changelog: '<path d="M4 9.5H16V16.5H4Z"/><path d="M3 6.5H17V9.5H3Z"/><path d="M10 6.5V16.5"/>',
   events: '<path d="M3.5 8V12H6L12.5 15.5V4.5L6 8H3.5Z"/><path d="M15 7.5C15.8 8.2 16.3 9.1 16.3 10C16.3 10.9 15.8 11.8 15 12.5M6.5 12L7.5 16.5"/>',
   achievements: '<path d="M6.5 3.5H13.5V8C13.5 10 12 11.5 10 11.5C8 11.5 6.5 10 6.5 8V3.5Z"/><path d="M6.5 5H4V6.5C4 7.9 5 9 6.5 9.2M13.5 5H16V6.5C16 7.9 15 9 13.5 9.2M10 11.5V14.5M7 16.5H13M8 14.5H12V16.5H8Z"/>',
+  listing: '<circle cx="7" cy="7.5" r="2.5"/><circle cx="13.5" cy="7.5" r="2.5"/><path d="M2.5 16C2.8 13.3 4.7 11.5 7 11.5C9.3 11.5 11.2 13.3 11.5 16M10.5 12.3C11.2 11.8 12.3 11.5 13.5 11.5C15.8 11.5 17.2 13.3 17.5 16"/>',
   boosts: '<path d="M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z"/>'
 };
 
@@ -128,6 +129,9 @@ const LAYOUT = [
       return [{ value: be.TYPES.filter((t) => r.types[t.key].on).length, label: 'событий включено' }];
     } },
   { key: 'webhooks', group: 'tools', pages: ['webhooks'] },
+  // the server's card in the public catalog «Сообщества DARK» (no switch: not listing it is the off state)
+  { key: 'listing', group: 'tools', title: 'Сообщество в каталоге', desc: 'Карточка сервера в публичном каталоге «Сообщества DARK»: описание, категории, голоса, статистика, продвижение', pages: ['community'],
+    stats: async (g) => { const { Community } = db(); const c = await Community.findOne(where(g)); return [{ value: c ? c.votes : 0, label: c ? 'голосов в каталоге' : 'не в каталоге' }]; } },
   { key: 'reminders', group: 'tools', pages: [],
     stats: async (g) => { const { Reminder } = db(); return [{ value: await Reminder.count(where(g)), label: 'напоминаний ждут' }]; } },
   { key: 'music', group: 'tools', pages: ['music'],

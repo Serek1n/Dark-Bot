@@ -70,7 +70,7 @@ app.use((req, res, next) => {
     'Cross-Origin-Resource-Policy': 'same-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
     'Content-Security-Policy':
-      "default-src 'self'; img-src 'self' https://cdn.discordapp.com https://i.ytimg.com https://i.scdn.co https://i1.sndcdn.com https://is1-ssl.mzstatic.com data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+      "default-src 'self'; img-src 'self' https://cdn.discordapp.com https://media.discordapp.net https://i.imgur.com https://i.ytimg.com https://i.scdn.co https://i1.sndcdn.com https://is1-ssl.mzstatic.com data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
   });
   if (httpsSite) res.set('Strict-Transport-Security', 'max-age=31536000'); // the browser stays on https for a year
   // Pages of the panel hold private data (webhook links, member lists): never kept in a shared or browser cache, never shown by "Back" after logout.
@@ -126,6 +126,8 @@ app.use('/auth/callback', loginLimit);
 app.use('/dashboard', (req, res, next) => (req.method === 'GET' || req.method === 'HEAD' ? next() : changeLimit(req, res, next)));
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/communities', require('./routes/communities')); // the public catalog of servers
+app.use('/platform', require('./routes/platform')); // DARK Coins and catalog moderation: platform owners only
 app.use('/appeals', require('./routes/appeals')); // appeals: any signed-in person, about his own punishments only
 app.use('/top', require('./routes/publicTop')); // public leaderboards (only where the admins switched them on)
 
