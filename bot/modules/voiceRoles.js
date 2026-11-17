@@ -13,23 +13,37 @@ const TTL = 60_000;
 async function rulesFor(guildId) {
   const hit = cache.get(guildId);
   if (hit && Date.now() - hit.at < TTL) return hit.rows;
-  const rows = (await VoiceRole.findAll({ where: { guildId }, raw: true })).map((r) => ({ roleId: r.roleId, channelId: r.channelId || null }));
+  const rows = (await VoiceRole.findAll({ where: { guildId }, raw: true })).map((r) => ({ roleId: r.roleId, channelId: r.channelId || null, scope: r.scope || 'any' }));
   cache.set(guildId, { rows, at: Date.now() });
   return rows;
 }
 
-/** Roles of these rules the member should have while in `channelId` (null = not in voice). Pure. */
-function wantedRoles(rules, channelId, afkId) {
+/**
+ * Roles of these rules the member should have while in `channelId` (null = not in voice). Pure.
+ * A rule for "any channel" may be limited to temporary rooms (scope temp) or to ordinary channels (regular);
+ * channels in `exclude` never give "any channel" roles (a rule made for exactly that channel still works).
+ */
+function wantedRoles(rules, channelId, afkId, { isTemp = false, exclude = [] } = {}) {
   if (!channelId || channelId === afkId) return new Set();
-  return new Set(rules.filter((r) => !r.channelId || r.channelId === channelId).map((r) => r.roleId));
+  return new Set(rules.filter((r) => {
+    if (r.channelId) return r.channelId === channelId;
+    if (exclude.includes(channelId)) return false;
+    if (r.scope === 'temp') return isTemp;
+    if (r.scope === 'regular') return !isTemp;
+    return true;
+  }).map((r) => r.roleId));
 }
+
+const excluded = (settings) => { try { const v = JSON.parse(settings?.voiceRolesExclude || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
 
 async function syncMember(member, channelId) {
   const guild = member.guild;
   const rules = await rulesFor(guild.id);
   if (!rules.length || member.user?.bot) return;
-  if (!isEnabled(await getOrCreateSettings(guild.id), 'voiceRoles')) return;
-  const wanted = wantedRoles(rules, channelId, guild.afkChannelId);
+  const settings = await getOrCreateSettings(guild.id);
+  if (!isEnabled(settings, 'voiceRoles')) return;
+  const isTemp = channelId ? await require('./tempRooms').isTempRoom(channelId) : false;
+  const wanted = wantedRoles(rules, channelId, guild.afkChannelId, { isTemp, exclude: excluded(settings) });
   for (const roleId of new Set(rules.map((r) => r.roleId))) {
     const role = guild.roles.cache.get(roleId);
     if (!role || role.managed || role.editable === false) continue;
@@ -51,4 +65,4 @@ async function sweepVoiceRoles(client) {
   }
 }
 
-module.exports = { syncMember, sweepVoiceRoles, wantedRoles, rulesFor };
+module.exports = { syncMember, sweepVoiceRoles, wantedRoles, rulesFor, excluded };

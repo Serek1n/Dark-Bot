@@ -10,6 +10,7 @@ const sessions = new Map();
 const FLUSH_MS = 5 * 60 * 1000;
 const XP_TICK_MS = 60 * 1000;
 const key = (guildId, userId) => `${guildId}:${userId}`;
+let ticking = false; // an xp tick is running (see seedFromGuilds)
 
 /**
  * Adds seconds to many members in ONE transaction with plain SQL increments (atomic, no
@@ -67,7 +68,13 @@ function seedFromGuilds(client) {
   }
   const timer = setInterval(() => flushAll(client).catch((err) => logger.error('voice flush failed', err)), FLUSH_MS);
   timer.unref?.();
-  const xpTimer = setInterval(() => xpTick(client).catch((err) => logger.error('voice xp tick failed', err)), XP_TICK_MS);
+  // One tick at a time: on a slow database a tick may last longer than a minute, and two overlapping ticks would pay
+  // the same minute twice. A tick that finds the previous one still running is skipped (the next minute pays again).
+  const xpTimer = setInterval(() => {
+    if (ticking) { logger.warn?.('voice xp tick skipped: the previous one is still running'); return; }
+    ticking = true;
+    xpTick(client).catch((err) => logger.error('voice xp tick failed', err)).finally(() => { ticking = false; });
+  }, XP_TICK_MS);
   xpTimer.unref?.();
 }
 

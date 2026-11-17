@@ -29,6 +29,7 @@ module.exports = {
     .addSubcommand((s) => s.setName('unban').setDescription('Снять запрет').addUserOption((o) => user(o)))
     .addSubcommand((s) => s.setName('region').setDescription('Регион голосового сервера')
       .addStringOption((o) => o.setName('region').setDescription('Регион').setRequired(true).addChoices(...room.REGIONS.map(([value, name]) => ({ name, value })))))
+    .addSubcommand((s) => s.setName('bitrate').setDescription('Качество звука в комнате, кбит/с').addIntegerOption((o) => o.setName('kbps').setDescription('От 8 до 96 (на сервере с бустами — до 384)').setRequired(true).setMinValue(8).setMaxValue(384)))
     .addSubcommand((s) => s.setName('transfer').setDescription('Передать комнату другому участнику, который в ней сидит').addUserOption((o) => user(o)))
     .addSubcommand((s) => s.setName('claim').setDescription('Забрать комнату, если её владелец вышел'))
     .addSubcommand((s) => s.setName('delete').setDescription('Удалить свою комнату')),
@@ -51,21 +52,36 @@ module.exports = {
         await target.send(room.panelPayload());
         return done(`Панель управления комнатами размещена в <#${target.id}>.`);
       }
-      if (sub === 'claim') return done(await room.claim(guild, interaction.member));
+      const settings = await require('../../modules/leveling').getOrCreateSettings(guild.id);
+      if (!room.ownerMay(settings, sub, interaction.member)) return say({ embeds: [embeds.error('Это действие для владельцев комнат на сервере выключено.')] });
+      if (sub === 'claim') {
+        const text = await room.claim(guild, interaction.member);
+        const claimed = await room.findRoom(guild, interaction.member).catch(() => null);
+        if (claimed) { await room.logRoom(guild.id, claimed.channel, 'claim', { actorId: interaction.member.id }); await room.savePrefs(claimed, settings); }
+        return done(text);
+      }
 
       const ctx = await room.findRoom(guild, interaction.member);
       const id = () => interaction.options.getUser('user', true).id;
       if (sub === 'info') return say({ embeds: [room.describe(ctx)], allowedMentions: { parse: [] } });
       // One action on a room at a time, the same lock as the buttons of the panel: no two owners after a transfer and a claim.
       return await withLock(`voiceroom:${ctx.channel?.id || ctx.rec?.channelId || interaction.member.id}`, async () => {
-        if (sub === 'name') return done(await room.rename(ctx, interaction.options.getString('name', true)));
-        if (sub === 'limit') return done(await room.rename(ctx, null, interaction.options.getInteger('count', true)));
-        if (sub === 'access') return done(await room.setAccess(ctx, interaction.options.getString('mode', true)));
-        if (sub === 'region') return done(await room.setRegion(ctx, interaction.options.getString('region', true)));
-        if (sub === 'transfer') return done(await room.transfer(ctx, id()));
-        if (sub === 'delete') return done(await room.removeRoom(ctx));
-        const many = { trust: room.trust, untrust: room.untrust, invite: room.invite, kick: room.kick, ban: room.ban, unban: room.unban }[sub];
-        return done(await many(ctx, [id()]));
+        let text; let targetId = null;
+        if (sub === 'name') text = await room.rename(ctx, interaction.options.getString('name', true));
+        else if (sub === 'limit') text = await room.rename(ctx, null, interaction.options.getInteger('count', true));
+        else if (sub === 'access') text = await room.setAccess(ctx, interaction.options.getString('mode', true));
+        else if (sub === 'region') text = await room.setRegion(ctx, interaction.options.getString('region', true));
+        else if (sub === 'bitrate') text = await room.setBitrate(ctx, interaction.options.getInteger('kbps', true));
+        else if (sub === 'transfer') text = await room.transfer(ctx, (targetId = id()));
+        else if (sub === 'delete') text = await room.removeRoom(ctx);
+        else {
+          const many = { trust: room.trust, untrust: room.untrust, invite: room.invite, kick: room.kick, ban: room.ban, unban: room.unban }[sub];
+          text = await many(ctx, [(targetId = id())]);
+        }
+        // the history, and the owner's settings for his next room
+        await room.logRoom(guild.id, ctx.channel, sub, { actorId: interaction.member.id, targetId });
+        if (!['delete', 'kick', 'invite'].includes(sub)) await room.savePrefs(ctx, settings);
+        return done(text);
       });
     } catch (err) {
       if (!(err instanceof room.RoomError)) logger.error(`/voice ${sub} failed:`, err);

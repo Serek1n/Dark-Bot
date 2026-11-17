@@ -158,7 +158,7 @@ const PAGE_LABELS = { leveling: 'Настройки', 'channel-boosts': 'Мно�
 // A page shown only while one of these economy sections is on (bot/modules/econ/config.js).
 const PAGE_NEEDS = { 'economy-bank': ['bank', 'seasons'], 'economy-treasury': ['treasury', 'goals'], 'economy-deals': ['deals', 'gifts'] };
 // Tabs whose pages are not built yet in this version (they appear as soon as their stage ships).
-const PAGE_LATER = new Set(['moderation-appeals', 'temp-voice-access', 'temp-voice-auto', 'temp-voice-stats', 'temp-voice-settings']);
+const PAGE_LATER = new Set(['moderation-appeals']);
 const pageVisible = (page, settings) => !PAGE_LATER.has(page) && (!PAGE_NEEDS[page] || PAGE_NEEDS[page].some((k) => require('../bot/modules/econ/config').isOn(settings, k)));
 
 /** The module a page belongs to (the main one, not a section), or null. */

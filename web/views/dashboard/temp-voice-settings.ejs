@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Настройки комнат' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Настройки</h1>
+        <p class="page-intro">Что комната помнит о владельце и с каким качеством звука создаётся. Название и лимит новых комнат — во вкладке «Создание комнат».</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; %>
+      <form method="post" action="<%= g %>/temp-voice/settings" class="card g-span">
+        <h2>Запоминать настройки владельцев</h2>
+        <div class="g-split"><div>
+        <div class="rules">
+          <label class="rule"><span class="rule-text"><b>Восстанавливать комнату как в прошлый раз</b><span>Название, лимит, доступ, битрейт, регион, доверенные и забаненные — новая комната владельца создаётся с ними.</span></span><input type="checkbox" name="tempVoiceRemember" <%= settings.tempVoiceRemember !== false ? 'checked' : '' %> /></label>
+        </div>
+        </div><div>
+        <label for="tvBit">Битрейт новых комнат, кбит/с</label>
+        <input id="tvBit" type="number" name="tempVoiceBitrate" min="0" max="384" value="<%= settings.tempVoiceBitrate || 0 %>" />
+        <div class="hint">0 — как решит Discord (обычно 64). Без бустов сервера — не больше 96.</div>
+        </div></div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+      <div class="card g-span">
+        <h2>Сохранённые настройки</h2>
+        <p style="margin-top:0">Сохранены у <b><%= prefs %></b> владельцев.</p>
+        <form method="post" action="<%= g %>/temp-voice/prefs-reset" data-no-guard data-confirm="Забыть сохранённые настройки всех владельцев? Их следующие комнаты будут созданы по шаблону сервера." data-confirm-ok="Забыть"><button class="btn btn-danger" type="submit"<%= prefs ? '' : ' disabled' %>>Забыть все</button></form>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

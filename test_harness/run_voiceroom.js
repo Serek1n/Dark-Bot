@@ -57,14 +57,16 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
   const flags = (w, id) => { const e = w.ow.get(id); return e ? { allow: e.allow.has(P.Connect), deny: e.deny.has(P.Connect), viewAllow: e.allow.has(P.ViewChannel), viewDeny: e.deny.has(P.ViewChannel) } : null; };
 
   // ---------- the panel and the command ----------
-  await test('the panel: 10 icon-only buttons in 2 rows of 5, delete is red, every icon is different and explained in the text', async () => {
+  await test('the panel: three sections (room, people, owner) of 5 buttons, every button named, delete is red', async () => {
     const p = room.panelPayload(); const rows = p.components.map((r) => r.toJSON());
-    assert(rows.length === 2 && rows.every((r) => r.components.length === 5), 'rows');
-    const ids = rows.flatMap((r) => r.components.map((c) => c.custom_id)); assert(ids.join() === 'vr:name,vr:access,vr:trust,vr:untrust,vr:invite,vr:kick,vr:region,vr:ban,vr:unban,vr:delete', ids.join());
-    assert(rows[1].components[4].style === ButtonStyle.Danger && rows[0].components[0].style === ButtonStyle.Secondary, 'styles');
-    assert(rows.flatMap((r) => r.components).every((c) => !c.label && c.emoji && c.emoji.name), 'buttons carry only an icon');
-    const text = p.embeds[0].toJSON().description; for (const [, emoji, label, hint] of room.BUTTONS) assert(text.includes(`${emoji} **${label}** — ${hint}`), 'explained: ' + label);
-    assert(new Set(room.BUTTONS.map((b) => b[1])).size === 10, 'every icon is different');
+    assert(rows.length === 3 && rows.every((r) => r.components.length === 5), 'rows');
+    const ids = rows.flatMap((r) => r.components.map((c) => c.custom_id));
+    assert(ids.join() === 'vr:name,vr:limit,vr:access,vr:region,vr:bitrate,vr:invite,vr:trust,vr:untrust,vr:ban,vr:unban,vr:kick,vr:transfer,vr:claim,vr:info,vr:delete', ids.join());
+    assert(rows[2].components[4].style === ButtonStyle.Danger && rows[0].components[0].style === ButtonStyle.Secondary, 'styles');
+    assert(rows.flatMap((r) => r.components).every((c) => c.label && c.emoji && c.emoji.name), 'icon and name');
+    const e = p.embeds[0].toJSON();
+    assert(e.fields.map((f) => f.name).join() === 'Комната,Участники,Владелец' && e.fields[0].value.includes('📶 Битрейт') && e.description.includes('запоминаются'), JSON.stringify(e));
+    assert(new Set(room.BUTTONS.map((b) => b[1])).size === 15, 'every icon is different');
   });
   await test('/voice fits Discord limits and has every action', async () => {
     const j = cmd.data.toJSON(); const names = j.options.map((o) => o.name);
@@ -183,7 +185,7 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
     const w = await world(); const adm = w.person('ADM', { admin: true }); const sent = [];
     const ch = { id: 'PCH', send: async (p) => { sent.push(p); } };
     assert((await runCmd(w, 'panel', {}, w.owner)).includes('только администраторы'), 'owner is not an admin');
-    assert((await runCmd(w, 'panel', { channel: ch }, adm)).includes('PCH') && sent.length === 1 && sent[0].components.length === 2, 'posted');
+    assert((await runCmd(w, 'panel', { channel: ch }, adm)).includes('PCH') && sent.length === 1 && sent[0].components.length === 3, 'posted');
   });
 
   // ---------- creation of a room ----------
@@ -197,6 +199,98 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
     assert(await TempVoiceChannel.findOne({ where: { channelId: 'NEWCH', ownerId: 'NEWOWNER' } }), 'recorded');
   });
 
+  // ---------- second version: saved settings, hand-over, limits, owner rights, history ----------
+  const vsu = require('../bot/events/voiceStateUpdate');
+  const makeJoin = async (gid, settings = {}) => {
+    await GuildSettings.create({ guildId: gid, tempVoiceJoinChannelId: 'JOIN', tempVoiceEnabled: true, ...settings });
+    const made = []; const chans = new Map();
+    const guild = { id: gid, name: 'S', maximumBitrate: 96000, client: { user: { id: 'BOT' } }, roles: { everyone: { id: 'EVERYONE' } },
+      channels: { fetch: async (id) => chans.get(id) || null, create: async (o) => { const id = 'C' + gid + made.length; const ch = { id, name: o.name, members: new Map(), permissionOverwrites: { cache: new Map(), edit: async () => {}, delete: async () => {} }, delete: async () => chans.delete(id) }; made.push(o); chans.set(id, ch); return ch; } } };
+    const join = async (userId) => {
+      const moves = [];
+      const member = { id: userId, displayName: 'N' + userId, user: { id: userId }, send: async () => {} };
+      const newState = { guild, id: userId, member, channelId: 'JOIN', channel: { parentId: 'CAT', parent: null }, setChannel: async (c) => { moves.push(c ? c.id : null); } };
+      await vsu.execute({ guild, channelId: null }, newState);
+      return moves;
+    };
+    return { guild, made, chans, join };
+  };
+  await test('one room per person: joining the creator again moves him into his room; too often is refused; the server limit holds', async () => {
+    const { made, join } = await makeJoin('vg-lim', { tempVoiceCooldownSec: 60, tempVoiceMaxRooms: 2 });
+    const m1 = await join('U1');
+    assert(made.length === 1 && m1[0], 'created and moved');
+    const m2 = await join('U1');
+    assert(made.length === 1 && m2[0] === m1[0], 'moved into the existing room, no second one');
+    await TempVoiceChannel.destroy({ where: { ownerId: 'U1', guildId: 'vg-lim' } });
+    const m3 = await join('U1');
+    assert(made.length === 1 && m3[0] === null, 'too soon: disconnected, nothing made');
+    await join('U2'); await join('U3'); await join('U4');
+    assert(made.length === 3 && (await TempVoiceChannel.count({ where: { guildId: 'vg-lim' } })) === 2, 'U2 and U3 got one; U4 not: the limit is 2');
+    const spam = await db.VoiceRoomLog.count({ where: { guildId: 'vg-lim', action: 'spam' } });
+    assert(spam === 1, 'the refused attempt is in the history');
+  });
+  await test('settings are remembered: the next room comes with the name, limit, bitrate, white and black list of last time', async () => {
+    const w = await world({ settings: { tempVoiceJoinChannelId: 'JOIN', tempVoiceEnabled: true } });
+    w.channel.setBitrate = async (b) => { w.channel.bitrate = b; };
+    w.guild.maximumBitrate = 128000;
+    await press(w, w.owner, `vr:m:name:${w.channel.id}`, { fields: { name: 'Уютная' } });
+    await press(w, w.owner, `vr:m:limit:${w.channel.id}`, { fields: { limit: '4' } });
+    await press(w, w.owner, `vr:s:bitrate:${w.channel.id}`, { values: ['96'] });
+    w.person('100000000000000001'); w.person('100000000000000002');
+    await press(w, w.owner, `vr:u:trust:${w.channel.id}`, { values: ['100000000000000001'] });
+    await press(w, w.owner, `vr:u:ban:${w.channel.id}`, { values: ['100000000000000002'] });
+    const pref = await db.VoiceRoomPref.findOne({ where: { guildId: w.guild.id, userId: 'OWNER' } });
+    assert(pref && pref.name === 'Уютная' && pref.userLimit === 4 && pref.bitrate === 96 && JSON.parse(pref.trusted).includes('100000000000000001') && JSON.parse(pref.banned).includes('100000000000000002'), JSON.stringify(pref));
+    // a new room for the same owner on that server
+    await TempVoiceChannel.destroy({ where: { guildId: w.guild.id } });
+    const made = []; const before = w.guild.channels;
+    w.guild.channels = { ...before, create: async (o) => { made.push(o); const ch = { id: 'NEWR', name: o.name, members: new Map(), permissionOverwrites: { cache: new Map(), edit: async () => {}, delete: async () => {} }, delete: async () => {} }; before.cache.set('NEWR', ch); return ch; } };
+    const newState = { guild: w.guild, id: 'OWNER', member: { ...w.owner, displayName: 'Нея' }, channelId: 'JOIN', channel: { parentId: 'CAT', parent: null }, setChannel: async () => {} };
+    await vsu.execute({ guild: w.guild, channelId: null }, newState);
+    const o = made[0];
+    assert(o && o.name === 'Уютная' && o.userLimit === 4 && o.bitrate === 96000, JSON.stringify(o, (k, v) => (typeof v === 'bigint' ? String(v) : v)));
+    assert(o.permissionOverwrites.some((x) => x.id === '100000000000000001' && x.allow.includes(P.Connect)) && o.permissionOverwrites.some((x) => x.id === '100000000000000002' && x.deny.includes(P.Connect)), 'white and black list');
+  });
+  await test('the owner leaves, others stay: the room is handed over automatically (or not, when switched off)', async () => {
+    for (const auto of [true, false]) {
+      const w = await world({ settings: { tempVoiceAutoTransfer: auto } });
+      const said = []; w.channel.send = async (p) => { said.push(p); };
+      w.person('STAY', { inRoom: true });
+      w.channel.members.delete('OWNER');
+      await vsu.execute({ guild: w.guild, id: 'OWNER', channelId: w.channel.id, member: w.owner }, { guild: w.guild, id: 'OWNER', channelId: null, member: w.owner });
+      const rec = await TempVoiceChannel.findOne({ where: { channelId: w.channel.id } });
+      if (auto) assert(rec.ownerId === 'STAY' && said.length === 1 && (await db.VoiceRoomLog.count({ where: { guildId: w.guild.id, action: 'autotransfer' } })) === 1, 'handed over');
+      else assert(rec.ownerId === 'OWNER' && !said.length, 'kept: anyone may claim it');
+    }
+  });
+  await test('the admin can forbid actions to owners; staff still may; the panel buttons for limit, bitrate, transfer, info work', async () => {
+    const w = await world({ settings: { tempVoiceOwnerPerms: JSON.stringify({ region: false }) } });
+    let out = await press(w, w.owner, 'vr:region');
+    assert(said(out).includes('выключено'), 'forbidden for the owner');
+    const mod = w.person('MODR', { staff: true, inRoom: true });
+    await TempVoiceChannel.update({ ownerId: 'MODR' }, { where: { channelId: w.channel.id } });
+    out = await press(w, mod, 'vr:region');
+    assert(!said(out).includes('выключено'), 'staff may');
+    await TempVoiceChannel.update({ ownerId: 'OWNER' }, { where: { channelId: w.channel.id } });
+    out = await press(w, w.owner, 'vr:limit'); assert(out.modals.length === 1, 'limit window');
+    w.guild.maximumBitrate = 96000;
+    out = await press(w, w.owner, 'vr:bitrate'); assert(said(out).includes('96 кбит') && !said(out).includes('128 кбит'), 'bitrate choices up to the server maximum');
+    w.person('MATE', { inRoom: true });
+    out = await press(w, w.owner, 'vr:transfer'); assert(said(out).includes('vr:l:transfer'), 'transfer menu');
+    await press(w, w.owner, `vr:l:transfer:${w.channel.id}`, { values: ['MATE'] });
+    assert((await TempVoiceChannel.findOne({ where: { channelId: w.channel.id } })).ownerId === 'MATE', 'transferred');
+    out = await press(w, w.owner, 'vr:info'); assert(said(out).includes('Владелец'), 'anyone in the room sees the info');
+    const hist = await db.VoiceRoomLog.findAll({ where: { guildId: w.guild.id } });
+    assert(hist.some((h) => h.action === 'transfer' && h.targetId === 'MATE'), 'history');
+  });
+  await test('voice roles: "only temporary rooms", "only ordinary channels" and excluded channels', async () => {
+    const vr = require('../bot/modules/voiceRoles');
+    const rules = [{ roleId: 'T', channelId: null, scope: 'temp' }, { roleId: 'R', channelId: null, scope: 'regular' }, { roleId: 'A', channelId: null, scope: 'any' }, { roleId: 'X', channelId: 'EXC', scope: 'any' }];
+    assert([...vr.wantedRoles(rules, 'ROOM', null, { isTemp: true })].sort().join() === 'A,T', 'temp room');
+    assert([...vr.wantedRoles(rules, 'HALL', null, { isTemp: false })].sort().join() === 'A,R', 'ordinary channel');
+    assert([...vr.wantedRoles(rules, 'EXC', null, { exclude: ['EXC'] })].join() === 'X', 'excluded: only the rule made for it');
+  });
+
   // ---------- the panel in the web page ----------
   const app = express(); app.set('view engine', 'ejs'); app.set('views', path.join(__dirname, '..', 'web', 'views')); app.use(express.urlencoded({ extended: true }));
   app.use('/dashboard', require('../web/routes/dashboard')); app.use((err, q, s, nx) => s.status(500).send(String(err.stack)));
@@ -205,7 +299,7 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
   await test('web page: posts the panel into the chosen text channel, replaces the older one, remembers where it is', async () => {
     const page = await (await fetch(base + '-panel')).text(); assert(page.includes('Панель управления комнатами') && page.includes('Разместить панель'), 'page');
     const r = await post({ channelId: '123456789012345678' }); assert(r.headers.get('location').includes('vpanel=1'), r.headers.get('location'));
-    const [url, body] = posted[0]; assert(url === '/channels/123456789012345678/messages' && body.components.length === 2 && body.components[0].components.length === 5 && body.embeds.length === 1 && body.allowed_mentions.parse.length === 0, txt(body).slice(0, 200));
+    const [url, body] = posted[0]; assert(url === '/channels/123456789012345678/messages' && body.components.length === 3 && body.components[0].components.length === 5 && body.embeds.length === 1 && body.allowed_mentions.parse.length === 0, txt(body).slice(0, 200));
     const s = await GuildSettings.findByPk(G); assert(s.tempVoicePanelChannelId === '123456789012345678' && s.tempVoicePanelMessageId === 'MSG1', 'remembered');
     await post({ channelId: '123456789012345678' }); assert(deletedMsgs.join() === '/channels/123456789012345678/messages/MSG1' && (await GuildSettings.findByPk(G)).tempVoicePanelMessageId === 'MSG2', 'old one deleted');
     assert((await (await fetch(base + '-panel')).text()).includes('Разместить заново'), 'button text changes');

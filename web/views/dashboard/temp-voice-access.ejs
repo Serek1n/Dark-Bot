@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Права доступа' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Права доступа</h1>
+        <p class="page-intro">Что владельцы могут менять в своих комнатах. Люди с правом «Управлять каналами» могут всё. Доверенные (белый список) и забаненные (чёрный список) запоминаются у каждого владельца и переносятся в его следующую комнату.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; %>
+      <form method="post" action="<%= g %>/temp-voice/access" class="plain">
+        <div class="card g-span">
+          <h2>Владельцы могут</h2>
+          <div class="rules rules-2">
+            <% OWNER_PERMS.forEach(([k, label]) => { %>
+              <label class="rule"><span class="rule-text"><b><%= label %></b></span><input type="checkbox" name="perm_<%= k %>" <%= perms[k] ? 'checked' : '' %> /></label>
+            <% }) %>
+          </div>
+          <p class="hint">Выключенная кнопка на панели ответит владельцу, что действие на сервере выключено. Удалить свою комнату и посмотреть сведения о ней можно всегда.</p>
+        </div>
+        <div class="card g-span">
+          <h2>Новая комната по умолчанию</h2>
+          <div class="g-split"><div>
+          <label for="tvAccess">Доступ</label>
+          <select id="tvAccess" name="tempVoiceDefaultAccess">
+            <% Object.entries(ACCESS).forEach(([k, a]) => { %><option value="<%= k %>" <%= (settings.tempVoiceDefaultAccess || 'open') === k ? 'selected' : '' %>><%= a.emoji %> <%= a.label %></option><% }) %>
+          </select>
+          <p class="hint">Если владелец уже настраивал свою комнату и сервер запоминает настройки, его выбор важнее.</p>
+          </div><div>
+          <h3 class="econ-sub">Белый и чёрный списки</h3>
+          <p class="hint" style="margin-top:0">Кнопки «Доверять» и «Забанить» на панели. Списки хранятся у каждого владельца — сейчас сохранены настройки у <b><%= prefs %></b> владельцев. Модераторов сервера забанить в комнате нельзя.</p>
+          </div></div>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

@@ -7,7 +7,9 @@ module.exports = (sequelize) => {
     {
       guildId: { type: DataTypes.STRING, allowNull: false },
       roleId: { type: DataTypes.STRING, allowNull: false },
-      channelId: { type: DataTypes.STRING, allowNull: true }
+      channelId: { type: DataTypes.STRING, allowNull: true },
+      // for "any channel" rules: any | temp (only temporary rooms) | regular (only ordinary channels)
+      scope: { type: DataTypes.STRING, allowNull: false, defaultValue: 'any' }
     },
     { sequelize, modelName: 'VoiceRole', tableName: 'voice_roles', indexes: [{ fields: ['guildId'] }, { unique: true, fields: ['guildId', 'roleId', 'channelId'] }] }
   );

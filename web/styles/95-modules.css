@@ -443,3 +443,10 @@ td form .btn, td > .btn { white-space: nowrap; }
 .mus-how > div { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--hairline); border-radius: var(--r-10); }
 .mus-how span { color: var(--fog-dim); font-size: var(--fs-13); }
 @media (max-width: 900px) { .mus-how { grid-template-columns: minmax(0, 1fr); } .mus-loop { grid-template-columns: minmax(0, 1fr); } }
+.ex-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 14px; margin: 8px 0 4px; }
+.ex-item { display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--fs-14); cursor: pointer; }
+.ex-item input { width: auto; margin: 0; }
+@media (min-width: 1200px) {
+  .rules.rules-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+  .g-split > div > .econ-sub:first-child { margin-top: 0; }
+}

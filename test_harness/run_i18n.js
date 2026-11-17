@@ -141,7 +141,7 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
   await db.GuildSettings.findOrCreate({ where: { guildId: G } });
 
   await test('panel in English: every page renders, with no Russian left outside names of the server', async () => {
-    const pages = ['overview', 'features', 'leveling', 'economy', 'channel-boosts', 'shop', 'moderation', 'moderation-punishments', 'moderation-warnings', 'moderation-auto', 'moderation-reports', 'moderation-log', 'moderation-settings', 'logs', 'automod', 'welcome', 'reaction-roles', 'interactive', 'custom-commands', 'temp-voice', 'temp-voice-rooms', 'temp-voice-panel', 'temp-voice-roles', 'alerts', 'webhooks', 'events', 'music', 'changelog'];
+    const pages = ['overview', 'features', 'leveling', 'economy', 'channel-boosts', 'shop', 'moderation', 'moderation-punishments', 'moderation-warnings', 'moderation-auto', 'moderation-reports', 'moderation-log', 'moderation-settings', 'logs', 'automod', 'welcome', 'reaction-roles', 'interactive', 'custom-commands', 'temp-voice', 'temp-voice-rooms', 'temp-voice-panel', 'temp-voice-access', 'temp-voice-roles', 'temp-voice-auto', 'temp-voice-stats', 'temp-voice-settings', 'alerts', 'webhooks', 'events', 'music', 'changelog'];
     const left = {};
     for (const p of pages) {
       const r = await get(`/dashboard/${G}${p === 'overview' ? '' : '/' + p}`, 'en');

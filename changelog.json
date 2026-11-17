@@ -1,5 +1,38 @@
 [
  {
+  "bot": "3.9.0",
+  "panel": "3.18.0",
+  "date": "2026-11-17",
+  "botChanges": [
+   "Панель комнаты по разделам: Комната, Участники, Владелец — 15 подписанных кнопок",
+   "Белый и чёрный списки, битрейт, передача, «Инфо»; настройки владельца запоминаются",
+   "Ушёл владелец — комната сама переходит к оставшемуся (можно выключить)",
+   "Одна комната на человека, пауза между созданием и предел комнат на сервере",
+   "Голосовые роли: только во временных, только в обычных или везде; каналы-исключения",
+   "Время в голосе: тики начисления больше не накладываются друг на друга"
+  ],
+  "panelChanges": [
+   "Временные голосовые: вкладки Права доступа, Автоматизация, Статистика, Настройки",
+   "Права владельцев комнат по каждому действию и доступ новой комнаты по умолчанию",
+   "Статистика комнат: кто создаёт чаще, что в них делают, история с фильтрами"
+  ],
+  "en": {
+   "botChanges": [
+    "Room panel in sections: Room, Members, Owner — 15 labelled buttons",
+    "White and black lists, bitrate, transfer, Info; the owner's settings are remembered",
+    "The owner left — the room passes to someone still in it (can be turned off)",
+    "One room per person, a pause between rooms and a room limit per server",
+    "Voice roles: only in temporary rooms, only in ordinary channels or everywhere; exceptions",
+    "Voice time: XP ticks no longer overlap"
+   ],
+   "panelChanges": [
+    "Temporary voice: Access rights, Automation, Statistics and Settings tabs",
+    "Room owner rights per action and the default access of a new room",
+    "Room statistics: who creates the most, what happens in rooms, a filtered history"
+   ]
+  }
+ },
+ {
   "bot": "3.8.0",
   "panel": "3.17.0",
   "date": "2026-11-17",

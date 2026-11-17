@@ -78,6 +78,15 @@ module.exports = (sequelize) => {
       economyEventsChannelId: { type: DataTypes.STRING, allowNull: true }, // where the bot announces economy events
       economyEventsMode: { type: DataTypes.STRING, defaultValue: 'summary' }, // each | summary | quiet — read only when botEvents has no choice of its own yet
       botEventsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true }, // the "События бота" module
+      // temporary rooms (bot/modules/voiceRoom.js): what owners may change (JSON { action: false }), hand-over, remembered owner settings, limits
+      tempVoiceOwnerPerms: { type: DataTypes.TEXT, defaultValue: '{}' },
+      tempVoiceAutoTransfer: { type: DataTypes.BOOLEAN, defaultValue: true },
+      tempVoiceRemember: { type: DataTypes.BOOLEAN, defaultValue: true },
+      tempVoiceCooldownSec: { type: DataTypes.INTEGER, defaultValue: 15 },
+      tempVoiceMaxRooms: { type: DataTypes.INTEGER, defaultValue: 0 },
+      tempVoiceBitrate: { type: DataTypes.INTEGER, defaultValue: 0 }, // kbps for new rooms, 0 = Discord's default
+      tempVoiceDefaultAccess: { type: DataTypes.STRING, defaultValue: 'open' },
+      voiceRolesExclude: { type: DataTypes.TEXT, defaultValue: '[]' }, // voice channels where voice roles are not given
       botEvents: { type: DataTypes.TEXT, defaultValue: '{}' }, // JSON, see bot/modules/botEvents.js
       treasury: { type: DataTypes.INTEGER, defaultValue: 0 }, // the server's own coins (taxes); changed only additively
       econRate: { type: DataTypes.FLOAT, defaultValue: 1 }, // the central bank's multiplier of coin rewards

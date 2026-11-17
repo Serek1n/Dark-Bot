@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Автоматизация' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Автоматизация</h1>
+        <p class="page-intro">Что бот делает с комнатами сам: передаёт комнату, когда владелец ушёл, и не даёт создавать комнаты слишком часто.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; %>
+      <form method="post" action="<%= g %>/temp-voice/auto" class="plain">
+        <div class="card g-c1">
+          <h2>Передача комнаты</h2>
+          <div class="rules">
+            <label class="rule"><span class="rule-text"><b>Передавать комнату, когда владелец ушёл</b><span>Комната достаётся тому, кто остался в ней; в чат комнаты придёт сообщение. Выключено — любой оставшийся может забрать её кнопкой «Забрать».</span></span><input type="checkbox" name="tempVoiceAutoTransfer" <%= settings.tempVoiceAutoTransfer !== false ? 'checked' : '' %> /></label>
+          </div>
+          <p class="hint">Пустая комната удаляется сразу, как из неё вышел последний человек. Комнаты, опустевшие пока бот был выключен, он удалит при запуске.</p>
+        </div>
+        <div class="card g-c2">
+          <h2>Защита от злоупотреблений</h2>
+          <div class="two-col">
+            <div><label for="tvCd">Пауза между новыми комнатами, с</label><input id="tvCd" type="number" name="tempVoiceCooldownSec" min="0" max="3600" value="<%= settings.tempVoiceCooldownSec ?? 15 %>" /></div>
+            <div><label for="tvMax">Комнат на сервере, не больше</label><input id="tvMax" type="number" name="tempVoiceMaxRooms" min="0" max="500" value="<%= settings.tempVoiceMaxRooms || 0 %>" /><div class="hint">0 — без предела</div></div>
+          </div>
+          <p class="hint">У каждого участника одна комната: если она уже есть, канал-создатель переносит его в неё. Слишком частый вход в канал-создатель отключает участника и пишет ему, сколько подождать.</p>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

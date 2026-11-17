@@ -28,22 +28,39 @@
             </select>
           </div>
         </div>
+        <label for="vrScope">Для «любого канала»</label>
+        <select id="vrScope" name="scope">
+          <option value="any">Любые голосовые каналы</option>
+          <option value="temp">Только временные комнаты</option>
+          <option value="regular">Только обычные каналы</option>
+        </select>
         <div class="hint">Например, роль «В голосе» открывает текстовый канал для тех, кто сейчас разговаривает. В AFK-канале роль не выдаётся.</div>
         <button class="btn" type="submit">Добавить</button>
         <% if (voiceRoles.length) { %>
           <div class="table-scroll" style="margin-top:14px;"><table>
-            <thead><tr><th>Роль</th><th>Канал</th><th></th></tr></thead>
+            <thead><tr><th>Роль</th><th>Канал</th><th>Где</th><th></th></tr></thead>
             <tbody>
               <% voiceRoles.forEach(v => { const r = roles.find(x => x.id === v.roleId); const c = channels.find(x => x.id === v.channelId); %>
                 <tr>
                   <td>@<%= r ? r.name : 'роль удалена' %></td>
                   <td><%= v.channelId ? (c ? '🔊 ' + c.name : 'канал удалён') : 'любой' %></td>
+                  <td><%= v.channelId ? '—' : ({ temp: 'временные комнаты', regular: 'обычные каналы' }[v.scope] || 'везде') %></td>
                   <td style="text-align:right;"><button class="btn btn-secondary" type="submit" formaction="/dashboard/<%= guild.id %>/voice-roles/<%= v.id %>/delete" formnovalidate>Убрать</button></td>
                 </tr>
               <% }) %>
             </tbody>
           </table></div>
         <% } %>
+      </form>
+      <% const ex = (() => { try { return JSON.parse(settings.voiceRolesExclude || '[]'); } catch { return []; } })(); %>
+      <form method="post" action="/dashboard/<%= guild.id %>/voice-roles/exclude" class="card g-span">
+        <h2>Исключения<span class="sub">В этих каналах роли «любого канала» не выдаются (роль, привязанная к каналу, работает)</span></h2>
+        <div class="ex-list">
+          <% channels.filter(c => c.type === 2 || c.type === 13).forEach(c => { %>
+            <label class="ex-item"><input type="checkbox" name="exclude" value="<%= c.id %>" <%= ex.includes(c.id) ? 'checked' : '' %> /> 🔊 <%= c.name %></label>
+          <% }) %>
+        </div>
+        <button class="btn" type="submit">Сохранить исключения</button>
       </form>
     </main>
   </div>

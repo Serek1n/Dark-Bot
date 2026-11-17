@@ -4,7 +4,7 @@ const {
   ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, UserSelectMenuBuilder,
   MessageFlags, PermissionFlagsBits, OverwriteType
 } = require('discord.js');
-const { TempVoiceChannel } = require('../../db');
+const { TempVoiceChannel, VoiceRoomPref, VoiceRoomLog } = require('../../db');
 const embeds = require('../utils/embeds');
 const logger = require('../utils/logger');
 const { withLock } = require('../utils/lock');
@@ -33,32 +33,74 @@ const REGIONS = [
 ];
 const regionName = (id) => (REGIONS.find(([r]) => r === (id || 'auto')) || [null, id])[1];
 
-// id, icon (the buttons carry only the icon), name and a short explanation for the list in the message
-const BUTTONS = [
-  ['name', '✏️', 'Название', 'переименовать комнату, задать лимит участников'],
-  ['access', '🔒', 'Доступ', 'открыть, закрыть или скрыть комнату'],
-  ['trust', '🤝', 'Доверить', 'пускать участника, даже если комната закрыта'],
-  ['untrust', '🙅', 'Убрать доверие', 'снять доверие с участника'],
-  ['invite', '📨', 'Пригласить', 'позвать в комнату личным сообщением'],
-  ['kick', '👢', 'Выгнать', 'отключить участника от голоса'],
-  ['region', '🌍', 'Регион', 'регион голосового сервера'],
-  ['ban', '⛔', 'Забанить', 'запретить участнику заходить в комнату'],
-  ['unban', '✅', 'Разбанить', 'снять запрет на вход'],
-  ['delete', '🗑️', 'Удалить', 'удалить комнату']
+// The panel, in three sections (like the best room bots do it): the room itself, the people, the owner.
+// [id, icon, name, what it does]
+const SECTIONS = [
+  ['Комната', [
+    ['name', '✏️', 'Название', 'переименовать комнату'],
+    ['limit', '👥', 'Лимит', 'сколько человек может зайти'],
+    ['access', '🔒', 'Доступ', 'открыть, закрыть или скрыть'],
+    ['region', '🌍', 'Регион', 'регион голосового сервера'],
+    ['bitrate', '📶', 'Битрейт', 'качество звука']]],
+  ['Участники', [
+    ['invite', '📨', 'Пригласить', 'позвать в личные сообщения'],
+    ['trust', '🛡️', 'Доверять', 'пускать, даже когда закрыто'],
+    ['untrust', '🚫', 'Не доверять', 'убрать из доверенных'],
+    ['ban', '⛔', 'Забанить', 'запретить вход'],
+    ['unban', '✅', 'Разбанить', 'снять запрет']]],
+  ['Владелец', [
+    ['kick', '👢', 'Выгнать', 'отключить от голоса'],
+    ['transfer', '🔁', 'Передать', 'отдать комнату другому'],
+    ['claim', '👑', 'Забрать', 'если владелец ушёл'],
+    ['info', 'ℹ️', 'Инфо', 'сведения о комнате'],
+    ['delete', '🗑️', 'Удалить', 'удалить комнату']]]
 ];
+const BUTTONS = SECTIONS.flatMap(([, list]) => list);
 
 /** The message with the buttons that is posted into a control channel. */
 function panelPayload() {
-  const embed = embeds.baseEmbed().setTitle('Управление личной комнатой').setDescription(
-    'Этот интерфейс управляет вашей личной голосовой комнатой. Чтобы её получить, зайдите в канал-создатель: бот сделает комнату, и вы станете её владельцем.\n\n' +
-    `${BUTTONS.map(([, emoji, label, hint]) => `${emoji} **${label}** — ${hint}`).join('\n')}\n\n` +
-    'Остальное — командами `/voice`: `/voice transfer` передаёт комнату, `/voice claim` забирает её, если владелец вышел.\n\n' +
-    '**Чтобы воспользоваться функциями интерфейса, нажмите на кнопки ниже.**'
-  );
-  // Buttons without names, only icons: what each one does is written in the message above.
-  const rows = [0, 5].map((from) => new ActionRowBuilder().addComponents(BUTTONS.slice(from, from + 5).map(([id, emoji]) => new ButtonBuilder()
-    .setCustomId(`${PREFIX}${id}`).setEmoji(emoji).setStyle(id === 'delete' ? ButtonStyle.Danger : ButtonStyle.Secondary))));
+  const embed = embeds.baseEmbed().setTitle('🎙️ Управление комнатой')
+    .setDescription('Зайдите в свою комнату и нажмите кнопку. Настройки запоминаются для следующего раза.\nСвоей комнаты нет? Зайдите в канал-создатель — бот сделает её и отдаст вам.')
+    .addFields(SECTIONS.map(([title, list]) => ({ name: title, value: list.map(([, emoji, label]) => `${emoji} ${label}`).join(' · ') })))
+    .setFooter({ text: 'DARK · личные комнаты' });
+  // one row of five buttons for each section, in the order of the lines above
+  const rows = SECTIONS.map(([, list]) => new ActionRowBuilder().addComponents(list.map(([id, emoji, label]) => new ButtonBuilder()
+    .setCustomId(`${PREFIX}${id}`).setEmoji(emoji).setStyle(id === 'delete' ? ButtonStyle.Danger : ButtonStyle.Secondary).setLabel(label))));
   return { embeds: [embed], components: rows };
+}
+
+// ---------------------------------------------------------------- what owners may do, remembered settings, history
+// The admin may forbid some actions to owners (JSON in tempVoiceOwnerPerms); staff with "Управлять каналами" may always.
+const OWNER_PERMS = [['name', 'Название'], ['limit', 'Лимит'], ['access', 'Доступ (закрыть и скрыть)'], ['region', 'Регион'], ['bitrate', 'Битрейт'],
+  ['invite', 'Приглашать'], ['trust', 'Доверять и убирать доверие'], ['ban', 'Банить и разбанивать'], ['kick', 'Выгонять'], ['transfer', 'Передавать комнату'], ['claim', 'Забирать комнату ушедшего владельца']];
+const PERM_OF = { untrust: 'trust', unban: 'ban' };
+const parseJson = (t, d) => { try { const v = JSON.parse(t || ''); return v ?? d; } catch { return d; } };
+function ownerPerms(settings) {
+  const raw = parseJson(settings?.tempVoiceOwnerPerms, {});
+  return Object.fromEntries(OWNER_PERMS.map(([k]) => [k, raw[k] !== false]));
+}
+function ownerMay(settings, kind, member) {
+  if (member?.permissions?.has?.(P.ManageChannels)) return true;
+  const key = PERM_OF[kind] || kind;
+  return !OWNER_PERMS.some(([k]) => k === key) || ownerPerms(settings)[key];
+}
+
+/** One line of the rooms' history. Never throws. */
+async function logRoom(guildId, channel, action, { actorId = null, targetId = null, details = null } = {}) {
+  await VoiceRoomLog.create({ guildId, channelId: channel?.id || null, roomName: channel?.name ? String(channel.name).slice(0, 100) : null, actorId, action, targetId, details: details ? String(details).slice(0, 300) : null }).catch(() => {});
+}
+
+/** Remembers how the owner set up his room, for the next one (when the server keeps them). */
+async function savePrefs(ctx, settings) {
+  if (settings?.tempVoiceRemember === false || !ctx?.rec) return;
+  const ch = ctx.channel;
+  const values = {
+    name: ch.name ? String(ch.name).slice(0, 100) : null, userLimit: Number(ch.userLimit) || 0, access: ctx.rec.access || 'open',
+    bitrate: ch.bitrate ? Math.round(ch.bitrate / 1000) : null, region: ch.rtcRegion || null,
+    trusted: JSON.stringify(trustedIds(ctx).slice(0, 50)), banned: JSON.stringify(bannedIds(ctx).slice(0, 50))
+  };
+  const [row] = await VoiceRoomPref.findOrCreate({ where: { guildId: ctx.guild.id, userId: ctx.rec.ownerId }, defaults: values }).catch(() => [null]);
+  if (row) await row.update(values).catch(() => {});
 }
 
 const isVoiceRoomComponent = (i) => Boolean((i.isButton?.() || i.isStringSelectMenu?.() || i.isUserSelectMenu?.() || i.isModalSubmit?.()) && String(i.customId || '').startsWith(PREFIX));
@@ -227,6 +269,16 @@ async function unban(ctx, ids) {
   return summary('Разбанены', await forEach(ctx, ids, (m, id) => ctx.channel.permissionOverwrites.delete(id, 'Владелец снял запрет'), { needInServer: false }));
 }
 
+/** Bitrate in kbps: 8 .. what the server allows (96 without boosts, up to 384 with level 3). */
+async function setBitrate(ctx, kbps) {
+  const n = Number(kbps);
+  const max = Math.round((ctx.guild.maximumBitrate || 96000) / 1000);
+  if (!Number.isInteger(n) || n < 8 || n > max) fail(`Битрейт — от 8 до ${max} кбит/с (больше — только на сервере с бустами).`);
+  await ctx.channel.setBitrate(n * 1000, 'Владелец комнаты изменил битрейт');
+  return `Битрейт: **${n} кбит/с**.`;
+}
+const bitrateChoices = (guild) => [8, 32, 48, 64, 96, 128, 192, 256, 320, 384].filter((n) => n <= Math.round((guild.maximumBitrate || 96000) / 1000));
+
 async function setRegion(ctx, region) {
   const known = REGIONS.find(([id]) => id === region);
   if (!known) fail('Неизвестный регион.');
@@ -275,6 +327,7 @@ function describe(ctx) {
     { name: 'Доступ', value: `${a.emoji} ${a.label}`, inline: true },
     { name: 'Лимит', value: ch.userLimit ? String(ch.userLimit) : 'без лимита', inline: true },
     { name: 'Регион', value: regionName(ch.rtcRegion), inline: true },
+    { name: 'Битрейт', value: ch.bitrate ? `${Math.round(ch.bitrate / 1000)} кбит/с` : '—', inline: true },
     { name: 'Сейчас в комнате', value: String(ch.members?.size ?? 0), inline: true },
     { name: 'Доверенные', value: list(trustedIds(ctx)) },
     { name: 'Забаненные', value: list(bannedIds(ctx)) }
@@ -299,11 +352,23 @@ async function showMenu(i, kind, ctx) {
     return i.reply({ content: text, components: [rowOf(new StringSelectMenuBuilder().setCustomId(`${PREFIX}l:${kind}:${cid}`).setPlaceholder('Выберите участников').setMinValues(1).setMaxValues(Math.min(ids.length, 10)).addOptions(await labelsFor(ctx, ids)))], ...ephemeral });
   };
   if (kind === 'name') {
-    const modal = new ModalBuilder().setCustomId(`${PREFIX}m:name:${cid}`).setTitle('Название и лимит комнаты').addComponents(
-      rowOf(new TextInputBuilder().setCustomId('name').setLabel('Название').setStyle(TextInputStyle.Short).setMaxLength(100).setRequired(false).setValue(String(ctx.channel.name || '').slice(0, 100))),
-      rowOf(new TextInputBuilder().setCustomId('limit').setLabel('Лимит участников (0 — без лимита)').setStyle(TextInputStyle.Short).setMaxLength(2).setRequired(false).setValue(String(ctx.channel.userLimit || 0))));
-    return i.showModal(modal);
+    return i.showModal(new ModalBuilder().setCustomId(`${PREFIX}m:name:${cid}`).setTitle('Название комнаты').addComponents(
+      rowOf(new TextInputBuilder().setCustomId('name').setLabel('Название').setStyle(TextInputStyle.Short).setMaxLength(100).setRequired(true).setValue(String(ctx.channel.name || '').slice(0, 100)))));
   }
+  if (kind === 'limit') {
+    return i.showModal(new ModalBuilder().setCustomId(`${PREFIX}m:limit:${cid}`).setTitle('Лимит участников').addComponents(
+      rowOf(new TextInputBuilder().setCustomId('limit').setLabel('Сколько человек может зайти (0 — без лимита)').setStyle(TextInputStyle.Short).setMaxLength(2).setRequired(true).setValue(String(ctx.channel.userLimit || 0)))));
+  }
+  if (kind === 'bitrate') {
+    const now = Math.round((ctx.channel.bitrate || 64000) / 1000);
+    return i.reply({ content: `Сейчас: **${now} кбит/с**. Выше — чище звук, но больше трафика:`, components: [rowOf(new StringSelectMenuBuilder().setCustomId(`${PREFIX}s:bitrate:${cid}`).setPlaceholder('Битрейт').addOptions(bitrateChoices(ctx.guild).map((n) => ({ label: `${n} кбит/с`, value: String(n), default: n === now }))))], ...ephemeral });
+  }
+  if (kind === 'transfer') {
+    const ids = [...(ctx.channel.members?.keys?.() || [])].filter((id) => id !== ctx.rec.ownerId && !ctx.channel.members.get(id)?.user?.bot);
+    if (!ids.length) return reply(i, 'Передать комнату можно тому, кто сейчас в ней сидит, — а больше никого нет.');
+    return i.reply({ content: 'Кому передать комнату? Он станет владельцем, вы — обычным участником.', components: [rowOf(new StringSelectMenuBuilder().setCustomId(`${PREFIX}l:transfer:${cid}`).setPlaceholder('Новый владелец').addOptions(await labelsFor(ctx, ids)))], ...ephemeral });
+  }
+  if (kind === 'info') return i.reply({ embeds: [describe(ctx)], ...ephemeral });
   if (kind === 'access') {
     return i.reply({ content: `Сейчас: ${ACCESS[ctx.rec.access]?.emoji || ''} **${ACCESS[ctx.rec.access]?.label || ACCESS.open.label}**. Выберите доступ:`, components: [rowOf(new StringSelectMenuBuilder().setCustomId(`${PREFIX}s:access:${cid}`).setPlaceholder('Кто может зайти').addOptions(Object.entries(ACCESS).map(([value, a]) => ({ label: a.label, description: a.hint.slice(0, 100), value, emoji: a.emoji }))))], ...ephemeral });
   }
@@ -339,6 +404,22 @@ async function handleVoiceRoomComponent(interaction) {
     if (!isEnabled(settings, 'tempVoice')) return await reply(interaction, 'Временные голосовые каналы отключены на этом сервере.');
 
     const parts = interaction.customId.slice(PREFIX.length).split(':'); // panel button: [kind]; follow-up: [type, kind, channelId]
+    const kind0 = parts.length === 1 ? parts[0] : parts[1];
+    if (!ownerMay(settings, kind0, member)) return await reply(interaction, 'Это действие для владельцев комнат на сервере выключено.');
+    if (parts.length === 1 && parts[0] === 'claim') {
+      await interaction.deferReply(ephemeral);
+      const text = await claim(guild, member);
+      const rec = await TempVoiceChannel.findOne({ where: { channelId: member.voice?.channelId || '-' } });
+      const channel = rec && (await channelOf(guild, rec.channelId));
+      if (channel) { await logRoom(guild.id, channel, 'claim', { actorId: member.id }); await savePrefs({ guild, channel, rec, member }, settings); }
+      return answer(text);
+    }
+    if (parts.length === 1 && parts[0] === 'info') {
+      // anyone sitting in a room may look at it
+      const rec = member.voice?.channelId && (await TempVoiceChannel.findOne({ where: { channelId: member.voice.channelId } }));
+      const channel = rec && (await channelOf(guild, rec.channelId));
+      if (channel) return await interaction.reply({ embeds: [describe({ guild, channel, rec, member })], ...ephemeral });
+    }
     if (parts.length === 1) return await showMenu(interaction, parts[0], await findRoom(guild, member));
 
     const [type, kind, channelId] = parts;
@@ -349,9 +430,13 @@ async function handleVoiceRoomComponent(interaction) {
       const ctx = await roomById(guild, member, channelId);
       const ids = interaction.values || [];
       let text;
-      if (type === 'm') text = await rename(ctx, interaction.fields.getTextInputValue('name'), interaction.fields.getTextInputValue('limit'));
+      const field = (k) => { try { return interaction.fields.getTextInputValue(k); } catch { return undefined; } };
+      if (type === 'm' && kind === 'limit') text = await rename(ctx, '', field('limit'));
+      else if (type === 'm') text = await rename(ctx, field('name'), field('limit'));
       else if (type === 's' && kind === 'access') text = await setAccess(ctx, ids[0]);
       else if (type === 's' && kind === 'region') text = await setRegion(ctx, ids[0]);
+      else if (type === 's' && kind === 'bitrate') text = await setBitrate(ctx, ids[0]);
+      else if (type === 'l' && kind === 'transfer') text = await transfer(ctx, ids[0]);
       else if ((type === 'u' || type === 'l') && kind === 'trust') text = await trust(ctx, ids);
       else if ((type === 'u' || type === 'l') && kind === 'invite') text = await invite(ctx, ids);
       else if ((type === 'u' || type === 'l') && kind === 'ban') text = await ban(ctx, ids);
@@ -360,6 +445,9 @@ async function handleVoiceRoomComponent(interaction) {
       else if ((type === 'u' || type === 'l') && kind === 'kick') text = await kick(ctx, ids);
       else if (type === 'y' && kind === 'delete') text = await removeRoom(ctx);
       else fail('Неизвестное действие.');
+      // the history, and the owner's settings for his next room (a deleted room has nothing left to remember)
+      await logRoom(guild.id, ctx.channel, kind, { actorId: member.id, targetId: ids.length === 1 ? ids[0] : null, details: ids.length > 1 ? `${ids.length} участников` : null });
+      if (kind !== 'delete' && kind !== 'kick' && kind !== 'invite') await savePrefs(ctx, settings);
       return answer(text);
     });
   } catch (err) {
@@ -372,6 +460,7 @@ async function handleVoiceRoomComponent(interaction) {
 }
 
 module.exports = {
-  PREFIX, ACCESS, REGIONS, BUTTONS, RoomError, panelPayload, isVoiceRoomComponent, handleVoiceRoomComponent,
-  findRoom, roomById, rename, setAccess, trust, untrust, invite, kick, ban, unban, setRegion, transfer, claim, removeRoom, describe, trustedIds, bannedIds, renames, lastInvite
+  PREFIX, ACCESS, REGIONS, BUTTONS, SECTIONS, OWNER_PERMS, RoomError, panelPayload, isVoiceRoomComponent, handleVoiceRoomComponent,
+  findRoom, roomById, rename, setAccess, trust, untrust, invite, kick, ban, unban, setRegion, setBitrate, bitrateChoices, transfer, claim, removeRoom, describe, trustedIds, bannedIds, renames, lastInvite,
+  ownerPerms, ownerMay, logRoom, savePrefs, parseJson
 };

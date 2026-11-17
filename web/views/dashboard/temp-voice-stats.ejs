@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Статистика комнат' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Статистика</h1>
+        <p class="page-intro">Сколько комнат создают, кто чаще всего и что в них происходит. История хранит действия владельцев и бота.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; %>
+      <% const LABEL = { create: 'Создана', empty: 'Удалена (пустая)', delete: 'Удалена владельцем', name: 'Переименована', limit: 'Лимит', access: 'Доступ', region: 'Регион', bitrate: 'Битрейт', invite: 'Приглашение', trust: 'Доверие', untrust: 'Снято доверие', ban: 'Бан', unban: 'Разбан', kick: 'Выгнан', transfer: 'Передана', claim: 'Забрана', autotransfer: 'Передана автоматически', spam: 'Слишком часто' };
+         const name = (id) => (id ? (users[id] || { name: id }).name : 'бот');
+         const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); %>
+      <div class="stat-row four">
+        <div class="stat-box"><div class="value"><%= rooms %></div><div class="label">Комнат сейчас</div></div>
+        <div class="stat-box"><div class="value"><%= created7 %></div><div class="label">Создано за неделю</div></div>
+        <div class="stat-box"><div class="value"><%= created30 %></div><div class="label">Создано за 30 дней</div></div>
+        <div class="stat-box"><div class="value"><%= byAction.filter((a) => !['create', 'empty', 'spam'].includes(a.action)).reduce((n, a) => n + Number(a.n), 0) %></div><div class="label">Действий владельцев за 30 дней</div></div>
+      </div>
+      <div class="card g-c1">
+        <h2>Кто создаёт больше всех<span class="sub">30 дней</span></h2>
+        <% if (!topOwners.length) { %><p class="empty-state">Комнат ещё не создавали.</p><% } else { %>
+          <div class="mini-list"><% topOwners.forEach((t, i) => { const u = users[t.actorId] || { name: t.actorId, avatar: '' }; %><div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="val"><%= t.n %></span></div><% }) %></div>
+        <% } %>
+      </div>
+      <div class="card g-c2">
+        <h2>Что делают в комнатах<span class="sub">30 дней</span></h2>
+        <% const acts = byAction.filter((a) => a.action !== 'create').sort((a, b) => b.n - a.n); %>
+        <% if (!acts.length) { %><p class="empty-state">Пока ничего.</p><% } else { const top = Number(acts[0].n) || 1; %>
+          <div class="econ-bars"><% acts.forEach((a) => { %><div class="econ-bar"><span><%= LABEL[a.action] || a.action %></span><i style="width:<%= Math.max(1, (a.n / top) * 100).toFixed(1) %>%"></i><b><%= a.n %></b></div><% }) %></div>
+        <% } %>
+      </div>
+      <div class="card g-span">
+        <h2>История</h2>
+        <div class="chips">
+          <a class="chip <%= !action ? 'active' : '' %>" href="<%= g %>/temp-voice-stats">Все</a>
+          <% ['create', 'empty', 'access', 'ban', 'kick', 'transfer', 'autotransfer', 'claim', 'spam'].forEach((k) => { %><a class="chip <%= action === k ? 'active' : '' %>" href="<%= g %>/temp-voice-stats?action=<%= k %>"><%= LABEL[k] %></a><% }) %>
+        </div>
+        <% if (!log.length) { %><p class="empty-state">История пуста — она ведётся с этого обновления.</p><% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Когда</th><th>Комната</th><th>Что</th><th>Кто</th><th>Кому</th><th>Подробности</th></tr></thead>
+            <tbody>
+              <% log.forEach((l) => { %>
+                <tr><td class="nowrap"><%= when(l.createdAt) %></td><td><%= l.roomName || '—' %></td><td class="nowrap"><%= LABEL[l.action] || l.action %></td><td class="nowrap"><%= name(l.actorId) %></td><td class="nowrap"><%= l.targetId ? name(l.targetId) : '—' %></td><td class="muted"><%= l.details || '' %></td></tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

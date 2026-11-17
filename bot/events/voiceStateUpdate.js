@@ -1,10 +1,9 @@
-const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { getOrCreateSettings } = require('../modules/leveling');
 const { TempVoiceChannel } = require('../../db');
 const logger = require('../utils/logger');
 const { getQueue, destroyQueue } = require('../modules/music/player');
 const { trackVoiceState } = require('../modules/voiceTime');
-const { isTempRoom, rememberTempRoom, forgetTempRoom } = require('../modules/tempRooms');
+const { isTempRoom, forgetTempRoom } = require('../modules/tempRooms');
 
 module.exports = {
   name: 'voiceStateUpdate',
@@ -43,6 +42,11 @@ module.exports = {
           await channel.delete().catch(() => {});
           await tempChannel.destroy();
           forgetTempRoom(oldState.channelId);
+          await require('../modules/voiceRoom').logRoom(guild.id, channel, 'empty', { details: 'пустая комната удалена' });
+        } else if (channel && oldState.id === tempChannel.ownerId) {
+          // the owner left, the others stay: the room goes on with a new owner
+          const s0 = await getOrCreateSettings(guild.id);
+          await require('../modules/tempRooms').ownerLeft(guild, tempChannel, channel, s0).catch((err) => logger.warn(`room hand-over: ${err.message}`));
         } else if (!channel) {
           // Channel was already removed some other way (manually deleted) — drop the stale record.
           await tempChannel.destroy();
@@ -55,35 +59,10 @@ module.exports = {
     const { triggerFor, hasTriggers } = require('../utils/voiceTriggers');
     if (!settings?.tempVoiceEnabled || !hasTriggers(settings)) return;
 
-    // User joined a "join to create" channel -> spawn a new temp channel and move them into it
+    // User joined a "join to create" channel -> his room (an existing one, or a new one with his saved settings)
     const trigger = triggerFor(settings, newState.channelId);
-    if (trigger && newState.member) {
-      try {
-        const { render, buildContext } = require('../utils/replacers');
-        const name = render(trigger.name, buildContext({ member: newState.member }), { user: newState.member.displayName }).replace(/<[@#&!]+\d+>/g, '').trim().slice(0, 100) || 'Комната';
-        const channel = await guild.channels.create({
-          name,
-          type: ChannelType.GuildVoice,
-          parent: trigger.categoryId || newState.channel.parentId,
-          ...(trigger.limit ? { userLimit: trigger.limit } : {}),
-          // The category's rules, plus the owner: he can always see and enter his room, even when he closes it.
-          permissionOverwrites: [
-            ...(newState.channel.parent?.permissionOverwrites?.cache ? [...newState.channel.parent.permissionOverwrites.cache.values()] : []),
-            { id: newState.member.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak] }
-          ]
-        });
-        await TempVoiceChannel.create({ guildId: guild.id, channelId: channel.id, ownerId: newState.member.id });
-        rememberTempRoom(channel.id);
-        // The member may already have left the trigger channel: then the new room would stay empty forever.
-        const moved = await newState.setChannel(channel).then(() => true).catch(() => false);
-        if (!moved) {
-          await channel.delete('Владелец вышел до переноса в комнату').catch(() => {});
-          await TempVoiceChannel.destroy({ where: { channelId: channel.id } }).catch(() => {});
-          forgetTempRoom(channel.id);
-        }
-      } catch (err) {
-        logger.error('Failed to create temp voice channel:', err);
-      }
+    if (trigger && newState.member && !newState.member.user?.bot) {
+      await require('../modules/tempRooms').createRoomFor(newState, settings, trigger).catch((err) => logger.error('Failed to create temp voice channel:', err));
     }
   }
 };
