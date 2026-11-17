@@ -16,6 +16,10 @@
   }
   var kinds = {
     saved: ['Изменения сохранены', false],
+    achlimit: ['Своих достижений не больше 100 — удалите ненужные', true],
+    granted: ['Достижение выдано', false],
+    already: ['У участника уже есть это достижение — второй раз не выдаётся', true],
+    taken: ['Достижение забрано', false],
     deleted: ['Удалено', false],
     invalid: ['Не удалось сохранить: проверьте заполнение полей', true],
     revoked: ['Роль снята', false],
@@ -270,4 +274,19 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   input.addEventListener('input', render);
   render();
+})();
+
+// Achievement editor: the amount for counted conditions, the role for "has a role", nothing for "by hand".
+(function () {
+  var sel = document.querySelector('[data-ach-cond]');
+  if (!sel) return;
+  var value = document.querySelector('[data-ach-show="value"]');
+  var role = document.querySelector('[data-ach-show="role"]');
+  function sync() {
+    var v = sel.value;
+    if (value) value.hidden = v === 'manual' || v === 'role';
+    if (role) role.hidden = v !== 'role';
+  }
+  sel.addEventListener('change', sync);
+  sync();
 })();

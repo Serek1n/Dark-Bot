@@ -4,6 +4,7 @@
 // them back on there.
 const FEATURES = [
   { key: 'leveling', field: 'levelingEnabled', title: 'Уровни', desc: 'Опыт за чат и голос, команды /profile, /top, /calc и /level', commands: ['profile', 'top', 'calc', 'level', 'Profile'], page: 'leveling' },
+  { key: 'achievements', field: 'achievementsEnabled', title: 'Достижения', desc: 'Награды за сообщения, голос, уровни, экономику и участие, свои достижения сервера: /achievements', commands: ['achievements'], page: 'achievements' },
   { key: 'economy', field: 'economyEnabled', title: 'Экономика', desc: 'Ежедневная награда, баланс и переводы: /daily, /balance, /pay', commands: ['daily', 'balance', 'pay', 'work', 'gift', 'deal'], page: 'economy' },
   { key: 'shop', field: 'shopEnabled', title: 'Магазин', desc: 'Покупка ролей и предметов за валюту: /shop', commands: ['shop'], page: 'shop' },
   { key: 'music', field: 'musicEnabled', title: 'Музыка', desc: 'Команда /play. Уже играющая музыка продолжит играть, пока её не остановят кнопкой', commands: ['play', 'repeat', 'playlist'], page: 'music' },

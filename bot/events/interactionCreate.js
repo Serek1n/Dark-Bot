@@ -85,6 +85,11 @@ module.exports = {
       return;
     }
 
+    if (require('../modules/achievements').isAchievementComponent(interaction)) {
+      try { await require('../modules/achievements').handleComponent(interaction); } catch (err) { logger.error('Achievements button failed:', err); await tellFailed(interaction); }
+      return;
+    }
+
     if (require('../modules/econ/components').isEconomyComponent(interaction)) {
       try { await require('../modules/econ/components').handleEconomyComponent(interaction); } catch (err) { logger.error('Economy action failed:', err); await tellFailed(interaction); }
       return;

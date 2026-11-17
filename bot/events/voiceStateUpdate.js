@@ -14,6 +14,11 @@ module.exports = {
     await trackVoiceState(oldState, newState).catch((err) => logger.error('Voice time error:', err));
     const guild = newState.guild || oldState.guild;
     const who = newState.member || oldState.member;
+    // achievements: «Алло, слышно?» — the first time in voice
+    if (newState.channelId && !oldState.channelId && who && !who.user?.bot) {
+      const ch = newState.channel;
+      require('../modules/achievements').touch(guild.id, newState.id, { voiceJoin: true, channel: ch && ch.id !== guild.afkChannelId && ch.send ? ch : null });
+    }
     if (who) await require('../modules/voiceRoles').syncMember(who, newState.channelId).catch((err) => logger.warn(`Voice roles: ${err.message}`));
 
     // Music cleanup: the bot itself was moved/kicked out of its channel, or the last

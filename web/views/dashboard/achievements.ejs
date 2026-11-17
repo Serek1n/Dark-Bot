@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Достижения' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Достижения</h1>
+        <p class="page-intro">Награды за сообщения, время в голосе, уровни, экономику, участие в событиях и стаж на сервере. Бот считает их сам по настоящим данным и присылает карточку «Достижение разблокировано!». Свои достижения сервера — во вкладке «Каталог».</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id;
+         const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+         const byKey = Object.fromEntries(list.map((a) => [a.key, a])); %>
+      <div class="stat-row four">
+        <div class="stat-box"><div class="value"><%= enabled.length %></div><div class="label">Достижений включено</div></div>
+        <div class="stat-box"><div class="value"><%= st.total %></div><div class="label">Открыто всего</div></div>
+        <div class="stat-box"><div class="value"><%= st.members %></div><div class="label">Участников с достижениями</div></div>
+        <div class="stat-box"><div class="value"><%= st.week %></div><div class="label">Открыто за неделю</div></div>
+      </div>
+      <div class="card g-c1">
+        <h2>Чаще всего открывают</h2>
+        <% if (!top.some((x) => x.n)) { %><p class="empty-state">Пока никто ничего не открыл. Первое достижение придёт с первым сообщением.</p><% } else { %>
+          <div class="ach-rank"><% top.filter((x) => x.n).forEach((x) => { %>
+            <div class="ach-rank-row" style="--rc:<%= A.RARITY[x.a.rarity].color %>"><span class="ach-emo"><%= x.a.emoji %></span><span class="ach-rank-name"><b><%= x.a.name %></b><small><%= x.a.description %></small></span><span class="ach-rank-val"><%= x.n %><small><%= pct(x.n, counted) %>%</small></span></div>
+          <% }) %></div>
+        <% } %>
+      </div>
+      <div class="card g-c2">
+        <h2>Самые редкие<span class="sub">среди открытых</span></h2>
+        <% if (!rare.length) { %><p class="empty-state">Появятся, когда участники начнут открывать достижения.</p><% } else { %>
+          <div class="ach-rank"><% rare.forEach((x) => { %>
+            <div class="ach-rank-row" style="--rc:<%= A.RARITY[x.a.rarity].color %>"><span class="ach-emo"><%= x.a.emoji %></span><span class="ach-rank-name"><b><%= x.a.name %></b><small><%= A.RARITY[x.a.rarity].label %></small></span><span class="ach-rank-val"><%= x.n %><small><%= pct(x.n, counted) %>%</small></span></div>
+          <% }) %></div>
+        <% } %>
+      </div>
+      <div class="card g-span">
+        <h2>Последние открытия</h2>
+        <% if (!st.recent.length) { %><p class="empty-state">Здесь появятся участники и их новые достижения.</p><% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Когда</th><th>Участник</th><th>Достижение</th><th>Редкость</th><th>Как</th></tr></thead>
+            <tbody>
+              <% st.recent.forEach((r) => { const a = byKey[r.key]; const u = users[r.userId] || { name: r.userId }; %>
+                <tr><td class="nowrap"><%= when(r.createdAt) %></td><td class="nowrap"><a href="<%= g %>/achievements-members?user=<%= r.userId %>"><%= u.name %></a></td><td><% if (a) { %><span class="ach-inline"><%= a.emoji %></span> <span><%= a.name %></span><% } else { %><%= r.key %><% } %></td><td class="nowrap"><%= a ? A.RARITY[a.rarity].label : '—' %></td><td class="nowrap muted"><%= r.grantedBy ? 'выдано вручную' : 'открыто само' %></td></tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

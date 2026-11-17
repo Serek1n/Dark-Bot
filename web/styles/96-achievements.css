@@ -1,0 +1,49 @@
+/* ---------- «Достижения»: tiles of the catalog, the rating rows, a member's progress ---------- */
+.ach-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ach-head h2 { margin: 0; border: 0; padding: 0; }
+.ach-filters { margin-top: 14px; }
+.ach-filters .chips { margin-bottom: 8px; }
+.ach-emo { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%;
+  font-size: var(--fs-20); background: color-mix(in srgb, var(--rc, var(--ember)) 16%, transparent); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--rc, var(--ember)) 70%, transparent); }
+.ach-inline { display: inline-block; width: 1.4em; text-align: center; }
+.ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; align-items: stretch; margin-bottom: 16px; }
+.ach-tile { display: flex; flex-direction: column; gap: 10px; padding: 18px; border-radius: var(--r-16); background: var(--panel); border: 1px solid var(--hairline);
+  border-top: 3px solid var(--rc, var(--ember)); min-width: 0; }
+.ach-tile.off { opacity: .55; }
+.ach-tile-top { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.ach-tile-title { display: flex; flex-direction: column; min-width: 0; }
+.ach-tile-title b { font-size: var(--fs-16); overflow-wrap: anywhere; }
+.ach-tile-title small { color: var(--rc, var(--fog)); font-size: var(--fs-12); }
+.ach-desc { margin: 0; color: var(--fog); font-size: var(--fs-14); flex: 1; }
+.ach-cond { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: var(--fs-13); color: var(--fog); }
+.ach-cond b { color: var(--paper); }
+.ach-reward { color: var(--paper); }
+.ach-meter { height: 6px; border-radius: var(--r-pill); background: var(--hairline-soft); overflow: hidden; }
+.ach-meter i { display: block; height: 100%; border-radius: inherit; background: var(--rc, var(--ember)); min-width: 2px; }
+.ach-meter.small { width: 140px; margin-bottom: 4px; }
+.ach-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: var(--fs-13); }
+.ach-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.ach-actions form { margin: 0; }
+.ach-actions .btn { padding: 6px 12px; font-size: var(--fs-13); min-height: 0; }
+.ach-rank { display: flex; flex-direction: column; }
+.ach-rank-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--hairline-soft); }
+.ach-rank-row:last-child { border-bottom: 0; }
+.ach-rank-name { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.ach-rank-name small { color: var(--fog); font-size: var(--fs-12); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ach-rank-val { display: flex; flex-direction: column; align-items: flex-end; font-weight: 800; }
+.ach-rank-val small { font-weight: 400; color: var(--fog); font-size: var(--fs-12); }
+.ach-find { display: flex; gap: 8px; }
+.ach-find input { flex: 1; min-width: 0; margin: 0; }
+.ach-person { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+.ach-person img { border-radius: var(--r-12); }
+.ach-person div { display: flex; flex-direction: column; }
+.ach-person small { color: var(--fog); }
+.ach-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; font-size: var(--fs-13); color: var(--fog); }
+.ach-facts b { color: var(--paper); }
+.ach-preview img { width: 100%; max-width: 900px; height: auto; border-radius: var(--r-16); display: block; }
+tr.muted-row td { color: var(--fog); }
+@media (max-width: 600px) {
+  .ach-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ach-grid { grid-template-columns: 1fr; }
+  .ach-find { flex-direction: column; }
+}

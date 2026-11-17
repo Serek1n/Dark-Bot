@@ -36,6 +36,8 @@ module.exports = {
       const where = [message.channelId, ch?.parentId, ch?.parent?.parentId].filter(Boolean);
       const result = await grantMessageXp(message.guild.id, message.author.id, where, message.member);
       if (result && message.member) await applyLevelRoles(message.member, result.levels, settings.levelRolesReplace);
+      // achievements: the counted message (and a new level) is checked a few seconds later, the card goes here
+      if (result) require('../modules/achievements').touch(message.guild.id, message.author.id, { channel: message.channel });
       if (result?.leveledUp) {
         const { channel, fallback } = await levelUpTarget({ guild: message.guild, member: message.member, settings, fallback: message.channel });
         await announceLevelUp({

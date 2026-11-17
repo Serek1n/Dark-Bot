@@ -183,7 +183,10 @@ async function handleGiveawayButton(interaction) {
   const where = { giveawayId: giveaway.id, userId: interaction.user.id };
   const existing = await GiveawayEntry.findOne({ where });
   if (existing) await existing.destroy();
-  else await GiveawayEntry.findOrCreate({ where });
+  else {
+    await GiveawayEntry.findOrCreate({ where });
+    require('./achievements').touch(interaction.guildId, interaction.user.id, { channel: interaction.channel }); // «Участник» — an event
+  }
 
   await reply(existing ? embeds.info('Вы вышли из розыгрыша.') : embeds.success('Вы участвуете в розыгрыше. Удачи!'));
   scheduleCounterEdit(giveaway, interaction.message);

@@ -1,5 +1,38 @@
 [
  {
+  "bot": "3.10.0",
+  "panel": "3.19.0",
+  "date": "2026-11-17",
+  "botChanges": [
+   "Достижения: 23 встроенных — сообщения, голос, уровни, экономика, стаж, события",
+   "Карточка «Достижение разблокировано!» с кнопками «Мои достижения» и «Все достижения»",
+   "/achievements: мои и чужие с прогрессом, каталог по категориям, выдать и забрать",
+   "Свои достижения сервера: условие, редкость, картинка, награда монетами, кристаллами, ролью",
+   "Каждое выдаётся один раз, даже при одновременных проверках; награда платится один раз",
+   "В профиле — кнопка «Достижения: N из M»"
+  ],
+  "panelChanges": [
+   "Модуль «Достижения»: обзор и статистика, каталог с фильтрами, редактор",
+   "Участники: прогресс по каждому достижению, выдача и снятие вручную",
+   "Настройки: куда присылать карточку, сумма для «Капитала»"
+  ],
+  "en": {
+   "botChanges": [
+    "Achievements: 23 built-in — messages, voice, levels, economy, tenure, events",
+    "An \"Achievement unlocked!\" card with \"My achievements\" and \"All achievements\" buttons",
+    "/achievements: yours and others' with progress, catalog by category, give and take",
+    "The server's own achievements: condition, rarity, picture, coin, crystal or role reward",
+    "Each is given once, even when checks run at once; the reward is paid once",
+    "The profile shows an \"Achievements: N of M\" button"
+   ],
+   "panelChanges": [
+    "The Achievements module: overview and stats, a filtered catalog, an editor",
+    "Members: progress on every achievement, giving and taking by hand",
+    "Settings: where the card goes, the amount for \"Capital\""
+   ]
+  }
+ },
+ {
   "bot": "3.9.0",
   "panel": "3.18.0",
   "date": "2026-11-17",

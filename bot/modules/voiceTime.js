@@ -126,6 +126,7 @@ async function xpTick(client) {
           const result = results.get(member.id);
           if (!result) continue;
           await applyLevelRoles(member, result.levels, settings.levelRolesReplace);
+          require('./achievements').touchVoice(guild.id, member.id, result.leveledUp ? voiceChat(member, guild) : null, result.leveledUp);
           if (result.leveledUp) {
             // The member is in a voice channel right now: the message goes to that channel's chat.
             const { channel, fallback } = await levelUpTarget({ guild, member, settings });
@@ -177,6 +178,12 @@ function formatDuration(totalSeconds) {
   const h = Math.floor(s / 3600);
   if (h) return `${h} ч`; // total hours, no days
   return `${Math.floor(s / 60)} мин`;
+}
+
+// the chat of the voice channel the member sits in (for the achievement card), or null
+function voiceChat(member, guild) {
+  const ch = member?.voice?.channel;
+  return ch && ch.id !== guild.afkChannelId && ch.send && (!ch.isTextBased || ch.isTextBased()) ? ch : null;
 }
 
 module.exports = { xpTick, trackVoiceState, seedFromGuilds, flushAll, pendingSeconds, formatDuration, sessions };

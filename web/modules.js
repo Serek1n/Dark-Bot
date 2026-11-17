@@ -42,6 +42,7 @@ const ICONS = {
   modules: '<path d="M3 6H11M15 6H17M3 14H5M9 14H17"/><circle cx="13" cy="6" r="2"/><circle cx="7" cy="14" r="2"/>',
   changelog: '<path d="M4 9.5H16V16.5H4Z"/><path d="M3 6.5H17V9.5H3Z"/><path d="M10 6.5V16.5"/>',
   events: '<path d="M3.5 8V12H6L12.5 15.5V4.5L6 8H3.5Z"/><path d="M15 7.5C15.8 8.2 16.3 9.1 16.3 10C16.3 10.9 15.8 11.8 15 12.5M6.5 12L7.5 16.5"/>',
+  achievements: '<path d="M6.5 3.5H13.5V8C13.5 10 12 11.5 10 11.5C8 11.5 6.5 10 6.5 8V3.5Z"/><path d="M6.5 5H4V6.5C4 7.9 5 9 6.5 9.2M13.5 5H16V6.5C16 7.9 15 9 13.5 9.2M10 11.5V14.5M7 16.5H13M8 14.5H12V16.5H8Z"/>',
   boosts: '<path d="M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z"/>'
 };
 
@@ -64,6 +65,12 @@ const LAYOUT = [
       const { MemberProfile, LevelRole } = db();
       const [members, roles] = await Promise.all([MemberProfile.count(where(g)), LevelRole.count(where(g))]);
       return [{ value: members, label: 'участников в системе' }, { value: roles, label: 'ролей за уровни' }];
+    } },
+  { key: 'achievements', group: 'community', pages: ['achievements', 'achievements-catalog', 'achievements-edit', 'achievements-members', 'achievements-settings'],
+    stats: async (g) => {
+      const { MemberAchievement } = db();
+      const [total, members] = await Promise.all([MemberAchievement.count(where(g)), MemberAchievement.count({ ...where(g), distinct: true, col: 'userId' })]);
+      return [{ value: total, label: 'достижений открыто' }, { value: members, label: 'участников с достижениями' }];
     } },
   { key: 'economy', group: 'community', pages: ['economy', 'economy-bank', 'economy-treasury', 'economy-deals', 'economy-journal'],
     stats: async (g) => {
@@ -154,6 +161,7 @@ const PAGE_LABELS = { leveling: 'Настройки', 'channel-boosts': 'Мно�
   'moderation-reports': 'Жалобы', 'moderation-appeals': 'Апелляции', 'moderation-log': 'Журнал', 'moderation-settings': 'Настройки',
   'temp-voice': 'Обзор', 'temp-voice-rooms': 'Создание комнат', 'temp-voice-panel': 'Панель управления', 'temp-voice-access': 'Права доступа',
   'temp-voice-roles': 'Голосовые роли', 'temp-voice-auto': 'Автоматизация', 'temp-voice-stats': 'Статистика', 'temp-voice-settings': 'Настройки',
+  achievements: 'Обзор', 'achievements-catalog': 'Каталог', 'achievements-edit': 'Создать', 'achievements-members': 'Участники', 'achievements-settings': 'Настройки',
   economy: 'Настройки', 'economy-bank': 'Центробанк', 'economy-treasury': 'Казна и цели', 'economy-deals': 'Сделки и коды', 'economy-journal': 'Журнал' };
 // A page shown only while one of these economy sections is on (bot/modules/econ/config.js).
 const PAGE_NEEDS = { 'economy-bank': ['bank', 'seasons'], 'economy-treasury': ['treasury', 'goals'], 'economy-deals': ['deals', 'gifts'] };

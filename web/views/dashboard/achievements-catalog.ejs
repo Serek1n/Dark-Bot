@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Каталог достижений' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Каталог</h1>
+        <p class="page-intro">Все достижения сервера: встроенные можно выключить, свои — изменить или удалить. Рядом — сколько участников уже открыли каждое.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id;
+         const q = (patch) => { const o = Object.assign({}, f, patch); const s = Object.keys(o).filter((k) => o[k]).map((k) => k + '=' + o[k]).join('&'); return g + '/achievements-catalog' + (s ? '?' + s : ''); };
+         const back = Object.keys(f).filter((k) => f[k]).map((k) => k + '=' + f[k]).join('&'); %>
+      <div class="card g-span">
+        <div class="ach-head">
+          <h2>Фильтры</h2>
+          <a class="btn" href="<%= g %>/achievements-edit">+ Создать достижение</a>
+        </div>
+        <div class="ach-filters">
+          <div class="chips"><a class="chip <%= !f.cat ? 'active' : '' %>" href="<%= q({ cat: '' }) %>">Все категории</a><% A.CATEGORIES.forEach(([k, label, emoji]) => { %><a class="chip <%= f.cat === k ? 'active' : '' %>" href="<%= q({ cat: k }) %>"><span><%= emoji %></span> <span><%= label %></span></a><% }) %></div>
+          <div class="chips"><a class="chip <%= !f.rarity ? 'active' : '' %>" href="<%= q({ rarity: '' }) %>">Любая редкость</a><% A.RARITIES.forEach(([k, label]) => { %><a class="chip <%= f.rarity === k ? 'active' : '' %>" href="<%= q({ rarity: k }) %>"><%= label %></a><% }) %></div>
+          <div class="chips">
+            <a class="chip <%= !f.type ? 'active' : '' %>" href="<%= q({ type: '' }) %>">Все</a>
+            <a class="chip <%= f.type === 'builtin' ? 'active' : '' %>" href="<%= q({ type: 'builtin' }) %>">Встроенные</a>
+            <a class="chip <%= f.type === 'own' ? 'active' : '' %>" href="<%= q({ type: 'own' }) %>">Свои</a>
+            <a class="chip <%= f.state === 'on' ? 'active' : '' %>" href="<%= q({ state: f.state === 'on' ? '' : 'on' }) %>">Включённые</a>
+            <a class="chip <%= f.state === 'off' ? 'active' : '' %>" href="<%= q({ state: f.state === 'off' ? '' : 'off' }) %>">Выключенные</a>
+          </div>
+        </div>
+        <p class="hint" style="margin:0">Показано: <b><%= shown.length %></b> из <b><%= list.length %></b> · своих <b><%= own %></b> из <b><%= MAX_OWN %></b>.</p>
+      </div>
+      <% if (!shown.length) { %>
+        <div class="card g-span"><p class="empty-state">По этим фильтрам ничего нет.</p></div>
+      <% } else { %>
+        <div class="ach-grid g-span">
+          <% shown.forEach((a) => { const n = st.byKey[a.key] || 0; const r = A.RARITY[a.rarity]; %>
+            <div class="ach-tile <%= a.enabled ? '' : 'off' %>" style="--rc:<%= r.color %>">
+              <div class="ach-tile-top">
+                <span class="ach-emo"><%= a.emoji %></span>
+                <div class="ach-tile-title"><b><%= a.name %></b><small><span><%= r.label %></span> · <span><%= A.CATEGORY[a.category].label %></span><% if (!a.builtin) { %> · <span>своё</span><% } %><% if (a.hidden) { %> · <span>скрытое</span><% } %></small></div>
+              </div>
+              <p class="ach-desc"><%= a.description || '—' %></p>
+              <div class="ach-cond">
+                <% if (a.manual) { %><span>Выдаётся вручную</span>
+                <% } else if (a.condType === 'role') { %><span>Есть роль</span>
+                <% } else { %><span><%= A.METRICS[a.metric].label %>:</span> <b><%= Number(a.value).toLocaleString('ru-RU') %></b><% } %>
+                <% if (a.reward && (a.reward.coins || a.reward.crystals || a.reward.roleId)) { %><span class="ach-reward">🎁 <% if (a.reward.coins) { %><span><%= a.reward.coins %> монет</span><% } %><% if (a.reward.crystals) { %> <span><%= a.reward.crystals %> кристаллов</span><% } %><% if (a.reward.roleId) { %> <span>роль</span><% } %></span><% } %>
+              </div>
+              <div class="ach-meter"><i style="width:<%= Math.min(100, pct(n, counted)) %>%"></i></div>
+              <div class="ach-tile-foot">
+                <span class="muted"><span>Открыли:</span> <b><%= n %></b> (<%= pct(n, counted) %>%)</span>
+                <span class="ach-actions">
+                  <a class="btn btn-secondary" href="<%= g %>/achievements/card/<%= a.key %>.png" target="_blank" rel="noopener">Карточка</a>
+                  <% if (a.builtin) { %>
+                    <form method="post" action="<%= g %>/achievements/builtin" data-no-guard><input type="hidden" name="key" value="<%= a.key %>" /><input type="hidden" name="back" value="<%= back %>" /><input type="hidden" name="on" value="<%= a.enabled ? '0' : '1' %>" /><button class="btn <%= a.enabled ? 'btn-secondary' : '' %>" type="submit"><%= a.enabled ? 'Выключить' : 'Включить' %></button></form>
+                  <% } else { %>
+                    <a class="btn btn-secondary" href="<%= g %>/achievements-edit?id=<%= a.id %>">Изменить</a>
+                    <form method="post" action="<%= g %>/achievements/<%= a.id %>/delete" data-no-guard data-confirm="Удалить достижение? У участников, которые его открыли, оно тоже исчезнет." data-confirm-ok="Удалить"><button class="btn btn-danger" type="submit">Удалить</button></form>
+                  <% } %>
+                </span>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Достижения участников' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Участники</h1>
+        <p class="page-intro">Достижения и прогресс одного участника, выдача и снятие вручную. Ниже — у кого достижений больше всех.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id;
+         const when = (d) => new Date(d).toLocaleDateString('ru-RU');
+         const u = userId ? (users[userId] || { name: userId, avatar: '' }) : null; %>
+      <div class="card g-c1">
+        <h2>Найти участника</h2>
+        <form method="get" action="<%= g %>/achievements-members" class="ach-find" data-no-guard>
+          <input name="user" type="text" inputmode="numeric" placeholder="ID участника или упоминание" value="<%= userId || '' %>" aria-label="ID участника" />
+          <button class="btn" type="submit">Показать</button>
+        </form>
+        <div class="hint"><%= bad ? 'Это не похоже на ID участника. ' : '' %>ID — правый клик по участнику в Discord → «Копировать ID» (нужен режим разработчика). Или выберите из списка справа.</div>
+        <% if (view) { %>
+          <div class="ach-person">
+            <% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" width="48" height="48" /><% } %>
+            <div><b><%= u.name %></b><small><span>Открыто</span> <b><%= view.have.length %></b> <span>из</span> <b><%= view.total %></b></small></div>
+          </div>
+          <div class="ach-facts">
+            <span><span>Сообщений:</span> <b><%= view.metrics.messages %></b></span>
+            <span><span>Часов в голосе:</span> <b><%= view.metrics.voice_hours %></b></span>
+            <span><span>Уровень:</span> <b><%= view.metrics.level %></b></span>
+            <span><span>Баланс:</span> <b><%= view.metrics.balance %></b></span>
+            <span><span>Покупок:</span> <b><%= view.metrics.purchases %></b></span>
+            <span><span>Событий:</span> <b><%= view.metrics.events %></b></span>
+          </div>
+        <% } %>
+      </div>
+      <div class="card g-c2">
+        <h2>Больше всех достижений</h2>
+        <% if (!top.length) { %><p class="empty-state">Ещё никто ничего не открыл.</p><% } else { %>
+          <div class="mini-list"><% top.slice(0, 10).forEach((t, i) => { const p = users[t.userId] || { name: t.userId, avatar: '' }; %><a class="mini-row" href="<%= g %>/achievements-members?user=<%= t.userId %>"><span class="rk"><%= i + 1 %></span><span class="person"><img src="<%= p.avatar %>" alt="" loading="lazy" /><span><%= p.name %></span></span><span class="val"><%= t.n %></span></a><% }) %></div>
+        <% } %>
+      </div>
+      <% if (view) { %>
+        <div class="card g-span">
+          <h2>Достижения участника</h2>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Достижение</th><th>Прогресс</th><th>Получено</th><th></th></tr></thead>
+            <tbody>
+              <% view.items.sort((x, y) => (y.has - x.has) || (y.p.ratio - x.p.ratio)).forEach((x) => { %>
+                <tr class="<%= x.has ? '' : 'muted-row' %>">
+                  <td><span class="ach-inline"><%= x.a.emoji %></span> <b><%= x.a.name %></b><div class="muted"><%= x.a.description %></div></td>
+                  <td class="nowrap"><% if (x.p.manual) { %><span class="muted">вручную</span><% } else { %><div class="ach-meter small" style="--rc:<%= A.RARITY[x.a.rarity].color %>"><i style="width:<%= Math.round((x.has ? 1 : x.p.ratio) * 100) %>%"></i></div><small><%= Number(x.p.have).toLocaleString('ru-RU') %> / <%= Number(x.p.need).toLocaleString('ru-RU') %></small><% } %></td>
+                  <td class="nowrap"><%= x.has ? when(x.at) : '—' %></td>
+                  <td class="nowrap">
+                    <% if (x.has) { %>
+                      <form method="post" action="<%= g %>/achievements/revoke" data-no-guard data-confirm="Забрать достижение? Награду бот не забирает. Если условие выполнено, оно откроется снова." data-confirm-ok="Забрать"><input type="hidden" name="userId" value="<%= userId %>" /><input type="hidden" name="key" value="<%= x.a.key %>" /><button class="btn btn-secondary" type="submit">Забрать</button></form>
+                    <% } else { %>
+                      <form method="post" action="<%= g %>/achievements/grant" data-no-guard><input type="hidden" name="userId" value="<%= userId %>" /><input type="hidden" name="key" value="<%= x.a.key %>" /><button class="btn" type="submit">Выдать</button></form>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        </div>
+      <% } %>
+    </main>
+  </div>
+</body>
+</html>

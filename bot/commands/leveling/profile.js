@@ -150,7 +150,7 @@ module.exports = {
           badge: await require('../../modules/econ/seasons').badgeText(interaction.guild.id, target.id).catch(() => null)
         });
         const attachment = new AttachmentBuilder(png, { name: 'rank.png' });
-        return interaction.editReply({ files: [attachment] });
+        return interaction.editReply({ files: [attachment], components: await achievementsRow(interaction.guild, target.id, settings) });
       } catch (err) {
         // Canvas/network hiccup — fall back to the plain-text embed instead of a dead command.
         logger.error('Failed to render rank card, falling back to embed:', err);
@@ -168,7 +168,7 @@ module.exports = {
             { name: 'В голосовых', value: formatDuration(Number(profile.voiceSeconds || 0) + pendingSeconds(interaction.guild.id, target.id)), inline: true }
           )
           .setThumbnail(target.displayAvatarURL());
-        return interaction.editReply({ embeds: [embed] });
+        return interaction.editReply({ embeds: [embed], components: await achievementsRow(interaction.guild, target.id, settings) });
       }
     }
 
@@ -182,3 +182,15 @@ module.exports = {
     }
   }
 };
+
+// Under the profile card: the member's achievements (opened only for the person who presses)
+async function achievementsRow(guild, userId, settings) {
+  const ach = require('../../modules/achievements');
+  if (!ach.isEnabled(settings)) return [];
+  try {
+    const [have, list] = await Promise.all([require('../../../db').MemberAchievement.count({ where: { guildId: guild.id, userId } }), ach.catalog(guild.id, settings)]);
+    const total = list.filter((a) => a.enabled && !a.hidden).length;
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+    return [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`ach:of:${userId}`).setEmoji('🏆').setLabel(`Достижения: ${have} из ${total}`).setStyle(ButtonStyle.Secondary))];
+  } catch { return []; }
+}

@@ -23,6 +23,9 @@ async function record(rows, transaction) {
     `INSERT INTO economy_tx (guildId, userId, currency, amount, kind, otherId, note, flag, createdAt) VALUES ${list.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(',')}`,
     { replacements: list.flatMap((r) => [r.guildId, r.userId, r.currency || 'coins', Math.trunc(r.amount), r.kind, r.otherId || null, r.note ? String(r.note).slice(0, 200) : null, r.flag || null, r.at || now]), transaction }
   );
+  // money moved: achievements of economy (first coins, a purchase, the balance goal) are checked a few seconds later
+  const ach = require('../achievements');
+  for (const r of list) if (r.userId && r.kind !== 'achievement') ach.touch(r.guildId, r.userId);
 }
 
 /** Steady income of many members at once: one additive statement. */
@@ -140,7 +143,7 @@ async function dailyDeltas(guildId, userId, days = 30) {
 const KIND_LABELS = {
   chat: 'Чат', voice: 'Голос', level: 'Новый уровень', daily: 'Ежедневная награда', work: 'Работа',
   pay_in: 'Перевод от участника', pay_out: 'Перевод участнику', hold_out: 'Перевод новичку (с задержкой)', hold_in: 'Перевод пришёл', hold_back: 'Перевод вернулся',
-  shop: 'Магазин', refund: 'Возврат за покупку', giveaway: 'Розыгрыш', admin: 'Администратор', treasury: 'Из казны',
+  shop: 'Магазин', achievement: 'Достижение', refund: 'Возврат за покупку', giveaway: 'Розыгрыш', admin: 'Администратор', treasury: 'Из казны',
   goal: 'Вклад в общую цель', goal_refund: 'Возврат из общей цели', deal_hold: 'Сделка: деньги заморожены', deal_in: 'Сделка: оплата', deal_refund: 'Сделка: возврат',
   gift_out: 'Подарочный код', gift_in: 'Подарок по коду', season: 'Конец сезона'
 };
