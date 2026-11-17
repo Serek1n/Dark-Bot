@@ -271,8 +271,9 @@ async function handleViolation(settings, message, reason, ruleKey = null) {
 
   if (action === 'warn' && !cooling) {
     lastPunished.set(key, now);
-    const { count } = await mod.warnMember(guild, author, { moderatorId: botId, reason: `Автомодерация: ${reason}` });
+    const { count, escalation } = await mod.warnMember(guild, author, { moderatorId: botId, reason: `Автомодерация: ${reason}` });
     note = `предупреждение (${count})`;
+    if (escalation?.status === 'applied') note += `, ${mod.punishmentName(escalation.action, escalation.ms)}`;
   } else if (action === 'mute' && !cooling) {
     lastPunished.set(key, now);
     const member = message.member || (await guild.members.fetch(author.id).catch(() => null));
@@ -280,10 +281,11 @@ async function handleViolation(settings, message, reason, ruleKey = null) {
     try {
       if (!member) throw new Error('участника нет на сервере');
       await mod.muteMember(guild, member, ms, { moderatorId: botId, reason: `Автомодерация: ${reason}` });
-      note = `мут на ${Math.round(ms / MINUTE)} мин`;
+      note = mod.punishmentName('mute', ms);
     } catch (err) {
       logger.warn(`Automod mute failed in ${guild.id}: ${err.message}`);
-      await recordAndAnnounce(guild, { userId: author.id, moderatorId: botId, action: 'automod', reason });
+      // the case says the mute did NOT happen, and why
+      await recordAndAnnounce(guild, { userId: author.id, moderatorId: botId, action: 'automod', reason: `${reason} · ${mod.punishmentName('mute', ms)} не выдан: ${err.message}`.slice(0, 900) });
     }
   } else {
     await recordAndAnnounce(guild, { userId: author.id, moderatorId: botId, action: 'automod', reason });

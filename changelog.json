@@ -1,5 +1,26 @@
 [
  {
+  "bot": "3.7.2",
+  "panel": "3.15.0",
+  "date": "2026-11-17",
+  "botChanges": [
+   "Автонаказания за предупреждения: точная причина отказа вместо «роль выше моей»",
+   "Сообщение о наказании всегда со сроком («мут на 30 мин»), не «мут на »",
+   "Длинный уже идущий мут не сокращается; итог автонаказания хранится у предупреждения",
+   "Снятые предупреждения остаются в истории (кто, когда, почему)"
+  ],
+  "panelChanges": [],
+  "en": {
+   "botChanges": [
+    "Automatic punishments for warnings: the exact refusal reason, not \"role above mine\"",
+    "Punishment messages always show the length (\"mute for 30 min\"), never \"mute for \"",
+    "A longer running mute isn't shortened; the warning keeps the punishment's real outcome",
+    "Removed warnings stay in the history (who, when, why)"
+   ],
+   "panelChanges": []
+  }
+ },
+ {
   "bot": "3.7.1",
   "panel": "3.15.0",
   "date": "2026-11-13",

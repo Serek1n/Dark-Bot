@@ -114,25 +114,25 @@ module.exports = {
       if (hErr) return fail(interaction, hErr);
       const reason = reasonOf();
       await interaction.deferReply(); // saving, the DM and a possible automatic punishment can take longer than 3 s
-      const { count, escalation } = await mod.warnMember(guild, target, { moderatorId: interaction.user.id, reason, settings });
-      let text = `<@${target.id}> получил(а) предупреждение (${count}): ${reason}`;
-      if (escalation) {
-        const what = { mute: `мут на ${escalation.ms ? formatDuration(escalation.ms) : ''}`, kick: 'кик', ban: escalation.ms ? `бан на ${formatDuration(escalation.ms)}` : 'бан' }[escalation.action];
-        if (escalation.skipped) text += `\nℹ️ Порог предупреждений достигнут, но автоматическое наказание (${what}) не применено: у вас нет права на это действие. Решите вручную через /mod.`;
-        else text += escalation.error ? `\n⚠️ Автоматическое наказание (${what}) не удалось: ${escalation.error}` : `\n🔔 Автоматически: ${what}`;
-      }
-      return done(interaction, { embeds: [embeds.success(text)] });
+      const { count, escalation, warning } = await mod.warnMember(guild, target, { moderatorId: interaction.user.id, reason, settings });
+      const auto = mod.describeEscalation(escalation);
+      const embed = embeds.baseEmbed(auto && !auto.ok ? embeds.COLORS.warning : embeds.COLORS.success)
+        .setTitle('Предупреждение выдано')
+        .setDescription(`<@${target.id}> · предупреждение **#${warning.id}**`)
+        .addFields({ name: 'Причина', value: reason.slice(0, 1000) }, { name: 'Действующих предупреждений', value: String(count), inline: true });
+      if (auto) embed.addFields({ name: 'Автоматическое наказание', value: auto.text.slice(0, 1000) });
+      return done(interaction, { embeds: [embed], allowedMentions: { users: [target.id] } });
     }
 
     if (sub === 'unwarn') {
       const id = interaction.options.getInteger('number');
       const warning = await Warning.findOne({ where: { id, guildId: guild.id } });
-      if (!warning) return fail(interaction, 'Предупреждение с таким номером не найдено.');
+      if (!warning || warning.revokedAt) return fail(interaction, 'Предупреждение с таким номером не найдено.');
       if (warning.userId === interaction.user.id) return fail(interaction, 'Свои предупреждения снимает другой модератор.');
       const owner = await memberOf({ id: warning.userId });
       const ownerErr = owner && hierarchyError(interaction.member, owner);
       if (ownerErr) return fail(interaction, ownerErr);
-      await warning.destroy();
+      if (!(await mod.revokeWarning(warning, { by: interaction.user.id, reason: 'Снято командой /mod unwarn' }))) return fail(interaction, `Предупреждение #${id} уже снято.`);
       await recordAndAnnounce(guild, { userId: warning.userId, moderatorId: interaction.user.id, action: 'unwarn', reason: `Снято предупреждение #${id}` });
       return interaction.reply({ embeds: [embeds.success(`Предупреждение #${id} снято.`)] });
     }
@@ -143,7 +143,8 @@ module.exports = {
       const targetMember = await memberOf(target);
       const tErr = targetMember && hierarchyError(interaction.member, targetMember);
       if (tErr) return fail(interaction, tErr);
-      const removed = await Warning.destroy({ where: { guildId: guild.id, userId: target.id } });
+      // kept in the history, marked as removed
+      const [removed] = await Warning.update({ revokedAt: new Date(), revokedBy: interaction.user.id, revokeReason: 'Сняты все командой /mod clearwarns' }, { where: { guildId: guild.id, userId: target.id, revokedAt: null } });
       if (!removed) return interaction.reply({ embeds: [embeds.info(`У <@${target.id}> нет предупреждений.`)] });
       await recordAndAnnounce(guild, { userId: target.id, moderatorId: interaction.user.id, action: 'unwarn', reason: `Сняты все предупреждения (${removed})` });
       return interaction.reply({ embeds: [embeds.success(`С <@${target.id}> снято предупреждений: ${removed}.`)] });
@@ -170,6 +171,8 @@ module.exports = {
       if (!member) return fail(interaction, 'Участник не найден.');
       const hErr = hierarchyError(interaction.member, member);
       if (hErr) return fail(interaction, hErr);
+      const botErr = mod.whyCannot(guild, member, 'mute');
+      if (botErr) return fail(interaction, botErr);
       const reason = reasonOf();
       await interaction.deferReply();
       try {
@@ -186,12 +189,14 @@ module.exports = {
       if (!member) return fail(interaction, 'Участник не найден.');
       const hErr = hierarchyError(interaction.member, member);
       if (hErr) return fail(interaction, hErr);
-      if (member.moderatable === false) return fail(interaction, 'Не могу размутить этого участника: его роль выше моей.');
+      if (!member.communicationDisabledUntilTimestamp || member.communicationDisabledUntilTimestamp < Date.now()) return fail(interaction, 'У этого участника нет мута.');
+      const botErr = mod.whyCannot(guild, member, 'unmute');
+      if (botErr) return fail(interaction, botErr);
       await interaction.deferReply();
       try {
         await member.timeout(null);
-      } catch {
-        return fail(interaction, 'Не удалось снять мут: проверьте, что у бота есть право давать тайм-аут участникам.');
+      } catch (err) {
+        return fail(interaction, require('../../utils/punishable').apiErrorText(err, 'unmute'));
       }
       await recordAndAnnounce(guild, { userId: target.id, moderatorId: interaction.user.id, action: 'unmute' });
       return done(interaction, { embeds: [embeds.success(`<@${target.id}> размучен(а).`)] });

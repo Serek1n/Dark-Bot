@@ -87,7 +87,7 @@ const LAYOUT = [
   { key: 'moderation', group: 'moderation', pages: ['moderation'],
     stats: async (g) => {
       const { Warning, ModLog } = db();
-      const [warns, actions] = await Promise.all([Warning.count(where(g)), ModLog.count(where(g))]);
+      const [warns, actions] = await Promise.all([Warning.count({ where: { guildId: g, revokedAt: null } }), ModLog.count(where(g))]);
       return [{ value: warns, label: 'предупреждений' }, { value: actions, label: 'действий модераторов' }];
     } },
   { key: 'automod', group: 'moderation', pages: ['automod'] },

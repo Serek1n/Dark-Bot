@@ -34,7 +34,7 @@ router.get('/:guildId', ensureGuildAccess, async (req, res) => {
   const [guild, settings] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId)]);
   const where = { guildId: req.params.guildId };
   const [memberCount, warningCount, reactionRoleCount, customCommandCount, alertCount, topMembers, recentLogs] = await Promise.all([
-    MemberProfile.count({ where }), Warning.count({ where }), ReactionRole.count({ where }), CustomCommand.count({ where }), Alert.count({ where }),
+    MemberProfile.count({ where }), Warning.count({ where: { ...where, revokedAt: null } }), ReactionRole.count({ where }), CustomCommand.count({ where }), Alert.count({ where }),
     MemberProfile.findAll({ where, order: [['xp', 'DESC']], limit: 7 }),
     ModLog.findAll({ where, order: [['createdAt', 'DESC']], limit: 7 })
   ]);

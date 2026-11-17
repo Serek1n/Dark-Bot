@@ -9,6 +9,14 @@ const { formatDuration, MAX_TIMEOUT, MINUTE } = require('../utils/duration');
 const { withLock } = require('../utils/lock');
 const logger = require('../utils/logger');
 const { createScheduler } = require('../utils/scheduler');
+const { whyCannot, apiErrorText } = require('../utils/punishable');
+
+/** An Error whose message is shown to the moderator as is. */
+const refusal = (text) => Object.assign(new Error(text), { refusal: true });
+/** Calls Discord; a failure becomes a readable refusal with the API's real reason. */
+async function callDiscord(fn, action) {
+  try { return await fn(); } catch (err) { throw refusal(apiErrorText(err, action)); }
+}
 
 const ESCALATION_ACTIONS = ['mute', 'kick', 'ban'];
 const MAX_THRESHOLDS = 10;
@@ -31,7 +39,7 @@ function parseThresholds(json) {
 
 /** Warnings that still count: an optional expiry (days) hides the old ones. */
 function activeWarningsWhere(guildId, userId, settings) {
-  const where = { guildId, userId };
+  const where = { guildId, userId, revokedAt: null };
   const days = Number(settings?.modWarnExpireDays) || 0;
   if (days > 0) where.createdAt = { [Op.gte]: new Date(Date.now() - days * 86400000) };
   return where;
@@ -60,28 +68,31 @@ async function loadSettings(guildId) {
 async function muteMember(guild, member, ms, { moderatorId, reason, settings }) {
   if (!ms || ms < 1000) throw new Error('Срок мута должен быть больше нуля.');
   if (ms > MAX_TIMEOUT) throw new Error('Мут не может быть дольше 28 дней (ограничение Discord).');
-  if (!member.moderatable) throw new Error('Не могу замутить этого участника (его роль выше моей).');
-  await member.timeout(ms, reason);
+  const why = whyCannot(guild, member, 'mute');
+  if (why) throw refusal(why);
+  await callDiscord(() => member.timeout(ms, reason), 'mute');
   const entry = await recordAndAnnounce(guild, { userId: member.id, moderatorId, action: 'mute', reason, duration: ms });
   await dmMember(guild, member.id, `🔇 Вы получили мут на ${formatDuration(ms)}: ${reason}`, settings ?? (await loadSettings(guild.id)));
   return entry;
 }
 
 async function kickMember(guild, member, { moderatorId, reason, settings }) {
-  if (!member.kickable) throw new Error('Не могу кикнуть этого участника.');
+  const why = whyCannot(guild, member, 'kick');
+  if (why) throw refusal(why);
   // DM first: after the kick there is no common server any more.
   await dmMember(guild, member.id, `👢 Вы были выгнаны: ${reason}`, settings ?? (await loadSettings(guild.id)));
-  await member.kick(reason);
+  await callDiscord(() => member.kick(reason), 'kick');
   return recordAndAnnounce(guild, { userId: member.id, moderatorId, action: 'kick', reason });
 }
 
 /** Ban, permanent or for `ms` milliseconds (the scheduler lifts it). */
 async function banUser(guild, userId, { moderatorId, reason, ms = null, deleteSeconds = 0, settings }) {
   const member = await guild.members.fetch(userId).catch(() => null);
-  if (member && !member.bannable) throw new Error('Не могу забанить этого участника.');
+  const why = member && whyCannot(guild, member, 'ban');
+  if (why) throw refusal(why);
   const until = ms ? `на ${formatDuration(ms)}` : 'навсегда';
   if (member) await dmMember(guild, userId, `🔨 Вы забанены ${until}: ${reason}`, settings ?? (await loadSettings(guild.id)));
-  await guild.members.ban(userId, { reason, deleteMessageSeconds: deleteSeconds });
+  await callDiscord(() => guild.members.ban(userId, { reason, deleteMessageSeconds: deleteSeconds }), 'ban');
   // A new ban replaces an older temporary one.
   await ModLog.update({ active: false }, { where: { guildId: guild.id, userId, action: 'ban', active: true } });
   return recordAndAnnounce(guild, {
@@ -96,7 +107,7 @@ async function banUser(guild, userId, { moderatorId, reason, ms = null, deleteSe
 }
 
 async function unbanUser(guild, userId, { moderatorId, reason }) {
-  await guild.members.unban(userId);
+  await callDiscord(() => guild.members.unban(userId, reason || undefined), 'ban');
   await ModLog.update({ active: false }, { where: { guildId: guild.id, userId, action: 'ban', active: true } });
   return recordAndAnnounce(guild, { userId, moderatorId, action: 'unban', reason });
 }
@@ -120,10 +131,13 @@ async function warnMember(guild, user, { moderatorId, reason, settings }) {
   if (rule) {
     // With "only with the right" on, a moderator cannot get past his own rights through the warning counter (the bot's own warnings, e.g. from automod, always count).
     if (settings?.modEscalateNeedsPerm && moderatorId !== guild.client.user.id && !(await moderatorCan(guild, moderatorId, rule.action))) {
-      escalation = { action: rule.action, ms: rule.action === 'kick' ? undefined : rule.minutes > 0 ? rule.minutes * MINUTE : undefined, skipped: true };
+      escalation = { action: rule.action, ms: ruleMs(rule), status: 'skipped', skipped: true, error: 'у модератора нет права на это действие' };
     } else {
       escalation = await escalate(guild, user.id, rule, count, settings);
     }
+    // the real outcome stays with the warning (never "applied" when it was not)
+    const { action, ms, status, error, until } = escalation;
+    await warning.update({ autoAction: JSON.stringify({ action, ms: ms || null, status, error: error || null, until: until || null, threshold: rule.count }) }).catch(() => {});
   }
   return { warning, count, entry, escalation };
 }
@@ -139,24 +153,59 @@ async function moderatorCan(guild, moderatorId, action) {
   return Boolean(member?.permissions?.has(flag));
 }
 
+/** The length of a threshold's punishment: a mute always has one (1 min .. 28 days), a ban may be permanent (null). */
+function ruleMs(rule) {
+  if (rule.action === 'mute') return Math.min(Math.max(rule.minutes, 1) * MINUTE, MAX_TIMEOUT);
+  if (rule.action === 'ban') return rule.minutes > 0 ? rule.minutes * MINUTE : null;
+  return null;
+}
+
+/**
+ * Runs a threshold's punishment. Always returns { action, ms, status, error?, entry?, until? }:
+ * applied · already (a longer mute is already running — not shortened) · failed (with the exact reason).
+ */
 async function escalate(guild, userId, rule, count, settings) {
   const botId = guild.client.user.id;
   const reason = `Автоматически: ${count} предупреждений`;
+  const ms = ruleMs(rule);
+  const base = { action: rule.action, ms };
   try {
-    if (rule.action === 'ban') {
-      const ms = rule.minutes > 0 ? rule.minutes * MINUTE : null;
-      const entry = await banUser(guild, userId, { moderatorId: botId, reason, ms, settings });
-      return { action: 'ban', ms, entry };
-    }
-    const member = await guild.members.fetch(userId).catch(() => null);
-    if (!member) return { action: rule.action, error: 'участника нет на сервере' };
-    if (rule.action === 'kick') return { action: 'kick', entry: await kickMember(guild, member, { moderatorId: botId, reason, settings }) };
-    const ms = Math.min(Math.max(rule.minutes, 1) * MINUTE, MAX_TIMEOUT);
-    return { action: 'mute', ms, entry: await muteMember(guild, member, ms, { moderatorId: botId, reason, settings }) };
+    if (rule.action === 'ban') return { ...base, status: 'applied', entry: await banUser(guild, userId, { moderatorId: botId, reason, ms, settings }) };
+    const member = await guild.members.fetch({ user: userId, force: true }).catch(() => null);
+    if (!member) return { ...base, status: 'failed', error: 'Участника нет на сервере.' };
+    if (rule.action === 'kick') return { ...base, status: 'applied', entry: await kickMember(guild, member, { moderatorId: botId, reason, settings }) };
+    const running = Number(member.communicationDisabledUntilTimestamp) || 0;
+    if (running > Date.now() + ms) return { ...base, status: 'already', until: running };
+    return { ...base, status: 'applied', entry: await muteMember(guild, member, ms, { moderatorId: botId, reason, settings }) };
   } catch (err) {
     logger.warn(`Warn escalation (${rule.action}) failed in guild ${guild.id}: ${err.message}`);
-    return { action: rule.action, error: err.message };
+    return { ...base, status: 'failed', error: err.message };
   }
+}
+
+/** "мут на 1 ч", "бан на 2 д", "бан навсегда", "кик" — never "мут на " without the length. */
+function punishmentName(action, ms) {
+  if (action === 'mute') return `мут на ${formatDuration(ms || MINUTE)}`;
+  if (action === 'ban') return ms ? `бан на ${formatDuration(ms)}` : 'бан навсегда';
+  if (action === 'kick') return 'кик';
+  return action;
+}
+
+/** One line about an automatic punishment for messages and embeds: { ok, text }. */
+function describeEscalation(e) {
+  if (!e) return null;
+  const what = punishmentName(e.action, e.ms);
+  if (e.status === 'applied') return { ok: true, text: `✅ Автоматически: ${what}.` };
+  if (e.status === 'already') return { ok: true, text: `ℹ️ ${what[0].toUpperCase()}${what.slice(1)} не понадобился: участник уже в муте до <t:${Math.floor(e.until / 1000)}:f>.` };
+  if (e.status === 'skipped') return { ok: false, text: `ℹ️ Порог достигнут, но автоматическое наказание (${what}) не применено: у вас нет права на это действие. Решите вручную через /mod.` };
+  return { ok: false, text: `❌ Автоматическое наказание (${what}) не применено. ${e.error || ''}`.trim() };
+}
+
+/** Removes a warning but keeps it in the history (who, when, why). Returns false when it was already removed. */
+async function revokeWarning(warning, { by, reason }) {
+  if (warning.revokedAt) return false;
+  await warning.update({ revokedAt: new Date(), revokedBy: by, revokeReason: String(reason || '').slice(0, 250) || null });
+  return true;
 }
 
 /** Lifts the temporary bans that have run out. Returns how many were lifted. */
@@ -196,5 +245,5 @@ function startModScheduler(client) {
 
 module.exports = {
   parseThresholds, activeWarnings, activeWarningsWhere, dmMember, muteMember, kickMember, banUser, unbanUser,
-  warnMember, escalate, liftExpiredBans, startModScheduler, moderatorCan, ESCALATION_ACTIONS, MAX_THRESHOLDS
+  warnMember, escalate, liftExpiredBans, punishmentName, describeEscalation, revokeWarning, ruleMs, whyCannot, startModScheduler, moderatorCan, ESCALATION_ACTIONS, MAX_THRESHOLDS
 };

@@ -36,14 +36,19 @@ const { makeUser, makeInteraction } = require('./mock');
   const members = new Map();
   const G = { id: 'G1', name: 'Сервер', client, ownerId: 'OWNER', roles: { everyone: { id: 'everyone' } }, channels: { fetch: async () => null } };
   G.members = {
-    fetch: async (id) => { const m = members.get(id); if (!m) throw new Error('Unknown Member'); return m; },
+    fetch: async (q) => { const id = typeof q === 'object' ? q.user : q; const m = members.get(id); if (!m) throw new Error('Unknown Member'); return m; },
     ban: async (id, o) => { world.bans.add(id); world.banCalls.push([id, o]); },
     unban: async (id) => { if (!world.bans.has(id)) throw Object.assign(new Error('Unknown Ban'), { code: 10026 }); world.bans.delete(id); world.unbans.push(id); }
   };
   client.guilds.cache.set(G.id, G);
+  // the bot's own member: its permissions and its highest role (position 5) decide what it may do
+  const role = (id, position) => ({ id, name: id, position, comparePositionTo(o) { return position - o.position; } });
+  const botPerms = { all: true };
+  G.members.me = { id: 'BOT', permissions: { has: () => botPerms.all }, roles: { highest: role('Dark', 5) } };
+  const HIGH = role('Админы', 9);
   const mk = (id, extra = {}) => {
     const m = { id, guild: G, user: { id, bot: false, username: 'u' + id }, moderatable: true, kickable: true, bannable: true, permissions: { has: () => false },
-      roles: { cache: new Map(), highest: { position: 1, comparePositionTo(o) { return 1 - o.position; } } },
+      roles: { cache: new Map(), highest: role('Участник', 1) },
       timeout: async (ms) => { world.timeouts.push([id, ms]); }, kick: async () => { world.kicks.push(id); }, ...extra };
     members.set(id, m); return m;
   };
@@ -86,7 +91,7 @@ const { makeUser, makeInteraction } = require('./mock');
   await test('warn: counts, DMs the member, writes a numbered case', async () => {
     reset();
     const i = await run('warn', { user: makeUser('V1'), reason: 'флуд' });
-    assert(text(i).includes('(1)') && text(i).includes('флуд'), text(i));
+    assert(text(i).includes('"Действующих предупреждений","value":"1"') && text(i).includes('флуд'), text(i));
     assert(dms.length === 1 && dms[0].id === 'V1' && dms[0].t.includes('флуд') && dms[0].t.includes('Сервер'), JSON.stringify(dms));
     const c = await ModLog.findOne({ where: { guildId: 'G1', action: 'warn', userId: 'V1' } });
     assert(c.caseNumber >= 1, 'case number');
@@ -135,10 +140,12 @@ const { makeUser, makeInteraction } = require('./mock');
     await setS({ modWarnThresholds: JSON.stringify([{ count: 1, action: 'kick', minutes: 0 }]) });
     const i = await run('warn', { user: makeUser('V1'), reason: 'k' });
     assert(world.kicks.join() === 'V1' && text(i).includes('кик'), text(i));
-    members.get('V1').kickable = false; await Warning.destroy({ where: { guildId: 'G1', userId: 'V1' } });
+    members.get('V1').roles.highest = HIGH; await Warning.destroy({ where: { guildId: 'G1', userId: 'V1' } });
     const j = await run('warn', { user: makeUser('V1'), reason: 'k2' });
-    assert(text(j).includes('не удалось') && (await Warning.count({ where: { guildId: 'G1', userId: 'V1' } })) === 1, text(j));
-    members.get('V1').kickable = true; await setS({ modWarnThresholds: '[]' });
+    assert(text(j).includes('не применено') && text(j).includes('@Админы') && (await Warning.count({ where: { guildId: 'G1', userId: 'V1' } })) === 1, text(j));
+    const w = await Warning.findOne({ where: { guildId: 'G1', userId: 'V1' } });
+    assert(JSON.parse(w.autoAction).status === 'failed', 'the warning keeps the real outcome');
+    members.get('V1').roles.highest = role('Участник', 1); await setS({ modWarnThresholds: '[]' });
   });
   await test('escalation: simultaneous warnings never skip or repeat a threshold', async () => {
     reset(); await Warning.destroy({ where: { guildId: 'G1', userId: 'V2' } });
@@ -147,13 +154,39 @@ const { makeUser, makeInteraction } = require('./mock');
     assert(world.timeouts.filter((t) => t[0] === 'V2').length === 1, 'exactly one mute: ' + JSON.stringify(world.timeouts));
     await setS({ modWarnThresholds: '[]' });
   });
+  await test('auto-mute: exact reasons, the real API answer, a longer running mute is kept, the text always has the length', async () => {
+    reset(); await Warning.destroy({ where: { guildId: 'G1', userId: 'V3' } });
+    await setS({ modEscalateNeedsPerm: false, modWarnThresholds: JSON.stringify([{ count: 1, action: 'mute', minutes: 30 }]) });
+    const v = members.get('V3');
+    v.permissions = { has: () => true }; // administrator: Discord forbids timeouts
+    let i = await run('warn', { user: makeUser('V3'), reason: 'a' });
+    assert(text(i).includes('мут на 30 мин') && text(i).includes('Администратор') && !text(i).includes('мут на )'), text(i));
+    v.permissions = { has: () => false };
+    // Discord itself refuses (e.g. a permission overwrite): its code is turned into words
+    v.timeout = async () => { throw Object.assign(new Error('Missing Permissions'), { code: 50013 }); };
+    await Warning.destroy({ where: { guildId: 'G1', userId: 'V3' } });
+    i = await run('warn', { user: makeUser('V3'), reason: 'b' });
+    assert(text(i).includes('Discord отказал'), text(i));
+    const w = await Warning.findOne({ where: { guildId: 'G1', userId: 'V3' }, order: [['id', 'DESC']] });
+    assert(JSON.parse(w.autoAction).status === 'failed' && JSON.parse(w.autoAction).ms === 1800000, w.autoAction);
+    // already muted for longer: not shortened
+    v.timeout = async (ms) => { world.timeouts.push(['V3', ms]); };
+    v.communicationDisabledUntilTimestamp = Date.now() + 5 * 3600000;
+    await Warning.destroy({ where: { guildId: 'G1', userId: 'V3' } });
+    i = await run('warn', { user: makeUser('V3'), reason: 'c' });
+    assert(!world.timeouts.some((t) => t[0] === 'V3') && text(i).includes('уже в муте'), text(i));
+    v.communicationDisabledUntilTimestamp = null;
+    assert(modSvc.describeEscalation({ action: 'mute', status: 'failed', error: 'x' }).text.includes('мут на 1 мин'), 'never an empty length');
+    assert(modSvc.punishmentName('ban', null) === 'бан навсегда', 'permanent ban');
+    await setS({ modWarnThresholds: '[]' });
+  });
   await test('warning expiry: old warnings do not count and are not listed', async () => {
     reset(); await Warning.destroy({ where: { guildId: 'G1', userId: 'V1' } });
     const old = await Warning.create({ guildId: 'G1', userId: 'V1', moderatorId: 'm', reason: 'давно' });
     await sequelize.query('UPDATE warnings SET createdAt = :d WHERE id = :id', { replacements: { d: new Date(Date.now() - 10 * 86400000).toISOString().replace('T', ' ').replace('Z', ' +00:00'), id: old.id } });
     await setS({ modWarnExpireDays: 7 });
     const list = await run('warnings', { user: makeUser('V1') }); assert(text(list).includes('нет действующих'), text(list));
-    const w = await run('warn', { user: makeUser('V1'), reason: 'новое' }); assert(text(w).includes('(1)'), text(w));
+    const w = await run('warn', { user: makeUser('V1'), reason: 'новое' }); assert(text(w).includes('"Действующих предупреждений","value":"1"'), text(w));
     await setS({ modWarnExpireDays: 0 });
     const all = await run('warnings', { user: makeUser('V1') }); assert(text(all).includes('(2)') || text(all).includes('давно'), text(all));
   });
@@ -161,7 +194,9 @@ const { makeUser, makeInteraction } = require('./mock');
     reset(); await Warning.destroy({ where: { guildId: 'G1', userId: 'V2' } });
     await run('warn', { user: makeUser('V2'), reason: 'a' }); await run('warn', { user: makeUser('V2'), reason: 'b' });
     const one = await Warning.findOne({ where: { guildId: 'G1', userId: 'V2' } });
-    await run('unwarn', { number: one.id }); assert((await Warning.count({ where: { guildId: 'G1', userId: 'V2' } })) === 1, 'unwarn');
+    await run('unwarn', { number: one.id }); assert((await Warning.count({ where: { guildId: 'G1', userId: 'V2', revokedAt: null } })) === 1, 'unwarn');
+    assert((await Warning.findByPk(one.id)).revokedBy === 'MOD', 'the removed warning stays in the history');
+    assert(text(await run('unwarn', { number: one.id })).includes('не найдено'), 'twice');
     const c = await run('clearwarns', { user: makeUser('V2') }); assert(text(c).includes('снято предупреждений: 1'), text(c));
     assert(text(await run('clearwarns', { user: makeUser('V2') })).includes('нет предупреждений'), 'empty');
   });
@@ -184,9 +219,15 @@ const { makeUser, makeInteraction } = require('./mock');
     assert(text(await run('mute', { user: makeUser('V1'), duration: 'скоро' })).includes('Не понял срок'), 'junk');
     assert(text(await run('mute', { user: makeUser('V1'), duration: '29d' })).includes('28 дней'), 'limit');
     assert(text(await run('mute', { user: makeUser('V1'), duration: '10m', reason: 'x' }, { member: { ...modMember, roles: { highest: { position: 0, comparePositionTo(o) { return -o.position; } } } } })).includes('не ниже вашей'), 'hierarchy');
-    members.get('V1').moderatable = false;
-    assert(text(await run('mute', { user: makeUser('V1'), duration: '10m' })).includes('Не могу замутить'), 'cannot');
-    members.get('V1').moderatable = true;
+    members.get('V1').roles.highest = HIGH;
+    assert(text(await run('mute', { user: makeUser('V1'), duration: '10m' })).includes('выше роли бота'), 'cannot: hierarchy');
+    members.get('V1').roles.highest = role('Участник', 1);
+    members.get('V1').permissions = { has: () => true }; // an administrator
+    assert(text(await run('mute', { user: makeUser('V1'), duration: '10m' })).includes('Администратор'), 'cannot: administrator');
+    members.get('V1').permissions = { has: () => false };
+    botPerms.all = false;
+    assert(text(await run('mute', { user: makeUser('V1'), duration: '10m' })).includes('нет права'), 'cannot: the bot lacks the permission');
+    botPerms.all = true;
   });
   await test('ban with a duration is temporary; without one it is permanent; DM is sent before the ban', async () => {
     reset(); world.bans.clear();
@@ -335,7 +376,7 @@ const { makeUser, makeInteraction } = require('./mock');
     reset(); deleted = 0; notices.length = 0; mk('AM'); await setS({ automodAction: 'mute', automodMuteMinutes: 15 });
     const s = await GuildSettings.findByPk('G1');
     await automod.handleViolation(s, msg('a', 'AM'), 'caps'); assert(world.timeouts[0][0] === 'AM' && world.timeouts[0][1] === 900000 && notices[0].includes('мут на 15 мин'), JSON.stringify(world.timeouts) + notices[0]);
-    mk('AM2', { moderatable: false }); const before = await ModLog.count({ where: { guildId: 'G1', action: 'automod' } });
+    mk('AM2', { roles: { cache: new Map(), highest: HIGH } }); const before = await ModLog.count({ where: { guildId: 'G1', action: 'automod' } });
     await automod.handleViolation(s, msg('a', 'AM2'), 'caps');
     assert(deleted === 2 && (await ModLog.count({ where: { guildId: 'G1', action: 'automod' } })) === before + 1 && !notices[1].includes('Выдано'), 'fallback ' + notices[1]);
     await setS({ automodAction: 'delete' });
