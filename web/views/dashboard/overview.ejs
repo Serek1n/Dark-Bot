@@ -51,7 +51,7 @@
           <div class="hp-acts">
             <% if (sel.page) { %>
               <a class="btn" href="/dashboard/<%= guild.id %>/<%= sel.page %>">Открыть настройки модуля</a>
-              <% sel.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && !mods.list.some((o) => o.page === p) && M.pageVisible(p, locals.settings)).forEach((p) => { %><a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/<%= p %>"><%= M.PAGE_LABELS[p] %></a><% }) %>
+              <% sel.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && !mods.list.some((o) => !o.parent && o.page === p) && M.pageVisible(p, locals.settings)).forEach((p) => { %><a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/<%= p %>"><%= M.PAGE_LABELS[p] %></a><% }) %>
             <% } else { %>
               <p class="hint">У этого модуля нет настроек в панели: он работает командами в Discord.</p>
             <% } %>
@@ -69,12 +69,12 @@
           { v: guild.approximate_member_count ? fmtN(guild.approximate_member_count) : '—', l: 'Участников на сервере', href: null },
           { v: fmtN(memberCount), l: 'В системе уровней', href: g + '/leveling' },
           { v: fmtN(sv('economy')), l: 'Монет в обороте', href: g + '/economy', key: 'economy' },
-          { v: fmtN(warningCount), l: 'Предупреждений', href: g + '/moderation' },
-          { v: fmtN(sv('moderation', 1)), l: 'Действий модераторов', href: g + '/moderation' },
+          { v: fmtN(warningCount), l: 'Предупреждений', href: g + '/moderation-warnings' },
+          { v: fmtN(sv('moderation', 1)), l: 'Действий модераторов', href: g + '/moderation-log' },
           { v: mods.on + '/' + mods.total, l: 'Модулей включено', href: g + '/features' }
         ];
         const live = [
-          { key: 'report', l: 'Новых жалоб', href: g + '/moderation' },
+          { key: 'report', from: 'moderation', i: 2, l: 'Новых жалоб', href: g + '/moderation-reports' },
           { key: 'tickets', l: 'Открытых обращений', href: g + '?m=tickets' },
           { key: 'giveaways', l: 'Розыгрышей идёт', href: g + '/giveaways' },
           { key: 'polls', l: 'Голосований идёт', href: g + '?m=polls' },
@@ -100,7 +100,7 @@
           <% if (live.length) { %>
           <div class="hd-live" aria-label="Сейчас на сервере">
             <span class="hd-live-cap">Сейчас на сервере</span>
-            <% live.forEach((x) => { const v = Number(sv(x.key, x.i)) || 0; %>
+            <% live.forEach((x) => { const v = Number(sv(x.from || x.key, x.i)) || 0; %>
               <a class="hd-live-row<%= v ? ' has' : '' %>" href="<%= x.href %>"><span class="hp-attn-ico"><%- M.icon(x.key, 14) %></span><span class="hd-live-l"><%= x.l %></span><b><%= fmtN(v) %></b></a>
             <% }) %>
           </div>
@@ -147,7 +147,7 @@
                 </div>
                 <% if (recentLogs.length < Math.max(topMembers.length, 7)) { %>
                   <div class="hd-fill">
-                    <a class="btn btn-secondary" href="<%= g %>/moderation#journal">Весь журнал</a>
+                    <a class="btn btn-secondary" href="<%= g %>/moderation-log">Весь журнал</a>
                     <a class="btn btn-secondary" href="<%= g %>/moderation">Правила наказаний</a></div>
                 <% } else { %><a class="card-link" href="<%= g %>/moderation">Весь журнал →</a><% } %>
               <% } %>

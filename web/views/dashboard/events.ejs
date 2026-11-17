@@ -73,7 +73,7 @@
                 <div class="ev-main">
                   <div class="ev-title"><b><%= t.title %></b><% if (t.required) { %><span class="ev-badge">обязательное</span><% } %><% if (off) { %><span class="ev-badge muted">раздел «<%= econ.titles[t.section] %>» выключен</span><% } %></div>
                   <div class="ev-when"><%= t.when %>.<%= t.why ? ' ' + t.why : '' %></div>
-                  <details class="ev-example"><summary>Пример сообщения</summary><div class="ev-embed"><% t.example.split('\n').forEach((line, i) => { %><div class="<%= i ? '' : 'ev-embed-title' %>"><%= line %></div><% }) %></div></details>
+                  <details class="ev-example"><summary>Пример сообщения</summary><div class="ev-embed"><% [].concat(t.example).forEach((line, i) => { %><div class="<%= i ? '' : 'ev-embed-title' %>"><%= line %></div><% }) %></div></details>
                 </div>
                 <div class="ev-side">
                   <% if (t.required) { %>

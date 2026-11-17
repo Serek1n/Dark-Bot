@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Панель управления' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Панель управления комнатами</h1>
+        <p class="page-intro">Сообщение с кнопками, через которое владельцы управляют своими комнатами. Те же действия есть в команде <code>/voice</code>.</p>
+      </div>
+      <form method="post" action="/dashboard/<%= guild.id %>/temp-voice/panel" class="card g-span" data-no-guard>
+        <h2>Панель управления комнатами</h2>
+        <div class="hint">Сообщение с кнопками для владельцев комнат: название и лимит, доступ (открыть, закрыть, скрыть), доверенные, приглашение, выгнать, регион, бан и разбан, удаление. Разместите его в отдельном канале, например «панель-управления». Кнопки управляют той комнатой, в которой сидит нажавший (или его собственной). Те же действия есть в команде <code>/voice</code>.</div>
+        <div>
+          <label>Канал для панели</label>
+          <select name="channelId" required>
+            <% channels.filter(c => c.type === 0 || c.type === 5).forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.tempVoicePanelChannelId === c.id ? 'selected' : '' %>># <%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <% if (settings.tempVoicePanelMessageId) { %><div class="hint">Панель уже размещена. Если разместить заново, старое сообщение будет удалено.</div><% } %>
+        <div class="hint">Боту нужны в этом канале права «Просмотр канала», «Отправлять сообщения» и «Встраивать ссылки», а для работы кнопок — «Управлять каналами», «Управлять ролями» и «Перемещать участников».</div>
+        <button class="btn" type="submit"><%= settings.tempVoicePanelMessageId ? 'Разместить заново' : 'Разместить панель' %></button>
+      </form>
+
+    </main>
+  </div>
+</body>
+</html>

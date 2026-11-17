@@ -52,7 +52,7 @@ async function sendExample(settings, type, c = client()) {
   if (!id) return { error: 'channel' };
   const ch = c && (c.channels?.cache?.get(id) || (await c.channels?.fetch?.(id).catch(() => null)));
   if (!ch || typeof ch.send !== 'function') return { error: 'post' };
-  const [title, ...rest] = t.example.split('\n');
+  const [title, ...rest] = [].concat(t.example);
   const msg = await ch.send({ allowedMentions: { parse: [] }, embeds: [embeds.baseEmbed(embeds.COLORS.neutral).setTitle(title).setDescription(rest.join('\n') || null).setFooter({ text: 'Пример события из панели — настоящие события выглядят так же' })] }).catch(() => null);
   return msg ? { ok: true } : { error: 'post' };
 }

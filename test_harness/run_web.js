@@ -93,11 +93,11 @@ const express = require('express');
   });
   await test('moderation: Russian action names and the action filter', async () => {
     await db.ModLog.create({ guildId: '777000000000000001', userId: '100000000000000009', moderatorId: '100000000000000008', action: 'warn', reason: null });
-    const all = await (await fetch(base + '/moderation')).text();
+    const all = await (await fetch(base + '/moderation-log')).text();
     assert(all.includes('Бан') && all.includes('Предупреждение') && !all.includes('>ban<'), 'labels');
-    const only = await (await fetch(base + '/moderation?action=ban')).text();
+    const only = await (await fetch(base + '/moderation-log?action=ban')).text();
     assert(only.includes('Бан') && !only.includes('badge badge-warn'), 'filter');
-    const junk = await fetch(base + '/moderation?action=%27%3Cscript%3E');
+    const junk = await fetch(base + '/moderation-log?action=%27%3Cscript%3E');
     assert(junk.status === 200, 'junk filter must be ignored');
   });
   await test('economy: totals render; grant adds, takes away, never below zero; bad ID rejected', async () => {

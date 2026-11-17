@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Действующие наказания' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Действующие наказания</h1>
+        <p class="page-intro">Кто сейчас в муте и в бане. Наказание можно снять отсюда — бот снимет его в Discord и запишет в журнал.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+         const person = (id) => { const u = users[id] || { name: id, avatar: '' }; return `<span class="person"><img src="${u.avatar}" alt="" loading="lazy" /><span>${String(u.name).replace(/[<>&"]/g, '')}</span></span>`; }; %>
+      <% if (locals.modfail) { %><div class="card g-span mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= modfail %></p></div><% } %>
+      <div class="card g-span">
+        <h2>Муты<span class="sub">Тайм-аут Discord, пока срок не вышел</span></h2>
+        <% if (!mutes.length) { %>
+          <p class="empty-state">Сейчас никто не в муте.</p>
+        <% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Участник</th><th>Причина</th><th>Модератор</th><th>До</th><th></th></tr></thead>
+            <tbody>
+              <% mutes.forEach((m) => { %>
+                <tr>
+                  <td class="nowrap"><%- person(m.userId) %></td><td><%= m.reason %></td><td class="nowrap"><%- person(m.moderatorId) %></td><td class="nowrap"><%= when(m.endsAt) %></td>
+                  <td><form method="post" action="<%= g %>/moderation-punishments/lift" data-no-guard data-confirm="Снять мут?" data-confirm-ok="Снять"><input type="hidden" name="userId" value="<%= m.userId %>" /><input type="hidden" name="kind" value="mute" /><button class="btn btn-secondary" type="submit">Снять</button></form></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+      <div class="card g-c1">
+        <h2>Временные баны<span class="sub">Снимутся сами, когда выйдет срок</span></h2>
+        <% if (!bans.length) { %>
+          <p class="empty-state">Временных банов нет.</p>
+        <% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Участник</th><th>Причина</th><th>Снимется</th><th></th></tr></thead>
+            <tbody>
+              <% bans.forEach((b) => { %>
+                <tr>
+                  <td class="nowrap"><%- person(b.userId) %></td><td><%= b.reason %></td><td class="nowrap"><%= b.expiresAt ? when(b.expiresAt) : '—' %></td>
+                  <td><form method="post" action="<%= g %>/moderation-punishments/lift" data-no-guard data-confirm="Разбанить сейчас?" data-confirm-ok="Разбанить"><input type="hidden" name="userId" value="<%= b.userId %>" /><input type="hidden" name="kind" value="ban" /><button class="btn btn-secondary" type="submit">Разбанить</button></form></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+      <div class="card g-c2">
+        <h2>Баны навсегда<span class="sub">Последние 30</span></h2>
+        <% if (!permBans.length) { %>
+          <p class="empty-state">Банов навсегда не было.</p>
+        <% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Участник</th><th>Причина</th><th>Когда</th><th></th></tr></thead>
+            <tbody>
+              <% permBans.forEach((b) => { %>
+                <tr>
+                  <td class="nowrap"><%- person(b.userId) %></td><td><%= b.reason %></td><td class="nowrap"><%= when(b.createdAt) %></td>
+                  <td><form method="post" action="<%= g %>/moderation-punishments/lift" data-no-guard data-confirm="Разбанить? Если участник уже разбанен, ничего не изменится." data-confirm-ok="Разбанить"><input type="hidden" name="userId" value="<%= b.userId %>" /><input type="hidden" name="kind" value="ban" /><button class="btn btn-secondary" type="submit">Разбанить</button></form></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

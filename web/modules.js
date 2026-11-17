@@ -55,6 +55,9 @@ const n = (v) => Number(v || 0);
 // pages: the panel pages that belong to the module (the first is where its name leads); [] = commands only.
 // core: always on, no switch. depends: switching this one off is offered for these too (they lose their sense without it).
 // stats: the numbers on the home page — [{ value, label }], the first one also goes into the module list.
+// The tabs of the merged modules (old addresses keep working: see web/routes/dashboard/moderation.js and tempVoice.js).
+const MOD_PAGES = ['moderation', 'moderation-punishments', 'moderation-warnings', 'moderation-auto', 'moderation-reports', 'moderation-appeals', 'moderation-log', 'moderation-settings'];
+const VOICE_PAGES = ['temp-voice', 'temp-voice-rooms', 'temp-voice-panel', 'temp-voice-access', 'temp-voice-roles', 'temp-voice-auto', 'temp-voice-stats', 'temp-voice-settings'];
 const LAYOUT = [
   { key: 'leveling', group: 'community', pages: ['leveling', 'channel-boosts'],
     stats: async (g) => {
@@ -84,15 +87,15 @@ const LAYOUT = [
   { key: 'polls', group: 'community', pages: [],
     stats: async (g) => { const { Poll } = db(); return [{ value: await Poll.count(where(g, { ended: false })), label: 'идёт сейчас' }]; } },
   { key: 'fun', group: 'community', pages: [] },
-  { key: 'moderation', group: 'moderation', pages: ['moderation'],
+  { key: 'moderation', group: 'moderation', pages: MOD_PAGES,
     stats: async (g) => {
-      const { Warning, ModLog } = db();
-      const [warns, actions] = await Promise.all([Warning.count({ where: { guildId: g, revokedAt: null } }), ModLog.count(where(g))]);
-      return [{ value: warns, label: 'предупреждений' }, { value: actions, label: 'действий модераторов' }];
+      const { Warning, ModLog, Report } = db();
+      const [warns, actions, reports] = await Promise.all([Warning.count({ where: { guildId: g, revokedAt: null } }), ModLog.count(where(g)), Report.count(where(g, { status: 'open' }))]);
+      return [{ value: warns, label: 'предупреждений' }, { value: actions, label: 'действий модераторов' }, { value: reports, label: 'новых жалоб' }];
     } },
   { key: 'automod', group: 'moderation', pages: ['automod'] },
-  { key: 'report', group: 'moderation', pages: ['moderation'],
-    stats: async (g) => { const { Report } = db(); return [{ value: await Report.count(where(g, { status: 'open' })), label: 'новых жалоб' }]; } },
+  // part of «Наказания»: its own switch lives on the «Жалобы» tab, no card of its own in the list of modules
+  { key: 'report', group: 'moderation', parent: 'moderation', pages: ['moderation-reports'] },
   { key: 'tickets', group: 'moderation', pages: [],
     stats: async (g) => { const { Ticket } = db(); return [{ value: await Ticket.count(where(g, { status: 'open' })), label: 'открытых обращений' }]; } },
   { key: 'logs', group: 'moderation', pages: ['logs'] },
@@ -101,9 +104,10 @@ const LAYOUT = [
     stats: async (g) => { const { ReactionRole } = db(); return [{ value: await ReactionRole.count(where(g)), label: 'ролей по реакциям' }]; } },
   { key: 'interactive', group: 'server', pages: ['interactive'],
     stats: async (g) => { const { InteractiveMessage } = db(); return [{ value: await InteractiveMessage.count(where(g)), label: 'сообщений с кнопками' }]; } },
-  { key: 'tempVoice', group: 'server', pages: ['temp-voice'],
+  { key: 'tempVoice', group: 'server', pages: VOICE_PAGES,
     stats: async (g) => { const { TempVoiceChannel } = db(); return [{ value: await TempVoiceChannel.count(where(g)), label: 'комнат сейчас' }]; } },
-  { key: 'voiceRoles', group: 'server', pages: ['temp-voice'] },
+  // part of «Временные голосовые»: works in any voice channel, temporary or not; its switch is on the «Голосовые роли» tab
+  { key: 'voiceRoles', group: 'server', parent: 'tempVoice', pages: ['temp-voice-roles'] },
   { key: 'customCommands', group: 'server', pages: ['custom-commands'],
     stats: async (g) => { const { CustomCommand } = db(); return [{ value: await CustomCommand.count(where(g)), label: 'команд' }]; } },
   { key: 'alerts', group: 'tools', pages: ['alerts'],
@@ -135,6 +139,7 @@ const MODULES = LAYOUT.map((m) => {
     page: m.pages[0] || null,
     depends: m.depends || [],
     core: Boolean(m.core),
+    parent: m.parent || null, // a section of another module (kept as its own switch, not listed on its own)
     stats: m.stats || null
   };
 });
@@ -143,26 +148,39 @@ const BY_KEY = new Map(MODULES.map((m) => [m.key, m]));
 // Pages that are not a module's: what to show in their header instead.
 const PAGE_TITLES = { overview: 'Главная', features: 'Модули', changelog: 'Обновления' };
 // The tabs of a module with several pages (its header shows them; the search finds each).
-const PAGE_LABELS = { leveling: 'Настройки', 'channel-boosts': 'Множители', moderation: 'Наказания и журнал',
+const PAGE_LABELS = { leveling: 'Настройки', 'channel-boosts': 'Множители',
+  moderation: 'Обзор', 'moderation-punishments': 'Наказания', 'moderation-warnings': 'Предупреждения', 'moderation-auto': 'Автонаказания',
+  'moderation-reports': 'Жалобы', 'moderation-appeals': 'Апелляции', 'moderation-log': 'Журнал', 'moderation-settings': 'Настройки',
+  'temp-voice': 'Обзор', 'temp-voice-rooms': 'Создание комнат', 'temp-voice-panel': 'Панель управления', 'temp-voice-access': 'Права доступа',
+  'temp-voice-roles': 'Голосовые роли', 'temp-voice-auto': 'Автоматизация', 'temp-voice-stats': 'Статистика', 'temp-voice-settings': 'Настройки',
   economy: 'Настройки', 'economy-bank': 'Центробанк', 'economy-treasury': 'Казна и цели', 'economy-deals': 'Сделки и коды', 'economy-journal': 'Журнал' };
 // A page shown only while one of these economy sections is on (bot/modules/econ/config.js).
 const PAGE_NEEDS = { 'economy-bank': ['bank', 'seasons'], 'economy-treasury': ['treasury', 'goals'], 'economy-deals': ['deals', 'gifts'] };
-const pageVisible = (page, settings) => !PAGE_NEEDS[page] || PAGE_NEEDS[page].some((k) => require('../bot/modules/econ/config').isOn(settings, k));
+// Tabs whose pages are not built yet in this version (they appear as soon as their stage ships).
+const PAGE_LATER = new Set(['moderation-appeals', 'temp-voice-access', 'temp-voice-auto', 'temp-voice-stats', 'temp-voice-settings']);
+const pageVisible = (page, settings) => !PAGE_LATER.has(page) && (!PAGE_NEEDS[page] || PAGE_NEEDS[page].some((k) => require('../bot/modules/econ/config').isOn(settings, k)));
 
-/** The module a page belongs to (its first owner), or null. */
-const moduleOfPage = (page) => MODULES.find((m) => m.pages.includes(page)) || null;
-/** Every module that has this page (temp-voice: временные голосовые and голосовые роли). */
-const modulesOfPage = (page) => MODULES.filter((m) => m.pages.includes(page));
+/** The module a page belongs to (the main one, not a section), or null. */
+const moduleOfPage = (page) => MODULES.find((m) => !m.parent && m.pages.includes(page)) || MODULES.find((m) => m.pages.includes(page)) || null;
+/** Every module that has this page, the main one first (moderation-reports: «Наказания» and its section «Жалобы»). */
+const modulesOfPage = (page) => {
+  const own = MODULES.filter((m) => m.pages.includes(page));
+  const main = own.find((m) => !m.parent) || (own[0]?.parent ? BY_KEY.get(own[0].parent) : null);
+  return main ? [main, ...own.filter((m) => m !== main)] : own;
+};
 
 const isOn = (settings, m) => (m.field ? Boolean(settings && settings[m.field]) : true);
 
 /** The menu's view of the modules for one server: groups with their modules and on/off. */
 function moduleState(settings) {
   const list = MODULES.map((m) => ({ key: m.key, title: m.title, desc: m.desc, group: m.group, page: m.page, pages: m.pages, core: m.core,
-    switchable: Boolean(m.field), on: isOn(settings, m), depends: m.depends, commands: m.commands }));
-  const groups = GROUPS.map(([id, title]) => ({ id, title, modules: list.filter((m) => m.group === id) }));
-  const on = list.filter((m) => m.on).length;
-  return { list, groups, on, total: list.length };
+    switchable: Boolean(m.field), on: isOn(settings, m), depends: m.depends, commands: m.commands, parent: m.parent }));
+  // sections of a merged module are found in `list` but not shown or counted on their own
+  const top = list.filter((m) => !m.parent);
+  for (const m of top) m.sections = list.filter((x) => x.parent === m.key);
+  const groups = GROUPS.map(([id, title]) => ({ id, title, modules: top.filter((m) => m.group === id) }));
+  const on = top.filter((m) => m.on).length;
+  return { list, groups, on, total: top.length };
 }
 
 /** Modules that depend on this one (the ones offered to switch off with it). */

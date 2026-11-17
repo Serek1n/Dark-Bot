@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Предупреждения' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Предупреждения</h1>
+        <p class="page-intro">Все предупреждения и что из них вышло. Снятое предупреждение не удаляется: оно остаётся в истории с отметкой, кто и почему его снял.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+         const name = (id) => (users[id] || { name: id }).name;
+         const q = (extra) => { const p = new URLSearchParams(); if (f.state !== 'active') p.set('state', f.state); if (f.user) p.set('user', f.user); if (f.auto) p.set('auto', f.auto); Object.entries(extra || {}).forEach(([k, v]) => p.set(k, v)); const s = p.toString(); return s ? '?' + s : ''; };
+         const pages = Math.max(1, Math.ceil(total / 50)); %>
+      <div class="card g-span">
+        <h2>Предупреждения <span class="muted">· <%= Number(total).toLocaleString('ru-RU') %></span><span class="sub"><% if (expireDays) { %>Сгорают через <%= expireDays %> дн.<% } else { %>Не сгорают<% } %></span></h2>
+        <form method="get" class="econ-filters mod-wfilter" data-no-guard>
+          <div><label for="w_state">Какие</label><select id="w_state" name="state"><option value="active" <%= f.state === 'active' ? 'selected' : '' %>>Действующие</option><option value="revoked" <%= f.state === 'revoked' ? 'selected' : '' %>>Снятые</option><option value="all" <%= f.state === 'all' ? 'selected' : '' %>>Все</option></select></div>
+          <div><label for="w_user">ID участника</label><input id="w_user" type="text" name="user" inputmode="numeric" pattern="[0-9]{15,25}" value="<%= f.user %>" placeholder="Все" /></div>
+          <div><label for="w_auto">Автонаказание</label><select id="w_auto" name="auto"><option value="">Любое</option><option value="failed" <%= f.auto ? 'selected' : '' %>>Не сработало</option></select></div>
+          <button class="btn" type="submit">Показать</button>
+        </form>
+        <% if (!rows.length) { %>
+          <p class="empty-state">Ничего не найдено.</p>
+        <% } else { %>
+          <div class="table-scroll" style="margin-top:14px"><table>
+            <thead><tr><th>№</th><th>Участник</th><th>Причина</th><th>Модератор</th><th>Дата</th><th>Автонаказание</th><th>Состояние</th><th></th></tr></thead>
+            <tbody>
+              <% rows.forEach((w) => { const a = w.auto ? describe(w.auto) : null; %>
+                <tr>
+                  <td class="nowrap">#<%= w.id %></td>
+                  <td class="nowrap"><a href="<%= q({ user: w.userId }) %>"><%= name(w.userId) %></a></td>
+                  <td style="min-width:160px"><%= w.reason %></td>
+                  <td class="nowrap"><%= name(w.moderatorId) %></td>
+                  <td class="nowrap"><%= when(w.createdAt) %></td>
+                  <td style="min-width:200px"><% if (a) { %><span class="mod-auto <%= a.ok ? 'ok' : 'no' %>"><%= a.text.replace(/<t:(\d+):f>/, (m, t) => when(Number(t) * 1000)) %></span><% } else { %>—<% } %></td>
+                  <td class="nowrap"><% if (w.revokedAt) { %><span class="badge badge-unwarn">снято</span><div class="hint" style="margin:2px 0 0"><%= name(w.revokedBy) %> · <%= w.revokeReason || '' %></div><% } else if (w.expired) { %><span class="badge badge-note">сгорело</span><% } else { %><span class="badge badge-warn">действует</span><% } %></td>
+                  <td><% if (!w.revokedAt) { %><form method="post" action="<%= g %>/moderation-warnings/<%= w.id %>/revoke" data-no-guard data-confirm="Снять предупреждение #<%= w.id %>? Оно останется в истории." data-confirm-ok="Снять"><input type="hidden" name="reason" value="Снято в панели" /><button class="btn btn-secondary" type="submit">Снять</button></form><% } %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+          <% if (pages > 1) { %>
+            <div class="btn-row">
+              <% if (page > 0) { %><a class="btn btn-secondary" href="<%= q({ page: page - 1 }) %>">← Новее</a><% } %>
+              <span class="muted" style="align-self:center">Страница <%= page + 1 %> из <%= pages %></span>
+              <% if (page < pages - 1) { %><a class="btn btn-secondary" href="<%= q({ page: page + 1 }) %>">Старше →</a><% } %>
+            </div>
+          <% } %>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -20,6 +20,9 @@
                 <div class="mods-title"><%= m.title %><% if (m.depends.length) { %> <span class="mods-dep">нужна «<%= m.depends.map((d) => (mods.list.find((x) => x.key === d) || {}).title).join('», «') %>»</span><% } %></div>
                 <div class="mods-desc"><%= m.desc %></div>
                 <% if (cmds.length) { %><div class="mods-cmds"><% cmds.forEach((c) => { %><code>/<%= c %></code><% }) %></div><% } %>
+                <% (m.sections || []).forEach((sec) => { %>
+                  <label class="mods-section" data-mod-row="<%= sec.key %>"><span>Раздел «<%= sec.title %>»</span><span class="mod-sw sm"><input type="checkbox" data-mod-switch="<%= sec.key %>" data-mod-title="<%= sec.title %>"<%= sec.on ? ' checked' : '' %> aria-label="<%= sec.title %>"></span></label>
+                <% }) %>
               </div>
               <% if (m.page) { %><a class="mods-open" href="/dashboard/<%= guild.id %>/<%= m.page %>">Настроить ›</a><% } %>
               <% if (m.switchable) { %>

@@ -1,121 +1,45 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><%- include('../partials/head', { title: guild.name + ' — Врем. голосовые' }) %></head>
+<head><%- include('../partials/head', { title: guild.name + ' — Временные голосовые' }) %></head>
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <main class="content" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
-        <h1>Временные голосовые каналы</h1>
-        <p class="page-intro">Канал создаётся автоматически, когда кто-то заходит в канал-триггер, и удаляется, когда пустеет.</p>
+        <h1>Временные голосовые</h1>
+        <p class="page-intro">Личные комнаты: участник заходит в канал-создатель — бот создаёт ему комнату, переносит в неё и делает владельцем; пустая комната удаляется. Сюда же входят голосовые роли — они работают в любых голосовых каналах.</p>
       </div>
-      <form method="post" class="card g-c1 g-r2">
-        <div>
-          <label>Канал «Зайди, чтобы создать комнату»</label>
-          <select name="tempVoiceJoinChannelId">
-            <option value="">— выключено —</option>
-            <% channels.filter(c => c.type === 2).forEach(c => { %>
-              <option value="<%= c.id %>" <%= settings.tempVoiceJoinChannelId === c.id ? 'selected' : '' %>>🔊 <%= c.name %></option>
-            <% }) %>
-          </select>
-          <div class="hint">Кто заходит в этот голосовой канал, получает свою комнату и сразу в неё переносится. Когда комната пустеет, бот её удаляет. Не выбран — комнаты не создаются.</div>
-        </div>
-        <div>
-          <label>Категория для новых каналов (необязательно)</label>
-          <select name="tempVoiceCategoryId">
-            <option value="">Та же, где канал «Зайди, чтобы создать»</option>
-            <% channels.filter(c => c.type === 4).forEach(c => { %>
-              <option value="<%= c.id %>" <%= settings.tempVoiceCategoryId === c.id ? 'selected' : '' %>><%= c.name %></option>
-            <% }) %>
-          </select>
-        </div>
-        <div>
-          <label>Шаблон имени канала (доступен {user})</label>
-          <input type="text" name="tempVoiceNameTemplate" id="tempVoiceName" value="<%= settings.tempVoiceNameTemplate %>" />
-          <%- include('../partials/replacers-help', { target: 'tempVoiceName' }) %>
-        </div>
-        <div>
-          <label>Лимит участников в комнате (0 — без лимита)</label>
-          <input type="number" name="tempVoiceUserLimit" min="0" max="99" value="<%= settings.tempVoiceUserLimit || 0 %>" />
-        </div>
-        <h2 style="margin-top:8px">Ещё каналы-создатели <span class="muted">(до <%= maxTriggers %>)</span></h2>
-        <div class="hint" style="margin-top:0">Например, «➕ Дуо» с лимитом 2 и «➕ Игры» в категории «Игры». Пустое имя — как в шаблоне выше. Чтобы убрать канал, выберите «— убрать —».</div>
-        <% const vcs = channels.filter(c => c.type === 2), cats = channels.filter(c => c.type === 4); const rows = triggers.concat(triggers.length < maxTriggers ? [{ channelId: '', categoryId: '', name: '', limit: 0 }] : []); %>
-        <div class="trig-list">
-        <% rows.forEach((t, i) => { %>
-          <div class="trig-row">
-            <div><label>Канал</label>
-              <select name="trig_channel">
-                <option value=""><%= t.channelId ? '— убрать —' : '— добавить канал —' %></option>
-                <% vcs.forEach(c => { %><option value="<%= c.id %>" <%= t.channelId === c.id ? 'selected' : '' %>>🔊 <%= c.name %></option><% }) %>
-              </select>
-            </div>
-            <div><label>Категория</label>
-              <select name="trig_category">
-                <option value="">— как у канала —</option>
-                <% cats.forEach(c => { %><option value="<%= c.id %>" <%= t.categoryId === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>
-              </select>
-            </div>
-            <div><label>Имя комнаты</label><input type="text" name="trig_name" maxlength="90" value="<%= t.name %>" placeholder="как в шаблоне" /></div>
-            <div><label>Лимит</label><input type="number" name="trig_limit" min="0" max="99" value="<%= t.limit || 0 %>" /></div>
-          </div>
-        <% }) %>
-        </div>
-        <button class="btn" type="submit">Сохранить</button>
-      </form>
-
-      <form method="post" action="/dashboard/<%= guild.id %>/temp-voice/panel" class="card" data-no-guard>
-        <h2>Панель управления комнатами</h2>
-        <div class="hint">Сообщение с кнопками для владельцев комнат: название и лимит, доступ (открыть, закрыть, скрыть), доверенные, приглашение, выгнать, регион, бан и разбан, удаление. Разместите его в отдельном канале, например «панель-управления». Кнопки управляют той комнатой, в которой сидит нажавший (или его собственной). Те же действия есть в команде <code>/voice</code>.</div>
-        <div>
-          <label>Канал для панели</label>
-          <select name="channelId" required>
-            <% channels.filter(c => c.type === 0 || c.type === 5).forEach(c => { %>
-              <option value="<%= c.id %>" <%= settings.tempVoicePanelChannelId === c.id ? 'selected' : '' %>># <%= c.name %></option>
-            <% }) %>
-          </select>
-        </div>
-        <% if (settings.tempVoicePanelMessageId) { %><div class="hint">Панель уже размещена. Если разместить заново, старое сообщение будет удалено.</div><% } %>
-        <div class="hint">Боту нужны в этом канале права «Просмотр канала», «Отправлять сообщения» и «Встраивать ссылки», а для работы кнопок — «Управлять каналами», «Управлять ролями» и «Перемещать участников».</div>
-        <button class="btn" type="submit"><%= settings.tempVoicePanelMessageId ? 'Разместить заново' : 'Разместить панель' %></button>
-      </form>
-
-      <form method="post" action="/dashboard/<%= guild.id %>/voice-roles" class="card">
-        <h2>Голосовые роли<span class="sub">Роль выдаётся, пока участник в голосовом канале, и снимается, когда он выходит</span></h2>
-        <div class="two-col">
-          <div>
-            <label>Роль</label>
-            <select name="roleId" required>
-              <option value="" disabled selected>— выберите —</option>
-              <% roles.forEach(r => { %><option value="<%= r.id %>" <%= r.blocked ? 'disabled' : '' %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option><% }) %>
-            </select>
-          </div>
-          <div>
-            <label>Канал</label>
-            <select name="channelId">
-              <option value="">Любой голосовой канал</option>
-              <% channels.filter(c => c.type === 2 || c.type === 13).forEach(c => { %><option value="<%= c.id %>">🔊 <%= c.name %></option><% }) %>
-            </select>
-          </div>
-        </div>
-        <div class="hint">Например, роль «В голосе» открывает текстовый канал для тех, кто сейчас разговаривает. В AFK-канале роль не выдаётся.</div>
-        <button class="btn" type="submit">Добавить</button>
-        <% if (voiceRoles.length) { %>
-          <div class="table-scroll" style="margin-top:14px;"><table>
-            <thead><tr><th>Роль</th><th>Канал</th><th></th></tr></thead>
+      <% const g = '/dashboard/' + guild.id; const chName = (id) => { const c = channels.find((x) => x.id === id); return c ? c.name : null; }; %>
+      <div class="stat-row four">
+        <div class="stat-box"><div class="value"><%= rooms.length %></div><div class="label">Комнат сейчас</div></div>
+        <a class="stat-box" href="<%= g %>/temp-voice-rooms"><div class="value"><%= (settings.tempVoiceJoinChannelId ? 1 : 0) + triggers.length %></div><div class="label">Каналов-создателей</div></a>
+        <a class="stat-box" href="<%= g %>/temp-voice-roles"><div class="value"><%= voiceRoleCount %></div><div class="label">Голосовых ролей</div></a>
+        <a class="stat-box" href="<%= g %>/temp-voice-panel"><div class="value"><%= settings.tempVoicePanelMessageId ? '✓' : '—' %></div><div class="label">Панель управления</div></a>
+      </div>
+      <% if (!settings.tempVoiceJoinChannelId) { %>
+        <div class="card g-span mod-alert"><p style="margin:0"><b>Канал-создатель не выбран</b> — комнаты не создаются. <a href="<%= g %>/temp-voice-rooms">Выбрать →</a></p></div>
+      <% } %>
+      <div class="card g-span">
+        <h2>Комнаты сейчас</h2>
+        <% if (!rooms.length) { %>
+          <p class="empty-state">Сейчас комнат нет. Зайдите в канал-создатель<%= settings.tempVoiceJoinChannelId && chName(settings.tempVoiceJoinChannelId) ? ' «' + chName(settings.tempVoiceJoinChannelId) + '»' : '' %>, чтобы проверить.</p>
+        <% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Комната</th><th>Владелец</th><th>Доступ</th><th>Создана</th></tr></thead>
             <tbody>
-              <% voiceRoles.forEach(v => { const r = roles.find(x => x.id === v.roleId); const c = channels.find(x => x.id === v.channelId); %>
+              <% rooms.forEach((r) => { const u = users[r.ownerId] || { name: r.ownerId, avatar: '' }; %>
                 <tr>
-                  <td>@<%= r ? r.name : 'роль удалена' %></td>
-                  <td><%= v.channelId ? (c ? '🔊 ' + c.name : 'канал удалён') : 'любой' %></td>
-                  <td style="text-align:right;"><button class="btn btn-secondary" type="submit" formaction="/dashboard/<%= guild.id %>/voice-roles/<%= v.id %>/delete" formnovalidate>Убрать</button></td>
+                  <td>🔊 <%= chName(r.channelId) || r.channelId %></td>
+                  <td class="nowrap"><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span></td>
+                  <td><%= { open: 'Открыта', locked: 'Закрыта', hidden: 'Скрыта' }[r.access] || r.access %></td>
+                  <td class="nowrap"><%= new Date(r.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) %></td>
                 </tr>
               <% }) %>
             </tbody>
           </table></div>
         <% } %>
-      </form>
+      </div>
     </main>
   </div>
 </body>

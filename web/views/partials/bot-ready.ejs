@@ -1,0 +1,10 @@
+<%# What the bot may do here: its permissions and the roles above its own (the usual reason a punishment fails). %>
+<% if (locals.ready) { %>
+  <div class="mod-ready">
+    <div class="mod-perms"><% ready.perms.forEach(([name, ok]) => { %><span class="mod-perm<%= ok ? ' ok' : ' no' %>"><%= ok ? '✓' : '✕' %> <%= name %></span><% }) %></div>
+    <p class="hint" style="margin:8px 0 0">Роль бота: <b>@<%= ready.role || '—' %></b>.
+      <% if (ready.aboveCount) { %>Ролей выше неё: <%= ready.aboveCount %> (<%= ready.above.map((r) => '@' + r).join(', ') %><%= ready.aboveCount > ready.above.length ? '…' : '' %>). Участников с этими ролями бот наказать не может — поднимите роль бота выше в настройках сервера → Роли.<% } else { %>Выше неё ролей нет — бот может наказать любого, кроме владельца и администраторов (тайм-аут Discord не даёт администраторам).<% } %></p>
+  </div>
+<% } else { %>
+  <p class="hint" style="margin:0">Бот сейчас не в сети или не на сервере — права проверить не удалось.</p>
+<% } %>

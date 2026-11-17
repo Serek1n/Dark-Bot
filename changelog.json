@@ -1,6 +1,29 @@
 [
  {
   "bot": "3.7.2",
+  "panel": "3.16.0",
+  "date": "2026-11-17",
+  "botChanges": [],
+  "panelChanges": [
+   "«Наказания» и «Жалобы» — один модуль: обзор, наказания, предупреждения, жалобы, журнал",
+   "Вкладка «Автонаказания»: правила, готовность бота, итог каждого срабатывания",
+   "Действующие муты и баны можно снять из панели; предупреждение — снять с отметкой",
+   "«Временные голосовые» и «Голосовые роли» — один модуль со вкладками",
+   "В меню видны вкладки только открытого модуля; старые адреса страниц работают"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "\"Punishments\" and \"Reports\" are one module: overview, punishments, warnings, reports, log",
+    "\"Auto punishments\" tab: rules, the bot's readiness, the outcome of every trigger",
+    "Running mutes and bans can be lifted from the panel; a warning can be removed with a note",
+    "\"Temporary voice\" and \"Voice roles\" are one module with tabs",
+    "The menu shows the tabs of the open module only; old page addresses keep working"
+   ]
+  }
+ },
+ {
+  "bot": "3.7.2",
   "panel": "3.15.0",
   "date": "2026-11-17",
   "botChanges": [

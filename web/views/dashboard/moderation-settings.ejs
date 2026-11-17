@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Настройки наказаний' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Настройки наказаний</h1>
+        <p class="page-intro">Куда бот пишет о наказаниях и как он их выдаёт.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; %>
+      <form method="post" action="<%= g %>/moderation/settings" class="plain">
+        <div class="card g-c1" id="channels">
+          <h2>Канал журнала</h2>
+          <label for="modLogChannelId">Канал журнала наказаний</label>
+          <select id="modLogChannelId" name="modLogChannelId">
+            <option value="">— не выбрано —</option>
+            <% channels.forEach(c => { %><option value="<%= c.id %>" <%= settings.modLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+          </select>
+          <div class="hint">Каждое наказание появится здесь отдельным сообщением с номером дела. Не выбран — наказания не публикуются в канале, но остаются в журнале панели. Отдельно все наказания попадают в тему «Выдача наказаний» форума логов.</div>
+        </div>
+        <div class="card g-c2" id="rules">
+          <h2>Как выдаются наказания</h2>
+          <div class="rules">
+            <label class="rule">
+              <span class="rule-text"><b>Сообщать участнику в личные сообщения</b><span>Участник узнает, за что и на какой срок его наказали. Если личные сообщения закрыты, бот просто продолжит.</span></span>
+              <input type="checkbox" name="modDmEnabled" <%= settings.modDmEnabled ? 'checked' : '' %> />
+            </label>
+            <label class="rule">
+              <span class="rule-text"><b>Причина обязательна</b><span>Предупреждение, мут, кик и бан без причины будут отклонены.</span></span>
+              <input type="checkbox" name="modRequireReason" <%= settings.modRequireReason ? 'checked' : '' %> />
+            </label>
+          </div>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+      <div class="card g-span">
+        <h2>Права бота</h2>
+        <%- include('../partials/bot-ready') %>
+        <p class="hint">Автонаказания за предупреждения настраиваются во вкладке <a href="<%= g %>/moderation-auto">«Автонаказания»</a>, жалобы — во вкладке <a href="<%= g %>/moderation-reports">«Жалобы»</a>.</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<%# A table of moderation cases: logs, users, formatDuration. %>
+<% const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' }; %>
+<div class="table-scroll"><table>
+  <thead><tr><th class="nowrap">№</th><th>Действие</th><th>Участник</th><th>Модератор</th><th>Причина</th><th>Срок</th><th>Дата</th></tr></thead>
+  <tbody>
+    <% logs.forEach(l => { const tu = users[l.userId] || { name: l.userId, avatar: '' }; const mu = users[l.moderatorId] || { name: l.moderatorId, avatar: '' }; %>
+      <tr>
+        <td class="nowrap">#<%= l.caseNumber || '—' %></td>
+        <td><span class="badge badge-<%= l.action %>"><%= actionRu[l.action] || l.action %></span></td>
+        <td class="nowrap"><span class="person"><img src="<%= tu.avatar %>" alt="" loading="lazy" /><span><%= tu.name %></span></span></td>
+        <td class="nowrap"><span class="person"><img src="<%= mu.avatar %>" alt="" loading="lazy" /><span><%= mu.name %></span></span></td>
+        <td style="min-width:180px;"><%= l.reason || '—' %></td>
+        <td class="nowrap"><%= l.duration ? formatDuration(Number(l.duration)) + (l.active ? ' · действует' : '') : (l.action === 'ban' ? 'навсегда' : '—') %></td>
+        <td class="nowrap"><%= new Date(l.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table></div>

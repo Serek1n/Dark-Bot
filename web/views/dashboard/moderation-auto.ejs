@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Автонаказания' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Автоматические наказания</h1>
+        <p class="page-intro">Что бот делает сам, когда у участника набирается несколько предупреждений. Каждое срабатывание записывается у предупреждения: применено, не применено и почему.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; %>
+      <form method="post" action="<%= g %>/moderation/auto" class="plain">
+        <div class="card g-span" id="ladder">
+          <h2>Что делать за предупреждения</h2>
+          <% if (thresholds.length) { %>
+            <div class="callout">Сейчас: <b><%= thresholds.map(t => t.count + ' → ' + (t.action === 'mute' ? 'мут на ' + formatDuration(Math.max(t.minutes, 1) * 60000) : t.action === 'kick' ? 'кик' : t.minutes ? 'бан на ' + formatDuration(t.minutes * 60000) : 'бан навсегда')).join(' · ') %></b></div>
+          <% } else { %>
+            <div class="callout">Пока бот только записывает предупреждения. Добавьте правило, например: <b>3 → мут на 60 минут</b>, <b>5 → бан на 1440 минут (сутки)</b>.</div>
+          <% } %>
+          <div class="table-scroll"><table>
+            <thead><tr><th class="nowrap">Когда предупреждений</th><th>Наказание</th><th class="nowrap">Срок, минут</th></tr></thead>
+            <tbody>
+              <% const rows = thresholds.concat(Array.from({ length: Math.max(0, 5 - thresholds.length) }, () => ({ count: 0, action: 'mute', minutes: 0 }))); %>
+              <% rows.forEach(t => { %>
+                <tr>
+                  <td><input type="number" name="thrCount" value="<%= t.count || '' %>" min="0" max="100" placeholder="—" style="width:96px;" aria-label="Когда предупреждений" /></td>
+                  <td>
+                    <select name="thrAction" aria-label="Наказание">
+                      <option value="mute" <%= t.action === 'mute' ? 'selected' : '' %>>Мут</option>
+                      <option value="kick" <%= t.action === 'kick' ? 'selected' : '' %>>Кик</option>
+                      <option value="ban" <%= t.action === 'ban' ? 'selected' : '' %>>Бан</option>
+                    </select>
+                  </td>
+                  <td><input type="number" name="thrMinutes" value="<%= t.minutes || '' %>" min="0" placeholder="0" style="width:120px;" aria-label="Срок, минут" /></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+          <div class="hint">Наказание срабатывает, когда у участника становится <b>ровно</b> столько действующих предупреждений, — один раз за это предупреждение. Мут — от 1 минуты до 40320 (28 дней, предел Discord); если участник уже в муте дольше, бот его не сокращает. Бан: 0 — навсегда, иначе он снимется сам. Для кика срок не нужен.</div>
+        </div>
+        <div class="card g-c1">
+          <h2>Условия</h2>
+          <div class="rules">
+            <label class="rule">
+              <span class="rule-text"><b>Автонаказание только если есть право</b><span>Мут, кик или бан по счётчику применяются, только если у модератора, выдавшего предупреждение, есть право на это наказание. Предупреждения от автомодерации действуют всегда.</span></span>
+              <input type="checkbox" name="modEscalateNeedsPerm" <%= settings.modEscalateNeedsPerm ? 'checked' : '' %> />
+            </label>
+            <div class="rule">
+              <span class="rule-text"><b>Предупреждения сгорают</b><span>Старые предупреждения перестают считаться. 0 — не сгорают никогда.</span></span>
+              <span class="rule-ctl"><input type="number" name="modWarnExpireDays" aria-label="Предупреждения сгорают через, дней" value="<%= settings.modWarnExpireDays || 0 %>" min="0" max="365" /><span class="unit">дней</span></span>
+            </div>
+          </div>
+          <button class="btn" type="submit">Сохранить</button>
+        </div>
+      </form>
+      <div class="card g-c2">
+        <h2>Сможет ли бот наказать</h2>
+        <%- include('../partials/bot-ready') %>
+      </div>
+      <div class="card g-span">
+        <h2>Последние срабатывания<span class="sub">За 30 дней</span></h2>
+        <% if (!recent.length) { %>
+          <p class="empty-state">Автонаказания ещё не срабатывали.</p>
+        <% } else { %>
+          <div class="mini-list">
+            <% recent.forEach((r) => { const u = users[r.userId] || { name: r.userId, avatar: '' }; const d = describe(r.auto); %>
+              <div class="mini-row"><span class="rk">#<%= r.id %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="mod-auto <%= d.ok ? 'ok' : 'no' %>"><%= d.text.replace(/<t:(\d+):f>/, (m, t) => new Date(Number(t) * 1000).toLocaleString('ru-RU')) %></span></div>
+            <% }) %>
+          </div>
+        <% } %>
+        <a class="card-link" href="<%= g %>/moderation-warnings">Все предупреждения →</a>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

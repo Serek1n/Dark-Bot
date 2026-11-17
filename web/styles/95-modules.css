@@ -398,3 +398,24 @@ button, input, select, textarea, optgroup { font-family: inherit; }
   .ev-mods { grid-template-columns: minmax(0, 1fr); }
 }
 @media (min-width: 901px) and (max-width: 1199px) { .ev-mods { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* a section of a merged module (Жалобы inside Наказания, Голосовые роли inside Временные голосовые) */
+.mods-section { display: inline-flex; align-items: center; gap: 10px; margin: 8px 16px 0 0; font-size: var(--fs-13); color: var(--fog-dim); cursor: pointer; }
+
+/* ---------- «Наказания»: readiness of the bot, automatic punishment outcomes ---------- */
+.stat-row.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+a.stat-box { color: inherit; text-decoration: none; }
+a.stat-box:hover { border-color: var(--ember); }
+.mod-alert { border-color: var(--danger); background: var(--danger-tint); }
+.mod-perms { display: flex; flex-wrap: wrap; gap: 8px; }
+.mod-perm { font-size: var(--fs-13); padding: 4px 10px; border-radius: var(--r-pill); border: 1px solid var(--hairline); }
+.mod-perm.ok { color: var(--success); border-color: var(--success); }
+.mod-perm.no { color: var(--danger); border-color: var(--danger); background: var(--danger-tint); }
+.mod-auto { font-size: var(--fs-13); }
+.mod-auto.ok { color: var(--success); }
+.mod-auto.no { color: var(--danger); }
+.mod-userfilter { grid-template-columns: minmax(0, 22em) auto; margin: 12px 0 0; }
+.mod-wfilter { grid-template-columns: repeat(3, minmax(0, 1fr)) auto; }
+.mod-alert a { color: var(--ember); }
+td form .btn, td > .btn { white-space: nowrap; }
+@media (max-width: 900px) { .stat-row.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

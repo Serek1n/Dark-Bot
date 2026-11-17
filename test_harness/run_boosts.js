@@ -145,8 +145,8 @@ const express = require('express');
     const r = await post('/channel-boosts', { channelId: CH.text, xp: '2', coins: '2' }); assert(r.headers.get('location').includes('invalid=1') && Object.keys(await boosts()).length === 50, 'refused');
     await post('/channel-boosts', { channelId: CH.text, xp: '2', coins: '2' });
   });
-  await test('panel: the sidebar link exists on every page', async () => {
-    for (const p of ['', '/leveling', '/channel-boosts']) assert((await (await fetch(base + p)).text()).includes('/channel-boosts"'), p || '/');
+  await test('panel: the link to the tab is there on the pages of «Уровни» (the menu lists the tabs of the open module)', async () => {
+    for (const p of ['/leveling', '/channel-boosts']) assert((await (await fetch(base + p)).text()).includes('/channel-boosts"'), p);
   });
   server.close();
 

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Создание комнат' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Создание комнат</h1>
+        <p class="page-intro">Комната создаётся, когда кто-то заходит в канал-создатель, владелец переносится в неё, а пустая комната удаляется сама.</p>
+      </div>
+      <form method="post" action="/dashboard/<%= guild.id %>/temp-voice" class="card g-span">
+        <div>
+          <label>Канал «Зайди, чтобы создать комнату»</label>
+          <select name="tempVoiceJoinChannelId">
+            <option value="">— выключено —</option>
+            <% channels.filter(c => c.type === 2).forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.tempVoiceJoinChannelId === c.id ? 'selected' : '' %>>🔊 <%= c.name %></option>
+            <% }) %>
+          </select>
+          <div class="hint">Кто заходит в этот голосовой канал, получает свою комнату и сразу в неё переносится. Когда комната пустеет, бот её удаляет. Не выбран — комнаты не создаются.</div>
+        </div>
+        <div>
+          <label>Категория для новых каналов (необязательно)</label>
+          <select name="tempVoiceCategoryId">
+            <option value="">Та же, где канал «Зайди, чтобы создать»</option>
+            <% channels.filter(c => c.type === 4).forEach(c => { %>
+              <option value="<%= c.id %>" <%= settings.tempVoiceCategoryId === c.id ? 'selected' : '' %>><%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label>Шаблон имени канала (доступен {user})</label>
+          <input type="text" name="tempVoiceNameTemplate" id="tempVoiceName" value="<%= settings.tempVoiceNameTemplate %>" />
+          <%- include('../partials/replacers-help', { target: 'tempVoiceName' }) %>
+        </div>
+        <div>
+          <label>Лимит участников в комнате (0 — без лимита)</label>
+          <input type="number" name="tempVoiceUserLimit" min="0" max="99" value="<%= settings.tempVoiceUserLimit || 0 %>" />
+        </div>
+        <h2 style="margin-top:8px">Ещё каналы-создатели <span class="muted">(до <%= maxTriggers %>)</span></h2>
+        <div class="hint" style="margin-top:0">Например, «➕ Дуо» с лимитом 2 и «➕ Игры» в категории «Игры». Пустое имя — как в шаблоне выше. Чтобы убрать канал, выберите «— убрать —».</div>
+        <% const vcs = channels.filter(c => c.type === 2), cats = channels.filter(c => c.type === 4); const rows = triggers.concat(triggers.length < maxTriggers ? [{ channelId: '', categoryId: '', name: '', limit: 0 }] : []); %>
+        <div class="trig-list">
+        <% rows.forEach((t, i) => { %>
+          <div class="trig-row">
+            <div><label>Канал</label>
+              <select name="trig_channel">
+                <option value=""><%= t.channelId ? '— убрать —' : '— добавить канал —' %></option>
+                <% vcs.forEach(c => { %><option value="<%= c.id %>" <%= t.channelId === c.id ? 'selected' : '' %>>🔊 <%= c.name %></option><% }) %>
+              </select>
+            </div>
+            <div><label>Категория</label>
+              <select name="trig_category">
+                <option value="">— как у канала —</option>
+                <% cats.forEach(c => { %><option value="<%= c.id %>" <%= t.categoryId === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>
+              </select>
+            </div>
+            <div><label>Имя комнаты</label><input type="text" name="trig_name" maxlength="90" value="<%= t.name %>" placeholder="как в шаблоне" /></div>
+            <div><label>Лимит</label><input type="number" name="trig_limit" min="0" max="99" value="<%= t.limit || 0 %>" /></div>
+          </div>
+        <% }) %>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+
+    </main>
+  </div>
+</body>
+</html>

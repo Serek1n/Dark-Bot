@@ -116,4 +116,15 @@ async function joinAlert(member) {
   await channel?.send?.({ embeds: [embeds.baseEmbed(0xff9a5c).setTitle('⚠️ Зашёл участник с жалобами').setDescription(`<@${member.id}> (${member.user?.tag || member.id})\nВсего жалоб: **${rows.length}** · за сутки: **${day}** · за 7 дней: **${week}**\n\n${last.join('\n')}`)], allowedMentions: { parse: [] } }).catch(() => {});
 }
 
-module.exports = { PREFIX, CATEGORIES, MUTES, fileReport, reportEmbed, reportComponents, isReportComponent, handleReportComponent, joinAlert };
+/** After a decision made outside Discord (the panel): the report's message shows it and loses its buttons. */
+async function refreshReportMessage(r) {
+  const client = require('../../web/botBridge').getClient?.();
+  if (!client || !r?.logChannelId || !r.logMessageId) return false;
+  const ch = await client.channels.fetch(r.logChannelId).catch(() => null);
+  const msg = ch && (await ch.messages?.fetch(r.logMessageId).catch(() => null));
+  if (!msg) return false;
+  await msg.edit({ embeds: [reportEmbed(r)], components: reportComponents(r) }).catch(() => null);
+  return true;
+}
+
+module.exports = { PREFIX, CATEGORIES, MUTES, fileReport, reportEmbed, reportComponents, isReportComponent, handleReportComponent, joinAlert, refreshReportMessage };

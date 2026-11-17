@@ -99,6 +99,20 @@ const express = require('express');
     assert(r.ok && !(await serverLog.getConfig(G)) && !(await serverLog.isOn(G, 'messages')), 'logs off: nothing is written');
     await sw('logs', { on: '1' });
     assert(await serverLog.getConfig(G), 'logs back on');
+    // merged modules: «Жалобы» is a section of «Наказания», «Голосовые роли» of «Временные голосовые» — same switches, same data
+    const M = require('../web/modules');
+    const st = M.moduleState(await db.GuildSettings.findOne({ where: { guildId: G } }));
+    assert(!st.groups.some((g) => g.modules.some((m) => m.key === 'report' || m.key === 'voiceRoles')), 'no separate cards');
+    assert(st.list.find((m) => m.key === 'moderation').sections.map((x) => x.key).join() === 'report', 'Жалобы inside Наказания');
+    assert(st.list.find((m) => m.key === 'tempVoice').sections.map((x) => x.key).join() === 'voiceRoles', 'Голосовые роли inside Временные голосовые');
+    r = await (await sw('report', { on: '0' })).json();
+    assert(r.ok && !(await db.GuildSettings.findOne({ where: { guildId: G } })).reportEnabled, 'the reports switch still works');
+    await sw('report', { on: '1' });
+    r = await (await sw('voiceRoles', { on: '0' })).json();
+    assert(r.ok && !(await db.GuildSettings.findOne({ where: { guildId: G } })).voiceRolesEnabled, 'the voice roles switch still works');
+    await sw('voiceRoles', { on: '1' });
+    const feat = await (await fetch(base + '/features')).text();
+    assert(feat.includes('data-mod-switch="report"') && feat.includes('data-mod-switch="voiceRoles"') && feat.includes('Раздел «'), 'section switches on the modules page');
     // without scripts the old form still works
     const post = (b) => fetch(base + '/features', { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(b).toString() });
     assert((await post({ musicEnabled: 'on', levelingEnabled: 'on' })).status === 302, 'redirect');

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Жалобы' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Жалобы</h1>
+        <p class="page-intro">Участники жалуются командой <code>/report</code> или через «Приложения» → «Report message» / «Report member». Жалоба приходит в канал с кнопками для модераторов: предупредить, мут, кик, бан, отклонить. Раздел включается переключателем «Жалобы» вверху.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+         const name = (id) => (users[id] || { name: id }).name;
+         const ST = { open: 'Новые', done: 'Рассмотрены', ignored: 'Отклонены', all: 'Все' }; %>
+      <form method="post" action="<%= g %>/moderation/reports" class="card g-c1">
+        <h2>Куда приходят жалобы</h2>
+        <label for="reportChannelId">Канал для жалоб</label>
+        <select id="reportChannelId" name="reportChannelId">
+          <option value="">— не выбрано —</option>
+          <% channels.forEach(c => { %><option value="<%= c.id %>" <%= settings.reportChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+        </select>
+        <div class="hint">Не выбран — жалобы отправить нельзя: бот ответит, что канал не настроен.</div>
+        <div class="two-col">
+          <div>
+            <label for="reportDailyLimit">Жалоб в сутки от одного участника</label>
+            <input id="reportDailyLimit" type="number" name="reportDailyLimit" min="1" max="50" value="<%= settings.reportDailyLimit || 5 %>" />
+          </div>
+          <div class="rules" style="align-self:end;">
+            <label class="rule"><span class="rule-text"><b>Предупреждать о входе участника с жалобами</b></span><input type="checkbox" name="reportJoinAlert" <%= settings.reportJoinAlert !== false ? 'checked' : '' %> /></label>
+          </div>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+      <div class="card g-c2">
+        <h2>Сводка</h2>
+        <div class="mini-list">
+          <div class="mini-row"><span class="person"><span>Новые</span></span><b><%= counts.open %></b></div>
+          <div class="mini-row"><span class="person"><span>Рассмотрены</span></span><b><%= counts.done %></b></div>
+          <div class="mini-row"><span class="person"><span>Отклонены</span></span><b><%= counts.ignored %></b></div>
+        </div>
+        <p class="hint">Одну жалобу на одного участника можно отправить раз в 12 часов. Решение принимают кнопками под жалобой в Discord; отклонить можно и отсюда.</p>
+      </div>
+      <div class="card g-span">
+        <h2>Жалобы</h2>
+        <div class="chips">
+          <% Object.entries(ST).forEach(([k, l]) => { %><a class="chip <%= status === k ? 'active' : '' %>" href="<%= g %>/moderation-reports?status=<%= k %>"><%= l %></a><% }) %>
+        </div>
+        <% if (!rows.length) { %>
+          <p class="empty-state">Жалоб нет.</p>
+        <% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>№</th><th>На кого</th><th>От кого</th><th>Категория</th><th>Причина</th><th>Когда</th><th>Решение</th><th></th></tr></thead>
+            <tbody>
+              <% rows.forEach((r) => { %>
+                <tr>
+                  <td class="nowrap">#<%= r.id %></td>
+                  <td class="nowrap"><%= name(r.targetId) %></td>
+                  <td class="nowrap"><%= name(r.reporterId) %></td>
+                  <td><%= CATEGORIES[r.category] || r.category %></td>
+                  <td style="min-width:160px"><%= r.reason || '—' %><% if (r.messageUrl) { %><div><a href="<%= r.messageUrl %>" target="_blank" rel="noopener">Сообщение ↗</a></div><% } %></td>
+                  <td class="nowrap"><%= when(r.createdAt) %></td>
+                  <td><% if (r.status === 'open') { %><span class="badge badge-warn">новая</span><% } else { %><%= r.decision || (r.status === 'ignored' ? 'Отклонена' : 'Рассмотрена') %><% if (r.handledBy) { %><div class="hint" style="margin:2px 0 0"><%= name(r.handledBy) %></div><% } %><% } %></td>
+                  <td><% if (r.status === 'open') { %><form method="post" action="<%= g %>/moderation-reports/<%= r.id %>/ignore" data-no-guard data-confirm="Отклонить жалобу #<%= r.id %> без наказания?" data-confirm-ok="Отклонить"><button class="btn btn-secondary" type="submit">Отклонить</button></form><% } %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

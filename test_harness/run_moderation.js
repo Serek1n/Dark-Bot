@@ -393,9 +393,14 @@ const { makeUser, makeInteraction } = require('./mock');
   const post = (p, body) => fetch(base2 + p, { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() });
   const S = () => GuildSettings.findByPk('G1');
   await test('panel: moderation page shows case numbers, terms and the warning rules', async () => {
-    const r = await fetch(base2 + '/moderation'); const html = await r.text();
-    assert(r.status === 200 && html.includes('Правила наказаний') && html.includes('>№</th>') && /#\d+/.test(html), html.slice(0, 300));
-    assert((await fetch(base2 + '/moderation?action=note')).status === 200, 'note filter');
+    const r = await fetch(base2 + '/moderation-log'); const html = await r.text();
+    assert(r.status === 200 && html.includes('>№</th>') && /#\d+/.test(html), html.slice(0, 300));
+    assert((await fetch(base2 + '/moderation-log?action=note')).status === 200, 'note filter');
+    const auto = await (await fetch(base2 + '/moderation-auto')).text();
+    assert(auto.includes('Что делать за предупреждения') && auto.includes('thrCount'), 'rules');
+    for (const p of ['moderation', 'moderation-punishments', 'moderation-warnings', 'moderation-reports', 'moderation-settings', 'moderation-warnings?state=revoked&auto=failed']) {
+      const x = await fetch(base2 + '/' + p); assert(x.status === 200, p + ' ' + x.status + (await x.text()).slice(0, 300));
+    }
   });
   await test('panel: warning rules are saved, cleaned and sorted', async () => {
     const body = new URLSearchParams(); body.set('modDmEnabled', 'on');

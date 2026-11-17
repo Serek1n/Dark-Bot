@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Журнал модерации' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Журнал модерации</h1>
+        <p class="page-intro">Все действия модераторов, автомодерации и автонаказаний с номерами дел. Подробности дела в Discord: <code>/mod case</code>, история участника: <code>/mod history</code>.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' };
+         const q = (extra) => { const p = new URLSearchParams(); if (action) p.set('action', action); if (user) p.set('user', user); Object.entries(extra || {}).forEach(([k, v]) => (v === '' ? p.delete(k) : p.set(k, v))); const s = p.toString(); return s ? '?' + s : ''; };
+         const pages = Math.max(1, Math.ceil(total / 50)); %>
+      <div class="card g-span" id="journal">
+        <h2>Журнал <span class="muted">· <%= Number(total).toLocaleString('ru-RU') %></span></h2>
+        <div class="chips">
+          <a class="chip <%= !action ? 'active' : '' %>" href="<%= g %>/moderation-log<%= q({ action: '', page: '' }) %>">Все</a>
+          <% Object.keys(actionRu).forEach(k => { %><a class="chip <%= action === k ? 'active' : '' %>" href="<%= g %>/moderation-log<%= q({ action: k, page: '' }) %>"><%= actionRu[k] %></a><% }) %>
+        </div>
+        <form method="get" class="econ-filters mod-userfilter" data-no-guard>
+          <% if (action) { %><input type="hidden" name="action" value="<%= action %>" /><% } %>
+          <div><label for="l_user">ID участника или модератора</label><input id="l_user" type="text" name="user" inputmode="numeric" pattern="[0-9]{15,25}" value="<%= user %>" placeholder="Все" /></div>
+          <button class="btn" type="submit">Показать</button>
+        </form>
+        <% if (!logs.length) { %>
+          <p class="empty-state"><%= action || user ? 'Таких действий пока нет.' : 'Наказаний пока не было.' %></p>
+        <% } else { %>
+          <%- include('../partials/modlog-table') %>
+          <% if (pages > 1) { %>
+            <div class="btn-row">
+              <% if (page > 0) { %><a class="btn btn-secondary" href="<%= q({ page: page - 1 }) %>">← Новее</a><% } %>
+              <span class="muted" style="align-self:center">Страница <%= page + 1 %> из <%= pages %></span>
+              <% if (page < pages - 1) { %><a class="btn btn-secondary" href="<%= q({ page: page + 1 }) %>">Старше →</a><% } %>
+            </div>
+          <% } %>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
