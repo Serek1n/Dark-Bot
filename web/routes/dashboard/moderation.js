@@ -255,5 +255,74 @@ router.post('/:guildId/moderation/rules', ensureGuildAccess, async (req, res) =>
   res.redirect(saved(req.params.guildId, 'moderation-auto'));
 });
 
+// ---- Апелляции: the queue, one appeal (punishment, the author's text, comments, decision), the settings ----
+const appeals = () => require('../../../bot/modules/appeals');
+router.get('/:guildId/moderation-appeals', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const { Appeal } = require('../../../db');
+  const [guild, settings, channels] = await Promise.all([getGuild(guildId), getSettings(guildId), getGuildChannels(guildId)]);
+  const status = ['new', 'review', 'approved', 'rejected', 'all'].includes(req.query.status) ? req.query.status : 'new';
+  const where = status === 'all' ? { guildId } : { guildId, status };
+  const [rows, counts] = await Promise.all([
+    Appeal.findAll({ where, order: [['id', 'DESC']], limit: 60 }),
+    Promise.all(['new', 'review', 'approved', 'rejected'].map((x) => Appeal.count({ where: { guildId, status: x } })))
+  ]);
+  const users = await getUsers([...new Set(rows.flatMap((r) => [r.userId, r.moderatorId].filter(Boolean)))]);
+  res.render('dashboard/moderation-appeals', base(req, 'moderation-appeals', { guild, settings, channels: textChannels(channels), rows, users, status,
+    counts: { new: counts[0], review: counts[1], approved: counts[2], rejected: counts[3] }, AP: appeals(), panelUrl: (process.env.WEB_BASE_URL || '').replace(/\/+$/, '') }));
+});
+
+router.get('/:guildId/moderation-appeals/:id(\\d+)', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const { Appeal, AppealNote } = require('../../../db');
+  const appeal = await Appeal.findOne({ where: { id: Number(req.params.id), guildId } });
+  if (!appeal) return res.redirect(saved(guildId, 'moderation-appeals', 'invalid'));
+  const [guild, settings, notes, others] = await Promise.all([getGuild(guildId), getSettings(guildId), AppealNote.findAll({ where: { appealId: appeal.id }, order: [['id', 'ASC']] }),
+    Appeal.findAll({ where: { guildId, userId: appeal.userId, id: { [Op.ne]: appeal.id } }, order: [['id', 'DESC']], limit: 10 })]);
+  const history = await ModLog.findAll({ where: { guildId, userId: appeal.userId }, order: [['id', 'DESC']], limit: 15 });
+  const users = await getUsers([...new Set([appeal.userId, appeal.moderatorId, ...notes.map((n) => n.authorId), ...history.map((h) => h.moderatorId)].filter(Boolean))]);
+  // what an approval would do right now (the punishment may have ended or the bot may lack a right)
+  let check = null;
+  const g = getClient()?.guilds?.cache?.get(guildId);
+  if (g && appeals().OPEN.includes(appeal.status)) check = await appeals().liftCheck(g, appeal).catch(() => null);
+  const mayDecide = appeals().OPEN.includes(appeal.status) ? await appeals().mayDecide(g, req.user?.id, appeal.kind) : null;
+  res.render('dashboard/moderation-appeal', base(req, 'moderation-appeals', { guild, settings, appeal, notes, others, history, users, check, mayDecide, AP: appeals(), error: req.query.err ? String(req.query.err).slice(0, 300) : null }));
+});
+
+const back = (guildId, id, err) => `/dashboard/${guildId}/moderation-appeals/${id}${err ? `?err=${encodeURIComponent(err)}` : '?saved=1'}`;
+router.post('/:guildId/moderation-appeals/:id(\\d+)/decide', ensureGuildAccess, async (req, res) => {
+  const { guildId, id } = req.params;
+  try {
+    await appeals().decide(id, guildId, req.user?.id, String(req.body.decision || ''), req.body.reason);
+    res.redirect(back(guildId, id));
+  } catch (e) {
+    if (!(e instanceof appeals().AppealError)) throw e;
+    res.redirect(back(guildId, id, e.message));
+  }
+});
+router.post('/:guildId/moderation-appeals/:id(\\d+)/comment', ensureGuildAccess, async (req, res) => {
+  const { guildId, id } = req.params;
+  try {
+    await appeals().comment(id, guildId, req.user?.id, req.body.text, req.body.visible === 'on');
+    res.redirect(back(guildId, id));
+  } catch (e) {
+    if (!(e instanceof appeals().AppealError)) throw e;
+    res.redirect(back(guildId, id, e.message));
+  }
+});
+router.post('/:guildId/moderation/appeals', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const settings = await getSettings(guildId);
+  settings.appealsEnabled = req.body.appealsEnabled === 'on';
+  settings.appealsMaxOpen = clampInt(req.body.appealsMaxOpen, 1, 10, 2);
+  settings.appealsCooldownDays = clampInt(req.body.appealsCooldownDays, 0, 365, 7);
+  settings.appealsLinks = req.body.appealsLinks === 'on';
+  const kinds = ['ban', 'mute', 'warn'].filter((k) => req.body[`kind_${k}`] === 'on');
+  settings.appealsKinds = kinds.join(',');
+  const missing = await pickChannels(req.body, settings, guildId, { appealsChannelId: 'post' });
+  await settings.save();
+  res.redirect(missing.length ? noPerm(guildId, 'moderation-appeals', missing) : saved(guildId, 'moderation-appeals'));
+});
+
 module.exports = router;
 module.exports.botReadiness = botReadiness;

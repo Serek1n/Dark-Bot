@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: 'Новая апелляция' }) %></head>
+<body>
+  <div class="night-sky"></div>
+  <main class="public-top appeal-page">
+    <header class="pt-head">
+      <div class="pt-icon pt-letter">⚖️</div>
+      <div>
+        <h1>Новая апелляция</h1>
+        <p class="page-intro"><a href="/appeals">← Все мои наказания и апелляции</a></p>
+      </div>
+    </header>
+    <% if (error) { %><div class="card mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
+    <% if (p) { %>
+      <div class="card">
+        <h2>Наказание</h2>
+        <div class="appeal-facts">
+          <div><small>Кто</small><b><%= user.username %></b></div>
+          <div><small>Сервер</small><b><%= guild.name %></b></div>
+          <div><small>Тип</small><b><%= A.KINDS[p.kind] %></b></div>
+          <div><small>Номер</small><b><%= p.caseNumber ? 'дело #' + p.caseNumber : (p.kind === 'warn' ? 'предупреждение #' + p.id : '#' + p.id) %></b></div>
+          <div><small>Дата</small><b><%= A.fmtDate(p.at) %></b></div>
+          <div><small>До</small><b><%= p.until ? A.fmtDate(p.until) : (p.kind === 'ban' ? 'навсегда' : '—') %></b></div>
+        </div>
+        <p class="appeal-reason"><small>Причина</small><span><%= p.reason %></span></p>
+        <p class="hint" style="margin:0">Эти данные бот взял из своего журнала сам — изменить их нельзя.</p>
+      </div>
+      <form method="post" action="/appeals" class="card">
+        <h2>Ваше объяснение</h2>
+        <input type="hidden" name="g" value="<%= p.guildId %>" />
+        <input type="hidden" name="kind" value="<%= p.kind %>" />
+        <input type="hidden" name="id" value="<%= p.id %>" />
+        <label for="apText">Почему наказание стоит снять</label>
+        <textarea id="apText" name="text" rows="7" minlength="<%= A.TEXT_MIN %>" maxlength="<%= A.TEXT_MAX %>" required placeholder="Расскажите, что произошло и почему вы считаете решение ошибочным или готовы его исправить"><%= form.text || '' %></textarea>
+        <div class="hint">От <%= A.TEXT_MIN %> до <%= A.TEXT_MAX %> символов. Модераторы прочитают это целиком.</div>
+        <% if (links) { %>
+          <label for="apLinks">Ссылки на материалы (необязательно)</label>
+          <input id="apLinks" type="text" inputmode="url" name="links" maxlength="600" value="<%= form.links || '' %>" placeholder="https://… — до <%= A.MAX_LINKS %> ссылок через пробел" />
+          <div class="hint">Скриншоты, переписка и другие доказательства. Только https.</div>
+        <% } %>
+        <button class="btn" type="submit">Отправить апелляцию</button>
+      </form>
+    <% } %>
+  </main>
+</body>
+</html>

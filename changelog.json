@@ -1,5 +1,34 @@
 [
  {
+  "bot": "3.11.0",
+  "panel": "3.20.0",
+  "date": "2026-11-17",
+  "botChanges": [
+   "Апелляции: бан, мут и предупреждение можно обжаловать на сайте через вход Discord",
+   "Одобренная апелляция сама снимает бан, мут или предупреждение; история остаётся",
+   "Сообщения о бане, муте и предупреждении содержат ссылку на апелляцию",
+   "Автору приходят уведомления: принята, на рассмотрении, одобрена, отклонена, комментарий"
+  ],
+  "panelChanges": [
+   "Страница /appeals: свои действующие наказания, форма, статус — даже если вы забанены",
+   "Вкладка «Апелляции» в «Наказаниях»: очередь по статусам, решение с причиной, комментарии",
+   "Защита: только свои наказания, лимиты, пауза после отказа, одно решение на апелляцию"
+  ],
+  "en": {
+   "botChanges": [
+    "Appeals: a ban, mute or warning can be appealed on the site after signing in with Discord",
+    "An approved appeal lifts the ban, mute or warning by itself; the history stays",
+    "Ban, mute and warning messages carry a link to appeal",
+    "The author is notified: received, under review, approved, rejected, comment"
+   ],
+   "panelChanges": [
+    "The /appeals page: your punishments in force, the form, the status — even when banned",
+    "An \"Appeals\" tab in Punishments: a queue by status, decisions with a reason, comments",
+    "Protection: only your own punishments, limits, a pause after rejection, one decision each"
+   ]
+  }
+ },
+ {
   "bot": "3.10.0",
   "panel": "3.19.0",
   "date": "2026-11-17",

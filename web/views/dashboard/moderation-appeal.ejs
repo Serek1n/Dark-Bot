@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Апелляция #' + appeal.id }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Апелляция #<%= appeal.id %></h1>
+        <p class="page-intro"><a href="/dashboard/<%= guild.id %>/moderation-appeals">← Все апелляции</a></p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const when = (d) => AP.fmtDate(d);
+         const name = (id) => (id ? (users[id] || { name: id }).name : 'бот');
+         const chip = { new: 'badge-note', review: 'badge-mute', approved: 'badge-unban', rejected: 'badge-ban' };
+         const ST = { new: 'Подана', review: 'Взята на рассмотрение', approved: 'Одобрена', rejected: 'Отклонена' };
+         const open = AP.OPEN.includes(appeal.status);
+         const ACT = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Снят мут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' }; %>
+      <% if (error) { %><div class="card g-span mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
+      <div class="card g-c1">
+        <div class="appeal-status"><h2>Наказание</h2><span class="badge <%= chip[appeal.status] %>"><%= AP.STATUS[appeal.status] %></span></div>
+        <div class="appeal-facts">
+          <div><small>Кто</small><b><%= name(appeal.userId) %></b><small><%= appeal.userId %></small></div>
+          <div><small>Тип</small><b><%= AP.KINDS[appeal.kind] %></b></div>
+          <div><small>Номер</small><b><%= appeal.caseNumber ? 'дело #' + appeal.caseNumber : (appeal.kind === 'warn' ? 'предупреждение #' + appeal.warningId : '—') %></b></div>
+          <div><small>Дата</small><b><%= when(appeal.punishedAt) %></b></div>
+          <div><small>До</small><b><%= appeal.punishUntil ? when(appeal.punishUntil) : (appeal.kind === 'ban' ? 'навсегда' : '—') %></b></div>
+          <div><small>Подана</small><b><%= when(appeal.createdAt) %></b></div>
+        </div>
+        <p class="appeal-reason"><small>Причина наказания</small><span><%= appeal.punishReason || '—' %></span></p>
+        <% if (check) { %><p class="hint" style="margin:0"><%= check.inForce ? 'Наказание сейчас действует.' : 'Наказание уже не действует — одобрение ничего не снимет.' %><%= check.why ? ' ' + check.why : '' %></p><% } %>
+      </div>
+      <div class="card g-c2">
+        <h2>Объяснение участника</h2>
+        <p class="appeal-text"><%= appeal.text %></p>
+        <% if (appeal.links) { %><div class="appeal-links"><% appeal.links.split(' ').forEach((l) => { %><a href="<%= l %>" rel="nofollow noopener noreferrer" target="_blank"><%= l %></a><% }) %></div><% } %>
+      </div>
+      <% if (open) { %>
+        <div class="card g-c1">
+          <h2>Решение</h2>
+          <% if (mayDecide) { %><p class="hint" style="margin-top:0"><%= mayDecide %></p><% } %>
+          <% if (appeal.status === 'new') { %>
+            <form method="post" action="<%= g %>/moderation-appeals/<%= appeal.id %>/decide" data-no-guard><input type="hidden" name="decision" value="review" /><button class="btn btn-secondary" type="submit"<%= mayDecide ? ' disabled' : '' %>>Взять на рассмотрение</button></form>
+          <% } %>
+          <form method="post" action="<%= g %>/moderation-appeals/<%= appeal.id %>/decide" class="ap-decide" data-no-guard>
+            <label for="apReason">Причина решения (её увидит участник)</label>
+            <textarea id="apReason" name="reason" rows="3" maxlength="500" required></textarea>
+            <div class="btn-row">
+              <button class="btn" type="submit" name="decision" value="approved"<%= mayDecide ? ' disabled' : '' %>>Одобрить и снять наказание</button>
+              <button class="btn btn-danger" type="submit" name="decision" value="rejected"<%= mayDecide ? ' disabled' : '' %>>Отклонить</button>
+            </div>
+          </form>
+        </div>
+      <% } else { %>
+        <div class="card g-c1">
+          <h2>Решение</h2>
+          <p class="appeal-reason"><small>Кто и когда</small><span><%= name(appeal.moderatorId) %> · <%= when(appeal.decidedAt) %></span></p>
+          <p class="appeal-reason"><small>Причина</small><span><%= appeal.decisionReason || '—' %></span></p>
+          <% if (appeal.actionResult) { %><p class="appeal-reason"><small>Что сделал бот</small><span><%= appeal.actionResult %></span></p><% } %>
+        </div>
+      <% } %>
+      <div class="card g-c2">
+        <h2>Комментарии и история</h2>
+        <div class="appeal-history">
+          <% notes.forEach((n) => { const st = n.kind === 'status' ? n.text.split(':')[0] : null; %>
+            <div class="appeal-note"><small><%= when(n.createdAt) %> · <%= name(n.authorId) %><%= n.kind === 'comment' && !n.visible ? ' · только команде' : '' %></small><% if (st) { %><b><%= ST[st] || st %></b><% } else { %><span><%= n.text %></span><% } %></div>
+          <% }) %>
+        </div>
+        <form method="post" action="<%= g %>/moderation-appeals/<%= appeal.id %>/comment" data-no-guard>
+          <label for="apNote">Комментарий</label>
+          <textarea id="apNote" name="text" rows="2" maxlength="1000" required></textarea>
+          <label class="checkbox-row"><input type="checkbox" name="visible" /> <span>Показать участнику (и прислать ему)</span></label>
+          <button class="btn btn-secondary" type="submit">Добавить</button>
+        </form>
+      </div>
+      <div class="card g-span">
+        <h2>Наказания этого участника</h2>
+        <% if (!history.length) { %><p class="empty-state">В журнале ничего нет.</p><% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Когда</th><th>Действие</th><th>Причина</th><th>Модератор</th></tr></thead>
+            <tbody><% history.forEach((h) => { %><tr><td class="nowrap"><%= when(h.createdAt) %></td><td class="nowrap"><span><%= ACT[h.action] || h.action %></span><% if (h.caseNumber) { %> <span class="muted">#<%= h.caseNumber %></span><% } %></td><td><%= h.reason %></td><td class="nowrap"><%= name(h.moderatorId) %></td></tr><% }) %></tbody>
+          </table></div>
+        <% } %>
+        <% if (others.length) { %><p class="hint">Другие апелляции: <% others.forEach((o, i) => { %><a href="<%= g %>/moderation-appeals/<%= o.id %>">#<%= o.id %></a> (<%= AP.STATUS[o.status] %>)<%= i < others.length - 1 ? ', ' : '' %><% }) %></p><% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

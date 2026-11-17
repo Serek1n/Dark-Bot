@@ -87,6 +87,12 @@ module.exports = (sequelize) => {
       tempVoiceBitrate: { type: DataTypes.INTEGER, defaultValue: 0 }, // kbps for new rooms, 0 = Discord's default
       tempVoiceDefaultAccess: { type: DataTypes.STRING, defaultValue: 'open' },
       voiceRolesExclude: { type: DataTypes.TEXT, defaultValue: '[]' }, // voice channels where voice roles are not given
+      appealsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      appealsChannelId: { type: DataTypes.STRING, allowNull: true }, // new appeals are announced here (else the mod log channel)
+      appealsMaxOpen: { type: DataTypes.INTEGER, defaultValue: 2 }, // open appeals of one person on this server
+      appealsCooldownDays: { type: DataTypes.INTEGER, defaultValue: 7 }, // after a refusal, before the same punishment again
+      appealsLinks: { type: DataTypes.BOOLEAN, defaultValue: true },
+      appealsKinds: { type: DataTypes.STRING, defaultValue: 'ban,mute,warn' },
       achievementsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       achievementsNotify: { type: DataTypes.STRING, defaultValue: 'auto' }, // auto | channel | dm | off
       achievementsChannelId: { type: DataTypes.STRING, allowNull: true },

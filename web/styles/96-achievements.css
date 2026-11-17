@@ -47,3 +47,36 @@ tr.muted-row td { color: var(--fog); }
   .ach-grid { grid-template-columns: 1fr; }
   .ach-find { flex-direction: column; }
 }
+
+/* ---------- Апелляции: the public pages and the moderator's view ---------- */
+.appeal-page .card { margin-bottom: 16px; }
+.appeal-list { display: flex; flex-direction: column; }
+.appeal-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--hairline-soft); }
+.appeal-row:last-child { border-bottom: 0; }
+.appeal-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.appeal-main > b { font-size: var(--fs-16); }
+.appeal-act { flex: none; }
+.appeal-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; margin: 4px 0 14px; }
+.appeal-facts > div { display: flex; flex-direction: column; min-width: 0; }
+.appeal-facts small, .appeal-reason small { color: var(--fog); font-size: var(--fs-12); }
+.appeal-facts b { overflow-wrap: anywhere; }
+.appeal-reason { display: flex; flex-direction: column; gap: 2px; margin: 0 0 12px; }
+.appeal-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.appeal-status h2 { border: 0; margin: 0; padding: 0; }
+.appeal-status { padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--hairline); }
+.appeal-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 12px; }
+.appeal-links { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-13); overflow-wrap: anywhere; }
+.appeal-history { display: flex; flex-direction: column; margin-bottom: 14px; }
+.appeal-note { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--hairline-soft); }
+.appeal-note:last-child { border-bottom: 0; }
+.appeal-note small { color: var(--fog); font-size: var(--fs-12); }
+.appeal-ok { border-color: var(--success); }
+.ap-kinds { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 8px; }
+.ap-decide { margin-top: 14px; }
+.ap-link code { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .appeal-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .appeal-row { flex-direction: column; align-items: stretch; }
+}
+.ap-steps { margin: 0 0 4px; padding-left: 20px; color: var(--fog); font-size: var(--fs-14); display: flex; flex-direction: column; gap: 6px; }
+.mini-list + .econ-sub { margin-top: 22px; }

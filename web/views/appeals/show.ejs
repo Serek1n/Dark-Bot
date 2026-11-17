@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: 'Апелляция #' + appeal.id }) %></head>
+<body>
+  <div class="night-sky"></div>
+  <main class="public-top appeal-page">
+    <header class="pt-head">
+      <div class="pt-icon pt-letter">⚖️</div>
+      <div>
+        <h1>Апелляция #<%= appeal.id %></h1>
+        <p class="page-intro"><a href="/appeals">← Все мои наказания и апелляции</a></p>
+      </div>
+    </header>
+    <% const chip = { new: 'badge-note', review: 'badge-mute', approved: 'badge-unban', rejected: 'badge-ban' };
+       const ST = { new: 'Подана', review: 'Взята на рассмотрение', approved: 'Одобрена', rejected: 'Отклонена' }; %>
+    <% if (sent) { %><div class="card appeal-ok"><p style="margin:0"><b>Апелляция отправлена.</b> Модераторы сервера её увидят; решение придёт сюда и в личные сообщения, если бот может вам написать.</p></div><% } %>
+    <div class="card">
+      <div class="appeal-status"><h2>Статус</h2><span class="badge <%= chip[appeal.status] %>"><%= A.STATUS[appeal.status] %></span></div>
+      <div class="appeal-facts">
+        <div><small>Сервер</small><b><%= guild.name %></b></div>
+        <div><small>Наказание</small><b><%= A.KINDS[appeal.kind] %><%= appeal.caseNumber ? ' · дело #' + appeal.caseNumber : '' %></b></div>
+        <div><small>Дата наказания</small><b><%= A.fmtDate(appeal.punishedAt) %></b></div>
+        <div><small>Подана</small><b><%= A.fmtDate(appeal.createdAt) %></b></div>
+      </div>
+      <p class="appeal-reason"><small>Причина наказания</small><span><%= appeal.punishReason || '—' %></span></p>
+      <% if (appeal.decisionReason && !['new', 'review'].includes(appeal.status)) { %><p class="appeal-reason"><small>Причина решения</small><span><%= appeal.decisionReason %></span></p><% } %>
+      <% if (appeal.actionResult) { %><p class="appeal-reason"><small>Что сделал бот</small><span><%= appeal.actionResult %></span></p><% } %>
+    </div>
+    <div class="card">
+      <h2>Ваше объяснение</h2>
+      <p class="appeal-text"><%= appeal.text %></p>
+      <% if (appeal.links) { %><div class="appeal-links"><% appeal.links.split(' ').forEach((l) => { %><a href="<%= l %>" rel="nofollow noopener noreferrer" target="_blank"><%= l %></a><% }) %></div><% } %>
+    </div>
+    <div class="card">
+      <h2>История</h2>
+      <div class="appeal-history">
+        <% notes.forEach((n) => { const st = n.kind === 'status' ? n.text.split(':')[0] : null; %>
+          <div class="appeal-note"><small><%= A.fmtDate(n.createdAt) %></small><% if (st) { %><b><%= ST[st] || st %></b><% } else { %><span><%= n.text %></span><% } %></div>
+        <% }) %>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

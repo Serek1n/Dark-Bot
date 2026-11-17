@@ -72,7 +72,8 @@ async function muteMember(guild, member, ms, { moderatorId, reason, settings }) 
   if (why) throw refusal(why);
   await callDiscord(() => member.timeout(ms, reason), 'mute');
   const entry = await recordAndAnnounce(guild, { userId: member.id, moderatorId, action: 'mute', reason, duration: ms });
-  await dmMember(guild, member.id, `🔇 Вы получили мут на ${formatDuration(ms)}: ${reason}`, settings ?? (await loadSettings(guild.id)));
+  settings = settings ?? (await loadSettings(guild.id));
+  await dmMember(guild, member.id, `🔇 Вы получили мут на ${formatDuration(ms)}: ${reason}${require('./appeals').appealHint(settings, 'mute')}`, settings);
   return entry;
 }
 
@@ -91,7 +92,8 @@ async function banUser(guild, userId, { moderatorId, reason, ms = null, deleteSe
   const why = member && whyCannot(guild, member, 'ban');
   if (why) throw refusal(why);
   const until = ms ? `на ${formatDuration(ms)}` : 'навсегда';
-  if (member) await dmMember(guild, userId, `🔨 Вы забанены ${until}: ${reason}`, settings ?? (await loadSettings(guild.id)));
+  settings = settings ?? (await loadSettings(guild.id));
+  if (member) await dmMember(guild, userId, `🔨 Вы забанены ${until}: ${reason}${require('./appeals').appealHint(settings, 'ban')}`, settings);
   await callDiscord(() => guild.members.ban(userId, { reason, deleteMessageSeconds: deleteSeconds }), 'ban');
   // A new ban replaces an older temporary one.
   await ModLog.update({ active: false }, { where: { guildId: guild.id, userId, action: 'ban', active: true } });
@@ -124,7 +126,7 @@ async function warnMember(guild, user, { moderatorId, reason, settings }) {
     return { warning: created, count: (await activeWarnings(guild.id, user.id, settings)).length };
   });
   const entry = await recordAndAnnounce(guild, { userId: user.id, moderatorId, action: 'warn', reason });
-  await dmMember(guild, user.id, `⚠️ Вы получили предупреждение (${count}): ${reason}`, settings);
+  await dmMember(guild, user.id, `⚠️ Вы получили предупреждение (${count}): ${reason}${require('./appeals').appealHint(settings, 'warn')}`, settings);
 
   const rule = parseThresholds(settings?.modWarnThresholds).find((t) => t.count === count);
   let escalation = null;

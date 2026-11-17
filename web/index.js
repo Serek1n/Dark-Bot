@@ -126,6 +126,7 @@ app.use('/auth/callback', loginLimit);
 app.use('/dashboard', (req, res, next) => (req.method === 'GET' || req.method === 'HEAD' ? next() : changeLimit(req, res, next)));
 app.use('/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/appeals', require('./routes/appeals')); // appeals: any signed-in person, about his own punishments only
 app.use('/top', require('./routes/publicTop')); // public leaderboards (only where the admins switched them on)
 
 app.use((req, res, next) => res.status(404).render('error', { message: 'Страница не найдена.' }));

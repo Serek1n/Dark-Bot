@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: 'Апелляции' }) %></head>
+<body>
+  <div class="night-sky"></div>
+  <main class="public-top appeal-page">
+    <header class="pt-head">
+      <div class="pt-icon pt-letter">⚖️</div>
+      <div>
+        <h1>Апелляции</h1>
+        <p class="page-intro">Ваши действующие наказания на серверах с ботом Dark и ваши апелляции. Быть на сервере не нужно.</p>
+      </div>
+    </header>
+    <% const when = (d) => A.fmtDate(d); const chip = { new: 'badge-note', review: 'badge-mute', approved: 'badge-unban', rejected: 'badge-ban' }; %>
+    <div class="card">
+      <h2>Можно обжаловать</h2>
+      <% if (!punishments.length) { %>
+        <p class="empty-state">Действующих наказаний нет — или на этих серверах апелляции выключены.</p>
+      <% } else { %>
+        <div class="appeal-list">
+          <% punishments.forEach((p) => { const g = guilds[p.guildId] || { name: p.guildId }; %>
+            <div class="appeal-row">
+              <div class="appeal-main">
+                <b><%= A.KINDS[p.kind] %></b><span class="muted"> · </span><span><%= g.name %></span><% if (p.caseNumber) { %><span class="muted"> · </span><span class="muted">дело #<%= p.caseNumber %></span><% } %>
+                <div class="muted"><span>Причина:</span> <span><%= p.reason %></span></div>
+                <div class="muted"><span>Когда:</span> <span><%= when(p.at) %></span><% if (p.until) { %> · <span>до</span> <span><%= when(p.until) %></span><% } %></div>
+              </div>
+              <div class="appeal-act">
+                <% if (p.open) { %><a class="btn btn-secondary" href="/appeals/<%= p.open.id %>">Моя апелляция</a>
+                <% } else { %><a class="btn" href="/appeals/new?g=<%= p.guildId %>&kind=<%= p.kind %>&id=<%= p.id %>">Обжаловать</a><% } %>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+    <div class="card">
+      <h2>Мои апелляции</h2>
+      <% if (!appeals.length) { %>
+        <p class="empty-state">Вы ещё не подавали апелляций.</p>
+      <% } else { %>
+        <div class="table-scroll"><table>
+          <thead><tr><th>№</th><th>Сервер</th><th>Наказание</th><th>Подана</th><th>Статус</th></tr></thead>
+          <tbody>
+            <% appeals.forEach((a) => { %>
+              <tr><td><a href="/appeals/<%= a.id %>">#<%= a.id %></a></td><td><%= (guilds[a.guildId] || { name: a.guildId }).name %></td><td><%= A.KINDS[a.kind] %></td><td class="nowrap"><%= when(a.createdAt) %></td><td><span class="badge <%= chip[a.status] %>"><%= A.STATUS[a.status] %></span></td></tr>
+            <% }) %>
+          </tbody>
+        </table></div>
+      <% } %>
+    </div>
+    <p class="hint" style="text-align:center;">Решение придёт в личные сообщения Discord, если бот может вам написать, и всегда видно здесь · Dark</p>
+  </main>
+</body>
+</html>

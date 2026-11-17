@@ -3,12 +3,22 @@ const passport = require('passport');
 
 const router = express.Router();
 
-router.get('/login', passport.authenticate('discord'));
+// ?next=/appeals… : where to come back after signing in. Only the public appeal pages are accepted (never another site).
+const safeNext = (v) => (typeof v === 'string' && /^\/appeals(\/\d{1,10}|\/new)?(\?[\w=&%.-]{0,200})?$/.test(v) ? v : null);
+router.get('/login', (req, res, next) => {
+  const to = safeNext(req.query.next);
+  if (to && req.session) req.session.returnTo = to;
+  next();
+}, passport.authenticate('discord'));
 
 router.get(
   '/callback',
-  passport.authenticate('discord', { failureRedirect: '/' }),
-  (req, res) => res.redirect('/dashboard')
+  passport.authenticate('discord', { failureRedirect: '/', keepSessionInfo: true }),
+  (req, res) => {
+    const to = safeNext(req.session?.returnTo);
+    if (req.session) delete req.session.returnTo;
+    res.redirect(to || '/dashboard');
+  }
 );
 
 /** The Discord token of this session stops working at Discord too, not only here. Best effort: never holds the logout up. */
@@ -33,3 +43,4 @@ router.post('/logout', logout);
 // Logging out is POST only: a link on another site must not be able to sign an admin out.
 
 module.exports = router;
+module.exports.safeNext = safeNext;
