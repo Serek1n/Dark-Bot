@@ -44,7 +44,8 @@ function btn(customId, { guildId = 'g1', channelId = 'vc1', messageId = null } =
     update: async (p) => { calls.push(['update', p]); },
     deferUpdate: async () => { calls.push(['deferUpdate']); },
     editReply: async (p) => { calls.push(['editReply', p]); },
-    reply: async (p) => { calls.push(['reply', p]); }
+    reply: async (p) => { calls.push(['reply', p]); },
+    followUp: async (p) => { calls.push(['followUp', p]); }
   };
 }
 const vc = { id: 'vc1', name: 'Music', guild: { voiceAdapterCreator: () => {} } };
@@ -56,8 +57,8 @@ async function main() {
     assert.ok(p.components.length <= 5);
     p.components.forEach((row) => assert.ok(row.components.length <= 5, 'too many buttons in a row'));
     const ids = p.components.flatMap((r) => r.components).map((c) => c.data.custom_id);
-    assert.deepStrictEqual(ids, ['music:prev', 'music:toggle', 'music:skip', 'music:queue', 'music:stop', 'music:voldown', 'music:volup']);
-    assert.ok(p.embeds[0].data.fields.some((f) => f.name === 'Далее'));
+    assert.deepStrictEqual(ids, ['music:prev', 'music:toggle', 'music:skip', 'music:queue', 'music:stop', 'music:voldown', 'music:volup', 'music:shuffle', 'music:loop', 'music:save']);
+    assert.ok(p.embeds[0].data.fields.some((f) => f.name.startsWith('Далее')));
   });
   await run('panel: paused state offers "play"', () => {
     const p = renderPanel({ playing: track(1), tracks: [], volume: 0.5, paused: true });
@@ -219,6 +220,78 @@ async function main() {
     await new Promise((r) => setTimeout(r, 300));
     const log = require('fs').readFileSync('/tmp/fake-ytdlp-audio.log', 'utf8');
     assert.ok(log.includes('https://soundcloud.com/a/track') && log.includes('http_mp3_1_0'), log);
+    q.stopAndDestroy();
+  });
+
+  // ---- repeat modes, shuffle, progress, tracks found by name ----
+  const endTrack = (q) => new Promise((r) => { q.player.once('stateChange', () => setTimeout(r, 30)); q.player.stop(true); });
+  await run('repeat track: a track that ends naturally plays again; a skipped one does not', async () => {
+    const q = player.getOrCreateQueue('g-loop1', vc, fakeTextChannel());
+    [1, 2].forEach((n) => q.enqueue(track(n)));
+    await q.playNext();
+    assert.strictEqual(q.setLoop('track'), true);
+    await endTrack(q); await new Promise((r) => setTimeout(r, 80));
+    assert.strictEqual(q.playing.title, 'Track 1', 'repeated');
+    q.skip(); await new Promise((r) => setTimeout(r, 120));
+    assert.strictEqual(q.playing.title, 'Track 2', 'skip moves on even in "repeat track"');
+    q.stopAndDestroy();
+  });
+  await run('repeat queue: finished tracks go to the end, the queue never runs out', async () => {
+    const q = player.getOrCreateQueue('g-loop2', vc, fakeTextChannel());
+    [1, 2].forEach((n) => q.enqueue(track(n)));
+    await q.playNext(); q.setLoop('queue');
+    const seen = [q.playing.title];
+    for (let i = 0; i < 4; i++) { q.skip(); await new Promise((r) => setTimeout(r, 120)); seen.push(q.playing?.title); }
+    assert.deepStrictEqual(seen, ['Track 1', 'Track 2', 'Track 1', 'Track 2', 'Track 1']);
+    q.stopAndDestroy();
+  });
+  await run('repeat playlist: only while a playlist plays; when it ends it starts over; off: the queue ends', async () => {
+    const q = player.getOrCreateQueue('g-loop3', vc, fakeTextChannel());
+    assert.strictEqual(q.setLoop('playlist'), false, 'no playlist yet');
+    assert.deepStrictEqual([q.cycleLoop(), q.cycleLoop(), q.cycleLoop()], ['track', 'queue', 'off'], 'no playlist step without a playlist');
+    q.playlist = { id: 1, name: 'Мой', tracks: [track(7), track(8)], shuffle: false };
+    q.enqueue(track(7)); q.enqueue(track(8));
+    await q.playNext(); assert.strictEqual(q.setLoop('playlist'), true);
+    q.skip(); await new Promise((r) => setTimeout(r, 120));
+    q.skip(); await new Promise((r) => setTimeout(r, 120));
+    assert.strictEqual(q.playing?.title, 'Track 7', 'started over: ' + q.playing?.title);
+    q.setLoop('off'); q.tracks = [];
+    q.skip(); await new Promise((r) => setTimeout(r, 120));
+    assert.strictEqual(q.playing, null, 'without repeat the queue ends');
+    q.stopAndDestroy();
+  });
+  await run('shuffle keeps every track; the panel shows progress, the repeat mode and the playlist', async () => {
+    const q = player.getOrCreateQueue('g-shuf', vc, fakeTextChannel());
+    for (let n = 1; n <= 8; n++) q.enqueue(track(n));
+    await q.playNext();
+    q.shuffle();
+    assert.deepStrictEqual(q.tracks.map((t) => t.title).sort(), [2, 3, 4, 5, 6, 7, 8].map((n) => `Track ${n}`).sort());
+    q.setLoop('queue'); q.playlist = { name: 'Вечер', tracks: [] };
+    const e = q.renderPanel().embeds[0].data;
+    assert.ok(/`0:\d\d` ▬*●▬* `3:00`/.test(e.description), e.description);
+    assert.ok(e.fields.some((f) => f.name === 'Повтор' && f.value === 'вся очередь') && e.footer.text.includes('Вечер'), JSON.stringify(e));
+    q.stopAndDestroy();
+  });
+  await run('a track known by name is found on YouTube right before it plays; the closest length wins', async () => {
+    const q = player.getOrCreateQueue('g-lazy', vc, fakeTextChannel());
+    q.enqueue(player.lazyTrack({ title: 'Song', artist: 'Artist', durationSec: 180, thumbnail: 'https://i.scdn.co/x.jpg' }, 'u1'));
+    await q.playNext();
+    assert.ok(q.playing && q.playing.url === 'https://www.youtube.com/watch?v=right', JSON.stringify(q.playing));
+    assert.strictEqual(q.playing.title, 'Song — Artist', 'the name from Spotify stays');
+    assert.strictEqual(q.playing.thumbnail, 'https://i.scdn.co/x.jpg', 'the cover from Spotify stays');
+    q.stopAndDestroy();
+  });
+  await run('buttons: shuffle and repeat work from the panel', async () => {
+    const t = fakeTextChannel();
+    const q = player.getOrCreateQueue('g1', vc, t);
+    for (let n = 1; n <= 4; n++) q.enqueue(track(n));
+    await q.playNext();
+    const b1 = btn('music:loop', { messageId: q.panelMessage?.id });
+    await handleMusicButton(b1);
+    assert.strictEqual(q.loop, 'track');
+    const b2 = btn('music:shuffle', { messageId: q.panelMessage?.id });
+    await handleMusicButton(b2);
+    assert.strictEqual(q.tracks.length, 3);
     q.stopAndDestroy();
   });
 

@@ -1,5 +1,30 @@
 [
  {
+  "bot": "3.8.0",
+  "panel": "3.17.0",
+  "date": "2026-11-17",
+  "botChanges": [
+   "Плейлисты: /playlist — создать, наполнить, порядок, перемешать, поделиться кодом, импорт",
+   "Повтор: выключен, трек, очередь, плейлист — кнопка 🔁 и /repeat",
+   "Плеер: обложка, полоса прогресса, перемешать, сохранить очередь в плейлист",
+   "Spotify исправлен: официальный API или публичная страница, звук — подбор на YouTube"
+  ],
+  "panelChanges": [
+   "Страница «Музыка»: что играет сейчас с управлением и мои плейлисты"
+  ],
+  "en": {
+   "botChanges": [
+    "Playlists: /playlist — create, fill, reorder, shuffle, share by code, import",
+    "Repeat: off, track, queue, playlist — the 🔁 button and /repeat",
+    "Player: cover, progress bar, shuffle, save the queue to a playlist",
+    "Spotify fixed: the official API or the public page; audio is matched on YouTube"
+   ],
+   "panelChanges": [
+    "\"Music\" page: what's playing now with controls, and my playlists"
+   ]
+  }
+ },
+ {
   "bot": "3.7.2",
   "panel": "3.16.0",
   "date": "2026-11-17",

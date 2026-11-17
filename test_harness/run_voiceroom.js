@@ -203,12 +203,12 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
   const server = app.listen(0); const G = '777000000000000001'; const base = `http://127.0.0.1:${server.address().port}/dashboard/${G}/temp-voice`;
   const post = (b) => fetch(base + '/panel', { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(b).toString() });
   await test('web page: posts the panel into the chosen text channel, replaces the older one, remembers where it is', async () => {
-    const page = await (await fetch(base)).text(); assert(page.includes('Панель управления комнатами') && page.includes('Разместить панель'), 'page');
+    const page = await (await fetch(base + '-panel')).text(); assert(page.includes('Панель управления комнатами') && page.includes('Разместить панель'), 'page');
     const r = await post({ channelId: '123456789012345678' }); assert(r.headers.get('location').includes('vpanel=1'), r.headers.get('location'));
     const [url, body] = posted[0]; assert(url === '/channels/123456789012345678/messages' && body.components.length === 2 && body.components[0].components.length === 5 && body.embeds.length === 1 && body.allowed_mentions.parse.length === 0, txt(body).slice(0, 200));
     const s = await GuildSettings.findByPk(G); assert(s.tempVoicePanelChannelId === '123456789012345678' && s.tempVoicePanelMessageId === 'MSG1', 'remembered');
     await post({ channelId: '123456789012345678' }); assert(deletedMsgs.join() === '/channels/123456789012345678/messages/MSG1' && (await GuildSettings.findByPk(G)).tempVoicePanelMessageId === 'MSG2', 'old one deleted');
-    assert((await (await fetch(base)).text()).includes('Разместить заново'), 'button text changes');
+    assert((await (await fetch(base + '-panel')).text()).includes('Разместить заново'), 'button text changes');
   });
   await test('web page: a voice channel or unknown channel is refused; missing rights give a readable message', async () => {
     const n0 = posted.length; assert((await post({ channelId: '123456789012345679' })).headers.get('location').includes('invalid=1'), 'voice channel'); assert((await post({ channelId: 'abc' })).headers.get('location').includes('invalid=1'), 'junk'); assert(posted.length === n0, 'nothing posted');

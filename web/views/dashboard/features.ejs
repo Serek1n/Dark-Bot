@@ -21,7 +21,7 @@
                 <div class="mods-desc"><%= m.desc %></div>
                 <% if (cmds.length) { %><div class="mods-cmds"><% cmds.forEach((c) => { %><code>/<%= c %></code><% }) %></div><% } %>
                 <% (m.sections || []).forEach((sec) => { %>
-                  <label class="mods-section" data-mod-row="<%= sec.key %>"><span>Раздел «<%= sec.title %>»</span><span class="mod-sw sm"><input type="checkbox" data-mod-switch="<%= sec.key %>" data-mod-title="<%= sec.title %>"<%= sec.on ? ' checked' : '' %> aria-label="<%= sec.title %>"></span></label>
+                  <div class="mods-section" data-mod-row="<%= sec.key %>"><span>Раздел «<%= sec.title %>»</span><label class="mod-sw sm"><input type="checkbox" data-mod-switch="<%= sec.key %>" data-mod-title="<%= sec.title %>"<%= sec.on ? ' checked' : '' %> aria-label="<%= sec.title %>"></label></div>
                 <% }) %>
               </div>
               <% if (m.page) { %><a class="mods-open" href="/dashboard/<%= guild.id %>/<%= m.page %>">Настроить ›</a><% } %>

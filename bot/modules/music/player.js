@@ -21,6 +21,8 @@ const IDLE_TIMEOUT_MS = Number(process.env.VOICE_IDLE_MINUTES || 5) * 60 * 1000;
 // A playlist is cut to this many tracks: each Spotify/Apple track is a separate search, so a 500-track list would keep the bot busy for many minutes.
 const MAX_PLAYLIST = 100;
 const YTDLP_BIN = process.env.YTDLP_PATH || 'yt-dlp';
+const LOOP_MODES = ['off', 'track', 'queue', 'playlist'];
+const PROGRESS_EVERY_MS = 15_000;
 
 /**
  * Options for every yt-dlp call, from the .env file (read on each call):
@@ -92,7 +94,70 @@ class GuildQueue {
     this.history = [];
     this._skipHistory = false;
     this.panelMessage = null; // the message that currently carries the control buttons
+    /** Repeat: off · track (the current one again) · queue (finished tracks go to the end) · playlist (the DARK playlist starts over). */
+    this.loop = 'off';
+    /** The DARK playlist being played, for the "repeat playlist" mode: { id, name, tracks, shuffle }. */
+    this.playlist = null;
+    this._skipped = false; // the current track was skipped (a skip never repeats the track)
+    this._progressTimer = null;
     this._bindPlayerEvents();
+  }
+
+  /** The next repeat mode for the button: off → track → queue → playlist (only while a playlist plays) → off. */
+  cycleLoop() {
+    const order = ['off', 'track', 'queue', ...(this.playlist ? ['playlist'] : [])];
+    this.loop = order[(order.indexOf(this.loop) + 1) % order.length] || 'off';
+    return this.loop;
+  }
+
+  setLoop(mode) {
+    if (!LOOP_MODES.includes(mode) || (mode === 'playlist' && !this.playlist)) return false;
+    this.loop = mode;
+    return true;
+  }
+
+  /** Shuffles what is waiting (the current track keeps playing). Returns how many were shuffled. */
+  shuffle() {
+    for (let i = this.tracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.tracks[i], this.tracks[j]] = [this.tracks[j], this.tracks[i]];
+    }
+    return this.tracks.length;
+  }
+
+  /** Seconds played of the current track. */
+  position() {
+    const ms = this.player.state?.resource?.playbackDuration;
+    return Number.isFinite(ms) ? Math.floor(ms / 1000) : 0;
+  }
+
+  /** What happens to a track that just ended, by the repeat mode. */
+  _afterTrack(ended, skipped) {
+    if (!ended) return;
+    const copy = { ...ended };
+    if (this.loop === 'track' && !skipped) this.tracks.unshift(copy);
+    else if (this.loop === 'queue') this.tracks.push(copy);
+  }
+
+  /** In "repeat playlist" an empty queue takes the playlist again (shuffled again when it was started shuffled). */
+  _refillFromPlaylist() {
+    if (this.loop !== 'playlist' || !this.playlist?.tracks?.length || this.tracks.length) return false;
+    const list = this.playlist.tracks.map((t) => ({ ...t }));
+    if (this.playlist.shuffle) for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+    this.tracks.push(...list);
+    return true;
+  }
+
+  _startProgress() {
+    if (this._progressTimer) return;
+    // the bar on the panel moves: one edit every 15 s, well under Discord's limits
+    this._progressTimer = setInterval(() => { if (this.playing && !this.paused) this.refreshPanel(); }, PROGRESS_EVERY_MS);
+    this._progressTimer.unref?.();
+  }
+
+  _stopProgress() {
+    if (this._progressTimer) clearInterval(this._progressTimer);
+    this._progressTimer = null;
   }
 
   _bindPlayerEvents() {
@@ -103,8 +168,10 @@ class GuildQueue {
       if (this.playing && !this._skipHistory) {
         this.history.push(this.playing);
         if (this.history.length > 25) this.history.shift();
+        this._afterTrack(this.playing, this._skipped);
       }
       this._skipHistory = false;
+      this._skipped = false;
       this.playing = null;
       this.playNext().catch((err) => logger.error('playNext error', err));
     });
@@ -160,7 +227,8 @@ class GuildQueue {
   }
 
   renderPanel() {
-    return renderPanel({ playing: this.playing, tracks: this.tracks, volume: this.volume, paused: this.paused, canBack: this.history.length > 0 });
+    return renderPanel({ playing: this.playing, tracks: this.tracks, volume: this.volume, paused: this.paused, canBack: this.history.length > 0,
+      loop: this.loop, playlist: this.playlist, position: this.position() });
   }
 
   /** Re-draws the buttons message in place (queue changed, volume changed...). */
@@ -251,16 +319,20 @@ class GuildQueue {
 
   async playNext(interaction = null) {
     if (this.player.state.status !== AudioPlayerStatus.Idle && this.playing) return;
+    this._refillFromPlaylist();
     const next = this.tracks.shift();
     if (!next) {
       this.playing = null;
       this.paused = false;
+      this._stopProgress();
       this.retirePanel('Очередь закончилась. Добавьте трек через `/play`.');
       this._startIdleTimer();
       return;
     }
     this._clearIdleTimer();
     try {
+      // a track known only by name (Spotify, Apple Music, an imported playlist) is found on YouTube just before it plays
+      if (next.lazy) Object.assign(next, await resolveLazy(next));
       let resource;
       if (next.source === 'youtube' || next.source === 'soundcloud') {
         // Both go through yt-dlp: it keeps up with the sites, play-dl's SoundCloud needs a key that expires.
@@ -282,6 +354,7 @@ class GuildQueue {
       this.playing = next;
 
       this.paused = false;
+      this._startProgress();
       await this._showPanel(interaction);
     } catch (err) {
       this._killCurrentProcess();
@@ -303,6 +376,7 @@ class GuildQueue {
   }
 
   skip() {
+    this._skipped = true; // "repeat track" does not hold a skipped track
     this.player.stop(true); // triggers Idle -> playNext
   }
 
@@ -340,6 +414,8 @@ class GuildQueue {
 
   stopAndDestroy(note = 'Воспроизведение остановлено.') {
     this._clearIdleTimer();
+    this._stopProgress();
+    this.loop = 'off';
     this.retirePanel(note);
     this.tracks = [];
     // force: without a voice connection the player would sit in AutoPaused forever and never leave the
@@ -434,6 +510,45 @@ function trackFromYtDlp(e, requestedBy) {
   };
 }
 
+/** "3:45" / "1:02:03" → seconds (0 when unknown). */
+function parseDurationSec(text) {
+  const parts = String(text || '').split(':').map(Number);
+  if (!parts.length || parts.some((n) => !Number.isFinite(n))) return 0;
+  return parts.reduce((acc, n) => acc * 60 + n, 0);
+}
+
+/**
+ * Finds a song on YouTube by name: the first five results, and the one whose length is closest to the original
+ * (within 15 s) wins — a live version or a one-hour loop is not taken for a 3-minute song.
+ */
+async function ytDlpSearchBest(query, targetSec, requestedBy) {
+  const j = await ytDlpJson(['--skip-download', '--flat-playlist', '--dump-single-json', '--no-warnings', '--', `ytsearch5:${query}`], 20000);
+  const entries = (j.entries || []).filter((e) => e && e.id);
+  if (!entries.length) return null;
+  let best = entries[0];
+  if (targetSec > 0) {
+    const scored = entries.map((e) => ({ e, diff: Math.abs((Number(e.duration) || 0) - targetSec) })).sort((a, b) => a.diff - b.diff);
+    if (scored[0].diff <= 15) best = scored[0].e;
+  }
+  return trackFromYtDlp(best, requestedBy);
+}
+
+/** A track known by name only: found on YouTube just before it plays (see GuildQueue.playNext). */
+function lazyTrack(item, requestedBy, source = 'spotify') {
+  const title = item.artist ? `${item.title} — ${item.artist}` : item.title;
+  return {
+    title, url: item.spotifyUrl || item.url || null, duration: item.durationSec ? formatSeconds(item.durationSec) : '—', durationSec: item.durationSec || 0,
+    thumbnail: item.thumbnail || null, requestedBy, source: 'search', from: source, lazy: true, query: `${item.artist || ''} ${item.title}`.trim()
+  };
+}
+
+async function resolveLazy(t) {
+  const found = await ytDlpSearchBest(t.query || t.title, t.durationSec, t.requestedBy).catch(() => null);
+  if (!found) throw new Error(`не нашёл «${t.title}» на YouTube`);
+  // keep the original name and cover: they come from the service the link was from
+  return { url: found.url, source: 'youtube', lazy: false, duration: t.durationSec ? t.duration : found.duration, thumbnail: t.thumbnail || found.thumbnail, foundTitle: found.title };
+}
+
 const isSoundCloudUrl = (q) => /^https?:\/\/(www\.|m\.|on\.)?soundcloud\.com\//i.test(String(q).trim()) || /^https?:\/\/snd\.sc\//i.test(String(q).trim());
 
 /** SoundCloud through yt-dlp: a single track, a set/playlist (up to 50), or a search. */
@@ -466,6 +581,7 @@ async function ytDlpVideo(url, requestedBy) {
 }
 
 const { isAppleMusicUrl, resolveAppleMusic } = require('./appleMusic');
+const spotify = require('./spotify');
 
 async function resolveQuery(query, requestedBy) {
   const started = Date.now();
@@ -501,12 +617,17 @@ async function resolveQueryInner(query, requestedBy) {
   // Apple Music: names from the public page, audio from YouTube.
   if (isAppleMusicUrl(query)) {
     const names = await resolveAppleMusic(query);
-    const tracks = [];
-    for (const item of names) {
-      const found = await ytDlpSearch(`${item.name} ${item.artist}`.trim(), requestedBy).catch(() => null);
-      if (found && found[0]) tracks.push({ ...found[0], title: `${item.name}${item.artist ? ' — ' + item.artist : ''}` });
-    }
-    if (!tracks.length) throw new Error('Не нашёл эти треки на YouTube.');
+    if (!names.length) throw new Error('Apple Music не отдал треки по этой ссылке.');
+    // names now, YouTube links just before each one plays: a long album starts at once
+    return names.slice(0, MAX_PLAYLIST).map((item) => lazyTrack({ title: item.name, artist: item.artist, durationSec: item.durationSec || 0, thumbnail: item.artwork || null }, requestedBy, 'apple'));
+  }
+
+  // Spotify: names, artists, covers and lengths from Spotify, audio from YouTube (Spotify gives bots no audio)
+  if (spotify.isSpotifyUrl(query)) {
+    const r = await spotify.resolveSpotify(query, { limit: MAX_PLAYLIST });
+    if (!r.items.length) throw new spotify.SpotifyError(r.skipped ? 'Все треки по этой ссылке недоступны для воспроизведения.' : 'По этой ссылке Spotify нет треков.', 'empty');
+    const tracks = r.items.map((item) => lazyTrack(item, requestedBy, 'spotify'));
+    tracks.meta = { name: r.name, type: r.type, skipped: r.skipped || 0, cut: r.cut || 0 };
     return tracks;
   }
 
@@ -559,33 +680,6 @@ async function resolveQueryInner(query, requestedBy) {
     ];
   }
 
-  if (type && type.startsWith('sp_')) {
-    // Spotify: resolve metadata, then search YouTube for a matching track
-    const sp = await withTimeout(playdl.spotify(query), 15000, 'spotify');
-    const items = sp.type === 'track' ? [sp] : (await withTimeout(sp.all_tracks(), 30000, 'spotify')).slice(0, MAX_PLAYLIST);
-    const tracks = [];
-    for (const item of items) {
-      const searchQuery = `${item.name} ${item.artists?.map((a) => a.name).join(' ') || ''}`;
-      const found = await ytDlpSearch(searchQuery, requestedBy).catch(() => null);
-      if (found && found[0]) {
-        tracks.push({ ...found[0], title: `${item.name} — ${item.artists?.[0]?.name || ''}`.trim() });
-        continue;
-      }
-      const results = await withTimeout(playdl.search(searchQuery, { source: { youtube: 'video' }, limit: 1 }), 15000, 'search');
-      if (results[0]) {
-        tracks.push({
-          title: `${item.name} — ${item.artists?.[0]?.name || ''}`.trim(),
-          url: results[0].url,
-          duration: results[0].durationRaw,
-          thumbnail: results[0].thumbnails?.[0]?.url,
-          requestedBy,
-          source: 'youtube'
-        });
-      }
-    }
-    return tracks;
-  }
-
   // Fallback: treat as a plain-text search query on YouTube
   const fast = await ytDlpSearch(query, requestedBy).catch((err) => {
     logger.warn?.(`yt-dlp search failed, using play-dl: ${err.message}`);
@@ -606,4 +700,5 @@ async function resolveQueryInner(query, requestedBy) {
   ];
 }
 
-module.exports = { ytDlpJson, spawnYtDlpAudio, ytDlpBaseArgs, ytDlpFailReason, ytDlpAudioArgs, getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue };
+module.exports = { ytDlpJson, spawnYtDlpAudio, ytDlpBaseArgs, ytDlpFailReason, ytDlpAudioArgs, getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue,
+  ytDlpSearchBest, lazyTrack, resolveLazy, parseDurationSec, formatSeconds, LOOP_MODES, MAX_PLAYLIST };

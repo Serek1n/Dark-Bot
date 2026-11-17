@@ -201,7 +201,7 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     const s = await S();
     assert.deepStrictEqual(JSON.parse(s.tempVoiceTriggers), [{ channelId: V2, categoryId: CAT, name: 'Дуо', limit: 2 }]);
     assert.strictEqual(s.tempVoiceUserLimit, 99, 'limit clamped');
-    const page = await (await fetch(base2 + '/temp-voice')).text();
+    const page = await (await fetch(base2 + '/temp-voice-rooms')).text(); // the tab «Создание комнат» of «Временные голосовые»
     assert((page.match(/class="trig-row"/g) || []).length === 2 && page.includes('value="Дуо"'), 'the saved row and one empty');
   });
 

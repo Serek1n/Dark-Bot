@@ -10,10 +10,29 @@ const VOLUME_MAX = 1.5;
 function ephemeral(text) {
   return { embeds: [embeds.error(text)], flags: MessageFlags.Ephemeral };
 }
+const note = (text) => ({ embeds: [embeds.info(text)], flags: MessageFlags.Ephemeral });
 
 /** True when this interaction belongs to the music panel. */
 function isMusicButton(interaction) {
-  return interaction.isButton?.() && String(interaction.customId).startsWith(`${PREFIX}:`);
+  return (interaction.isButton?.() || interaction.isModalSubmit?.()) && String(interaction.customId).startsWith(`${PREFIX}:`);
+}
+
+const LOOP_TEXT = { off: 'Повтор выключен.', track: '🔂 Повторяю текущий трек.', queue: '🔁 Повторяю всю очередь.', playlist: '🔁 Повторяю плейлист.' };
+
+/** "💾" → a window asking for a name → the queue (what plays now and what waits) becomes a personal playlist. */
+async function saveQueue(interaction, queue) {
+  const name = interaction.fields.getTextInputValue('name');
+  const tracks = [queue.playing, ...queue.tracks].filter(Boolean);
+  if (!tracks.length) return interaction.reply(ephemeral('Очередь пуста — сохранять нечего.'));
+  const pl = require('./playlists');
+  try {
+    const p = await pl.create(interaction.user.id, name);
+    const r = await pl.addTracks(interaction.user.id, p.id, tracks);
+    return interaction.reply(note(`💾 Сохранено в плейлист **${p.name}**: ${r.added} тр.${r.cut ? ` Не поместилось: ${r.cut}.` : ''} Включить потом: \`/playlist play\`.`));
+  } catch (err) {
+    if (err instanceof pl.PlaylistError) return interaction.reply(ephemeral(err.message));
+    throw err;
+  }
 }
 
 async function handleMusicButton(interaction) {
@@ -23,6 +42,14 @@ async function handleMusicButton(interaction) {
   if (!queue) {
     // The session is over; clear the dead buttons from this old message.
     return interaction.update({ components: [] }).catch(() => interaction.reply(ephemeral('Музыка уже не играет.')));
+  }
+
+  // saving the queue is allowed from anywhere: it changes nothing for the others
+  if (action === 'savemodal') return saveQueue(interaction, queue);
+  if (action === 'save') {
+    const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+    return interaction.showModal(new ModalBuilder().setCustomId(`${PREFIX}:savemodal`).setTitle('Сохранить очередь в плейлист')
+      .addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('name').setLabel('Название плейлиста').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(60))));
   }
 
   const userChannel = interaction.member?.voice?.channelId;
@@ -67,6 +94,18 @@ async function handleMusicButton(interaction) {
       embed.setDescription('Дальше в очереди ничего нет. Добавьте трек через `/play`.');
     }
     return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+  }
+
+  if (action === 'shuffle') {
+    const n = queue.shuffle();
+    await interaction.update(queue.renderPanel());
+    return interaction.followUp(note(n > 1 ? `🔀 Очередь перемешана (${n} тр.).` : 'Перемешивать нечего.')).catch(() => {});
+  }
+
+  if (action === 'loop') {
+    const mode = queue.cycleLoop();
+    await interaction.update(queue.renderPanel());
+    return interaction.followUp(note(LOOP_TEXT[mode])).catch(() => {});
   }
 
   if (action === 'stop') {

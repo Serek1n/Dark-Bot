@@ -6,7 +6,7 @@ const FEATURES = [
   { key: 'leveling', field: 'levelingEnabled', title: 'Уровни', desc: 'Опыт за чат и голос, команды /profile, /top, /calc и /level', commands: ['profile', 'top', 'calc', 'level', 'Profile'], page: 'leveling' },
   { key: 'economy', field: 'economyEnabled', title: 'Экономика', desc: 'Ежедневная награда, баланс и переводы: /daily, /balance, /pay', commands: ['daily', 'balance', 'pay', 'work', 'gift', 'deal'], page: 'economy' },
   { key: 'shop', field: 'shopEnabled', title: 'Магазин', desc: 'Покупка ролей и предметов за валюту: /shop', commands: ['shop'], page: 'shop' },
-  { key: 'music', field: 'musicEnabled', title: 'Музыка', desc: 'Команда /play. Уже играющая музыка продолжит играть, пока её не остановят кнопкой', commands: ['play'], page: null },
+  { key: 'music', field: 'musicEnabled', title: 'Музыка', desc: 'Команда /play. Уже играющая музыка продолжит играть, пока её не остановят кнопкой', commands: ['play', 'repeat', 'playlist'], page: 'music' },
   { key: 'automod', field: 'automodEnabled', title: 'Автомодерация', desc: 'Удаление спама, ссылок, приглашений, запрещённых слов и крика, с наказанием нарушителей', commands: [], page: 'automod' },
   { key: 'welcome', field: 'welcomeEnabled', title: 'Приветствие и автороль', desc: 'Сообщение и роль для новых участников', commands: [], page: 'welcome' },
   { key: 'reactionRoles', field: 'reactionRolesEnabled', title: 'Роли по реакциям', desc: 'Выдача ролей за реакцию на сообщение', commands: [], page: 'reaction-roles' },

@@ -123,7 +123,8 @@ const LAYOUT = [
   { key: 'webhooks', group: 'tools', pages: ['webhooks'] },
   { key: 'reminders', group: 'tools', pages: [],
     stats: async (g) => { const { Reminder } = db(); return [{ value: await Reminder.count(where(g)), label: 'напоминаний ждут' }]; } },
-  { key: 'music', group: 'tools', pages: [] }
+  { key: 'music', group: 'tools', pages: ['music'],
+    stats: async () => { const { Playlist } = db(); return [{ value: await Playlist.count(), label: 'плейлистов у участников' }]; } }
 ];
 
 const MODULES = LAYOUT.map((m) => {

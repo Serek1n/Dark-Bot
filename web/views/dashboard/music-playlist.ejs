@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — ' + p.name }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1><%= p.name %></h1>
+        <p class="page-intro"><a href="/dashboard/<%= guild.id %>/music">← Мои плейлисты</a> · <%= rows.length %> из <%= max %> треков<%= p.source ? ' · импортирован' : '' %>. Включить: <code>/playlist play name:<%= p.name %></code></p>
+      </div>
+      <% const base = '/dashboard/' + guild.id + '/music/playlist/' + p.id; %>
+      <% if (fail) { %><div class="card g-span mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= fail %></p></div><% } %>
+      <div class="card g-span">
+        <h2>Треки</h2>
+        <form method="post" action="<%= base %>/add" class="mus-inline" data-no-guard>
+          <div class="mus-row"><input type="text" name="query" maxlength="300" placeholder="Ссылка или название трека; ссылка на плейлист добавит все" aria-label="Добавить трек" required /><button class="btn" type="submit">Добавить</button></div>
+        </form>
+        <% if (!rows.length) { %>
+          <p class="empty-state">Пусто. Добавьте трек выше или командой <code>/playlist add</code>.</p>
+        <% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>№</th><th>Трек</th><th>Длина</th><th>Откуда</th><th></th></tr></thead>
+            <tbody>
+              <% rows.forEach((r, i) => { %>
+                <tr>
+                  <td class="nowrap"><%= i + 1 %></td>
+                  <td><%= r.title %></td>
+                  <td class="nowrap"><%= r.durationSec ? fmt(r.durationSec) : '—' %></td>
+                  <td class="nowrap"><%= r.source === 'search' ? 'по названию' : r.source === 'soundcloud' ? 'SoundCloud' : 'YouTube' %></td>
+                  <td class="nowrap mus-acts">
+                    <% if (i > 0) { %><form method="post" action="<%= base %>/move" data-no-guard><input type="hidden" name="from" value="<%= i + 1 %>" /><input type="hidden" name="to" value="<%= i %>" /><button class="btn btn-secondary" type="submit" aria-label="Выше">↑</button></form><% } %>
+                    <% if (i < rows.length - 1) { %><form method="post" action="<%= base %>/move" data-no-guard><input type="hidden" name="from" value="<%= i + 1 %>" /><input type="hidden" name="to" value="<%= i + 2 %>" /><button class="btn btn-secondary" type="submit" aria-label="Ниже">↓</button></form><% } %>
+                    <form method="post" action="<%= base %>/remove" data-no-guard><input type="hidden" name="number" value="<%= i + 1 %>" /><button class="btn btn-secondary" type="submit">Убрать</button></form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+      <form method="post" action="<%= base %>/rename" class="card g-c1" data-no-guard>
+        <h2>Название</h2>
+        <div class="mus-row"><input type="text" name="name" maxlength="60" value="<%= p.name %>" aria-label="Название" required /><button class="btn" type="submit">Переименовать</button></div>
+      </form>
+      <div class="card g-c2">
+        <h2>Поделиться</h2>
+        <% if (p.shareCode) { %>
+          <p style="margin-top:0">Код: <code><%= p.shareCode %></code> — по нему плейлист можно включить (<code>/playlist play name:<%= p.shareCode %></code>) и скопировать себе (<code>/playlist copy</code>).</p>
+          <form method="post" action="<%= base %>/share" data-no-guard><input type="hidden" name="on" value="0" /><button class="btn btn-secondary" type="submit">Закрыть доступ</button></form>
+        <% } else { %>
+          <p style="margin-top:0" class="hint">Сейчас плейлист видите только вы.</p>
+          <form method="post" action="<%= base %>/share" data-no-guard><input type="hidden" name="on" value="1" /><button class="btn" type="submit">Получить код</button></form>
+        <% } %>
+        <form method="post" action="<%= base %>/delete" data-no-guard data-confirm="Удалить плейлист «<%= p.name %>» со всеми треками?" data-confirm-ok="Удалить" style="margin-top:14px"><button class="btn btn-danger" type="submit">Удалить плейлист</button></form>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

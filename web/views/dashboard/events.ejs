@@ -38,7 +38,7 @@
           <h3 class="econ-sub">Куда что идёт</h3>
           <div class="ev-routes">
             <% Object.entries(routes).forEach(([id, list]) => { %>
-              <div class="ev-route"><b class="<%= id ? '' : 'ev-nochan' %>"><%= id ? (chName(id) || id) : 'Канал не выбран — не отправится' %></b><span><%= list.join(', ') %></span></div>
+              <div class="ev-route"><b class="<%= id ? '' : 'ev-nochan' %>"><%= id ? (chName(id) || id) : 'Канал не выбран — не отправится' %></b><span><% list.forEach((t, i) => { %><span><%= t %></span><%= i < list.length - 1 ? ', ' : '' %><% }) %></span></div>
             <% }) %>
             <% if (!Object.keys(routes).length) { %><p class="empty-state">Все события выключены.</p><% } %>
           </div>

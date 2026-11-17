@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Музыка' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Музыка</h1>
+        <p class="page-intro">Команда <code>/play</code>: YouTube, SoundCloud, Spotify и Apple Music (их треки бот находит на YouTube — сами сервисы ботам звук не дают). Плеер в Discord — с кнопками повтора, перемешивания, громкости и сохранения очереди в плейлист.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const fmt = (sec) => { const s = Math.max(0, Math.round(sec)); const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const r = String(s % 60).padStart(2, '0'); return h ? h + ':' + String(m).padStart(2, '0') + ':' + r : m + ':' + r; };
+         const LOOP = { off: 'Повтор выключен', track: 'Повтор трека', queue: 'Повтор очереди', playlist: 'Повтор плейлиста' }; %>
+      <% if (fail) { %><div class="card g-span mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= fail %></p></div><% } %>
+
+      <div class="card g-span mus-now">
+        <h2>Сейчас играет<% if (now) { %><span class="sub">🔊 <%= now.channel %><%= now.playlist ? ' · плейлист «' + now.playlist + '»' : '' %></span><% } %></h2>
+        <% if (!now) { %>
+          <p class="empty-state">Сейчас ничего не играет. Зайдите в голосовой канал и напишите <code>/play</code> или <code>/playlist play</code>.</p>
+        <% } else { const pct = now.durationSec ? Math.min(100, (now.position / now.durationSec) * 100) : 0; %>
+          <div class="mus-track">
+            <% if (now.thumbnail) { %><img class="mus-cover" src="<%= now.thumbnail %>" alt="" loading="lazy" referrerpolicy="no-referrer" /><% } %>
+            <div class="mus-meta">
+              <b><%= now.title %></b>
+              <div class="mus-bar" aria-hidden="true"><i style="width:<%= pct.toFixed(1) %>%"></i></div>
+              <div class="hint" style="margin:0"><%= fmt(now.position) %> / <%= now.durationSec ? fmt(now.durationSec) : '—' %> · <%= now.paused ? 'пауза' : 'играет' %> · <%= LOOP[now.loop] %> · громкость <%= now.volume %>%</div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <% [['toggle', now.paused ? '▶ Продолжить' : '⏸ Пауза'], ['skip', '⏭ Дальше'], ['shuffle', '🔀 Перемешать']].forEach(([a, l]) => { %>
+              <form method="post" action="<%= g %>/music/control" data-no-guard><input type="hidden" name="action" value="<%= a %>" /><button class="btn btn-secondary" type="submit"><%= l %></button></form>
+            <% }) %>
+            <form method="post" action="<%= g %>/music/control" data-no-guard data-confirm="Остановить музыку и очистить очередь?" data-confirm-ok="Остановить"><input type="hidden" name="action" value="stop" /><button class="btn btn-danger" type="submit">⏹ Стоп</button></form>
+          </div>
+          <form method="post" action="<%= g %>/music/control" class="mus-loop" data-no-guard>
+            <input type="hidden" name="action" value="loop" />
+            <label for="mus_loop">Повтор</label>
+            <select id="mus_loop" name="mode">
+              <option value="off" <%= now.loop === 'off' ? 'selected' : '' %>>Выключен</option>
+              <option value="track" <%= now.loop === 'track' ? 'selected' : '' %>>Текущий трек</option>
+              <option value="queue" <%= now.loop === 'queue' ? 'selected' : '' %>>Вся очередь</option>
+              <% if (now.playlist) { %><option value="playlist" <%= now.loop === 'playlist' ? 'selected' : '' %>>Плейлист</option><% } %>
+            </select>
+            <button class="btn btn-secondary" type="submit">Применить</button>
+          </form>
+          <% if (now.next.length) { %>
+            <h3 class="econ-sub">Далее · <%= now.total %></h3>
+            <div class="mini-list"><% now.next.forEach((t, i) => { %><div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><span><%= t.title %></span></span><span class="val"><%= t.duration || '' %></span></div><% }) %></div>
+            <% if (now.more) { %><p class="hint">…и ещё <%= now.more %></p><% } %>
+          <% } %>
+        <% } %>
+      </div>
+
+      <div class="card g-c1">
+        <h2>Мои плейлисты<span class="sub">Они ваши: играют на любом сервере с ботом · <%= mine.length %> из <%= max %></span></h2>
+        <% if (!mine.length) { %>
+          <p class="empty-state">Плейлистов пока нет. Создайте или импортируйте справа — или сохраните очередь кнопкой 💾 в плеере.</p>
+        <% } else { %>
+          <div class="mini-list">
+            <% mine.forEach((p) => { %>
+              <a class="mini-row mus-pl" href="<%= g %>/music/playlist/<%= p.id %>"><span class="person"><span><b><%= p.name %></b></span></span><span class="val"><%= p.count %> тр.<%= p.shareCode ? ' · код ' + p.shareCode : '' %></span></a>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+      <div class="card g-c2">
+        <h2>Новый плейлист</h2>
+        <form method="post" action="<%= g %>/music/playlists" class="mus-inline" data-no-guard style="margin-top:0">
+          <label for="pl_name">Название</label>
+          <div class="mus-row"><input id="pl_name" type="text" name="name" maxlength="60" placeholder="Название" required /><button class="btn" type="submit">Создать</button></div>
+        </form>
+        <form method="post" action="<%= g %>/music/import" class="mus-inline" data-no-guard>
+          <label for="pl_url">Импорт по ссылке</label>
+          <div class="mus-row"><input id="pl_url" type="text" inputmode="url" name="url" maxlength="300" placeholder="Плейлист или альбом: YouTube, SoundCloud, Spotify, Apple Music" required /><button class="btn btn-secondary" type="submit">Импорт</button></div>
+          <input type="text" name="name" maxlength="60" placeholder="Название (по умолчанию — как в источнике)" aria-label="Название импорта" />
+        </form>
+      </div>
+
+      <div class="card g-span">
+        <h2>Как это работает</h2>
+        <div class="mus-how">
+          <div><b>Повтор</b><span>Кнопка 🔁 в плеере или <code>/repeat</code>: выключен → трек → очередь → плейлист. Пропуск трека в режиме «трек» переходит к следующему.</span></div>
+          <div><b>Плейлисты</b><span><code>/playlist</code>: create, add, remove, move, play (можно в случайном порядке), share — код для друзей, copy — скопировать чужой себе, import, save — сохранить очередь.</span></div>
+          <div><b>Spotify</b><span><% if (spotifyKeys) { %>Подключён официальный API: альбомы и плейлисты любой длины.<% } else { %>Работает без ключей — через публичную страницу ссылки (до 100 треков). Ключи <code>SPOTIFY_CLIENT_ID</code> и <code>SPOTIFY_CLIENT_SECRET</code> в .env включат официальный API.<% } %> Звук берётся с YouTube: подбирается видео с самой близкой длительностью.</span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
