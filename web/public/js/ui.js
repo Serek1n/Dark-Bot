@@ -487,7 +487,10 @@
     sel.parentNode.insertBefore(wrap, sel); wrap.appendChild(sel); sel.classList.add('fs-native'); sel.tabIndex = -1;
     var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'fs-btn'; btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
     if (sel.id) { var lab = document.querySelector('label[for="' + sel.id + '"]'); if (lab) { if (!lab.id) lab.id = sel.id + '-lbl'; btn.setAttribute('aria-labelledby', lab.id + ' ' + (sel.id + '-val')); } }
-    else if (sel.getAttribute('aria-label')) btn.setAttribute('aria-label', sel.getAttribute('aria-label'));
+    if (!btn.hasAttribute('aria-labelledby')) { // a list inside its label, or with only a title: the button still gets a name
+      var named = sel.getAttribute('aria-label') || sel.getAttribute('title') || (sel.labels && sel.labels[0] ? sel.labels[0].textContent.replace(/\s+/g, ' ').trim() : '');
+      if (named) btn.setAttribute('aria-label', named);
+    }
     btn.innerHTML = '<span class="fs-val"></span><svg class="fs-chev" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg>';
     var val = btn.querySelector('.fs-val'); if (sel.id) val.id = sel.id + '-val';
     wrap.appendChild(btn);

@@ -116,3 +116,5 @@ input:hover, select:hover, textarea:hover, .fs-btn:hover { border-color: var(--f
 }
 /* a native list (phones show it instead of ours) keeps room for its arrow, so a long choice never runs under it */
 .content select:not([multiple]), select:not([multiple]) { padding-right: 36px; text-overflow: ellipsis; }
+/* light theme: the green «Включён» pill reads at 12 px on any tint */
+[data-theme="light"] .mh-pill:not(.off) { color: color-mix(in srgb, var(--success) 78%, #000); }

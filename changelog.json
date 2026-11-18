@@ -1,6 +1,27 @@
 [
  {
   "bot": "3.15.0",
+  "panel": "3.25.2",
+  "date": "2026-11-18",
+  "botChanges": [],
+  "panelChanges": [
+   "Полная проверка: 58 страниц на ПК и телефоне, обе темы, ссылки, ошибки, контраст",
+   "Светлая тема: пальмы Vice Nights мягче и не спорят с текстом",
+   "Выпадающие списки без подписи рядом получили имя для экранного диктора",
+   "Светлая тема: зелёная метка «Включён» контрастнее"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Full check: 58 pages on desktop and phone, both themes, links, errors, contrast",
+    "Light theme: the Vice Nights palms are softer and do not compete with the text",
+    "Drop-down lists without a label next to them got a name for screen readers",
+    "Light theme: the green «On» pill has more contrast"
+   ]
+  }
+ },
+ {
+  "bot": "3.15.0",
   "panel": "3.25.1",
   "date": "2026-11-18",
   "botChanges": [],

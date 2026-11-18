@@ -89,7 +89,7 @@ html[data-season="vice"][data-theme="light"] {
   --vice-palms-l: url("/season/vice-palms-left-light.svg");
   --vice-palms-r: url("/season/vice-palms-right-light.svg");
   --vice-grid: url("/season/vice-grid-light.svg");
-  --vice-scene-opacity: 0.28;
+  --vice-scene-opacity: 0.18;
   --vice-sky: radial-gradient(1200px 520px at 50% 108%, rgba(255, 140, 120, 0.22), transparent 70%),
     radial-gradient(900px 420px at 92% -10%, rgba(63, 201, 207, 0.12), transparent 65%),
     radial-gradient(900px 420px at 4% -8%, rgba(255, 111, 174, 0.14), transparent 65%);
