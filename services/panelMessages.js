@@ -10,7 +10,10 @@ const { botApi } = require('../web/discordApi');
  * @param {(body: object) => object} [localize] turns the body into the server's language
  */
 async function postPanel(settings, channelId, payload, keys, localize = (b) => b) {
-  const body = localize({ embeds: payload.embeds.map((e) => e.toJSON()), components: payload.components.map((r) => r.toJSON()), allowed_mentions: { parse: [] } });
+  // a classic panel (embeds + rows of buttons) or a components-v2 one (flags + framed containers, no embeds)
+  const body = localize(payload.embeds
+    ? { embeds: payload.embeds.map((e) => e.toJSON()), components: payload.components.map((r) => r.toJSON()), allowed_mentions: { parse: [] } }
+    : { flags: payload.flags, components: payload.components.map((c) => c.toJSON()), allowed_mentions: { parse: [] } });
   const { data } = await botApi.post(`/channels/${channelId}/messages`, body);
   const oldChannel = settings[keys.channel]; const oldMessage = settings[keys.message];
   if (oldChannel && oldMessage && !(oldChannel === channelId && oldMessage === data.id)) {

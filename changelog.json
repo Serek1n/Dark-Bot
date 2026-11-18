@@ -1,5 +1,28 @@
 [
  {
+  "bot": "3.14.0",
+  "panel": "3.22.5",
+  "date": "2026-11-18",
+  "botChanges": [
+   "Панель комнат в новом виде: одна карточка с разделами и рядами кнопок-значков",
+   "Свои линейные значки бота в цветах DARK (загружаются в приложение бота сами)",
+   "Уже размещённые панели обновляются сами при запуске бота"
+  ],
+  "panelChanges": [
+   "«Разместить панель» публикует панель комнат в новом виде"
+  ],
+  "en": {
+   "botChanges": [
+    "The room panel's new look: one card with sections and rows of icon buttons",
+    "The bot's own line icons in DARK colours (uploaded to the bot's application by itself)",
+    "Panels already posted are updated by themselves when the bot starts"
+   ],
+   "panelChanges": [
+    "\"Post the panel\" posts the room panel in the new look"
+   ]
+  }
+ },
+ {
   "bot": "3.13.3",
   "panel": "3.22.4",
   "date": "2026-11-18",

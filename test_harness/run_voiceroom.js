@@ -57,16 +57,29 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
   const flags = (w, id) => { const e = w.ow.get(id); return e ? { allow: e.allow.has(P.Connect), deny: e.deny.has(P.Connect), viewAllow: e.allow.has(P.ViewChannel), viewDeny: e.deny.has(P.ViewChannel) } : null; };
 
   // ---------- the panel and the command ----------
-  await test('the panel: three sections (room, people, owner) of 5 buttons, every button named, delete is red', async () => {
-    const p = room.panelPayload(); const rows = p.components.map((r) => r.toJSON());
-    assert(rows.length === 3 && rows.every((r) => r.components.length === 5), 'rows');
+  await test('the panel: one framed card (components v2) with three sections of 5 icon buttons; own icons once uploaded', async () => {
+    const { MessageFlags } = require('discord.js');
+    let p = room.panelPayload();
+    assert(p.flags === MessageFlags.IsComponentsV2 && !p.embeds && p.components.length === 1, 'v2 card');
+    const box = p.components[0].toJSON();
+    assert(box.type === 17 && box.accent_color === 0x9a93ff, 'container');
+    const rows = box.components.filter((c) => c.type === 1);
+    const texts = box.components.filter((c) => c.type === 10).map((c) => c.content);
+    assert(rows.length === 3 && rows.every((r) => r.components.length === 5), 'three rows of five');
     const ids = rows.flatMap((r) => r.components.map((c) => c.custom_id));
     assert(ids.join() === 'vr:name,vr:limit,vr:access,vr:region,vr:bitrate,vr:invite,vr:trust,vr:untrust,vr:ban,vr:unban,vr:kick,vr:transfer,vr:claim,vr:info,vr:delete', ids.join());
-    assert(rows[2].components[4].style === ButtonStyle.Danger && rows[0].components[0].style === ButtonStyle.Secondary, 'styles');
-    assert(rows.flatMap((r) => r.components).every((c) => c.label && c.emoji && c.emoji.name), 'icon and name');
-    const e = p.embeds[0].toJSON();
-    assert(e.fields.map((f) => f.name).join() === 'Комната,Участники,Владелец' && e.fields[0].value.includes('📶 Битрейт') && e.description.includes('запоминаются'), JSON.stringify(e));
-    assert(new Set(room.BUTTONS.map((b) => b[1])).size === 15, 'every icon is different');
+    assert(rows.flatMap((r) => r.components).every((c) => c.emoji && !c.label && c.style === ButtonStyle.Secondary), 'icon buttons');
+    assert(texts[0].includes('Управление комнатой') && texts[0].includes('запоминаются') && texts.some((t) => t.startsWith('**Комната**') && t.includes('Битрейт')) && texts.some((t) => t.startsWith('**Участники**')) && texts.some((t) => t.startsWith('**Владелец**')) && texts[texts.length - 1].includes('DARK'), texts.join(' | '));
+    assert(box.components.filter((c) => c.type === 14).length === 4, 'dividers between the parts');
+    assert(new Set(room.BUTTONS.map((b) => b[1])).size === 15, 'every fallback icon is different');
+    // once the bot's own icons are uploaded, buttons and lines use them
+    const icons = require('../bot/modules/appEmojis');
+    icons._set('name', { id: '123456789012345678', name: 'dark_name' });
+    p = room.panelPayload();
+    const b2 = p.components[0].toJSON();
+    assert(b2.components.find((c) => c.type === 1).components[0].emoji.id === '123456789012345678' && b2.components.some((c) => c.type === 10 && c.content.includes('<:dark_name:123456789012345678> Название')), 'own icon');
+    icons.ready.clear();
+    assert(require('fs').readdirSync(require('path').join(__dirname, '..', 'bot', 'assets', 'emoji')).filter((f) => f.endsWith('.png')).length === 16, 'icons in the assets');
   });
   await test('/voice fits Discord limits and has every action', async () => {
     const j = cmd.data.toJSON(); const names = j.options.map((o) => o.name);
@@ -185,7 +198,7 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
     const w = await world(); const adm = w.person('ADM', { admin: true }); const sent = [];
     const ch = { id: 'PCH', send: async (p) => { sent.push(p); } };
     assert((await runCmd(w, 'panel', {}, w.owner)).includes('только администраторы'), 'owner is not an admin');
-    assert((await runCmd(w, 'panel', { channel: ch }, adm)).includes('PCH') && sent.length === 1 && sent[0].components.length === 3, 'posted');
+    assert((await runCmd(w, 'panel', { channel: ch }, adm)).includes('PCH') && sent.length === 1 && sent[0].components.length === 1 && sent[0].flags, 'posted');
   });
 
   // ---------- creation of a room ----------
@@ -299,7 +312,7 @@ const { PermissionsBitField, PermissionFlagsBits: P, ButtonStyle } = require('di
   await test('web page: posts the panel into the chosen text channel, replaces the older one, remembers where it is', async () => {
     const page = await (await fetch(base + '-panel')).text(); assert(page.includes('Панель управления комнатами') && page.includes('Разместить панель'), 'page');
     const r = await post({ channelId: '123456789012345678' }); assert(r.headers.get('location').includes('vpanel=1'), r.headers.get('location'));
-    const [url, body] = posted[0]; assert(url === '/channels/123456789012345678/messages' && body.components.length === 3 && body.components[0].components.length === 5 && body.embeds.length === 1 && body.allowed_mentions.parse.length === 0, txt(body).slice(0, 200));
+    const [url, body] = posted[0]; assert(url === '/channels/123456789012345678/messages' && body.flags === 32768 && body.components.length === 1 && body.components[0].type === 17 && body.components[0].components.filter((c) => c.type === 1).length === 3 && !body.embeds && body.allowed_mentions.parse.length === 0, txt(body).slice(0, 200));
     const s = await GuildSettings.findByPk(G); assert(s.tempVoicePanelChannelId === '123456789012345678' && s.tempVoicePanelMessageId === 'MSG1', 'remembered');
     await post({ channelId: '123456789012345678' }); assert(deletedMsgs.join() === '/channels/123456789012345678/messages/MSG1' && (await GuildSettings.findByPk(G)).tempVoicePanelMessageId === 'MSG2', 'old one deleted');
     assert((await (await fetch(base + '-panel')).text()).includes('Разместить заново'), 'button text changes');

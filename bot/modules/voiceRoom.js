@@ -57,16 +57,51 @@ const SECTIONS = [
 ];
 const BUTTONS = SECTIONS.flatMap(([, list]) => list);
 
-/** The message with the buttons that is posted into a control channel. */
-function panelPayload() {
-  const embed = embeds.baseEmbed().setTitle('🎙️ Управление комнатой')
-    .setDescription('Зайдите в свою комнату и нажмите кнопку. Настройки запоминаются для следующего раза.\nСвоей комнаты нет? Зайдите в канал-создатель — бот сделает её и отдаст вам.')
-    .addFields(SECTIONS.map(([title, list]) => ({ name: title, value: list.map(([, emoji, label]) => `${emoji} ${label}`).join(' · ') })))
-    .setFooter({ text: 'DARK · личные комнаты' });
-  // one row of five buttons for each section, in the order of the lines above
-  const rows = SECTIONS.map(([, list]) => new ActionRowBuilder().addComponents(list.map(([id, emoji, label]) => new ButtonBuilder()
-    .setCustomId(`${PREFIX}${id}`).setEmoji(emoji).setStyle(id === 'delete' ? ButtonStyle.Danger : ButtonStyle.Secondary).setLabel(label))));
-  return { embeds: [embed], components: rows };
+/**
+ * The message with the buttons that is posted into a control channel: one framed card (Discord's components v2) with the
+ * three sections, each a line of icons with names and a row of icon buttons under it. The icons are the bot's own line
+ * icons (bot/modules/appEmojis.js); until they are uploaded, ordinary emojis stand in. lang: the server's language.
+ */
+function panelPayload({ lang } = {}) {
+  const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, MessageFlags } = require('discord.js');
+  const i18n = require('../../i18n');
+  const tr = (text) => (lang ? i18n.t(text, lang) : i18n.t(text));
+  const icons = require('./appEmojis');
+  const text = (content) => new TextDisplayBuilder().setContent(content);
+  const line = () => new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Large);
+  const box = new ContainerBuilder().setAccentColor(0x9a93ff)
+    .addTextDisplayComponents(text(`### ${icons.inline('mic', '🎙️')} ${tr('Управление комнатой')}\n${tr('Зайдите в свою комнату и нажмите кнопку. Настройки запоминаются для следующего раза.\nСвоей комнаты нет? Зайдите в канал-создатель — бот сделает её и отдаст вам.')}`));
+  for (const [title, list] of SECTIONS) {
+    box.addSeparatorComponents(line())
+      .addTextDisplayComponents(text(`**${tr(title)}**\n${list.map(([id, emoji, label]) => `${icons.inline(id, emoji)} ${tr(label)}`).join(' · ')}`))
+      .addActionRowComponents(new ActionRowBuilder().addComponents(list.map(([id, emoji]) => new ButtonBuilder()
+        .setCustomId(`${PREFIX}${id}`).setEmoji(icons.emoji(id, emoji)).setStyle(ButtonStyle.Secondary))));
+  }
+  box.addSeparatorComponents(line()).addTextDisplayComponents(text(`-# ${tr('DARK · личные комнаты')}`));
+  return { flags: MessageFlags.IsComponentsV2, components: [box], allowedMentions: { parse: [] } };
+}
+
+/**
+ * Panels posted before the new look get it on start (the message is edited in place; nothing new is posted). A panel that
+ * can't be edited keeps its old look until an admin posts it again from the panel page or /voice panel.
+ */
+async function refreshPanels(client) {
+  const { GuildSettings } = require('../../db');
+  const { Op } = require('sequelize');
+  const rows = await GuildSettings.findAll({ where: { tempVoicePanelMessageId: { [Op.ne]: null } }, attributes: ['guildId', 'tempVoicePanelChannelId', 'tempVoicePanelMessageId'] });
+  const i18n = require('../../i18n');
+  let done = 0;
+  for (const r of rows) {
+    const guild = client.guilds.cache.get(r.guildId);
+    const channel = guild && r.tempVoicePanelChannelId ? await guild.channels.fetch(r.tempVoicePanelChannelId).catch(() => null) : null;
+    const msg = channel?.messages ? await channel.messages.fetch(r.tempVoicePanelMessageId).catch(() => null) : null;
+    if (!msg || msg.author?.id !== client.user.id) continue;
+    const payload = panelPayload({ lang: i18n.langOf(r.guildId) });
+    const ok = await msg.edit({ content: null, embeds: [], ...payload }).then(() => true).catch((err) => { logger.warn(`Room panel ${r.guildId}: ${err.message}`); return false; });
+    if (ok) done++;
+  }
+  if (done) logger.info(`Room panels refreshed: ${done}`);
+  return done;
 }
 
 // ---------------------------------------------------------------- what owners may do, remembered settings, history
@@ -460,6 +495,7 @@ async function handleVoiceRoomComponent(interaction) {
 }
 
 module.exports = {
+  refreshPanels,
   PREFIX, ACCESS, REGIONS, BUTTONS, SECTIONS, OWNER_PERMS, RoomError, panelPayload, isVoiceRoomComponent, handleVoiceRoomComponent,
   findRoom, roomById, rename, setAccess, trust, untrust, invite, kick, ban, unban, setRegion, setBitrate, bitrateChoices, transfer, claim, removeRoom, describe, trustedIds, bannedIds, renames, lastInvite,
   ownerPerms, ownerMay, logRoom, savePrefs, parseJson
