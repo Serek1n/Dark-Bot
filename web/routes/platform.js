@@ -39,7 +39,7 @@ router.get('/', signedIn, ownerOnly, async (req, res) => {
   const [earn, packages, held, orders, emitted, frozen] = await Promise.all([
     coins().earnSettings(), shop().packages(),
     DarkCoinPending.findAll({ where: { status: ['held', 'pending'] }, order: [['status', 'ASC'], ['id', 'DESC']], limit: 50 }),
-    DarkCoinOrder.findAll({ where: { status: ['paid', 'refunded'] }, order: [['id', 'DESC']], limit: 30 }),
+    DarkCoinOrder.findAll({ where: { status: 'paid' }, order: [['id', 'DESC']], limit: 30 }),
     coins().emittedToday(), userId ? coins().isFrozen(userId) : false
   ]);
   const users = await getUsers([...new Set([...top.map((w) => w.userId), ...log.flatMap((t) => [t.userId, t.actorId]), ...orders.map((o) => o.userId), ...held.map((p) => p.wallet), ...(userId ? [userId] : [])].filter((id) => /^\d{15,25}$/.test(String(id || ''))))]);
@@ -100,6 +100,5 @@ router.post('/packages', signedIn, ownerOnly, act((req) => {
   for (const k of Object.keys(shop().PACKAGE_DEFAULTS)) v[k] = { coins: req.body[`coins_${k}`], stars: req.body[`stars_${k}`], on: req.body[`on_${k}`] === 'on' };
   return shop().setPackages(req.user.id, v);
 }, 'settings'));
-router.post('/orders/:id(\\d+)/refund', signedIn, ownerOnly, act((req) => shop().refundOrder(req.user.id, req.params.id), 'refunded'));
 
 module.exports = router;

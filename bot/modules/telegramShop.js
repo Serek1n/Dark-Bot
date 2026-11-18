@@ -4,8 +4,7 @@
 // 2. The link t.me/<bot>?start=<token> opens our Telegram bot, which sends an invoice for that order.
 // 3. Telegram asks before charging (pre_checkout_query): the order must still be unpaid and the sum must match.
 // 4. After the payment (successful_payment) the coins are credited in one transaction keyed by Telegram's payment id: a
-//    repeated update credits nothing twice. The platform owner can refund a payment on /platform (Stars go back, coins are
-//    taken back).
+//    repeated update credits nothing twice. A purchase is final: Stars are not refunded.
 // The bot reads updates by long polling (getUpdates): no webhook, no open port. Needs TELEGRAM_BOT_TOKEN.
 const crypto = require('crypto');
 const { Op } = require('sequelize');
@@ -116,8 +115,8 @@ const fresh = (o) => o && o.status === 'created' && Date.now() - new Date(o.crea
 
 const TEXT = {
   hello: 'Это магазин DARK Coins — валюты платформы бота Dark для продвижения сообществ.\n\nЧтобы купить, войдите на сайт Dark через Discord, откройте «Кошелёк», выберите пакет и нажмите «Оплатить в Telegram» — бот пришлёт счёт в звёздах.\n\n/terms — условия · /paysupport — помощь с оплатой',
-  terms: 'Условия покупки DARK Coins\n\n• DARK Coins — внутренняя валюта платформы Dark. Их можно потратить только на продвижение сообществ в каталоге Dark. Их нельзя вывести, обменять на деньги или на валюту серверов.\n• Монеты зачисляются на кошелёк того аккаунта Discord, с которого сделан заказ на сайте, сразу после оплаты.\n• Возврат звёзд возможен, пока купленные монеты не потрачены: напишите в /paysupport.\n• Администрация платформы может заморозить кошелёк при нарушениях.',
-  support: () => `Помощь с оплатой\n\nОпишите проблему и пришлите номер заказа из сообщения об оплате. Связь: ${process.env.CONTACT_INFO || 'администрация платформы Dark'}.\n\nВозврат звёзд возможен, пока купленные монеты не потрачены.`,
+  terms: 'Условия покупки DARK Coins\n\n• DARK Coins — внутренняя валюта платформы Dark. Их можно потратить только на продвижение сообществ в каталоге Dark. Их нельзя вывести, обменять на деньги или на валюту серверов.\n• Монеты зачисляются на кошелёк того аккаунта Discord, с которого сделан заказ на сайте, сразу после оплаты.\n• Покупка окончательная: оплаченные звёзды не возвращаются. Если монеты не пришли — напишите в /paysupport, мы зачислим их.\n• Администрация платформы может заморозить кошелёк при нарушениях.',
+  support: () => `Помощь с оплатой\n\nОпишите проблему и пришлите номер заказа из сообщения об оплате. Связь: ${process.env.CONTACT_INFO || 'администрация платформы Dark'}.\n\nЕсли оплата прошла, а монеты не пришли, — мы проверим платёж и зачислим их. Возврат звёзд не предусмотрен.`,
   expired: 'Этот заказ уже оплачен или устарел (заказ действует 24 часа). Создайте новый на сайте в разделе «Кошелёк».'
 };
 
@@ -185,30 +184,6 @@ async function creditPurchase(payment, tgUserId) {
   }
 }
 
-/** The platform owner refunds a paid order: the coins are taken back first, then Telegram returns the Stars. */
-async function refundOrder(actorId, orderId) {
-  if (!coins().isPlatformOwner(actorId)) throw new ShopError('Это может только владелец платформы.');
-  const { DarkCoinOrder } = db();
-  const o = await DarkCoinOrder.findByPk(Number(orderId));
-  if (!o || o.status !== 'paid') throw new ShopError('Заказ не найден или не оплачен.');
-  if (!o.tgUserId) throw new ShopError('Неизвестен покупатель в Telegram — верните звёзды вручную.');
-  try {
-    await coins().move(o.userId, -o.coins, { kind: 'refund', opKey: `tgrefund:${o.chargeId}`, actorId, note: `Возврат заказа №${o.id}`, allowFrozen: true });
-  } catch (err) {
-    if (err instanceof coins().CoinError) throw new ShopError(`Не вернуть: ${err.message} Купленные монеты уже потрачены.`);
-    throw err;
-  }
-  try {
-    await api('refundStarPayment', { user_id: Number(o.tgUserId), telegram_payment_charge_id: o.chargeId });
-  } catch (err) {
-    // Telegram refused: give the coins back, nothing changed for the buyer
-    await coins().move(o.userId, o.coins, { kind: 'refund', opKey: `tgrefund-undo:${o.chargeId}`, actorId, note: `Отмена возврата заказа №${o.id}`, allowFrozen: true });
-    throw new ShopError(`Telegram не вернул звёзды: ${err.message}`);
-  }
-  await o.update({ status: 'refunded', refundedAt: new Date() });
-  return o;
-}
-
 // ---- long polling ----
 let running = false;
 async function pollOnce() {
@@ -244,6 +219,6 @@ function startTelegramShop() {
 function stopTelegramShop() { running = false; }
 
 module.exports = {
-  ShopError, PACKAGE_DEFAULTS, enabled, status, packages, setPackages, createOrder, handleUpdate, creditPurchase, refundOrder, pollOnce, startTelegramShop, stopTelegramShop, username, TEXT,
+  ShopError, PACKAGE_DEFAULTS, enabled, status, packages, setPackages, createOrder, handleUpdate, creditPurchase, pollOnce, startTelegramShop, stopTelegramShop, username, TEXT,
   _setFetch: (f) => { fetchImpl = f; }, _setUsername: (n) => { botUsername = n; }
 };

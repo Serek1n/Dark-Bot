@@ -1,5 +1,26 @@
 [
  {
+  "bot": "3.13.2",
+  "panel": "3.22.3",
+  "date": "2026-11-18",
+  "botChanges": [
+   "Возврат звёзд убран: покупка DARK Coins окончательная, это сказано в /terms"
+  ],
+  "panelChanges": [
+   "Платформа: кнопки «Вернуть» у покупок за звёзды больше нет",
+   "Кошелёк: под пакетами написано, что покупка окончательная"
+  ],
+  "en": {
+   "botChanges": [
+    "Star refunds removed: a DARK Coins purchase is final, as /terms says"
+   ],
+   "panelChanges": [
+    "Platform: no more \"Refund\" button for Star purchases",
+    "Wallet: the packages say a purchase is final"
+   ]
+  }
+ },
+ {
   "bot": "3.13.1",
   "panel": "3.22.2",
   "date": "2026-11-18",

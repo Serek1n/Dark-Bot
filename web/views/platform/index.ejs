@@ -8,7 +8,7 @@
     <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); const name = (id) => (id ? (users[id] || { name: id }).name : '—');
        const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
        const KIND = { grant: 'Начисление', revoke: 'Списание', promo: 'Продвижение', daily: 'Ежедневный бонус', vote: 'Голос', join: 'Вход из каталога', quest: 'Задание', top: 'Топ недели', purchase: 'Покупка', refund: 'Возврат' };
-       const DONE = { coins: 'Операция проведена.', dup: 'Эта операция уже была проведена — повтор ничего не изменил.', settings: 'Настройки сохранены.', pending: 'Решение по начислению принято.', frozen: 'Состояние кошелька изменено.', refunded: 'Возврат проведён: звёзды вернулись покупателю, монеты списаны.', moderated: 'Решение сохранено.', report: 'Жалоба закрыта.' }; %>
+       const DONE = { coins: 'Операция проведена.', dup: 'Эта операция уже была проведена — повтор ничего не изменил.', settings: 'Настройки сохранены.', pending: 'Решение по начислению принято.', frozen: 'Состояние кошелька изменено.', moderated: 'Решение сохранено.', report: 'Жалоба закрыта.' }; %>
     <% if (error) { %><div class="card mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
     <% if (done && DONE[done]) { %><div class="card appeal-ok"><p style="margin:0"><%= DONE[done] %></p></div><% } %>
     <div class="pf-grid">
@@ -84,8 +84,8 @@
         <h2>Покупки за звёзды</h2>
         <% if (!orders.length) { %><p class="empty-state">Оплаченных заказов ещё не было.</p><% } else { %>
           <div class="table-scroll"><table>
-            <thead><tr><th>№</th><th>Кто</th><th>Пакет</th><th>Оплачен</th><th></th></tr></thead>
-            <tbody><% orders.forEach((o) => { %><tr><td>#<%= o.id %></td><td class="nowrap"><%= name(o.userId) %></td><td class="nowrap"><%= fmt(o.coins) %> · <%= fmt(o.stars) %> ⭐</td><td class="nowrap"><%= o.paidAt ? when(o.paidAt) : '—' %></td><td><% if (o.status === 'paid') { %><form method="post" action="/platform/orders/<%= o.id %>/refund" data-confirm="Вернуть звёзды и списать купленные монеты?" data-confirm-ok="Вернуть"><button class="btn btn-secondary" type="submit">Вернуть</button></form><% } else { %><span class="muted">возвращён</span><% } %></td></tr><% }) %></tbody>
+            <thead><tr><th>№</th><th>Кто</th><th>Пакет</th><th>Оплачен</th></tr></thead>
+            <tbody><% orders.forEach((o) => { %><tr><td>#<%= o.id %></td><td class="nowrap"><%= name(o.userId) %></td><td class="nowrap"><%= fmt(o.coins) %> · <%= fmt(o.stars) %> ⭐</td><td class="nowrap"><%= o.paidAt ? when(o.paidAt) : '—' %></td></tr><% }) %></tbody>
           </table></div>
         <% } %>
       </div>

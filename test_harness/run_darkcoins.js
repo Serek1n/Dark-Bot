@@ -2,7 +2,7 @@
 // paid votes (a few a day), verified joins (only after «Присоединиться», only for a real join, paid after the wait, cancelled
 // when the member left), quests, the weekly top, the daily emission limit (held → the owner decides), frozen wallets, the
 // server's wallet paying for promotion; Telegram: the order, the invoice, the check before charging, the payment credited
-// once, the refund; the /wallet and /platform pages.
+// once, no refunds; the /wallet and /platform pages.
 process.env.DATABASE_PATH = './data/test_darkcoins.sqlite';
 process.env.BOT_OWNER_IDS = '700000000000000001';
 process.env.TELEGRAM_BOT_TOKEN = '"bot1234567890:AAHtestTokenTestTokenTestTokenTest"'; // quotes and a "bot" prefix are forgiven
@@ -175,21 +175,9 @@ fs.mkdirSync('./data', { recursive: true });
     assert(await shop.handleUpdate({ pre_checkout_query: { id: 'q3', currency: 'XTR', total_amount: 250, invoice_payload: order.token } }) === 'precheckout-refused', 'a paid order can\'t be paid again');
   });
 
-  await test('Telegram refund: the owner only; coins back first, Stars returned; spent coins can\'t be refunded', async () => {
-    await fails(() => shop.refundOrder('300000000000000005', order.id), /владелец/);
-    const before = await coins.balanceOf(OLD);
-    calls.length = 0;
-    await shop.refundOrder(OWNER, order.id);
-    assert(await coins.balanceOf(OLD) === before - 550 && calls.some((x) => x.method === 'refundStarPayment' && x.body.telegram_payment_charge_id === 'charge-1'), 'refunded');
-    assert((await db.DarkCoinOrder.findByPk(order.id)).status === 'refunded', 'status');
-    const { order: o2 } = await shop.createOrder('300000000000000301', 's');
-    await shop.creditPurchase({ currency: 'XTR', total_amount: o2.stars, invoice_payload: o2.token, telegram_payment_charge_id: 'charge-2' }, 77);
-    await coins.charge('300000000000000301', 60, { kind: 'promo', opKey: 'spent-it-0001' });
-    await fails(() => shop.refundOrder(OWNER, o2.id), /потрачены/);
-    const { order: o3 } = await shop.createOrder('300000000000000302', 's');
-    await shop.creditPurchase({ currency: 'XTR', total_amount: o3.stars, invoice_payload: o3.token, telegram_payment_charge_id: 'fail' }, 78);
-    await fails(() => shop.refundOrder(OWNER, o3.id), /не вернул/);
-    assert(await coins.balanceOf('300000000000000302') === 100, 'coins given back when Telegram refused');
+  await test('no refunds: the shop has no refund action, the terms say a purchase is final', async () => {
+    assert(!('refundOrder' in shop), 'no refund function');
+    assert(/окончательная/.test(shop.TEXT.terms) && !/Возврат звёзд возможен/.test(shop.TEXT.support()), 'terms');
   });
 
   await test('web: /wallet shows balance, bonus, packages; buying makes an order and shows the Telegram button; /platform has the rules', async () => {
