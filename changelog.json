@@ -1,6 +1,25 @@
 [
  {
   "bot": "3.14.0",
+  "panel": "3.23.0",
+  "date": "2026-11-18",
+  "botChanges": [],
+  "panelChanges": [
+   "Сезонное оформление «Vice Nights» до 30 ноября: неоновый закат, пальмы и сетка",
+   "Розово-бирюзовые акценты, градиентные заголовки и кнопки — в тёмной и светлой теме",
+   "После 30 ноября сайт сам вернётся к обычному виду; SITE_SEASON=off выключает раньше"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "\"Vice Nights\" seasonal look until 30 November: neon sunset, palms and a grid",
+    "Pink and teal accents, gradient titles and buttons — in the dark and light theme",
+    "After 30 November the site returns to its usual look; SITE_SEASON=off ends it sooner"
+   ]
+  }
+ },
+ {
+  "bot": "3.14.0",
   "panel": "3.22.6",
   "date": "2026-11-18",
   "botChanges": [],

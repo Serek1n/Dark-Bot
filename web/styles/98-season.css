@@ -1,0 +1,155 @@
+/* Seasonal look "Vice Nights" (neon sunset, palms, pink and teal glow) */
+/* ======================================================================================================================
+   Switched on by the server for a limited time (web/utils/season.js puts <html data-season="vice">). Everything here is
+   scoped to that attribute, so when the season ends the panel is exactly as before. Only colours and decoration change:
+   no sizes, so layouts stay the same in both looks. Works with the dark and the light theme.
+   ====================================================================================================================== */
+
+html[data-season="vice"] {
+  --ink: #140a22;
+  --rail: #190d2a;
+  --panel: #1d1030;
+  --panel-raised: #28163f;
+  --hairline: #3b2457;
+  --field-border: #8a6aa8;
+  --hairline-soft: #2a1842;
+  --paper: #fbeefc;
+  --fog: #cbb0da;
+  --fog-dim: #ad92bf;
+
+  --ember: #ff5fae;
+  --ember-hover: #ff7dbd;
+  --ember-tint: rgba(255, 95, 174, 0.15);
+  --ember-tint-strong: rgba(255, 95, 174, 0.26);
+  --on-ember: #1a0a22;
+
+  --signal: #35e0e6;
+  --signal-tint: rgba(53, 224, 230, 0.14);
+  --gold: #ffc35c;
+
+  --glow-violet: rgba(255, 95, 174, 0.12);
+  --glow-amber: rgba(255, 154, 60, 0.08);
+  --card-sheen: rgba(255, 255, 255, 0.03);
+  --card-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 44px -26px rgba(255, 60, 160, 0.38);
+  --focus-ring: 0 0 0 3px rgba(53, 224, 230, 0.4);
+
+  --vice-pink: #ff5fae;
+  --vice-orange: #ff9a3c;
+  --vice-teal: #35e0e6;
+  --vice-violet: #9b5cff;
+  --vice-title: linear-gradient(92deg, #ffd36e 0%, #ff8a5c 38%, #ff5fae 68%, #b86bff 100%);
+  --vice-line: linear-gradient(90deg, transparent, #ff5fae 18%, #ff9a3c 50%, #35e0e6 82%, transparent);
+  --vice-btn: linear-gradient(100deg, #ff5fae, #ff8a4c);
+  --vice-btn-hover: linear-gradient(100deg, #ff77ba, #ffa060);
+  --vice-scene: url("/season/vice-dark.svg");
+  --vice-scene-opacity: 0.5;
+  --vice-sky: radial-gradient(1200px 520px at 50% 108%, rgba(255, 95, 174, 0.22), transparent 70%),
+    radial-gradient(900px 420px at 92% -10%, rgba(53, 224, 230, 0.10), transparent 65%),
+    radial-gradient(900px 420px at 4% -8%, rgba(155, 92, 255, 0.16), transparent 65%);
+}
+
+html[data-season="vice"][data-theme="light"] {
+  --ink: #fff3ec;
+  --rail: #fffaf6;
+  --panel: #ffffff;
+  --panel-raised: #ffece3;
+  --hairline: #f2d3c8;
+  --field-border: #b0849a;
+  --hairline-soft: #f8e4dc;
+  --paper: #2a0f2c;
+  --fog: #6b4563;
+  --fog-dim: #7a5570;
+
+  --ember: #c4246f;
+  --ember-hover: #a51b5c;
+  --ember-tint: #ffe1ee;
+  --ember-tint-strong: #ffcde2;
+  --on-ember: #ffffff;
+
+  --signal: #00808a;
+  --signal-tint: #d9f6f6;
+  --gold: #a35d00;
+
+  --glow-violet: rgba(196, 36, 111, 0.06);
+  --glow-amber: rgba(255, 154, 60, 0.10);
+  --card-sheen: rgba(255, 255, 255, 0);
+  --card-shadow: 0 1px 2px rgba(90, 20, 60, 0.06), 0 14px 30px -22px rgba(196, 36, 111, 0.35);
+  --focus-ring: 0 0 0 3px rgba(0, 128, 138, 0.3);
+
+  --vice-pink: #c4246f;
+  --vice-orange: #c25a00;
+  --vice-teal: #00808a;
+  --vice-violet: #6b2fd1;
+  --vice-title: linear-gradient(92deg, #c25a00 0%, #d0306a 45%, #7a2fd1 100%);
+  --vice-line: linear-gradient(90deg, transparent, #ff6fae 18%, #ffa060 50%, #3fc9cf 82%, transparent);
+  --vice-btn: linear-gradient(100deg, #c4246f, #d2512c);
+  --vice-btn-hover: linear-gradient(100deg, #ad1d61, #bb4420);
+  --vice-scene: url("/season/vice-light.svg");
+  --vice-scene-opacity: 0.35;
+  --vice-sky: radial-gradient(1200px 520px at 50% 108%, rgba(255, 140, 120, 0.22), transparent 70%),
+    radial-gradient(900px 420px at 92% -10%, rgba(63, 201, 207, 0.12), transparent 65%),
+    radial-gradient(900px 420px at 4% -8%, rgba(255, 111, 174, 0.14), transparent 65%);
+}
+
+/* The scene: sunset, sea grid and palms along the bottom of the window, the sky glow on top. Behind everything. */
+/* the colour and the sky are on <html>, so the scene (z-index -1) is drawn above them and below the page */
+html[data-season="vice"] { background: var(--vice-sky), var(--ink); background-attachment: fixed; }
+html[data-season="vice"] body { background: transparent; }
+html[data-season="vice"] body::before {
+  content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: min(42vh, 440px); z-index: -1; pointer-events: none;
+  background: var(--vice-scene) center bottom / cover no-repeat; opacity: var(--vice-scene-opacity);
+  -webkit-mask-image: linear-gradient(to top, #000 55%, transparent); mask-image: linear-gradient(to top, #000 55%, transparent);
+}
+html[data-season="vice"] .night-sky { display: none !important; }
+
+/* Top bar: a neon line under it instead of the plain border */
+html[data-season="vice"] .topbar { border-bottom-color: transparent; }
+html[data-season="vice"] .topbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--vice-line); opacity: 0.9; pointer-events: none; }
+html[data-season="vice"] .tb-group.is-on { background: var(--ember-tint); box-shadow: inset 0 -2px 0 var(--vice-pink); }
+html[data-season="vice"] .tb-guild .guild-initial { background: var(--vice-btn); color: var(--on-ember); }
+
+/* Titles: sunset gradient */
+html[data-season="vice"] h1 {
+  width: fit-content; max-width: 100%; background: var(--vice-title); -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+html[data-season="vice"]:not([data-theme="light"]) h1 { filter: drop-shadow(0 0 18px rgba(255, 95, 174, 0.28)); }
+
+/* Main buttons: pink-orange, with a glow */
+html[data-season="vice"] .btn:not(.btn-secondary):not(.btn-danger):not(.danger) { background: var(--vice-btn); }
+html[data-season="vice"] .btn:not(.btn-secondary):not(.btn-danger):not(.danger):hover { background: var(--vice-btn-hover); box-shadow: 0 8px 26px -8px var(--vice-pink); }
+html[data-season="vice"] .btn-secondary:hover { border-color: var(--vice-teal); }
+
+/* Cards: a thin warm edge on top */
+html[data-season="vice"] .card, html[data-season="vice"] .stat-box { border-top-color: color-mix(in srgb, var(--vice-pink) 45%, var(--hairline)); }
+html[data-season="vice"] .stat-box .value { color: var(--paper); }
+
+/* Fields and switches */
+html[data-season="vice"] input:focus-visible, html[data-season="vice"] select:focus-visible, html[data-season="vice"] textarea:focus-visible { border-color: var(--vice-teal); }
+html[data-season="vice"] a:not(.btn):not(.tb-group):not(.tb-guild):hover { text-shadow: none; }
+
+/* Season mark: a small pill on the sign-in page and in the profile menu */
+.season-pill { display: none; }
+html[data-season="vice"] .season-pill {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: var(--r-pill);
+  font-size: var(--fs-12); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--paper);
+  background: color-mix(in srgb, var(--panel) 80%, transparent); border: 1px solid color-mix(in srgb, var(--vice-pink) 55%, transparent);
+  box-shadow: 0 0 20px -6px var(--vice-pink);
+}
+html[data-season="vice"] .season-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--vice-teal); box-shadow: 0 0 8px var(--vice-teal); flex: 0 0 8px; }
+html[data-season="vice"] .season-pill .sp-until { font-weight: 600; letter-spacing: 0.02em; text-transform: none; color: var(--fog); }
+html[data-season="vice"] .tb-user-menu .season-pill { display: flex; margin: 4px 4px 2px; justify-content: center; }
+
+/* Sign-in page: the moon turns into a sunset */
+html[data-season="vice"] .login-page .season-pill { margin-bottom: 18px; }
+html[data-season="vice"] .login-page .crescent > circle { fill: var(--vice-pink); }
+html[data-season="vice"] .login-page .moon-glow { filter: drop-shadow(0 0 22px rgba(255, 95, 174, 0.55)); }
+html[data-season="vice"] .login-page h1 { font-size: var(--fs-48); letter-spacing: 0.02em; text-transform: uppercase; font-weight: 800; }
+html[data-season="vice"] .feature-list span { border-color: color-mix(in srgb, var(--vice-pink) 35%, var(--hairline)); }
+
+@media (max-width: 640px) {
+  html[data-season="vice"] body::before { height: 34vh; --vice-scene-opacity: 0.35; }
+}
+@media print {
+  html[data-season="vice"] body::before, html[data-season="vice"] .topbar::after { display: none; }
+}

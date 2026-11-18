@@ -78,7 +78,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use((req, res, next) => { res.locals.reqPath = req.originalUrl; next(); });
+const { currentSeason } = require('./utils/season');
+app.use((req, res, next) => {
+  res.locals.reqPath = req.originalUrl;
+  res.locals.season = currentSeason(); // a temporary seasonal look of the site, see utils/season.js
+  next();
+});
 app.use(panelI18n.panelLanguage); // English pages for English viewers
 // For an outside monitor (UptimeRobot and the like): 200 while the panel answers, the database opens and the bot is on Discord.
 app.get('/healthz', async (req, res) => {

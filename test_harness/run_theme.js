@@ -57,6 +57,24 @@ const web = path.join(__dirname, '..', 'web');
     assert(attrs['data-theme'] === 'dark', 'works with storage blocked');
     const ready = listeners.find((l) => l[0] === 'DOMContentLoaded'); assert(ready, 'waits for the page');
   });
+  await test('season: Vice Nights runs until the end of 30 November (Moscow), SITE_SEASON overrides, the page gets it', async () => {
+    const { currentSeason } = require('../web/utils/season');
+    assert(currentSeason(Date.parse('2026-11-18T12:00:00Z'), '') === 'vice', 'on in November');
+    assert(currentSeason(Date.parse('2026-11-30T20:59:00Z'), '') === 'vice', 'on at 23:59 Moscow time');
+    assert(currentSeason(Date.parse('2026-11-30T21:00:00Z'), '') === null, 'off at midnight Moscow time');
+    assert(currentSeason(Date.parse('2026-11-18T12:00:00Z'), 'off') === null && currentSeason(Date.parse('2027-01-01T00:00:00Z'), 'vice') === 'vice', 'env override');
+    const head = await ejs.renderFile(path.join(web, 'views/partials/head.ejs'), { season: 'vice' });
+    assert(head.indexOf('name="dark-season" content="vice"') > -1 && head.indexOf('dark-season') < head.indexOf('theme.js'), 'meta before the theme script');
+    assert(!(await ejs.renderFile(path.join(web, 'views/partials/head.ejs'), {})).includes('dark-season'), 'no meta out of season');
+    const src = fs.readFileSync(path.join(web, 'public/js/theme.js'), 'utf8'); const attrs = {};
+    const doc = { documentElement: { setAttribute: (k, v) => { attrs[k] = v; }, getAttribute: (k) => attrs[k], classList: { add() {}, contains: () => false } },
+      querySelector: (q) => (q.includes('dark-season') ? { getAttribute: () => 'vice' } : null), querySelectorAll: () => [], addEventListener() {} };
+    vm.runInNewContext(src, { document: doc, localStorage: { getItem: () => null, setItem() {} }, Array });
+    assert(attrs['data-season'] === 'vice', 'html gets data-season');
+    const css = require('../web/styles').stylesheet().text;
+    assert(css.includes('html[data-season="vice"] {') && css.includes('html[data-season="vice"][data-theme="light"] {'), 'both themes styled');
+    for (const f of ['vice-dark.svg', 'vice-light.svg']) assert(fs.existsSync(path.join(web, 'public/season', f)), 'scene ' + f);
+  });
   await test('head loads the theme script before the page is drawn, and the picker pages have a theme button', async () => {
     const head = fs.readFileSync(path.join(web, 'views/partials/head.ejs'), 'utf8');
     assert(/<script src="\/js\/theme\.js[^"]*"><\/script>/.test(head) && !/defer|async/.test(head.match(/<script[^>]*theme\.js[^>]*>/)[0]), 'script in head');

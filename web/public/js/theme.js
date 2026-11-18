@@ -2,13 +2,19 @@
 // Loaded in <head> without defer so the right theme is on the page before it is first painted (no flash).
 (function () {
   var root = document.documentElement;
+  // a seasonal look of the site (web/utils/season.js), announced by the server in <meta name="dark-season">
+  var seasonMeta = document.querySelector('meta[name="dark-season"]');
+  var season = seasonMeta ? seasonMeta.getAttribute('content') : '';
+  if (season) root.setAttribute('data-season', season);
+  var SEASON_BAR = { vice: { dark: '#140a22', light: '#fff1e8' } };
   function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
   function write(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* private window: the choice just is not remembered */ } }
 
   function applyTheme(theme) {
     root.setAttribute('data-theme', theme);
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f5f8' : '#0e1016');
+    var bar = SEASON_BAR[season];
+    if (meta) meta.setAttribute('content', bar ? bar[theme === 'light' ? 'light' : 'dark'] : (theme === 'light' ? '#f4f5f8' : '#0e1016'));
   }
   var theme = read('dark-theme');
   applyTheme(theme === 'light' ? 'light' : 'dark');
