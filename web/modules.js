@@ -46,6 +46,7 @@ const ICONS = {
   achievements: '<path d="M6.5 3.5H13.5V8C13.5 10 12 11.5 10 11.5C8 11.5 6.5 10 6.5 8V3.5Z"/><path d="M6.5 5H4V6.5C4 7.9 5 9 6.5 9.2M13.5 5H16V6.5C16 7.9 15 9 13.5 9.2M10 11.5V14.5M7 16.5H13M8 14.5H12V16.5H8Z"/>',
   listing: '<circle cx="7" cy="7.5" r="2.5"/><circle cx="13.5" cy="7.5" r="2.5"/><path d="M2.5 16C2.8 13.3 4.7 11.5 7 11.5C9.3 11.5 11.2 13.3 11.5 16M10.5 12.3C11.2 11.8 12.3 11.5 13.5 11.5C15.8 11.5 17.2 13.3 17.5 16"/>',
   appearance: '<path d="M10 2.8C5.9 2.8 2.8 5.8 2.8 9.6C2.8 13.6 6 17.2 9.6 17.2C10.7 17.2 11.2 16.5 11.2 15.7C11.2 14.6 10.3 14.3 10.3 13.4C10.3 12.6 10.9 12.1 11.8 12.1H13.6C15.6 12.1 17.2 10.6 17.2 8.6C17.2 5.4 14 2.8 10 2.8Z"/><circle cx="6.6" cy="9.4" r="1.1"/><circle cx="8.6" cy="6.1" r="1.1"/><circle cx="12.4" cy="6.1" r="1.1"/>',
+  serverStats: '<path d="M3 17H17"/><path d="M5.5 14V9M10 14V5M14.5 14V11"/>',
   boosts: '<path d="M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z"/>'
 };
 
@@ -111,6 +112,14 @@ const LAYOUT = [
     stats: async (g) => { const { Ticket } = db(); return [{ value: await Ticket.count(where(g, { status: 'open' })), label: 'открытых обращений' }]; } },
   { key: 'logs', group: 'moderation', pages: ['logs'] },
   { key: 'welcome', group: 'server', pages: ['welcome'] },
+  { key: 'serverStats', group: 'server', pages: ['server-stats', 'server-stats-channels'],
+    stats: async (g) => {
+      const ss = require('../bot/modules/serverStats');
+      const week = await ss.history(g, 7);
+      const { GuildSettings } = db();
+      const counters = ss.read(await GuildSettings.findOne(where(g))).counters.length;
+      return [{ value: week.reduce((s, d) => s + d.messages, 0), label: 'сообщений за неделю' }, { value: counters, label: 'счётчиков в каналах' }];
+    } },
   { key: 'reactionRoles', group: 'server', pages: ['reaction-roles'],
     stats: async (g) => { const { ReactionRole } = db(); return [{ value: await ReactionRole.count(where(g)), label: 'ролей по реакциям' }]; } },
   { key: 'interactive', group: 'server', pages: ['interactive'],
@@ -178,6 +187,7 @@ const PAGE_LABELS = { leveling: 'Настройки', 'channel-boosts': 'Мно�
   'temp-voice-roles': 'Голосовые роли', 'temp-voice-auto': 'Автоматизация', 'temp-voice-stats': 'Статистика', 'temp-voice-settings': 'Настройки',
   achievements: 'Обзор', 'achievements-catalog': 'Каталог', 'achievements-edit': 'Создать', 'achievements-members': 'Участники', 'achievements-settings': 'Настройки',
   appearance: 'Тема', 'appearance-levels': 'Уровни', 'appearance-achievements': 'Достижения', 'appearance-fun': 'Мини-игры', 'appearance-voice': 'Голосовые комнаты',
+  'server-stats': 'Обзор', 'server-stats-channels': 'Каналы-счётчики',
   economy: 'Настройки', 'economy-bank': 'Центробанк', 'economy-treasury': 'Казна и цели', 'economy-deals': 'Сделки и коды', 'economy-journal': 'Журнал' };
 // A page shown only while one of these economy sections is on (bot/modules/econ/config.js).
 const PAGE_NEEDS = { 'economy-bank': ['bank', 'seasons'], 'economy-treasury': ['treasury', 'goals'], 'economy-deals': ['deals', 'gifts'] };

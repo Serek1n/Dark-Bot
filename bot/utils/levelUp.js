@@ -93,7 +93,7 @@ async function announceLevelUp({ guild, user, displayName, level, oldLevel, chan
     const reward = [crystals > 0 ? `+${crystals} ${crystalName || 'кристаллы'}` : null, roleName ? `роль ${roleName}` : null].filter(Boolean).join(' · ');
     card = await require('../modules/lookCards').renderLevelUpCard({
       username: displayName || user.username, avatarURL: user.displayAvatarURL?.({ extension: 'png', size: 256 }), level, oldLevel, reward,
-      server: guild.name, headline: shape.headline, colors: appearance.palette(look)
+      server: guild.name, headline: shape.headline, format: shape.format, colors: appearance.palette(look)
     }).catch(() => null); // a drawing that fails leaves the text
   }
   const textOn = shape.text || !card;

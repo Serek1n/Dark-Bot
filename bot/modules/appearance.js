@@ -18,14 +18,23 @@ const THEMES = {
 // The kinds of messages a server can shape. card / text: what is on by default; frame: the text sits in a frame (embed);
 // headline: the big line of the picture (null: the card has none to change); canCard: the kind has a picture at all.
 const TARGETS = [
-  { key: 'levelUp', module: 'leveling', title: 'Новый уровень', desc: 'Поздравление, когда участник поднимает уровень', card: false, text: true, frame: true, headline: 'НОВЫЙ УРОВЕНЬ', cardLabel: 'Карточка уровня', textLabel: 'Текст поздравления' },
+  { key: 'levelUp', module: 'leveling', title: 'Новый уровень', desc: 'Поздравление, когда участник поднимает уровень', card: false, text: true, frame: true, headline: 'НОВЫЙ УРОВЕНЬ', cardLabel: 'Карточка уровня', textLabel: 'Текст поздравления', formats: { classic: '900 × 260', wide: '1140 × 302' } },
   { key: 'profile', module: 'leveling', title: 'Профиль /profile', desc: 'Карточка участника: уровень, место, опыт, валюта', card: true, text: false, frame: true, headline: null, cardLabel: 'Карточка профиля', textLabel: 'Профиль текстом' },
   { key: 'top', module: 'leveling', title: 'Таблица лидеров /top', desc: 'Лучшие участники сервера по опыту, голосу и богатству', card: true, text: false, frame: true, headline: null, cardLabel: 'Таблица картинкой', textLabel: 'Список текстом' },
-  { key: 'achievement', module: 'achievements', title: 'Достижение открыто', desc: 'Сообщение, когда участник получает достижение', card: true, text: true, frame: true, headline: 'ДОСТИЖЕНИЕ РАЗБЛОКИРОВАНО!', cardLabel: 'Карточка достижения', textLabel: 'Текст с наградой' },
+  { key: 'achievement', module: 'achievements', title: 'Достижение открыто', desc: 'Сообщение, когда участник получает достижение', card: true, text: true, frame: true, headline: 'ДОСТИЖЕНИЕ РАЗБЛОКИРОВАНО!', cardLabel: 'Карточка достижения', textLabel: 'Текст с наградой', formats: { classic: '900 × 300', wide: '1140 × 302' } },
   { key: 'fun', module: 'fun', title: 'Мини-игры', desc: 'Ответы /dice, /coinflip, /8ball и /rps', card: false, text: true, frame: true, headline: null, cardLabel: 'Картинка результата', textLabel: 'Текст результата' },
   { key: 'voicePanel', module: 'tempVoice', title: 'Панель комнаты', desc: 'Сообщение с кнопками управления временной комнатой', card: true, text: true, frame: true, headline: 'Управление комнатой', cardLabel: 'Свои значки', textLabel: 'Подписи разделов', labels: false }
 ];
 const BY_KEY = new Map(TARGETS.map((t) => [t.key, t]));
+
+// The shapes of a picture card (for the kinds that have `formats`). «Широкий» follows MEE6's banner: 1140 × 302 with empty
+// space around the plate — 16 px at the top and left (5.3 % of the height, 1.4 % of the width), 31 px at the bottom and
+// right (1.9375 times more, room for the shadow): about 3.77 : 1 with the space and 4.29 : 1 for the plate itself.
+const FORMATS = {
+  classic: { title: 'Классический', desc: 'карточка во всю картинку' },
+  wide: { title: 'Широкий', desc: 'плашка с тенью и полями, как в MEE6' }
+};
+const formatsOf = (key) => Object.keys(BY_KEY.get(key)?.formats || {});
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const parse = (raw) => { if (raw && typeof raw === 'object') return raw; try { const v = JSON.parse(raw || '{}'); return v && typeof v === 'object' ? v : {}; } catch { return {}; } };
@@ -47,6 +56,7 @@ function read(settings) {
       // the frame of the level-up message is the same switch as «В рамке» on the «Уровни» page
       frame: t.key === 'levelUp' && settings && settings.levelUpEmbed !== undefined ? settings.levelUpEmbed !== false : typeof r.frame === 'boolean' ? r.frame : t.frame,
       headline: t.headline === null ? null : clean(r.headline, 60) || null,
+      ...(t.formats ? { format: t.formats[r.format] ? r.format : 'classic' } : {}),
       ...(t.key === 'voicePanel' ? { labels: typeof r.labels === 'boolean' ? r.labels : false, intro: clean(r.intro, 300) || null } : {})
     };
   }
@@ -71,6 +81,7 @@ function applyForm(settings, body = {}, keys = null) {
     if (!card && !text) text = true;
     out.targets[t.key] = { card, text, frame: p('frame') === 'on' };
     if (t.headline !== null) out.targets[t.key].headline = clean(p('headline'), 60) || null;
+    if (t.formats) out.targets[t.key].format = t.formats[p('format')] ? p('format') : 'classic';
     if (t.key === 'voicePanel') { out.targets[t.key].labels = p('labels') === 'on'; out.targets[t.key].intro = clean(p('intro'), 300) || null; }
   }
   settings.appearance = JSON.stringify(out);
@@ -116,4 +127,4 @@ async function forGuild(guildId) {
 }
 const forget = (guildId) => cache.delete(guildId);
 
-module.exports = { THEMES, TARGETS, BY_KEY, read, applyForm, palette, embedColor, target, forGuild, forget, mix };
+module.exports = { THEMES, TARGETS, BY_KEY, FORMATS, formatsOf, read, applyForm, palette, embedColor, target, forGuild, forget, mix };

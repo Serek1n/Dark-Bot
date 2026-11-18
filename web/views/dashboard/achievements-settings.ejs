@@ -8,7 +8,7 @@
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Настройки</h1>
-        <p class="page-intro">Куда бот присылает карточку «Достижение разблокировано!» и сколько монет нужно для достижения «Капитал».</p>
+        <p class="page-intro">Куда бот присылает сообщение «Достижение разблокировано!», что в нём написано и сколько монет нужно для достижения «Капитал».</p>
       </div>
       <% const g = '/dashboard/' + guild.id; const mode = settings.achievementsNotify || 'auto'; %>
       <form method="post" action="<%= g %>/achievements/settings" class="plain">
@@ -34,9 +34,71 @@
           <input id="achGoal" type="number" name="achievementsBalanceGoal" min="1" max="1000000000" value="<%= settings.achievementsBalanceGoal || 10000 %>" />
           <div class="hint">Остальные пороги постоянные: 1, 100, 1 000 и 10 000 сообщений; 1, 10, 100 и 1 000 часов в голосе; уровни 5, 10, 25, 50 и 100; 30, 180 и 365 дней на сервере; 1 и 10 событий. Ненужные можно выключить в каталоге или создать свои с другими порогами.</div>
         </div>
+        <% const O = ach.msgOptions(settings); %>
+        <div class="card g-span" id="ach-text">
+          <h2>Текст сообщения</h2>
+          <p class="hint" style="margin-top:0">Всё, что пишет бот, когда открывается достижение. Пусто — стандартный текст. Из чего состоит сообщение (карточка, текст или оба), рамка и формат картинки — в <a href="<%= g %>/appearance-achievements">Оформлении</a>.</p>
+          <div class="ach-text-grid">
+            <div>
+              <label for="achievementsMessage">Свой текст</label>
+              <textarea id="achievementsMessage" name="achievementsMessage" maxlength="1500" rows="6" placeholder="{user} открывает достижение **{achievement}**!&#10;{reward_line}&#10;{others}"><%= settings.achievementsMessage || '' %></textarea>
+              <details class="tpl-help" data-tpl-for="achievementsMessage" open>
+                <summary>Что можно вставить</summary>
+                <div class="tpl-body">
+                  <p class="hint" style="margin-top:0">Нажмите, чтобы вставить. Строка, в которой были только пустые значения (например, <code>{reward_line}</code> без награды), не попадёт в сообщение.</p>
+                  <div class="tpl-chips">
+                    <% ach.TEXT_VARS.forEach(([v, d]) => { %><button type="button" class="tpl-chip" data-insert="{<%= v %>}" title="<%= d %>"><%= v %></button><% }) %>
+                  </div>
+                  <button type="button" class="btn btn-secondary tpl-preview-btn" data-preview-url="<%= g %>/achievements/preview-text">Предпросмотр</button>
+                  <div class="tpl-preview" hidden></div>
+                </div>
+              </details>
+            </div>
+            <div class="ach-preview">
+              <div class="look-sub">Как это выглядит в Discord</div>
+              <% const look = AP.read(settings); const sh = look.targets.achievement; %>
+              <div class="dc-msg" data-ach-preview data-url="<%= g %>/achievements/preview-text" data-text-on="<%= sh.text || !sh.card ? '1' : '' %>">
+                <span class="dc-ava" aria-hidden="true">D</span>
+                <div class="dc-body">
+                  <div class="dc-name">Dark <span class="dc-bot">БОТ</span></div>
+                  <div class="dc-frame<%= sh.frame ? '' : ' plain' %>" style="--dc-bar:<%= O.color === 'theme' ? AP.palette(look).ember : A.RARITY.rare.color %>">
+                    <div class="dc-text" data-ach-preview-text>Пример появится здесь.</div>
+                    <% if (sh.card) { %><img class="dc-card" src="<%= g %>/appearance/preview/achievement.png" alt="Карточка достижения" loading="lazy" /><% } %>
+                  </div>
+                  <div class="dc-btns" data-ach-preview-btns<%= O.buttons ? '' : ' hidden' %>><span>🏆 <b data-ach-preview-mine><%= O.mine %></b></span><span>📜 <b data-ach-preview-all><%= O.all %></b></span></div>
+                </div>
+              </div>
+              <p class="hint">Пример с достижением «Болтун» и наградой 500 монет. Картинка, рамка и формат — из Оформления.</p>
+            </div>
+          </div>
+          <div class="ach-embed">
+            <%- include('../partials/embed-editor', { prefix: 'achievementsEmbedData', data: settings.achievementsEmbedData, hint: 'Свой дизайн вместо стандартной рамки: заголовок, цвет, подвал. Карточка достижения встанет картинкой внутри. В полях работают те же {achievement}, {reward}, {user}…' }) %>
+          </div>
+          <div class="ach-opts">
+            <label class="rule">
+              <span class="rule-text"><b>Упоминать участника</b><span>Участник получит уведомление. Выключите — имя останется, но без пинга.</span></span>
+              <input type="checkbox" name="achPing" <%= O.ping ? 'checked' : '' %> />
+            </label>
+            <label class="rule">
+              <span class="rule-text"><b>Кнопки под сообщением</b><span>«Мои достижения» и «Все достижения» — открываются только нажавшему.</span></span>
+              <input type="checkbox" name="achButtons" <%= O.buttons ? 'checked' : '' %> data-ach-buttons />
+            </label>
+          </div>
+          <div class="ach-labels">
+            <div class="ach-btn-label"><label for="achMine">Надпись первой кнопки</label><input id="achMine" type="text" name="achMine" maxlength="40" value="<%= O.mine %>" placeholder="Мои достижения" /></div>
+            <div class="ach-btn-label"><label for="achAll">Надпись второй кнопки</label><input id="achAll" type="text" name="achAll" maxlength="40" value="<%= O.all %>" placeholder="Все достижения" /></div>
+            <div><label for="achColor">Цвет рамки</label>
+              <select id="achColor" name="achColor">
+                <option value="rarity" <%= O.color === 'rarity' ? 'selected' : '' %>>Цвет редкости достижения</option>
+                <option value="theme" <%= O.color === 'theme' ? 'selected' : '' %>>Цвет темы сервера</option>
+              </select>
+            </div>
+          </div>
+        </div>
         <button class="btn" type="submit">Сохранить</button>
       </form>
     </main>
   </div>
+  <script src="/js/achievements-text.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
 </body>
 </html>

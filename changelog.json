@@ -1,5 +1,40 @@
 [
  {
+  "bot": "3.16.0",
+  "panel": "3.26.0",
+  "date": "2026-11-18",
+  "botChanges": [
+   "Новый модуль «Статистика сервера»: участники, приходы, уходы, сообщения и голос по дням",
+   "Счётчики в названиях каналов: «👥 Участники: 1 234», «🟢 В сети», 12 готовых и свой текст",
+   "Команда /stats: статистика сервера за 7, 30 или 90 дней",
+   "Карточки достижения и нового уровня: формат «Широкий» 1140 × 302, как в MEE6, новый дизайн",
+   "Сообщение о достижении полностью редактируется: свой текст, свой эмбед, пинг, кнопки, цвет"
+  ],
+  "panelChanges": [
+   "«Статистика сервера»: обзор с графиками за 7/30/90 дней, топы, сведения о сервере",
+   "«Каналы-счётчики»: готовые счётчики в один клик, свой текст, обновление по кнопке",
+   "Оформление: выбор формата картинки с живым предпросмотром",
+   "Достижения → Настройки: свой текст с подсказками и предпросмотр сообщения как в Discord",
+   "Уровни: у полей новой роли за уровень есть подписи для экранного диктора"
+  ],
+  "en": {
+   "botChanges": [
+    "New «Server statistics» module: members, joins, leaves, messages and voice by day",
+    "Counters in channel names: «👥 Members: 1 234», «🟢 Online», 12 presets and own text",
+    "The /stats command: server statistics for 7, 30 or 90 days",
+    "Achievement and level-up cards: the «Wide» 1140 × 302 format like MEE6, a new design",
+    "The achievement message is fully editable: own text, own embed, ping, buttons, colour"
+   ],
+   "panelChanges": [
+    "«Server statistics»: an overview with 7/30/90-day charts, tops, server facts",
+    "«Counter channels»: ready-made counters in one click, own text, update on demand",
+    "Appearance: choose the picture format with a live preview",
+    "Achievements → Settings: own text with hints and a Discord-like message preview",
+    "Levels: the new level-role fields are labelled for screen readers"
+   ]
+  }
+ },
+ {
   "bot": "3.15.1",
   "panel": "3.25.3",
   "date": "2026-11-18",

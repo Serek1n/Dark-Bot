@@ -35,12 +35,12 @@
   <form method="post" action="/dashboard/<%= guild.id %>/level-roles" class="card g-c2">
     <h2>Новая роль за уровень</h2>
     <div>
-      <label>Уровень</label>
-      <input type="number" name="level" min="1" max="500" placeholder="10" required />
+      <label for="lrLevel">Уровень</label>
+      <input id="lrLevel" type="number" name="level" min="1" max="500" placeholder="10" required />
     </div>
     <div>
-      <label>Роль</label>
-      <select name="roleId" required>
+      <label for="lrRole">Роль</label>
+      <select id="lrRole" name="roleId" required>
         <% roles.forEach(r => { %>
           <option value="<%= r.id %>" <%= r.blocked ? 'disabled' : '' %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option>
         <% }) %>

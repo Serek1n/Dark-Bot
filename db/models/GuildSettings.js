@@ -98,6 +98,11 @@ module.exports = (sequelize) => {
       achievementsChannelId: { type: DataTypes.STRING, allowNull: true },
       achievementsOff: { type: DataTypes.TEXT, defaultValue: '[]' }, // built-in achievements this server turned off
       achievementsBalanceGoal: { type: DataTypes.INTEGER, defaultValue: 10000 },
+      achievementsMessage: { type: DataTypes.TEXT, allowNull: true }, // own text of the «achievement unlocked» message (templates)
+      achievementsEmbedData: { type: DataTypes.TEXT, allowNull: true }, // own frame (embed) of that message
+      achievementsMsgOptions: { type: DataTypes.TEXT, allowNull: true }, // JSON: ping, buttons and their labels, colour (achievements.js)
+      serverStatsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+      serverStats: { type: DataTypes.TEXT, allowNull: true }, // JSON: counters in channel names (bot/modules/serverStats.js)
       botEvents: { type: DataTypes.TEXT, defaultValue: '{}' }, // JSON, see bot/modules/botEvents.js
       appearance: { type: DataTypes.TEXT, defaultValue: '{}' }, // JSON: the theme and the look of each kind of message, see bot/modules/appearance.js
       treasury: { type: DataTypes.INTEGER, defaultValue: 0 }, // the server's own coins (taxes); changed only additively

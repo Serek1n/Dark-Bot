@@ -110,6 +110,19 @@
                 </div>
                 <p class="hint look-both" data-look-hint><% if (key === 'voicePanel') { %>Можно включить оба: значки на кнопках и строка с их названиями. Хотя бы одно должно остаться.<% } else { %>Можно включить оба — тогда картинка будет внутри сообщения с текстом. Хотя бы одно должно остаться.<% } %></p>
 
+                <% if (t.formats) { %>
+                  <div class="look-sub">Формат картинки</div>
+                  <div class="look-formats" role="radiogroup" aria-label="Формат картинки">
+                    <% Object.entries(t.formats).forEach(([f, size]) => { const F = AP.FORMATS[f]; %>
+                      <label class="look-format">
+                        <input type="radio" name="<%= key %>_format" value="<%= f %>" <%= s.format === f ? 'checked' : '' %> data-look-format="<%= (PREVIEW[key] || [])[0] || '' %>" />
+                        <span class="lf-shape lf-<%= f %>" aria-hidden="true"><i></i></span>
+                        <span class="lf-text"><b><%= F.title %></b><small><%= size %> · <%= F.desc %></small></span>
+                      </label>
+                    <% }) %>
+                  </div>
+                <% } %>
+
                 <% if (key !== 'voicePanel') { %>
                   <label class="rule look-frame">
                     <span class="rule-text"><b>Текст в рамке</b><span>Цветная полоса слева в цвет темы<%= key === 'levelUp' ? '; тот же переключатель есть на странице «Уровни»' : '' %>. Выключите — будет обычное сообщение.</span></span>
@@ -131,6 +144,9 @@
                   <label for="voicePanel_intro">Текст под заголовком</label>
                   <textarea id="voicePanel_intro" name="voicePanel_intro" maxlength="300" rows="2" placeholder="Зайдите в свою комнату и нажмите кнопку. Настройки запоминаются для следующего раза."><%= s.intro || '' %></textarea>
                   <p class="hint">Цвет полосы панели — из темы. После сохранения уже размещённая панель обновится сама.</p>
+                <% } %>
+                <% if (key === 'achievement') { %>
+                  <p class="hint">Свой текст сообщения, кнопки и упоминание — в <a href="<%= base %>/achievements-settings#ach-text">Достижения → Настройки</a>.</p>
                 <% } %>
               </div>
 

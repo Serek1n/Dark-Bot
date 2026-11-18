@@ -10,6 +10,7 @@ const FEATURES = [
   { key: 'music', field: 'musicEnabled', title: 'Музыка', desc: 'Команда /play. Уже играющая музыка продолжит играть, пока её не остановят кнопкой', commands: ['play', 'repeat', 'playlist'], page: 'music' },
   { key: 'automod', field: 'automodEnabled', title: 'Автомодерация', desc: 'Удаление спама, ссылок, приглашений, запрещённых слов и крика, с наказанием нарушителей', commands: [], page: 'automod' },
   { key: 'welcome', field: 'welcomeEnabled', title: 'Приветствие и автороль', desc: 'Сообщение и роль для новых участников', commands: [], page: 'welcome' },
+  { key: 'serverStats', field: 'serverStatsEnabled', title: 'Статистика сервера', desc: 'Участники, приходы и уходы, сообщения и голос по дням; счётчики в названиях каналов; команда /stats', commands: ['stats'], page: 'server-stats' },
   { key: 'reactionRoles', field: 'reactionRolesEnabled', title: 'Роли по реакциям', desc: 'Выдача ролей за реакцию на сообщение', commands: [], page: 'reaction-roles' },
   { key: 'customCommands', field: 'customCommandsEnabled', title: 'Свои команды', desc: 'Ответы на сообщения с префиксом, например !правила', commands: [], page: 'custom-commands' },
   { key: 'tempVoice', field: 'tempVoiceEnabled', title: 'Временные голосовые', desc: 'Личные комнаты по входу в специальный канал, кнопки управления ими и команда /voice', commands: ['voice'], page: 'temp-voice' },

@@ -25,6 +25,8 @@
         var parts = [];
         if (q) parts.push(q);
         if (head && head.value.trim()) parts.push('headline=' + encodeURIComponent(head.value.trim()));
+        var fmt = form.querySelector('[data-look-format="' + kind + '"]:checked');
+        if (fmt) parts.push('format=' + encodeURIComponent(fmt.value));
         img.classList.add('is-loading');
         img.onload = img.onerror = function () { img.classList.remove('is-loading'); };
         img.src = base + '/appearance/preview/' + kind + '.png' + (parts.length ? '?' + parts.join('&') : '');
@@ -39,6 +41,7 @@
   var hex = form.querySelector('[data-accent-hex]');
   form.addEventListener('change', function (e) {
     var t = e.target;
+    if (t.getAttribute && t.getAttribute('data-look-format')) { refresh(t.getAttribute('data-look-format')); return; }
     if (t.name === 'theme' || t === accentOn) {
       if (t === accentOn && accentBox) accentBox.hidden = !accentOn.checked;
       refresh();

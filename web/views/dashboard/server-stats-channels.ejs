@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Каналы-счётчики' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Каналы-счётчики</h1>
+        <p class="page-intro">Статистика прямо в названиях каналов: «👥 Участники: 1 234», «🟢 В сети: 87». Бот создаёт голосовой канал, в который нельзя зайти, и сам обновляет его название.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const full = cfg.counters.length >= S.MAX_COUNTERS;
+         const sample = (t) => values ? S.renderName(t, values) : t; %>
+
+      <div class="card g-span">
+        <h2>Счётчики<span class="sub"><%= cfg.counters.length %> из <%= S.MAX_COUNTERS %></span></h2>
+        <% if (!counters.length) { %>
+          <p class="empty-state">Счётчиков пока нет. Выберите готовый ниже или напишите свой текст.</p>
+        <% } else { %>
+          <form method="post" action="<%= g %>/server-stats/save" id="ss-save">
+            <div class="ss-list">
+              <% counters.forEach((c) => { %>
+                <div class="ss-row">
+                  <span class="ss-ch" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17H17"/><path d="M5.5 14V9M10 14V5M14.5 14V11"/></svg></span>
+                  <div class="ss-main">
+                    <p class="ss-now">Сейчас: <b><%= c.name || 'канал не найден' %></b><% if (c.next && c.name && c.next !== c.name) { %> → <span class="ss-next"><%= c.next %></span><% } %></p>
+                    <input id="t_<%= c.channelId %>" type="text" name="t_<%= c.channelId %>" value="<%= c.template %>" maxlength="100" aria-label="Текст счётчика" />
+                    <% if (c.problem) { %><p class="ss-problem"><%= c.problem %></p><% } %>
+                  </div>
+                  <div class="ss-acts">
+                    <button class="btn btn-secondary" type="submit" form="ss-rm-<%= c.channelId %>">Убрать</button>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+            <div class="ss-save-row">
+              <div class="ss-save-field">
+                <label for="ssCat">Папка для новых счётчиков</label>
+                <select id="ssCat" name="categoryId">
+                  <option value="">Создать «📊 Статистика» наверху</option>
+                  <% categories.forEach((c) => { %><option value="<%= c.id %>" <%= cfg.categoryId === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>
+                </select>
+              </div>
+              <button class="btn" type="submit">Сохранить</button>
+            </div>
+          </form>
+          <% counters.forEach((c) => { %>
+            <form method="post" action="<%= g %>/server-stats/remove" id="ss-rm-<%= c.channelId %>" class="ss-rm" data-confirm="Убрать счётчик и удалить его канал?"><input type="hidden" name="channelId" value="<%= c.channelId %>" /><input type="hidden" name="deleteChannel" value="1" /></form>
+          <% }) %>
+          <form method="post" action="<%= g %>/server-stats/refresh" class="ss-refresh"><button class="btn btn-secondary" type="submit">Обновить названия сейчас</button><span class="hint">Discord разрешает переименовать канал два раза за 10 минут, поэтому бот обновляет каждый счётчик не чаще раза в 10 минут — и только если число изменилось.</span></form>
+        <% } %>
+      </div>
+
+      <div class="card g-span">
+        <h2>Добавить счётчик</h2>
+        <% if (!live) { %><p class="hint">Бот сейчас не подключён к серверу — добавить счётчик не получится.</p><% } %>
+        <p class="hint" style="margin-top:0">Готовые — в один клик. Числа ниже — как они выглядят на вашем сервере прямо сейчас.</p>
+        <div class="ss-presets">
+          <% S.VARS.filter((x) => x[2]).forEach(([k, d, preset]) => { %>
+            <form method="post" action="<%= g %>/server-stats/create">
+              <input type="hidden" name="template" value="<%= preset %>" />
+              <button class="ss-preset" type="submit"<%= full || !live ? ' disabled' : '' %>><b><%= sample(preset) %></b><small><%= d %></small></button>
+            </form>
+          <% }) %>
+        </div>
+
+        <form method="post" action="<%= g %>/server-stats/create" class="ss-own">
+          <h3>Свой текст</h3>
+          <div class="ss-own-grid">
+            <div>
+              <label for="ssTpl">Название канала</label>
+              <input id="ssTpl" type="text" name="template" maxlength="100" placeholder="🔥 Нас уже {members}!" required />
+              <details class="tpl-help" data-tpl-for="ssTpl" open>
+                <summary>Что можно вставить</summary>
+                <div class="tpl-body"><div class="tpl-chips">
+                  <% S.VARS.forEach(([k, d]) => { %><button type="button" class="tpl-chip" data-insert="{<%= k %>}" title="<%= d %>"><%= k %></button><% }) %>
+                </div></div>
+              </details>
+            </div>
+            <div>
+              <label for="ssWhere">Куда</label>
+              <select id="ssWhere" name="channelId">
+                <option value="">Новый голосовой канал (в него нельзя зайти)</option>
+                <% freeChannels.forEach((c) => { %><option value="<%= c.id %>"><%= c.type === 0 ? '#' : '🔊 ' %><%= c.name %></option><% }) %>
+              </select>
+              <p class="hint">Можно выбрать и свой канал — бот будет менять его название. Нужно право «Управлять каналами».</p>
+            </div>
+          </div>
+          <button class="btn" type="submit"<%= full || !live ? ' disabled' : '' %>>Добавить</button>
+          <% if (full) { %><span class="hint">Уже <%= S.MAX_COUNTERS %> счётчиков — уберите лишний.</span><% } %>
+        </form>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

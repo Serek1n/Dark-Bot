@@ -4,6 +4,33 @@ const { cardKit } = require('./rankCard');
 
 const { ensureFonts, makeCanvas, paintCard, paintTile, drawSquareAvatar, truncateToWidth, roundRect, fmt, COLORS } = cardKit;
 
+// «Широкий» format (appearance.js → FORMATS): the picture is 1140 × 302, the plate sits 16 px from the top and left and
+// 31 px from the bottom and right (MEE6's proportions); the empty space stays transparent and holds the soft shadow.
+const WIDE = { W: 1140, H: 302, top: 16, left: 16, bottom: 31, right: 31 };
+WIDE.plateW = WIDE.W - WIDE.left - WIDE.right; // 1093
+WIDE.plateH = WIDE.H - WIDE.top - WIDE.bottom; // 255
+
+/**
+ * A canvas for a card of this format. Returns { canvas, ctx, W, H }: W × H is the plate to draw on (the context is moved
+ * onto it), already painted. «classic» — the plate is the whole picture (w × h).
+ */
+function openCard(format, w, h, C, radius = 24) {
+  if (format !== 'wide') {
+    const { canvas, ctx } = makeCanvas(w, h);
+    paintCard(ctx, w, h, C);
+    return { canvas, ctx, W: w, H: h };
+  }
+  const { canvas, ctx } = makeCanvas(WIDE.W, WIDE.H);
+  const W = WIDE.plateW; const H = WIDE.plateH;
+  ctx.translate(WIDE.left, WIDE.top);
+  ctx.save(); // the shadow falls down and to the right, inside the wider bottom and right margins
+  ctx.shadowColor = C.light ? 'rgba(40,30,20,0.28)' : 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 16; ctx.shadowOffsetX = 5; ctx.shadowOffsetY = 7;
+  ctx.fillStyle = C.bg; roundRect(ctx, 0, 0, W, H, radius); ctx.fill();
+  ctx.restore();
+  paintCard(ctx, W, H, C);
+  return { canvas, ctx, W, H };
+}
+
 const mark = (ctx, C, x, y, text) => { // the small accent line with a caption: «НОВЫЙ УРОВЕНЬ»
   ctx.fillStyle = C.ember; roundRect(ctx, x, y - 13, 4, 16, 2); ctx.fill();
   ctx.font = '15px CardSansBold, CardFallbackBold'; ctx.fillText(text, x + 14, y);
@@ -18,18 +45,22 @@ const mark = (ctx, C, x, y, text) => { // the small accent line with a caption: 
 async function renderLevelUpCard(d) {
   ensureFonts();
   const C = d.colors || COLORS;
-  const W = 900; const H = 260;
-  const { canvas, ctx } = makeCanvas(W, H);
-  paintCard(ctx, W, H, C);
+  const wide = d.format === 'wide';
+  const { canvas, ctx, W, H } = openCard(d.format, 900, 260, C);
   // a soft glow of the accent behind the ring
+  ctx.save(); roundRect(ctx, 0, 0, W, H, 24); ctx.clip();
   const glow = ctx.createRadialGradient(W - 140, H / 2, 10, W - 140, H / 2, 220);
   glow.addColorStop(0, `${C.ember}40`); glow.addColorStop(1, `${C.ember}00`);
   ctx.fillStyle = glow; ctx.fillRect(W - 380, 0, 380, H);
+  if (wide) { // the wide plate: an accent line along the left edge
+    ctx.fillStyle = C.ember; ctx.fillRect(0, 0, 6, H);
+  }
+  ctx.restore();
 
-  const size = 150;
-  await drawSquareAvatar(ctx, d.avatarURL, d.username, 44, (H - size) / 2, size, 30, undefined, 4, C);
+  const size = wide ? 156 : 150;
+  await drawSquareAvatar(ctx, d.avatarURL, d.username, wide ? 50 : 44, (H - size) / 2, size, 30, undefined, 4, C);
 
-  const left = 232; const ringX = W - 140; const maxW = ringX - 100 - left;
+  const left = wide ? 246 : 232; const ringX = W - 140; const maxW = ringX - 100 - left;
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = C.ember; mark(ctx, C, left, 74, truncateToWidth(ctx, d.headline || 'НОВЫЙ УРОВЕНЬ', maxW));
   ctx.fillStyle = C.paper; ctx.font = '40px CardSansBold, CardFallbackBold';
@@ -167,4 +198,4 @@ async function renderGameCard(d) {
   return canvas.encode('png');
 }
 
-module.exports = { renderLevelUpCard, renderGameCard };
+module.exports = { openCard, WIDE, renderLevelUpCard, renderGameCard };

@@ -132,7 +132,7 @@ router.get('/:guildId/achievements/card/:key.png', ensureGuildAccess, async (req
   const a = (await ach().catalog(guildId, settings)).find((x) => x.key === req.params.key);
   if (!a) return res.status(404).end();
   const ap = require('../../../bot/modules/appearance'); const look = ap.read(settings);
-  const png = await ach().renderCard({ achievement: a, userName: req.user?.username || 'Участник', avatarUrl: null, colors: ap.palette(look), headline: look.targets.achievement.headline });
+  const png = await ach().renderCard({ achievement: a, userName: req.user?.username || 'Участник', avatarUrl: null, colors: ap.palette(look), headline: look.targets.achievement.headline, format: look.targets.achievement.format });
   res.set('Content-Type', 'image/png').set('Cache-Control', 'private, max-age=30').send(png);
 });
 
@@ -178,13 +178,33 @@ router.post('/:guildId/achievements/revoke', ensureGuildAccess, async (req, res)
 // ---- Настройки ----
 router.get('/:guildId/achievements-settings', ensureGuildAccess, async (req, res) => {
   const data = await base(req, 'achievements-settings');
-  res.render('dashboard/achievements-settings', { ...data, channels: await getGuildChannels(req.params.guildId) });
+  res.render('dashboard/achievements-settings', { ...data, ach: ach(), AP: require('../../../bot/modules/appearance'), channels: await getGuildChannels(req.params.guildId) });
+});
+
+// «Предпросмотр» under the own text: filled in with a sample achievement and the person who looks.
+router.post('/:guildId/achievements/preview-text', ensureGuildAccess, require('express').json({ limit: '16kb' }), async (req, res) => {
+  const guildObj = getClient()?.guilds?.cache?.get(req.params.guildId) || { id: req.params.guildId, name: 'Сервер' };
+  const name = req.user?.global_name || req.user?.username || 'Участник';
+  const vars = {
+    user: `@${name}`, name, achievement: 'Болтун', description: 'Написать 1 000 сообщений на сервере', emoji: '💬', rarity: 'Редкое', category: 'Сообщения',
+    reward: '500 монет, 3 кристаллов', reward_line: 'Награда: 500 монет, 3 кристаллов', coins: 500, crystals: 3, role: '', count: 7, more: 1,
+    others: '🗓️ **Старожил** — Провести на сервере 30 дней', server: guildObj.name || 'Сервер'
+  };
+  const member = guildObj.members?.cache?.get?.(req.user?.id) || { id: req.user?.id, displayName: name, user: { id: req.user?.id, username: req.user?.username } };
+  let text = '';
+  try { text = ach().fillText(String(req.body?.text || '').slice(0, 1500) || '{user} открывает достижение **{achievement}**!\n{reward_line}\n{others}', vars, guildObj, member); } catch (err) { text = ''; }
+  res.json({ text });
 });
 router.post('/:guildId/achievements/settings', ensureGuildAccess, async (req, res) => {
   const { guildId } = req.params;
   const settings = await getSettings(guildId);
   settings.achievementsNotify = ['auto', 'channel', 'dm', 'off'].includes(req.body.achievementsNotify) ? req.body.achievementsNotify : 'auto';
   settings.achievementsBalanceGoal = clampInt(req.body.achievementsBalanceGoal, 1, 1e9, 10000);
+  // the message: own text, own frame, ping, buttons and their labels, colour
+  settings.achievementsMessage = String(req.body.achievementsMessage || '').replace(/\r\n/g, '\n').trim().slice(0, 1500) || null;
+  settings.achievementsEmbedData = require('../../utils/embedForm').embedFromBody(req.body, 'achievementsEmbedData');
+  const label = (v) => String(v || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 40);
+  settings.achievementsMsgOptions = JSON.stringify({ ping: req.body.achPing === 'on', buttons: req.body.achButtons === 'on', mine: label(req.body.achMine), all: label(req.body.achAll), color: req.body.achColor === 'theme' ? 'theme' : 'rarity' });
   const missing = await pickChannels(req.body, settings, guildId, { achievementsChannelId: 'post' });
   await settings.save();
   res.redirect(missing.length ? noPerm(guildId, 'achievements-settings', missing) : saved(guildId, 'achievements-settings'));

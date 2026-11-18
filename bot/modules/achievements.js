@@ -296,7 +296,8 @@ function wrap(ctx, text, width, lines) {
 }
 
 /** The picture «ДОСТИЖЕНИЕ РАЗБЛОКИРОВАНО!»: the icon or picture, the name, the description, who got it, the rarity. */
-async function renderCard({ achievement: a, userName, avatarUrl = null, more = 0, colors = null, headline = null }) {
+async function renderCard({ achievement: a, userName, avatarUrl = null, more = 0, colors = null, headline = null, format = 'classic' }) {
+  if (format === 'wide') return renderWideCard({ achievement: a, userName, avatarUrl, more, colors, headline });
   const { ensureFonts, makeCanvas, truncateToWidth, drawSquareAvatar, COLORS: BASE } = require('./rankCard').cardKit;
   const COLORS = colors || BASE; // the server's theme (appearance.js); the rarity keeps its own colour
   ensureFonts();
@@ -350,37 +351,172 @@ async function renderCard({ achievement: a, userName, avatarUrl = null, more = 0
 }
 
 /**
+ * «Широкий» format (as in MEE6): a long plate 1093 × 255 inside a 1140 × 302 picture with transparent margins.
+ * The medal stands in its own square on the left (lit with the rarity's colour); on the right in three tiers: the headline
+ * with «и ещё N», the name with the description, and under a thin line who got it and the rarity.
+ */
+async function renderWideCard({ achievement: a, userName, avatarUrl = null, more = 0, colors = null, headline = null }) {
+  const { ensureFonts, truncateToWidth, drawSquareAvatar, roundRect, COLORS: BASE } = require('./rankCard').cardKit;
+  const { openCard } = require('./lookCards');
+  const C = colors || BASE;
+  ensureFonts();
+  const rar = RARITY[a.rarity] || RARITY.common;
+  const { canvas, ctx, W, H } = openCard('wide', 0, 0, C, 22);
+  // the medal's square: the rarity's light from the left, fading into the plate
+  const S = H; // a square as high as the plate
+  ctx.save(); roundRect(ctx, 0, 0, W, H, 22); ctx.clip();
+  const light = ctx.createLinearGradient(0, 0, S + 60, 0);
+  light.addColorStop(0, `${rar.color}38`); light.addColorStop(1, `${rar.color}00`);
+  ctx.fillStyle = light; ctx.fillRect(0, 0, S + 60, H);
+  const glow = ctx.createRadialGradient(S / 2, H / 2, 8, S / 2, H / 2, S * 0.62);
+  glow.addColorStop(0, `${rar.color}50`); glow.addColorStop(1, `${rar.color}00`);
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, S + 40, H);
+  ctx.fillStyle = rar.color; ctx.fillRect(0, 0, 6, H); // the rarity's line along the left edge
+  ctx.restore();
+  ctx.strokeStyle = `${rar.color}77`; ctx.lineWidth = 1.5; roundRect(ctx, 0.75, 0.75, W - 1.5, H - 1.5, 22); ctx.stroke();
+  // the medal
+  const cx = S / 2 + 4; const cy = H / 2; const r = 86;
+  ctx.save(); ctx.shadowColor = `${rar.color}88`; ctx.shadowBlur = 22;
+  ctx.fillStyle = C.raised; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  ctx.strokeStyle = rar.color; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  const pic = await loadPicture(a.imageUrl);
+  if (pic) {
+    ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 8, 0, Math.PI * 2); ctx.clip();
+    const k = Math.max(((r - 8) * 2) / pic.width, ((r - 8) * 2) / pic.height);
+    ctx.drawImage(pic, cx - (pic.width * k) / 2, cy - (pic.height * k) / 2, pic.width * k, pic.height * k);
+    ctx.restore();
+  } else drawIcon(ctx, a.category, cx, cy, 90, rar.color);
+
+  const x = S + 20; const right = W - 36; const w = right - x;
+  ctx.textBaseline = 'alphabetic';
+  // tier 1: the headline, and «и ещё N» on the right
+  let moreW = 0;
+  if (more > 0) {
+    ctx.font = '18px CardSans, CardFallback'; const t = `и ещё ${more}`; moreW = ctx.measureText(t).width + 16;
+    ctx.fillStyle = C.fog; ctx.fillText(t, right - moreW + 16, 58);
+  }
+  ctx.fillStyle = rar.color; ctx.font = '800 19px CardSansBold, CardFallbackBold';
+  ctx.fillText(truncateToWidth(ctx, headline || 'ДОСТИЖЕНИЕ РАЗБЛОКИРОВАНО!', w - moreW), x, 58);
+  // tier 2: the name and one line of description
+  let size = 46; ctx.font = `800 ${size}px CardSansBold, CardFallbackBold`;
+  while (size > 28 && ctx.measureText(a.name).width > w) { size -= 2; ctx.font = `800 ${size}px CardSansBold, CardFallbackBold`; }
+  ctx.fillStyle = C.paper; ctx.fillText(truncateToWidth(ctx, a.name, w), x, 112);
+  ctx.fillStyle = C.fog; ctx.font = '22px CardSans, CardFallback';
+  ctx.fillText(truncateToWidth(ctx, a.description || '', w), x, 150);
+  // tier 3: a thin line, then who and the rarity
+  ctx.fillStyle = C.hairline; ctx.fillRect(x, 174, w, 1);
+  const y = 192; const av = 38;
+  if (avatarUrl) await drawSquareAvatar(ctx, avatarUrl, userName, x, y, av, 11, rar.color, 2, C).catch(() => {});
+  const label = `${rar.label} · ${CATEGORY[a.category]?.label || ''}`;
+  ctx.font = '18px CardSans, CardFallback';
+  const lw = ctx.measureText(label).width + 28;
+  ctx.fillStyle = `${rar.color}22`; roundRect(ctx, right - lw, y + 1, lw, 36, 18); ctx.fill();
+  ctx.fillStyle = rar.color; ctx.textBaseline = 'middle'; ctx.fillText(label, right - lw + 14, y + 19.5);
+  ctx.fillStyle = C.paper; ctx.font = '800 22px CardSansBold, CardFallbackBold';
+  const nx = x + (avatarUrl ? av + 14 : 0);
+  ctx.fillText(truncateToWidth(ctx, userName, right - lw - 20 - nx), nx, y + 20);
+  ctx.textBaseline = 'alphabetic';
+  return canvas.toBuffer('image/png');
+}
+
+/** The message's options set in the panel: ping, the two buttons and their labels, the colour of the frame. */
+function msgOptions(settings) {
+  let o = {};
+  try { o = JSON.parse(settings?.achievementsMsgOptions || '{}') || {}; } catch { o = {}; }
+  const label = (v, d) => String(v ?? '').replace(/[\r\n]+/g, ' ').trim().slice(0, 40) || d;
+  return {
+    ping: o.ping !== false,
+    buttons: o.buttons !== false,
+    mine: label(o.mine, 'Мои достижения'),
+    all: label(o.all, 'Все достижения'),
+    color: o.color === 'theme' ? 'theme' : 'rarity'
+  };
+}
+
+// The names an own text can use (shown in the panel under the field).
+const TEXT_VARS = [
+  ['user', 'упоминание участника'], ['name', 'имя участника'], ['achievement', 'название достижения'], ['description', 'описание'],
+  ['emoji', 'значок'], ['rarity', 'редкость'], ['category', 'раздел'], ['reward', 'награда одной строкой'],
+  ['reward_line', '«Награда: …» или ничего'], ['coins', 'монет в награде'], ['crystals', 'кристаллов в награде'], ['role', 'роль в награде'],
+  ['count', 'сколько достижений у участника'], ['more', 'сколько ещё открыто вместе'], ['others', 'список остальных открытых'], ['server', 'название сервера']
+];
+
+/** An own text with its {names} filled in. A line that held only names which came out empty is dropped. */
+function fillText(template, vars, guild, member) {
+  const { render } = require('../utils/replacers');
+  const { usesTemplates } = require('../utils/messageBuilder');
+  let ctx = {};
+  if (usesTemplates(template).full) ctx = require('../utils/replacers').buildContext({ member, guild });
+  return String(template).split('\n').map((line) => {
+    const out = render(line, ctx, vars);
+    return /\{/.test(line) && !out.trim() ? null : out;
+  }).filter((l) => l !== null).join('\n').replace(/\n{3,}/g, '\n\n').trim().slice(0, 2000);
+}
+
+/**
  * The message with the card and the buttons «Мои достижения» / «Все достижения». «Оформление» (appearance.js) decides
- * what it is made of: the picture card, the text with the reward, or both; in a frame or as plain text.
+ * what it is made of: the picture card, the text with the reward, or both; in a frame or as plain text. The server may
+ * write its own text (achievementsMessage), design its own frame (achievementsEmbedData) and set the options above.
  */
 async function cardMessage(guild, member, userId, fresh, settings = null) {
   const { AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
   const appearance = require('./appearance');
   const look = settings ? appearance.read(settings) : await appearance.forGuild(guild.id);
   const shape = look.targets.achievement;
+  const opt = msgOptions(settings);
   const a = fresh[0];
   const user = member?.user || (await guild.client?.users?.fetch?.(userId).catch(() => null));
   const name = member?.displayName || user?.globalName || user?.username || 'Участник';
   let file = null;
   if (shape.card) {
     const png = await renderCard({ achievement: a, userName: name, avatarUrl: user?.displayAvatarURL?.({ extension: 'png', size: 128 }) || null, more: fresh.length - 1,
-      colors: appearance.palette(look), headline: shape.headline }).catch(() => null);
+      colors: appearance.palette(look), headline: shape.headline, format: shape.format }).catch(() => null);
     if (png) file = new AttachmentBuilder(png, { name: 'achievement.png' });
   }
   const textOn = shape.text || !file;
-  const others = fresh.slice(1, 6).map((x) => `${x.emoji || CATEGORY[x.category].emoji} **${x.name}** — ${x.description}`);
+  const othersList = fresh.slice(1, 6).map((x) => `${x.emoji || CATEGORY[x.category].emoji} **${x.name}** — ${x.description}`);
   const reward = rewardText(a.reward, guild);
-  const text = [`<@${userId}> открывает достижение **${a.name}**!`, !file ? `*${a.description}*` : null, reward ? `Награда: ${reward}` : null, others.length ? `\nА ещё:\n${others.join('\n')}` : null].filter(Boolean).join('\n');
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('ach:mine').setLabel('Мои достижения').setEmoji('🏆').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId('ach:all').setLabel('Все достижения').setEmoji('📜').setStyle(ButtonStyle.Secondary)
-  );
-  const out = { content: `<@${userId}>`, embeds: [], files: file ? [file] : [], components: [row], allowedMentions: { users: [userId] } };
-  if (textOn && shape.frame) {
-    const embed = new EmbedBuilder().setColor(parseInt(RARITY[a.rarity].color.slice(1), 16)).setDescription(text);
+  const custom = settings?.achievementsMessage && String(settings.achievementsMessage).trim();
+  const { parseEmbed, hasBody } = require('../utils/messageBuilder');
+  const own = parseEmbed(settings?.achievementsEmbedData);
+  const ownFrame = own && hasBody(own) ? own : null;
+  const who = member || { id: userId, user, displayName: name };
+  let vars = null;
+  if (custom || ownFrame) {
+    const count = await db().MemberAchievement.count({ where: { guildId: guild.id, userId } }).catch(() => 0);
+    vars = {
+      user: `<@${userId}>`, name, achievement: a.name, description: a.description || '', emoji: a.emoji || CATEGORY[a.category]?.emoji || '🏆',
+      rarity: (RARITY[a.rarity] || RARITY.common).label, category: CATEGORY[a.category]?.label || '', reward,
+      reward_line: reward ? `Награда: ${reward}` : '', coins: a.reward?.coins || 0, crystals: a.reward?.crystals || 0,
+      role: a.reward?.roleId ? `<@&${a.reward.roleId}>` : '', count, more: fresh.length - 1, others: othersList.join('\n'), server: guild.name || ''
+    };
+  }
+  let text;
+  if (custom) text = fillText(custom, vars, guild, who);
+  else if (ownFrame) text = '';
+  else text = [`<@${userId}> открывает достижение **${a.name}**!`, !file ? `*${a.description}*` : null, reward ? `Награда: ${reward}` : null, othersList.length ? `\nА ещё:\n${othersList.join('\n')}` : null].filter(Boolean).join('\n');
+  const components = opt.buttons ? [new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('ach:mine').setLabel(opt.mine).setEmoji('🏆').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('ach:all').setLabel(opt.all).setEmoji('📜').setStyle(ButtonStyle.Secondary)
+  )] : [];
+  const color = opt.color === 'theme' ? appearance.embedColor(look) : parseInt((RARITY[a.rarity] || RARITY.common).color.slice(1), 16);
+  const mention = `<@${userId}>`;
+  const out = { content: opt.ping ? mention : '', embeds: [], files: file ? [file] : [], components, allowedMentions: opt.ping ? { users: [userId] } : { parse: [] } };
+  if (textOn && ownFrame) { // the server's own frame: its text above it, the card inside it
+    const { buildMessage } = require('../utils/messageBuilder');
+    const images = { avatar: user?.displayAvatarURL?.({ extension: 'png', size: 256 }), icon: guild.iconURL?.({ extension: 'png', size: 256 }) };
+    const built = buildMessage({ text: '', embed: ownFrame, fill: (t) => fillText(t, vars, guild, who), images, attachmentImage: file ? 'attachment://achievement.png' : null, defaultColor: color });
+    out.embeds = built.embeds;
+    out.content = text;
+    if (opt.ping && !out.content.includes(mention)) out.content = `${mention} ${out.content}`.trim();
+  } else if (textOn && shape.frame) {
+    const embed = new EmbedBuilder().setColor(color).setDescription(text || '\u200b');
     if (file) embed.setImage('attachment://achievement.png');
     out.embeds = [embed];
-  } else if (textOn) out.content = text;
+  } else if (textOn) {
+    out.content = opt.ping && !text.includes(mention) ? `${mention} ${text}` : text;
+  }
+  if (!out.content) delete out.content;
   return out;
 }
 
@@ -495,6 +631,6 @@ async function stats(guildId) {
 
 module.exports = {
   CATEGORIES, CATEGORY, RARITIES, RARITY, METRICS, COND_TYPES, BUILTIN, BUILTIN_BY_KEY,
-  catalog, fromRow, metricsOf, progress, grant, revoke, check, touch, touchVoice, renderCard, cardMessage, notify, memberView, memberEmbed, catalogEmbed, catalogMenu,
+  catalog, fromRow, metricsOf, progress, grant, revoke, check, touch, touchVoice, renderCard, renderWideCard, cardMessage, msgOptions, fillText, TEXT_VARS, notify, memberView, memberEmbed, catalogEmbed, catalogMenu,
   isAchievementComponent, handleComponent, stats, isEnabled, offList, balanceGoal, rewardText
 };

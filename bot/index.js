@@ -85,6 +85,7 @@ async function shutdown(signal) {
   const hardStop = setTimeout(() => process.exit(0), 8000); // never hang: pm2 kills after kill_timeout anyway
   hardStop.unref?.();
   try { if (webServer?.close) webServer.close(); } catch { /* not started */ }
+  try { await require('./modules/serverStats').stopServerStats(); } catch (err) { logger.warn(`server stats were not saved: ${err.message}`); }
   try { await require('./modules/voiceTime').flushAll(); } catch (err) { logger.warn(`voice time was not saved: ${err.message}`); }
   try { const db = require('../db'); await db.inTransaction(async () => {}); } catch { /* nothing was running */ }
   try { await client.destroy(); } catch { /* not logged in */ }

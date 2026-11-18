@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Статистика сервера' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Статистика сервера</h1>
+        <p class="page-intro">Сколько участников, кто пришёл и ушёл, сколько пишут и сидят в голосе — по дням. Бот считает сам с момента включения модуля; день идёт по московскому времени.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id;
+         const f = (n) => (n === null || n === undefined ? '—' : Math.round(Number(n)).toLocaleString('ru-RU'));
+         const delta = members !== null && firstMembers ? members - firstMembers : null;
+         const dayName = (d) => { const [y, m, dd] = d.split('-'); return new Date(Date.UTC(+y, +m - 1, +dd)).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'UTC' }); };
+         const counted = hist.filter((d) => d.members || d.messages || d.joins || d.voiceMinutes).length; %>
+
+      <nav class="ss-periods" aria-label="Период">
+        <% PERIODS.forEach((p) => { %><a href="<%= g %>/server-stats?days=<%= p %>"<%= p === days ? ' aria-current="page"' : '' %>><%= p %> дней</a><% }) %>
+      </nav>
+
+      <div class="stat-row four">
+        <div class="stat-box"><div class="value"><%= f(members) %></div><div class="label">Участников<% if (delta !== null) { %> · <span class="<%= delta >= 0 ? 'ss-up' : 'ss-down' %>"><%= delta >= 0 ? '+' : '−' %><%= f(Math.abs(delta)) %></span> за период<% } %></div></div>
+        <div class="stat-box"><div class="value"><%= f(online) %></div><div class="label">В сети сейчас</div></div>
+        <div class="stat-box"><div class="value"><%= f(inVoice) %></div><div class="label">В голосовых сейчас</div></div>
+        <div class="stat-box"><div class="value"><%= f(totals.messages) %></div><div class="label">Сообщений за <%= days %> дней</div></div>
+      </div>
+      <div class="stat-row four">
+        <div class="stat-box"><div class="value"><%= f(totals.joins) %></div><div class="label">Пришли</div></div>
+        <div class="stat-box"><div class="value"><%= f(totals.leaves) %></div><div class="label">Ушли</div></div>
+        <div class="stat-box"><div class="value"><%= f(totals.voiceHours) %></div><div class="label">Часов в голосе</div></div>
+        <div class="stat-box"><div class="value"><%= f(totals.voicePeak) %></div><div class="label">Больше всего в голосе сразу</div></div>
+      </div>
+
+      <% if (counted < 2) { %>
+        <div class="card g-span ss-note"><p class="hint" style="margin:0">Статистика только начала собираться: графики заполнятся за несколько дней. Сообщения, приходы, уходы и время в голосе бот записывает раз в минуту.</p></div>
+      <% } %>
+
+      <div class="card g-c1"><%- chart.line({ id: 'ss-m', title: 'Участники', sub: 'на конец дня', days: hist, value: (d) => d.members }) %></div>
+      <div class="card g-c2"><%- chart.inOut({ id: 'ss-io', title: 'Пришли и ушли', days: hist }) %></div>
+      <div class="card g-c1"><%- chart.bars({ id: 'ss-msg', title: 'Сообщения', sub: 'от участников, без ботов', days: hist, value: (d) => d.messages }) %></div>
+      <div class="card g-c2"><%- chart.bars({ id: 'ss-v', title: 'Время в голосе', sub: 'часов за день', days: hist, value: (d) => Math.round(d.voiceMinutes / 6) / 10, unit: ' ч' }) %></div>
+
+      <div class="card g-c1">
+        <h2>Больше всех пишут<span class="sub">за всё время</span></h2>
+        <% if (!byMessages.length) { %><p class="empty-state">Появятся, когда участники начнут писать (считает модуль «Уровни»).</p><% } else { %>
+          <ol class="ss-top"><% byMessages.forEach((r, i) => { const u = users[r.userId] || { name: r.userId }; %>
+            <li><span class="ss-rank"><%= i + 1 %></span><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" width="28" height="28" loading="lazy" /><% } %><span class="ss-name"><%= u.name %></span><span class="ss-val"><%= f(r.messageCount) %></span></li>
+          <% }) %></ol>
+        <% } %>
+      </div>
+      <div class="card g-c2">
+        <h2>Больше всех в голосе<span class="sub">за всё время, часов</span></h2>
+        <% if (!byVoice.length) { %><p class="empty-state">Появятся, когда участники посидят в голосовых каналах.</p><% } else { %>
+          <ol class="ss-top"><% byVoice.forEach((r, i) => { const u = users[r.userId] || { name: r.userId }; %>
+            <li><span class="ss-rank"><%= i + 1 %></span><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" width="28" height="28" loading="lazy" /><% } %><span class="ss-name"><%= u.name %></span><span class="ss-val"><%= f(r.voiceSeconds / 3600) %></span></li>
+          <% }) %></ol>
+        <% } %>
+      </div>
+
+      <div class="card g-span">
+        <h2>О сервере</h2>
+        <dl class="ss-facts">
+          <% if (live) { %>
+            <div><dt>Создан</dt><dd><%= new Date(live.createdTimestamp).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) %></dd></div>
+            <div><dt>Люди / боты</dt><dd><%= split && split.exact ? f(live.memberCount - split.bots) + ' / ' + f(split.bots) : '—' %></dd></div>
+            <div><dt>Бусты</dt><dd><%= f(live.premiumSubscriptionCount || 0) %> · уровень <%= live.premiumTier || 0 %></dd></div>
+            <div><dt>Каналы</dt><dd><%= f(live.channels.cache.filter((c) => c.type !== 4).size) %></dd></div>
+            <div><dt>Роли</dt><dd><%= f(Math.max(0, live.roles.cache.size - 1)) %></dd></div>
+            <div><dt>Эмодзи</dt><dd><%= f(live.emojis.cache.size) %></dd></div>
+            <div><dt>Самый активный день</dt><dd><%= busiest ? dayName(busiest.day) + ' · ' + f(busiest.messages) + ' сообщ.' : '—' %></dd></div>
+            <div><dt>Пик онлайна за период</dt><dd><%= f(Math.max(0, ...hist.map((d) => d.onlinePeak))) || '—' %></dd></div>
+          <% } else { %>
+            <div><dt>Бот</dt><dd>не подключён к этому серверу сейчас</dd></div>
+          <% } %>
+        </dl>
+        <p class="hint">Счётчики в названиях каналов — во вкладке <a href="<%= g %>/server-stats-channels">«Каналы-счётчики»</a>. В Discord то же самое показывает команда <code>/stats</code>.</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

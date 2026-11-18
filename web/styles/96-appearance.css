@@ -70,6 +70,24 @@
 .look-both.is-flash { animation: look-flash 1.2s ease; }
 @keyframes look-flash { 0%, 60% { color: var(--ember); } 100% { color: var(--fog-dim); } }
 
+/* The format of a picture: a small drawing of its proportions */
+.look-formats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.look-format { position: relative; display: flex; align-items: center; gap: 12px; margin: 0; padding: 10px 12px; border: 1px solid var(--hairline); border-radius: var(--r-12); background: var(--panel); cursor: pointer; }
+.look-format:hover { border-color: var(--fog-dim); }
+.look-format:has(input:checked) { border-color: var(--ember); background: var(--ember-tint); box-shadow: 0 0 0 1px var(--ember) inset; }
+.look-format:has(input:focus-visible) { box-shadow: var(--focus-ring); }
+.look-format input { position: absolute; opacity: 0; pointer-events: none; }
+.lf-shape { flex: none; display: block; position: relative; width: 64px; height: 20px; }
+.lf-shape i { position: absolute; display: block; border-radius: var(--r-4); background: var(--fog-dim); }
+.lf-classic { width: 60px; } /* 3 : 1 */
+.lf-classic i { inset: 0; }
+/* 1140 × 302: the plate 16 px from the top/left and 31 px from the bottom/right */
+.lf-wide { width: 72px; height: 19px; border: 1px dashed var(--fog-dim); border-radius: var(--r-4); } /* 3.77 : 1 */
+.lf-wide i { left: 1.4%; top: 5.3%; right: 2.7%; bottom: 10.3%; box-shadow: 1px 2px 0 rgba(0,0,0,.25); }
+.look-format:has(input:checked) .lf-shape i { background: var(--ember); }
+.lf-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lf-text small { color: var(--fog-dim); font-size: var(--fs-12); }
+
 /* The room panel mock (Discord's components v2 container) */
 .vp-mock { border-radius: var(--r-8); background: #2b2d31; color: #dbdee1; padding: 14px 16px 12px 18px; border-left: 4px solid var(--vp-ac); font-size: var(--fs-14); line-height: 1.4; }
 [data-theme="light"] .vp-mock { background: #f2f3f5; color: #313338; }
@@ -101,6 +119,6 @@
   .lt-l2 { top: 31px; }
   .lt-bar { left: 10px; right: 10px; bottom: 12px; }
   .look-accent { grid-template-columns: minmax(0, 1fr); }
-  .look-parts { grid-template-columns: minmax(0, 1fr); }
+  .look-parts, .look-formats { grid-template-columns: minmax(0, 1fr); }
   .lm-parts { display: none; }
 }

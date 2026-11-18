@@ -6,6 +6,7 @@ module.exports = {
   name: 'guildMemberRemove',
   async execute(member) {
     if (!member?.guild || member.user?.bot) return;
+    require('../modules/serverStats').onLeave(member); // «Статистика сервера»: who left today
     await saveSnapshot(member); // roles and nickname, to give them back if he returns
     const settings = await getOrCreateSettings(member.guild.id);
     if (!settings || !settings.welcomeEnabled || !settings.leaveChannelId) return;

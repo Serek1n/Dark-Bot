@@ -11,6 +11,7 @@ module.exports = {
   name: 'messageCreate',
   async execute(message) {
     if (!message.guild || message.author.bot) return;
+    require('../modules/serverStats').onMessage(message); // «Статистика сервера»: messages of the day
 
     // getOrCreateSettings ensures a row always exists (with sensible defaults like
     // levelingEnabled: true) even on a brand-new guild where no admin has touched

@@ -58,6 +58,7 @@ router.get('/:guildId/appearance/preview/:kind.png', ensureGuildAccess, async (r
   if (ap().THEMES[req.query.theme]) look.theme = req.query.theme;
   if ('accent' in req.query) look.accent = /^#?[0-9a-f]{6}$/i.test(String(req.query.accent)) ? `#${String(req.query.accent).replace('#', '').toLowerCase()}` : null;
   const headline = String(req.query.headline || '').slice(0, 60) || null;
+  const fmtOf = (key) => (['classic', 'wide'].includes(req.query.format) ? req.query.format : look.targets[key].format);
   const colors = ap().palette(look);
   const name = req.user?.global_name || req.user?.username || 'Участник';
   const avatarURL = req.user?.avatar ? `https://cdn.discordapp.com/avatars/${req.user.id}/${req.user.avatar}.png?size=256` : null;
@@ -65,11 +66,11 @@ router.get('/:guildId/appearance/preview/:kind.png', ensureGuildAccess, async (r
   const rank = require('../../../bot/modules/rankCard');
   let png;
   try {
-    if (kind === 'levelup') png = await cards.renderLevelUpCard({ username: name, avatarURL, level: 12, oldLevel: 11, reward: `+3 ${settings.crystalName || 'кристаллы'} · роль Активист`, server: 'Ваш сервер', headline: headline || look.targets.levelUp.headline, colors });
+    if (kind === 'levelup') png = await cards.renderLevelUpCard({ username: name, avatarURL, level: 12, oldLevel: 11, reward: `+3 ${settings.crystalName || 'кристаллы'} · роль Активист`, server: 'Ваш сервер', headline: headline || look.targets.levelUp.headline, format: fmtOf('levelUp'), colors });
     else if (kind === 'profile') png = await rank.renderRankCard({ ...SAMPLE, username: name, avatarURL, currencyName: settings.currencyName || 'монеты', crystalName: settings.crystalName || 'кристаллы', colors });
     else if (kind === 'top') png = await rank.renderLeaderboard({ heading: 'Таблица лидеров', title: 'Ваш сервер', page: 1, pages: 3, colors,
       rows: [[name, 31, 18400], ['Лиса', 27, 14100], ['Ник', 24, 11800], ['Макс', 19, 7600], ['Аня', 15, 5200]].map(([n, level, xp], i) => ({ rank: i + 1, name: n, level, xp, avatarURL: i === 0 ? avatarURL : null })) });
-    else if (kind === 'achievement') png = await require('../../../bot/modules/achievements').renderCard({ achievement: { name: 'Болтун', description: 'Написать 1 000 сообщений на сервере', rarity: 'rare', category: 'messages' }, userName: name, avatarUrl: avatarURL, colors, headline: headline || look.targets.achievement.headline });
+    else if (kind === 'achievement') png = await require('../../../bot/modules/achievements').renderCard({ achievement: { name: 'Болтун', description: 'Написать 1 000 сообщений на сервере', rarity: 'rare', category: 'messages' }, userName: name, avatarUrl: avatarURL, colors, headline: headline || look.targets.achievement.headline, format: fmtOf('achievement') });
     else if (kind === 'dice') png = await cards.renderGameCard({ game: 'dice', rolls: [3, 6, 2], sides: 6, player: name, colors });
     else if (kind === 'coin') png = await cards.renderGameCard({ game: 'coinflip', heads: true, player: name, colors });
     else if (kind === '8ball') png = await cards.renderGameCard({ game: '8ball', question: 'Повезёт ли мне сегодня?', answer: 'Знаки говорят: да.', mood: 'good', player: name, colors });

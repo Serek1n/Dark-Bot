@@ -43,6 +43,7 @@ module.exports = {
       const removed = await require('../../db').MemberProfile.destroy({ where: { userId: [...botIds] } });
       if (removed) logger.info(`Removed ${removed} profile(s) of bots from leaderboards`);
     })().catch((err) => logger.warn(`Bot profiles cleanup failed: ${err.message}`));
+    require('../modules/serverStats').startServerStats(client); // «Статистика сервера»: numbers by day, counters in channel names
     require('../modules/tempRoles').startTempRoleScheduler(client); // takes temporary roles away when their time is up
     startRestoreCleanup(); // forgets old data of members who left
     require('../modules/tickets').sweepClosedTickets(client).catch(() => {}); // closed tickets whose channel outlived a restart
