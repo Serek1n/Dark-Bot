@@ -21,7 +21,7 @@ const client = () => require('../../web/botBridge').getClient();
 const kindsOn = (settings) => String(settings?.appealsKinds ?? 'ban,mute,warn').split(',').filter((k) => KINDS[k]);
 const isOn = (settings) => settings?.appealsEnabled !== false && settings?.appealsEnabled !== 0;
 const panelBase = () => (process.env.WEB_BASE_URL || '').replace(/\/+$/, '');
-const fmtDate = (d) => (d ? new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
+const fmtDate = (d) => (d ? new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
 
 /** Is this ban still in force? Asks Discord when the bot is on that server; otherwise the journal decides. */
 async function banInForce(guildId, userId, entry) {

@@ -42,7 +42,7 @@
                 <span class="rv">Бот <b>v<%= r.bot %></b></span>
                 <span class="rv">Панель <b>v<%= r.panel %></b></span>
                 <% if (i === 0) { %><span class="badge badge-unban">сейчас</span><% } %>
-                <span class="rdate"><%= r.date ? new Date(r.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) : '' %></span>
+                <span class="rdate"><%= r.date ? new Date(r.date).toLocaleDateString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: 'numeric', month: 'long', year: 'numeric' }) : '' %></span>
               </div>
               <div class="release-body">
                 <% if (r.botChanges.length) { %><div><h3>Бот</h3><ul><% r.botChanges.forEach(x => { %><li><%= x %></li><% }) %></ul></div><% } %>

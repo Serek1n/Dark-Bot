@@ -10,7 +10,7 @@
         <h1>Предупреждения</h1>
         <p class="page-intro">Все предупреждения и что из них вышло. Снятое предупреждение не удаляется: оно остаётся в истории с отметкой, кто и почему его снял.</p>
       </div>
-      <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
          const name = (id) => (users[id] || { name: id }).name;
          const q = (extra) => { const p = new URLSearchParams(); if (f.state !== 'active') p.set('state', f.state); if (f.user) p.set('user', f.user); if (f.auto) p.set('auto', f.auto); Object.entries(extra || {}).forEach(([k, v]) => p.set(k, v)); const s = p.toString(); return s ? '?' + s : ''; };
          const pages = Math.max(1, Math.ceil(total / 50)); %>

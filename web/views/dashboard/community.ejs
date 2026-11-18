@@ -13,7 +13,7 @@
       <% const g = '/dashboard/' + guild.id; const fmt = (n) => Number(n || 0).toLocaleString('ru-RU');
          const ST = { published: 'Опубликовано', pending: 'Ждёт проверки', hidden: 'Скрыто', blocked: 'Заблокировано' };
          const chip = { published: 'badge-unban', pending: 'badge-note', hidden: 'badge-mute', blocked: 'badge-ban' };
-         const cats = c ? c.cats : []; const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); %>
+         const cats = c ? c.cats : []; const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); %>
       <% if (error) { %><div class="card g-span mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
       <% if (done === 'bought') { %><div class="card g-span appeal-ok"><p style="margin:0">Продвижение куплено и уже работает.</p></div><% } %>
       <% if (done === 'dup') { %><div class="card g-span appeal-ok"><p style="margin:0">Эта покупка уже проведена — повторно ничего не списано.</p></div><% } %>

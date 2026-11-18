@@ -10,7 +10,7 @@
         <h1>Апелляции</h1>
         <p class="page-intro">Наказанные обжалуют бан, мут или предупреждение на сайте — войдя через Discord, даже если они забанены. Одобренная апелляция снимает наказание сама; история наказаний остаётся.</p>
       </div>
-      <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
          const name = (id) => (users[id] || { name: id }).name;
          const kinds = AP.kindsOn(settings);
          const chip = { new: 'badge-note', review: 'badge-mute', approved: 'badge-unban', rejected: 'badge-ban' };

@@ -221,7 +221,11 @@ async function vote(communityId, userId, ip) {
     const last = await CommunityVote.findOne({ where: { communityId: row.id, userId }, order: [['id', 'DESC']] });
     if (last && Date.now() - new Date(last.createdAt).getTime() < VOTE_EVERY) {
       const next = new Date(new Date(last.createdAt).getTime() + VOTE_EVERY);
-      throw new CommunityError(`Вы уже голосовали. Снова — после ${next.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}.`);
+      // how long is left, in words — a clock time alone was read in the wrong time zone
+      const left = Math.max(1, Math.ceil((next.getTime() - Date.now()) / 60000));
+      const h = Math.floor(left / 60); const m = left % 60;
+      const wait = h ? (m ? `${h} ч ${m} мин` : `${h} ч`) : `${m} мин`;
+      throw new CommunityError(`Вы уже голосовали за это сообщество. Снова можно через ${wait} (в ${next.toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', hour: '2-digit', minute: '2-digit' })} по Москве).`);
     }
     const h = ipHash(ip);
     if (h && (await CommunityVote.count({ where: { ipHash: h, createdAt: { [Op.gt]: new Date(Date.now() - 3600000) } } })) >= IP_VOTES_PER_HOUR) throw new CommunityError('Слишком много голосов из этой сети. Попробуйте позже.');

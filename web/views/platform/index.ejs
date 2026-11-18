@@ -6,7 +6,7 @@
   <main class="cm-page">
     <header class="cm-hero"><div><h1>Платформа DARK</h1><p class="page-intro">Только для владельцев платформы: DARK Coins, цены продвижения, модерация каталога.</p></div><a class="btn btn-secondary" href="/communities">Каталог</a></header>
     <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); const name = (id) => (id ? (users[id] || { name: id }).name : '—');
-       const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+       const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
        const KIND = { grant: 'Начисление', revoke: 'Списание', promo: 'Продвижение', daily: 'Ежедневный бонус', vote: 'Голос', join: 'Вход из каталога', quest: 'Задание', top: 'Топ недели', purchase: 'Покупка', refund: 'Возврат' };
        const DONE = { coins: 'Операция проведена.', dup: 'Эта операция уже была проведена — повтор ничего не изменил.', settings: 'Настройки сохранены.', pending: 'Решение по начислению принято.', frozen: 'Состояние кошелька изменено.', moderated: 'Решение сохранено.', report: 'Жалоба закрыта.' }; %>
     <% if (error) { %><div class="card mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>

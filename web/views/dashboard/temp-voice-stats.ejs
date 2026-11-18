@@ -13,7 +13,7 @@
       <% const g = '/dashboard/' + guild.id; %>
       <% const LABEL = { create: 'Создана', empty: 'Удалена (пустая)', delete: 'Удалена владельцем', name: 'Переименована', limit: 'Лимит', access: 'Доступ', region: 'Регион', bitrate: 'Битрейт', invite: 'Приглашение', trust: 'Доверие', untrust: 'Снято доверие', ban: 'Бан', unban: 'Разбан', kick: 'Выгнан', transfer: 'Передана', claim: 'Забрана', autotransfer: 'Передана автоматически', spam: 'Слишком часто' };
          const name = (id) => (id ? (users[id] || { name: id }).name : 'бот');
-         const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); %>
+         const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); %>
       <div class="stat-row four">
         <div class="stat-box"><div class="value"><%= rooms %></div><div class="label">Комнат сейчас</div></div>
         <div class="stat-box"><div class="value"><%= created7 %></div><div class="label">Создано за неделю</div></div>

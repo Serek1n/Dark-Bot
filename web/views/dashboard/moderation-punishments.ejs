@@ -10,7 +10,7 @@
         <h1>Действующие наказания</h1>
         <p class="page-intro">Кто сейчас в муте и в бане. Наказание можно снять отсюда — бот снимет его в Discord и запишет в журнал.</p>
       </div>
-      <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
          const person = (id) => { const u = users[id] || { name: id, avatar: '' }; return `<span class="person"><img src="${u.avatar}" alt="" loading="lazy" /><span>${String(u.name).replace(/[<>&"]/g, '')}</span></span>`; }; %>
       <% if (locals.modfail) { %><div class="card g-span mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= modfail %></p></div><% } %>
       <div class="card g-span">

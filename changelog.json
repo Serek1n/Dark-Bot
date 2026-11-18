@@ -1,5 +1,26 @@
 [
  {
+  "bot": "3.13.3",
+  "panel": "3.22.4",
+  "date": "2026-11-18",
+  "botChanges": [
+   "Голосование: вместо времени сервера — сколько осталось ждать и время по Москве"
+  ],
+  "panelChanges": [
+   "Все новые страницы показывают время по Москве (или по TZ из .env), а не по серверу",
+   "Кошелёк, платформа, апелляции, достижения, комнаты, наказания — даты теперь совпадают"
+  ],
+  "en": {
+   "botChanges": [
+    "Voting: how long is left and Moscow time instead of the server's clock"
+   ],
+   "panelChanges": [
+    "All new pages show Moscow time (or TZ from .env), not the server's clock",
+    "Wallet, platform, appeals, achievements, rooms, punishments — dates now match"
+   ]
+  }
+ },
+ {
   "bot": "3.13.2",
   "panel": "3.22.3",
   "date": "2026-11-18",
