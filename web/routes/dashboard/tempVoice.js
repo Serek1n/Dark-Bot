@@ -156,7 +156,7 @@ router.post('/:guildId/temp-voice/panel', ensureGuildAccess, async (req, res) =>
   const channels = await getGuildChannels(guildId);
   if (!channelId || !channels.some((c) => c.id === channelId && [0, 5].includes(c.type))) return res.redirect(saved(guildId, 'temp-voice-panel', 'invalid'));
   const settings = await getSettings(guildId);
-  const payload = require('../../../bot/modules/voiceRoom').panelPayload({ lang: require('../../../i18n').langOf(guildId) });
+  const payload = require('../../../bot/modules/voiceRoom').panelPayload({ lang: require('../../../i18n').langOf(guildId), look: require('../../../bot/modules/appearance').read(settings) });
   try {
     await require('../../../services/panelMessages').postPanel(settings, channelId, payload, { channel: 'tempVoicePanelChannelId', message: 'tempVoicePanelMessageId' }, (b) => i18nOut(b, guildId));
     res.redirect(saved(guildId, 'temp-voice-panel', 'vpanel'));

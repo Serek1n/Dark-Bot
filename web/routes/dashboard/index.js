@@ -23,7 +23,7 @@ router.post('/:guildId/*', (req, res, next) => { require('../../modules').forget
 
 for (const page of [
   'overview', 'leveling', 'features', 'economy', 'shop', 'moderation', 'logs', 'automod', 'channelBoosts', 'welcome',
-  'levelRoles', 'reactionRoles', 'customCommands', 'tempVoice', 'alerts', 'webhooks', 'changelog', 'replacers', 'interactive', 'giveaways', 'messages', 'events', 'music', 'achievements', 'community'
+  'levelRoles', 'reactionRoles', 'customCommands', 'tempVoice', 'alerts', 'webhooks', 'changelog', 'replacers', 'interactive', 'giveaways', 'messages', 'events', 'music', 'achievements', 'community', 'appearance'
 ]) {
   router.use(require('./' + page));
 }

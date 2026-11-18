@@ -1,5 +1,38 @@
 [
  {
+  "bot": "3.15.0",
+  "panel": "3.25.0",
+  "date": "2026-11-18",
+  "botChanges": [
+   "Оформление: тема картинок и рамок — DARK, Фиалка, Неон, Океан, Лес, Рубин, Графит, Светлая",
+   "Новый уровень, /profile, /top, достижения, мини-игры: картинка, текст или оба сразу",
+   "Новые картинки: карточка нового уровня и результаты /dice, /coinflip, /8ball, /rps",
+   "Панель комнаты: свои значки или эмодзи, подписи, надписи на кнопках, свой заголовок",
+   "Карточка приветствия тоже в цветах выбранной темы"
+  ],
+  "panelChanges": [
+   "Новая группа модулей «Оформление»: тема, свой цвет акцента, живой предпросмотр",
+   "Вкладки: Уровни, Достижения, Мини-игры, Голосовые комнаты — что включено в сообщение",
+   "Картинку и текст можно включать отдельно и вместе; свои надписи на картинках",
+   "Размещённая панель комнаты обновляется сама после сохранения"
+  ],
+  "en": {
+   "botChanges": [
+    "Appearance: a theme for pictures and frames — DARK, Violet, Neon, Ocean, Forest and more",
+    "New level, /profile, /top, achievements, mini-games: a picture, a text or both",
+    "New pictures: the level-up card and the results of /dice, /coinflip, /8ball, /rps",
+    "Room panel: own icons or emojis, captions, names on buttons, an own title",
+    "The welcome card takes the colours of the chosen theme too"
+   ],
+   "panelChanges": [
+    "New module group «Appearance»: theme, own accent colour, live preview",
+    "Tabs: Levels, Achievements, Mini-games, Voice rooms — what a message is made of",
+    "A picture and a text can be on separately or together; own captions on pictures",
+    "A posted room panel updates by itself after saving"
+   ]
+  }
+ },
+ {
   "bot": "3.14.0",
   "panel": "3.24.0",
   "date": "2026-11-18",

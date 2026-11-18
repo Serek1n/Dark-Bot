@@ -293,8 +293,9 @@ function wrap(ctx, text, width, lines) {
 }
 
 /** The picture «ДОСТИЖЕНИЕ РАЗБЛОКИРОВАНО!»: the icon or picture, the name, the description, who got it, the rarity. */
-async function renderCard({ achievement: a, userName, avatarUrl = null, more = 0 }) {
-  const { ensureFonts, makeCanvas, truncateToWidth, drawSquareAvatar, COLORS } = require('./rankCard').cardKit;
+async function renderCard({ achievement: a, userName, avatarUrl = null, more = 0, colors = null, headline = null }) {
+  const { ensureFonts, makeCanvas, truncateToWidth, drawSquareAvatar, COLORS: BASE } = require('./rankCard').cardKit;
+  const COLORS = colors || BASE; // the server's theme (appearance.js); the rarity keeps its own colour
   ensureFonts();
   const { canvas, ctx } = makeCanvas(CARD_W, CARD_H);
   const rar = RARITY[a.rarity] || RARITY.common;
@@ -318,7 +319,7 @@ async function renderCard({ achievement: a, userName, avatarUrl = null, more = 0
   const x = 280; const w = CARD_W - x - 40;
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = rar.color; ctx.font = '800 22px CardSansBold, CardFallbackBold';
-  ctx.fillText(truncateToWidth(ctx, 'ДОСТИЖЕНИЕ РАЗБЛОКИРОВАНО!', w), x, 70);
+  ctx.fillText(truncateToWidth(ctx, headline || 'ДОСТИЖЕНИЕ РАЗБЛОКИРОВАНО!', w), x, 70);
   ctx.fillStyle = COLORS.paper; ctx.font = '800 40px CardSansBold, CardFallbackBold';
   let size = 40;
   while (size > 26 && ctx.measureText(a.name).width > w) { size -= 2; ctx.font = `800 ${size}px CardSansBold, CardFallbackBold`; }
@@ -327,7 +328,7 @@ async function renderCard({ achievement: a, userName, avatarUrl = null, more = 0
   wrap(ctx, a.description, w, 2).forEach((line, i) => ctx.fillText(line, x, 160 + i * 30));
   // who, and the rarity on the right
   const y = 232;
-  if (avatarUrl) await drawSquareAvatar(ctx, avatarUrl, userName, x, y, 40, 12, rar.color, 2).catch(() => {});
+  if (avatarUrl) await drawSquareAvatar(ctx, avatarUrl, userName, x, y, 40, 12, rar.color, 2, COLORS).catch(() => {});
   ctx.fillStyle = COLORS.paper; ctx.font = '800 22px CardSansBold, CardFallbackBold';
   const label = `${RARITY[a.rarity].label} · ${CATEGORY[a.category]?.label || ''}`;
   ctx.font = '18px CardSans, CardFallback';
@@ -345,23 +346,39 @@ async function renderCard({ achievement: a, userName, avatarUrl = null, more = 0
   return canvas.toBuffer('image/png');
 }
 
-/** The message with the card and the buttons «Мои достижения» / «Все достижения». */
-async function cardMessage(guild, member, userId, fresh) {
+/**
+ * The message with the card and the buttons «Мои достижения» / «Все достижения». «Оформление» (appearance.js) decides
+ * what it is made of: the picture card, the text with the reward, or both; in a frame or as plain text.
+ */
+async function cardMessage(guild, member, userId, fresh, settings = null) {
   const { AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+  const appearance = require('./appearance');
+  const look = settings ? appearance.read(settings) : await appearance.forGuild(guild.id);
+  const shape = look.targets.achievement;
   const a = fresh[0];
   const user = member?.user || (await guild.client?.users?.fetch?.(userId).catch(() => null));
   const name = member?.displayName || user?.globalName || user?.username || 'Участник';
-  const png = await renderCard({ achievement: a, userName: name, avatarUrl: user?.displayAvatarURL?.({ extension: 'png', size: 128 }) || null, more: fresh.length - 1 });
-  const file = new AttachmentBuilder(png, { name: 'achievement.png' });
+  let file = null;
+  if (shape.card) {
+    const png = await renderCard({ achievement: a, userName: name, avatarUrl: user?.displayAvatarURL?.({ extension: 'png', size: 128 }) || null, more: fresh.length - 1,
+      colors: appearance.palette(look), headline: shape.headline }).catch(() => null);
+    if (png) file = new AttachmentBuilder(png, { name: 'achievement.png' });
+  }
+  const textOn = shape.text || !file;
   const others = fresh.slice(1, 6).map((x) => `${x.emoji || CATEGORY[x.category].emoji} **${x.name}** — ${x.description}`);
   const reward = rewardText(a.reward, guild);
-  const embed = new EmbedBuilder().setColor(parseInt(RARITY[a.rarity].color.slice(1), 16)).setImage('attachment://achievement.png')
-    .setDescription([`<@${userId}> открывает достижение **${a.name}**!`, reward ? `Награда: ${reward}` : null, others.length ? `\nА ещё:\n${others.join('\n')}` : null].filter(Boolean).join('\n'));
+  const text = [`<@${userId}> открывает достижение **${a.name}**!`, !file ? `*${a.description}*` : null, reward ? `Награда: ${reward}` : null, others.length ? `\nА ещё:\n${others.join('\n')}` : null].filter(Boolean).join('\n');
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('ach:mine').setLabel('Мои достижения').setEmoji('🏆').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId('ach:all').setLabel('Все достижения').setEmoji('📜').setStyle(ButtonStyle.Secondary)
   );
-  return { content: `<@${userId}>`, embeds: [embed], files: [file], components: [row], allowedMentions: { users: [userId] } };
+  const out = { content: `<@${userId}>`, embeds: [], files: file ? [file] : [], components: [row], allowedMentions: { users: [userId] } };
+  if (textOn && shape.frame) {
+    const embed = new EmbedBuilder().setColor(parseInt(RARITY[a.rarity].color.slice(1), 16)).setDescription(text);
+    if (file) embed.setImage('attachment://achievement.png');
+    out.embeds = [embed];
+  } else if (textOn) out.content = text;
+  return out;
 }
 
 function rewardText(r, guild) {
@@ -378,7 +395,7 @@ function rewardText(r, guild) {
 async function notify(guild, member, userId, fresh, settings, where) {
   const mode = ['auto', 'channel', 'dm', 'off'].includes(settings?.achievementsNotify) ? settings.achievementsNotify : 'auto';
   if (mode === 'off') return false;
-  const payload = await cardMessage(guild, member, userId, fresh);
+  const payload = await cardMessage(guild, member, userId, fresh, settings);
   if (mode === 'dm') {
     const user = member?.user || (await guild.client.users.fetch(userId).catch(() => null));
     return Boolean(await user?.send(payload).catch(() => null));

@@ -2,16 +2,17 @@
 // an ember frame, a greeting, their name, the server and the member count.
 const { cardKit } = require('./rankCard');
 
-async function renderWelcomeCard({ username, avatarURL, serverName, memberCount }) {
-  const { ensureFonts, makeCanvas, paintCard, drawSquareAvatar, truncateToWidth, COLORS } = cardKit;
+async function renderWelcomeCard({ username, avatarURL, serverName, memberCount, colors = null }) {
+  const { ensureFonts, makeCanvas, paintCard, drawSquareAvatar, truncateToWidth, COLORS: BASE } = cardKit;
+  const COLORS = colors || BASE; // the server's theme (appearance.js)
   ensureFonts();
   const W = 900;
   const H = 300;
   const { canvas, ctx } = makeCanvas(W, H);
-  paintCard(ctx, W, H);
+  paintCard(ctx, W, H, COLORS);
 
   const size = 172;
-  await drawSquareAvatar(ctx, avatarURL, username, 48, (H - size) / 2, size, 32);
+  await drawSquareAvatar(ctx, avatarURL, username, 48, (H - size) / 2, size, 32, undefined, 4, COLORS);
 
   const left = 268;
   const maxW = W - left - 44;

@@ -131,7 +131,8 @@ router.get('/:guildId/achievements/card/:key.png', ensureGuildAccess, async (req
   const settings = await getSettings(guildId);
   const a = (await ach().catalog(guildId, settings)).find((x) => x.key === req.params.key);
   if (!a) return res.status(404).end();
-  const png = await ach().renderCard({ achievement: a, userName: req.user?.username || 'Участник', avatarUrl: null });
+  const ap = require('../../../bot/modules/appearance'); const look = ap.read(settings);
+  const png = await ach().renderCard({ achievement: a, userName: req.user?.username || 'Участник', avatarUrl: null, colors: ap.palette(look), headline: look.targets.achievement.headline });
   res.set('Content-Type', 'image/png').set('Cache-Control', 'private, max-age=30').send(png);
 });
 

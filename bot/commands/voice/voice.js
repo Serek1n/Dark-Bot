@@ -49,7 +49,7 @@ module.exports = {
         if (!isAdmin(interaction.member)) return say({ embeds: [embeds.error('Разместить панель могут только администраторы сервера.')] });
         const target = interaction.options.getChannel('channel') || interaction.channel;
         if (!target?.send) return say({ embeds: [embeds.error('В этот канал нельзя отправить сообщение.')] });
-        await target.send(room.panelPayload());
+        await target.send(room.panelPayload({ lang: require('../../../i18n').langOf(guild.id), look: await require('../../modules/appearance').forGuild(guild.id) }));
         return done(`Панель управления комнатами размещена в <#${target.id}>.`);
       }
       const settings = await require('../../modules/leveling').getOrCreateSettings(guild.id);

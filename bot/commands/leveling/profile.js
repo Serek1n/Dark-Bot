@@ -128,48 +128,58 @@ module.exports = {
 
       await interaction.deferReply(interaction.privateAnswer ? { flags: MessageFlags.Ephemeral } : undefined);
 
-      try {
-        const rank = (await MemberProfile.count({ where: { guildId: interaction.guild.id, xp: { [Op.gt]: profile.xp } } })) + 1;
-        const totalMembers = await MemberProfile.count({ where: { guildId: interaction.guild.id } });
-        const png = await renderRankCard({
-          rank,
-          totalMembers,
-          username: target.globalName || target.username,
-          avatarURL: target.displayAvatarURL({ extension: 'png', size: 256 }),
-          level: profile.level,
-          xpIntoLevel,
-          xpNeeded: needed,
-          balance: Number(profile.balance),
-          currencyName: settings.currencyName,
-          crystals: Number(profile.crystals || 0),
-          crystalName: settings.crystalName,
-          chatXp: Number(profile.chatXp || 0),
-          voiceXp: Number(profile.voiceXp || 0),
-          messageCount: Number(profile.messageCount),
-          voiceSeconds: Number(profile.voiceSeconds || 0) + pendingSeconds(interaction.guild.id, target.id),
-          badge: await require('../../modules/econ/seasons').badgeText(interaction.guild.id, target.id).catch(() => null)
-        });
-        const attachment = new AttachmentBuilder(png, { name: 'rank.png' });
-        return interaction.editReply({ files: [attachment], components: await achievementsRow(interaction.guild, target.id, settings) });
-      } catch (err) {
-        // Canvas/network hiccup — fall back to the plain-text embed instead of a dead command.
-        logger.error('Failed to render rank card, falling back to embed:', err);
-        const embed = embeds
-          .baseEmbed()
-          .setAuthor({ name: target.username, iconURL: target.displayAvatarURL() })
-          .setDescription(
-            `# ${profile.level}\nУровень\n\n` +
-              `\`${embeds.progressBar(xpIntoLevel, needed)}\`  ${xpIntoLevel}/${needed} XP`
-          )
+      // «Оформление»: the picture card, the text, or both (bot/modules/appearance.js)
+      const appearance = require('../../modules/appearance');
+      const look = appearance.read(settings);
+      const shape = look.targets.profile;
+      const voiceSeconds = Number(profile.voiceSeconds || 0) + pendingSeconds(interaction.guild.id, target.id);
+      const textEmbed = () => {
+        const e = embeds
+          .baseEmbed(appearance.embedColor(look))
+          .setAuthor({ name: target.globalName || target.username, iconURL: target.displayAvatarURL() })
+          .setDescription(`# ${profile.level}\nУровень\n\n\`${embeds.progressBar(xpIntoLevel, needed)}\`  ${xpIntoLevel}/${needed} XP`)
           .addFields(
             { name: 'Баланс', value: `${profile.balance} ${settings.currencyName} · ${profile.crystals || 0} ${settings.crystalName}`, inline: true },
             { name: 'XP за чат / голос', value: `${profile.chatXp || 0} / ${profile.voiceXp || 0}`, inline: true },
             { name: 'Сообщений', value: `${profile.messageCount}`, inline: true },
-            { name: 'В голосовых', value: formatDuration(Number(profile.voiceSeconds || 0) + pendingSeconds(interaction.guild.id, target.id)), inline: true }
-          )
-          .setThumbnail(target.displayAvatarURL());
-        return interaction.editReply({ embeds: [embed], components: await achievementsRow(interaction.guild, target.id, settings) });
+            { name: 'В голосовых', value: formatDuration(voiceSeconds), inline: true }
+          );
+        return e;
+      };
+      const components = await achievementsRow(interaction.guild, target.id, settings);
+      let png = null;
+      if (shape.card) {
+        try {
+          const rank = (await MemberProfile.count({ where: { guildId: interaction.guild.id, xp: { [Op.gt]: profile.xp } } })) + 1;
+          const totalMembers = await MemberProfile.count({ where: { guildId: interaction.guild.id } });
+          png = await renderRankCard({
+            rank,
+            totalMembers,
+            username: target.globalName || target.username,
+            avatarURL: target.displayAvatarURL({ extension: 'png', size: 256 }),
+            level: profile.level,
+            xpIntoLevel,
+            xpNeeded: needed,
+            balance: Number(profile.balance),
+            currencyName: settings.currencyName,
+            crystals: Number(profile.crystals || 0),
+            crystalName: settings.crystalName,
+            chatXp: Number(profile.chatXp || 0),
+            voiceXp: Number(profile.voiceXp || 0),
+            messageCount: Number(profile.messageCount),
+            voiceSeconds,
+            badge: await require('../../modules/econ/seasons').badgeText(interaction.guild.id, target.id).catch(() => null),
+            colors: appearance.palette(look)
+          });
+        } catch (err) {
+          // Canvas/network hiccup — the text instead of a dead command.
+          logger.error('Failed to render rank card, falling back to embed:', err);
+        }
       }
+      if (png && !shape.text) return interaction.editReply({ files: [new AttachmentBuilder(png, { name: 'rank.png' })], components });
+      const embed = textEmbed();
+      if (png) return interaction.editReply({ embeds: [embed.setImage('attachment://rank.png')], files: [new AttachmentBuilder(png, { name: 'rank.png' })], components });
+      return interaction.editReply({ embeds: [embed.setThumbnail(target.displayAvatarURL())], components });
     }
 
     if (sub === 'calc') return calc(interaction);

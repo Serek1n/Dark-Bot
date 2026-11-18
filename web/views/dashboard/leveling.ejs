@@ -91,7 +91,7 @@
           <div class="hint">Можно использовать: <code>{user}</code> — упоминание, <code>{name}</code> — имя, <code>{level}</code> — новый уровень, <code>{oldLevel}</code> — прежний, <code>{role}</code> — роль за этот уровень, <code>{crystals}</code> — сколько выдано кристаллов, <code>{server}</code> — сервер.</div>
           <div class="rules">
             <label class="rule">
-              <span class="rule-text"><b>Своё поздравление — в рамке</b><span>Выключите, чтобы бот писал обычным сообщением (тогда <code>{user}</code> упомянет участника).</span></span>
+              <span class="rule-text"><b>Поздравление — в рамке</b><span>Выключите, чтобы бот писал обычным сообщением (тогда <code>{user}</code> упомянет участника). Картинка-карточка и цвета — в разделе <a href="/dashboard/<%= guild.id %>/appearance-levels">Оформление</a>.</span></span>
               <input type="checkbox" name="levelUpEmbed" <%= settings.levelUpEmbed !== false ? 'checked' : '' %> />
             </label>
           </div>

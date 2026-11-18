@@ -46,7 +46,8 @@ module.exports = {
               username: member.displayName || member.user?.username || 'участник',
               avatarURL: member.user?.displayAvatarURL?.({ extension: 'png', size: 256 }),
               serverName: member.guild.name,
-              memberCount: member.guild.memberCount
+              memberCount: member.guild.memberCount,
+              colors: (() => { const ap = require('../modules/appearance'); return ap.palette(ap.read(settings)); })() // the theme of «Оформление»
             });
             payload.files = [new AttachmentBuilder(png, { name: 'welcome.png' })];
           } catch (err) {

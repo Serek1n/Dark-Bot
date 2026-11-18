@@ -57,6 +57,8 @@ app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '7d',
   setHeaders: (res, file) => { if (file.endsWith('.woff2')) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); } // fonts never change under the same name
 }));
+// the bot's own line icons (its application emojis, bot/modules/appEmojis.js) for the previews of «Оформление»
+app.use('/app-emoji', express.static(path.join(__dirname, '..', 'bot', 'assets', 'emoji'), { maxAge: '7d' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // Basic hardening headers. The panel loads only its own assets plus Discord's CDN for avatars.

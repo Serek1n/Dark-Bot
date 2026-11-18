@@ -99,6 +99,7 @@ module.exports = (sequelize) => {
       achievementsOff: { type: DataTypes.TEXT, defaultValue: '[]' }, // built-in achievements this server turned off
       achievementsBalanceGoal: { type: DataTypes.INTEGER, defaultValue: 10000 },
       botEvents: { type: DataTypes.TEXT, defaultValue: '{}' }, // JSON, see bot/modules/botEvents.js
+      appearance: { type: DataTypes.TEXT, defaultValue: '{}' }, // JSON: the theme and the look of each kind of message, see bot/modules/appearance.js
       treasury: { type: DataTypes.INTEGER, defaultValue: 0 }, // the server's own coins (taxes); changed only additively
       econRate: { type: DataTypes.FLOAT, defaultValue: 1 }, // the central bank's multiplier of coin rewards
       xpBoostUntil: { type: DataTypes.DATE, allowNull: true }, // a goal's reward: more XP for everyone until then

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<% const PAGE_TITLES = { appearance: 'Тема', 'appearance-levels': 'Уровни', 'appearance-achievements': 'Достижения', 'appearance-fun': 'Мини-игры', 'appearance-voice': 'Голосовые комнаты' };
+   const INTROS = {
+     appearance: 'Цвета всех картинок бота и рамок его сообщений. Выберите тему — предпросмотр ниже покажет, как это будет выглядеть в Discord.',
+     'appearance-levels': 'Из чего состоят поздравление с новым уровнем, профиль и таблица лидеров: картинка, текст или и то и другое сразу.',
+     'appearance-achievements': 'Как выглядит сообщение «Достижение разблокировано!»: карточка, текст с наградой или оба вместе.',
+     'appearance-fun': 'Ответы /dice, /coinflip, /8ball и /rps: картинка с результатом, текст или оба вместе.',
+     'appearance-voice': 'Сообщение с кнопками управления временной комнатой: значки, подписи, заголовок и текст.'
+   };
+   const base = '/dashboard/' + guild.id;
+   const M = locals.M || global.__darkModules;
+   const th = AP.THEMES[look.theme] || AP.THEMES.dark;
+   const accent = look.accent || th.accent;
+   const q = ''; // previews of the other tabs use the saved theme
+   const moduleOn = (key) => features.isEnabled(settings, key);
+   const MOD_PAGE = { leveling: 'leveling', achievements: 'achievements', fun: 'features', tempVoice: 'temp-voice' };
+   const PREVIEW = { levelUp: ['levelup'], profile: ['profile'], top: ['top'], achievement: ['achievement'], fun: ['dice', 'coin', '8ball', 'rps'] }; %>
+<head><%- include('../partials/head', { title: guild.name + ' — Оформление: ' + PAGE_TITLES[page] }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Оформление</h1>
+        <p class="page-intro"><%= INTROS[page] %></p>
+      </div>
+
+      <form method="post" class="look-form" data-look-form data-base="<%= base %>">
+      <% if (page === 'appearance') { %>
+        <div class="card g-span">
+          <h2>Тема</h2>
+          <div class="look-themes" role="radiogroup" aria-label="Тема">
+            <% Object.entries(AP.THEMES).forEach(([key, t]) => { %>
+              <label class="look-theme">
+                <input type="radio" name="theme" value="<%= key %>" <%= look.theme === key ? 'checked' : '' %> />
+                <span class="lt-swatch" style="--lt-bg:<%= t.bg %>;--lt-panel:<%= t.panel %>;--lt-ac:<%= t.accent %>;--lt-paper:<%= t.paper %>;--lt-fog:<%= t.fog %>" aria-hidden="true">
+                  <i class="lt-ava"></i><i class="lt-l1"></i><i class="lt-l2"></i><i class="lt-bar"><b></b></i>
+                </span>
+                <span class="lt-text"><b><%= t.title %></b><small><%= t.desc %></small></span>
+              </label>
+            <% }) %>
+          </div>
+          <div class="look-accent">
+            <label class="rule">
+              <span class="rule-text"><b>Свой цвет акцента</b><span>Вместо цвета темы: полоски опыта, рамки, подсветка и боковая линия сообщений.</span></span>
+              <input type="checkbox" name="accentOn" data-accent-on <%= look.accent ? 'checked' : '' %> />
+            </label>
+            <div class="look-color" data-accent-box<%= look.accent ? '' : ' hidden' %>>
+              <input type="color" name="accent" id="accent" value="<%= accent %>" data-accent />
+              <label for="accent"><span data-accent-hex><%= accent %></span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card g-span">
+          <h2>Предпросмотр</h2>
+          <p class="hint" style="margin-top:0">Так картинки выглядят в Discord — с вашим именем и примерными числами.</p>
+          <div class="look-cols">
+            <div class="look-previews">
+              <figure><img src="<%= base %>/appearance/preview/profile.png" alt="Карточка профиля" data-look-preview="profile" loading="lazy" width="900" height="376" /><figcaption>Профиль /profile</figcaption></figure>
+              <figure><img src="<%= base %>/appearance/preview/levelup.png" alt="Карточка нового уровня" data-look-preview="levelup" loading="lazy" width="900" height="260" /><figcaption>Новый уровень</figcaption></figure>
+            </div>
+            <div class="look-previews">
+              <figure><img src="<%= base %>/appearance/preview/achievement.png" alt="Карточка достижения" data-look-preview="achievement" loading="lazy" width="900" height="300" /><figcaption>Достижение</figcaption></figure>
+              <figure><img src="<%= base %>/appearance/preview/dice.png" alt="Картинка мини-игры" data-look-preview="dice" loading="lazy" width="900" height="300" /><figcaption>Мини-игры</figcaption></figure>
+            </div>
+          </div>
+        </div>
+
+        <div class="card g-span">
+          <h2>Из чего состоят сообщения</h2>
+          <p class="hint" style="margin-top:0">Картинку и текст можно включать отдельно — и оба сразу. Настраивается во вкладках модулей.</p>
+          <div class="look-map">
+            <% AP.TARGETS.forEach((t) => { const s = look.targets[t.key]; const tab = { levelUp: 'appearance-levels', profile: 'appearance-levels', top: 'appearance-levels', achievement: 'appearance-achievements', fun: 'appearance-fun', voicePanel: 'appearance-voice' }[t.key]; %>
+              <a class="look-map-item" href="<%= base %>/<%= tab %>#look-<%= t.key %>">
+                <span class="lm-ic"><%- M.icon(t.module, 18) %></span>
+                <span class="lm-text"><b><%= t.title %></b><small><%= t.desc %></small></span>
+                <span class="lm-parts">
+                  <span class="lm-part<%= s.card ? ' on' : '' %>"><%= t.key === 'voicePanel' ? 'Значки' : 'Картинка' %></span>
+                  <span class="lm-part<%= s.text ? ' on' : '' %>">Текст</span>
+                </span>
+              </a>
+            <% }) %>
+          </div>
+        </div>
+      <% } else { %>
+        <% keys.forEach((key) => { const t = AP.BY_KEY.get(key); const s = look.targets[key]; const off = !moduleOn(t.module); %>
+          <section class="card g-span look-target" id="look-<%= key %>">
+            <div class="lt-head">
+              <span class="lm-ic"><%- M.icon(t.module, 18) %></span>
+              <div><h2><%= t.title %></h2><p class="hint"><%= t.desc %></p></div>
+            </div>
+            <% if (off) { %>
+              <p class="look-off">Модуль «<%= (features.FEATURES.find((f) => f.key === t.module) || {}).title %>» сейчас выключен — оформление сохранится и заработает, когда его включат. <a href="<%= base %>/<%= MOD_PAGE[t.module] %>">Открыть модуль</a></p>
+            <% } %>
+            <div class="look-body<%= PREVIEW[key] ? '' : ' no-preview' %>">
+              <div class="look-controls">
+                <div class="look-sub">Из чего состоит</div>
+                <div class="look-parts" data-look-parts>
+                  <label class="msg-radio">
+                    <input type="checkbox" name="<%= key %>_card" <%= s.card ? 'checked' : '' %> data-part="card" />
+                    <span><b><%= t.cardLabel %></b><small><%= key === 'voicePanel' ? 'Линейные значки DARK на кнопках вместо обычных эмодзи' : 'Картинка в цветах темы' %></small></span>
+                  </label>
+                  <label class="msg-radio">
+                    <input type="checkbox" name="<%= key %>_text" <%= s.text ? 'checked' : '' %> data-part="text" />
+                    <span><b><%= t.textLabel %></b><small><%= key === 'voicePanel' ? 'Строка с названиями кнопок под каждым разделом' : key === 'top' ? 'Места участников с упоминаниями' : key === 'profile' ? 'Уровень, опыт, валюта и время в голосе' : 'Обычные слова — их можно скопировать и найти поиском' %></small></span>
+                  </label>
+                </div>
+                <p class="hint look-both" data-look-hint><% if (key === 'voicePanel') { %>Можно включить оба: значки на кнопках и строка с их названиями. Хотя бы одно должно остаться.<% } else { %>Можно включить оба — тогда картинка будет внутри сообщения с текстом. Хотя бы одно должно остаться.<% } %></p>
+
+                <% if (key !== 'voicePanel') { %>
+                  <label class="rule look-frame">
+                    <span class="rule-text"><b>Текст в рамке</b><span>Цветная полоса слева в цвет темы<%= key === 'levelUp' ? '; тот же переключатель есть на странице «Уровни»' : '' %>. Выключите — будет обычное сообщение.</span></span>
+                    <input type="checkbox" name="<%= key %>_frame" <%= s.frame ? 'checked' : '' %> />
+                  </label>
+                <% } else { %>
+                  <label class="rule">
+                    <span class="rule-text"><b>Надписи на кнопках</b><span>Название рядом со значком на каждой кнопке. Кнопки станут шире.</span></span>
+                    <input type="checkbox" name="<%= key %>_labels" <%= s.labels ? 'checked' : '' %> />
+                  </label>
+                <% } %>
+
+                <% if (t.headline !== null) { %>
+                  <label class="look-field"><% if (key === 'voicePanel') { %>Заголовок панели<% } else { %>Надпись наверху картинки<% } %>
+                    <input type="text" name="<%= key + '_headline' %>" maxlength="60" value="<%= s.headline || '' %>" placeholder="<%= t.headline %>" data-look-headline="<%= (PREVIEW[key] || [])[0] || '' %>" />
+                  </label>
+                <% } %>
+                <% if (key === 'voicePanel') { %>
+                  <label for="voicePanel_intro">Текст под заголовком</label>
+                  <textarea id="voicePanel_intro" name="voicePanel_intro" maxlength="300" rows="2" placeholder="Зайдите в свою комнату и нажмите кнопку. Настройки запоминаются для следующего раза."><%= s.intro || '' %></textarea>
+                  <p class="hint">Цвет полосы панели — из темы. После сохранения уже размещённая панель обновится сама.</p>
+                <% } %>
+              </div>
+
+              <% if (PREVIEW[key]) { %>
+                <div class="look-previews<%= PREVIEW[key].length > 1 ? ' look-previews-2' : '' %>">
+                  <% PREVIEW[key].forEach((kind) => { %>
+                    <figure><img src="<%= base %>/appearance/preview/<%= kind %>.png<%= q %>" alt="Предпросмотр" data-look-preview="<%= kind %>" loading="lazy" /></figure>
+                  <% }) %>
+                </div>
+              <% } else if (key === 'voicePanel') { %>
+                <div class="vp-mock<%= s.card ? ' own' : '' %>" style="--vp-ac:<%= accent %>" data-vp-mock aria-label="Предпросмотр панели">
+                  <div class="vp-title"><img class="vp-own" src="/app-emoji/mic.png" alt="" width="20" height="20" /><span class="vp-e">🎙️</span> <span data-vp-title><%= s.headline || t.headline %></span></div>
+                  <div class="vp-intro" data-vp-intro><%= s.intro || 'Зайдите в свою комнату и нажмите кнопку. Настройки запоминаются для следующего раза.' %></div>
+                  <% voiceSections.forEach(([title, list]) => { %>
+                    <div class="vp-sec">
+                      <b><%= title %></b>
+                      <div class="vp-line" data-vp-line<%= s.text ? '' : ' hidden' %>><%= list.map((x) => x[2]).join(' · ') %></div>
+                      <div class="vp-btns<%= s.labels ? ' labels' : '' %>" data-vp-btns>
+                        <% list.forEach(([id, emoji, label]) => { %><span class="vp-btn"><img class="vp-own" src="/app-emoji/<%= id %>.png" alt="" width="18" height="18" /><span class="vp-e"><%= emoji %></span><span class="vp-l"><%= label %></span></span><% }) %>
+                      </div>
+                    </div>
+                  <% }) %>
+                </div>
+              <% } %>
+            </div>
+          </section>
+        <% }) %>
+      <% } %>
+      </form>
+    </main>
+  </div>
+  <script src="/js/appearance.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
+</body>
+</html>

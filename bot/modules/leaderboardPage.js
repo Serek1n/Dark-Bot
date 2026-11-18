@@ -102,6 +102,19 @@ async function buildTopPage(client, guild, requestedPage, userId, category = 'to
     raw: true
   });
   const components = [...(pages > 1 ? [navRow(page, pages, userId, cat)] : []), catRow(cat, userId, settings)];
+  // «Оформление»: the table as a picture, as a list of text, or both (bot/modules/appearance.js)
+  const appearance = require('./appearance');
+  const look = appearance.read(settings);
+  const shape = look.targets.top;
+  const medals = ['🥇', '🥈', '🥉'];
+  const textEmbed = () => {
+    const lines = profiles.map((p, i) => {
+      const rank = page * PAGE_SIZE + i + 1;
+      return `${medals[rank - 1] || `**${rank}.**`}  <@${p.userId}>  —  уровень ${p.level} · ${cat === 'voice' ? formatDuration(p.voiceSeconds) : cat === 'wealth' ? `${p.balance} ${settings?.currencyName || 'монет'}` : `${p[c.field]} XP`}`;
+    });
+    return embeds.baseEmbed(appearance.embedColor(look)).setTitle(c.heading).setDescription(lines.join('\n')).setFooter({ text: `Страница ${page + 1} из ${pages}` });
+  };
+  if (!shape.card) return { files: [], embeds: [textEmbed()], components };
 
   try {
     const rows = await Promise.all(
@@ -119,7 +132,7 @@ async function buildTopPage(client, guild, requestedPage, userId, category = 'to
         };
       })
     );
-    const data = { heading: c.heading, title: guild.name, rows, page: page + 1, pages };
+    const data = { heading: c.heading, title: guild.name, rows, page: page + 1, pages, colors: appearance.palette(look) };
     const key = `${guild.id}:${cat}:${page}:${require('../../i18n').currentLang()}`;
     const sig = JSON.stringify(data);
     const hit = pngCache.get(key);
@@ -131,19 +144,12 @@ async function buildTopPage(client, guild, requestedPage, userId, category = 'to
     }
     // the next page is drawn while the person looks at this one
     if (prefetch && page + 1 < pages) setImmediate(() => buildTopPage(client, guild, page + 1, userId, cat, { prefetch: false }).catch(() => {}));
-    return { files: [new AttachmentBuilder(png, { name: `top-${page + 1}.png` })], embeds: [], components };
+    const file = new AttachmentBuilder(png, { name: `top-${page + 1}.png` });
+    if (shape.text) return { files: [file], embeds: [textEmbed().setImage(`attachment://top-${page + 1}.png`)], components };
+    return { files: [file], embeds: [], components };
   } catch (err) {
     logger.error('Failed to render leaderboard, falling back to embed:', err);
-    const medals = ['🥇', '🥈', '🥉'];
-    const lines = profiles.map((p, i) => {
-      const rank = page * PAGE_SIZE + i + 1;
-      return `${medals[rank - 1] || `**${rank}.**`}  <@${p.userId}>  —  уровень ${p.level} · ${cat === 'voice' ? formatDuration(p.voiceSeconds) : cat === 'wealth' ? `${p.balance} ${settings?.currencyName || 'монет'}` : p.xp + ' XP'}`;
-    });
-    return {
-      files: [],
-      embeds: [embeds.baseEmbed().setTitle(c.heading).setDescription(lines.join('\n')).setFooter({ text: `Страница ${page + 1} из ${pages}` })],
-      components
-    };
+    return { files: [], embeds: [textEmbed()], components };
   }
 }
 

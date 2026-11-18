@@ -12,7 +12,8 @@ const GROUPS = [
   ['community', 'Сообщество'],
   ['moderation', 'Модерация'],
   ['server', 'Сервер'],
-  ['tools', 'Оповещения и инструменты']
+  ['tools', 'Оповещения и инструменты'],
+  ['look', 'Оформление']
 ];
 
 // 20×20 line icons (stroke = currentColor)
@@ -44,6 +45,7 @@ const ICONS = {
   events: '<path d="M3.5 8V12H6L12.5 15.5V4.5L6 8H3.5Z"/><path d="M15 7.5C15.8 8.2 16.3 9.1 16.3 10C16.3 10.9 15.8 11.8 15 12.5M6.5 12L7.5 16.5"/>',
   achievements: '<path d="M6.5 3.5H13.5V8C13.5 10 12 11.5 10 11.5C8 11.5 6.5 10 6.5 8V3.5Z"/><path d="M6.5 5H4V6.5C4 7.9 5 9 6.5 9.2M13.5 5H16V6.5C16 7.9 15 9 13.5 9.2M10 11.5V14.5M7 16.5H13M8 14.5H12V16.5H8Z"/>',
   listing: '<circle cx="7" cy="7.5" r="2.5"/><circle cx="13.5" cy="7.5" r="2.5"/><path d="M2.5 16C2.8 13.3 4.7 11.5 7 11.5C9.3 11.5 11.2 13.3 11.5 16M10.5 12.3C11.2 11.8 12.3 11.5 13.5 11.5C15.8 11.5 17.2 13.3 17.5 16"/>',
+  appearance: '<path d="M10 2.8C5.9 2.8 2.8 5.8 2.8 9.6C2.8 13.6 6 17.2 9.6 17.2C10.7 17.2 11.2 16.5 11.2 15.7C11.2 14.6 10.3 14.3 10.3 13.4C10.3 12.6 10.9 12.1 11.8 12.1H13.6C15.6 12.1 17.2 10.6 17.2 8.6C17.2 5.4 14 2.8 10 2.8Z"/><circle cx="6.6" cy="9.4" r="1.1"/><circle cx="8.6" cy="6.1" r="1.1"/><circle cx="12.4" cy="6.1" r="1.1"/>',
   boosts: '<path d="M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z"/>'
 };
 
@@ -59,6 +61,7 @@ const n = (v) => Number(v || 0);
 // stats: the numbers on the home page — [{ value, label }], the first one also goes into the module list.
 // The tabs of the merged modules (old addresses keep working: see web/routes/dashboard/moderation.js and tempVoice.js).
 const MOD_PAGES = ['moderation', 'moderation-punishments', 'moderation-warnings', 'moderation-auto', 'moderation-reports', 'moderation-appeals', 'moderation-log', 'moderation-settings'];
+const LOOK_PAGES = ['appearance', 'appearance-levels', 'appearance-achievements', 'appearance-fun', 'appearance-voice'];
 const VOICE_PAGES = ['temp-voice', 'temp-voice-rooms', 'temp-voice-panel', 'temp-voice-access', 'temp-voice-roles', 'temp-voice-auto', 'temp-voice-stats', 'temp-voice-settings'];
 const LAYOUT = [
   { key: 'leveling', group: 'community', pages: ['leveling', 'channel-boosts'],
@@ -134,6 +137,14 @@ const LAYOUT = [
     stats: async (g) => { const { Community } = db(); const c = await Community.findOne(where(g)); return [{ value: c ? c.votes : 0, label: c ? 'голосов в каталоге' : 'не в каталоге' }]; } },
   { key: 'reminders', group: 'tools', pages: [],
     stats: async (g) => { const { Reminder } = db(); return [{ value: await Reminder.count(where(g)), label: 'напоминаний ждут' }]; } },
+  // «Оформление»: the theme and the look of the bot's messages (bot/modules/appearance.js); no switch: the defaults are the look
+  { key: 'appearance', group: 'look', title: 'Оформление', desc: 'Тема бота, картинки-карточки и тексты: новый уровень, профиль, топ, достижения, мини-игры, панель комнаты', pages: LOOK_PAGES,
+    stats: async (g) => {
+      const { GuildSettings } = db();
+      const ap = require('../bot/modules/appearance');
+      const look = ap.read(await GuildSettings.findOne(where(g)));
+      return [{ value: (ap.THEMES[look.theme] || ap.THEMES.dark).title, label: 'тема' }, { value: ap.TARGETS.filter((t) => look.targets[t.key].card).length, label: 'с картинкой' }];
+    } },
   { key: 'music', group: 'tools', pages: ['music'],
     stats: async () => { const { Playlist } = db(); return [{ value: await Playlist.count(), label: 'плейлистов у участников' }]; } }
 ];
@@ -166,6 +177,7 @@ const PAGE_LABELS = { leveling: 'Настройки', 'channel-boosts': 'Мно�
   'temp-voice': 'Обзор', 'temp-voice-rooms': 'Создание комнат', 'temp-voice-panel': 'Панель управления', 'temp-voice-access': 'Права доступа',
   'temp-voice-roles': 'Голосовые роли', 'temp-voice-auto': 'Автоматизация', 'temp-voice-stats': 'Статистика', 'temp-voice-settings': 'Настройки',
   achievements: 'Обзор', 'achievements-catalog': 'Каталог', 'achievements-edit': 'Создать', 'achievements-members': 'Участники', 'achievements-settings': 'Настройки',
+  appearance: 'Тема', 'appearance-levels': 'Уровни', 'appearance-achievements': 'Достижения', 'appearance-fun': 'Мини-игры', 'appearance-voice': 'Голосовые комнаты',
   economy: 'Настройки', 'economy-bank': 'Центробанк', 'economy-treasury': 'Казна и цели', 'economy-deals': 'Сделки и коды', 'economy-journal': 'Журнал' };
 // A page shown only while one of these economy sections is on (bot/modules/econ/config.js).
 const PAGE_NEEDS = { 'economy-bank': ['bank', 'seasons'], 'economy-treasury': ['treasury', 'goals'], 'economy-deals': ['deals', 'gifts'] };

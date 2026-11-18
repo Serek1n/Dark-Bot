@@ -6,7 +6,7 @@
     <%- include('../partials/sidebar') %>
     <main class="content" id="main" tabindex="-1">
       <%# The home: every module on the left with its number; on the right the chosen one (?m=key) or the server summary. %>
-      <% const M = locals.M || global.__darkModules; const fmtN = (v) => Number(v || 0).toLocaleString('ru-RU').replace(/\s/g, '\u202f');
+      <% const M = locals.M || global.__darkModules; const fmtN = (v) => (typeof v === 'string' ? v : Number(v || 0).toLocaleString('ru-RU').replace(/\s/g, '\u202f'));
          const mods = locals.mods || M.moduleState(settings); const stats = locals.stats || {}; const selected = locals.selected || null;
          const sel = selected ? mods.list.find((m) => m.key === selected) : null; %>
       <% const initial = String(guild.name || '?').trim().charAt(0).toUpperCase(); const online = locals.sys ? sys.botOnline : null; %>

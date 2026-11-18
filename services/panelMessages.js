@@ -25,4 +25,14 @@ async function postPanel(settings, channelId, payload, keys, localize = (b) => b
   return data.id;
 }
 
-module.exports = { postPanel };
+/** The posted panel gets a new look in place (nothing new is posted). False when there is none or it can't be edited. */
+async function editPanel(settings, payload, keys, localize = (b) => b) {
+  const channelId = settings[keys.channel]; const messageId = settings[keys.message];
+  if (!channelId || !messageId) return false;
+  const body = localize(payload.embeds
+    ? { embeds: payload.embeds.map((e) => e.toJSON()), components: payload.components.map((r) => r.toJSON()), allowed_mentions: { parse: [] } }
+    : { flags: payload.flags, components: payload.components.map((c) => c.toJSON()), allowed_mentions: { parse: [] } });
+  return botApi.patch(`/channels/${channelId}/messages/${messageId}`, body).then(() => true).catch(() => false);
+}
+
+module.exports = { postPanel, editPanel };

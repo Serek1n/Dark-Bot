@@ -29,10 +29,10 @@ async function levelUpTarget({ guild, member, settings, fallback: here = null })
 }
 
 /** Can the bot post this message there right now? */
-function canPost(channel, guild, withEmbed) {
+function canPost(channel, guild, withEmbed, withFiles = false) {
   const perms = channel?.permissionsFor?.(guild.members?.me);
   if (!perms) return Boolean(channel?.send);
-  return perms.has(['ViewChannel', 'SendMessages', ...(withEmbed ? ['EmbedLinks'] : [])]);
+  return perms.has(['ViewChannel', 'SendMessages', ...(withEmbed ? ['EmbedLinks'] : []), ...(withFiles ? ['AttachFiles'] : [])]);
 }
 
 const DESTINATIONS = ['auto', 'dm', 'off'];
@@ -83,11 +83,26 @@ async function announceLevelUp({ guild, user, displayName, level, oldLevel, chan
     ctx = buildContext({ member: member || { id: user.id, user, displayName }, guild, level: lvl });
   }
   const text = fillLevelUpText(custom || DEFAULT_TEXT, { userId: user.id, name: displayName || user.username, level, oldLevel, server: guild.name, crystals, roleName }, ctx);
-  const framed = !custom || settings?.levelUpEmbed !== false;
+  // «Оформление» (bot/modules/appearance.js): a picture card, the text, or both; the frame and the colour of the theme
+  const appearance = require('../modules/appearance');
+  const look = settings ? appearance.read(settings) : await appearance.forGuild(guild.id);
+  const shape = look.targets.levelUp;
+  const framed = (!custom || settings?.levelUpEmbed !== false) && shape.frame;
+  let card = null;
+  if (shape.card) {
+    const reward = [crystals > 0 ? `+${crystals} ${crystalName || 'кристаллы'}` : null, roleName ? `роль ${roleName}` : null].filter(Boolean).join(' · ');
+    card = await require('../modules/lookCards').renderLevelUpCard({
+      username: displayName || user.username, avatarURL: user.displayAvatarURL?.({ extension: 'png', size: 256 }), level, oldLevel, reward,
+      server: guild.name, headline: shape.headline, colors: appearance.palette(look)
+    }).catch(() => null); // a drawing that fails leaves the text
+  }
+  const textOn = shape.text || !card;
 
   const vars = { userId: user.id, name: displayName || user.username, level, oldLevel, server: guild.name, crystals, roleName };
   let payload;
-  if (ownEmbed) {
+  if (card && !textOn) {
+    payload = { files: [{ attachment: card, name: 'levelup.png' }], allowedMentions: { parse: [] } };
+  } else if (ownEmbed) {
     const images = { avatar: user.displayAvatarURL?.({ extension: 'png', size: 256 }), icon: guild.iconURL?.({ extension: 'png', size: 256 }) };
     const built = buildMessage({ text: custom || '', embed: ownEmbed, fill: (t) => fillLevelUpText(t, vars, ctx), images });
     payload = { ...built, allowedMentions: { users: [user.id] } };
@@ -98,11 +113,14 @@ async function announceLevelUp({ guild, user, displayName, level, oldLevel, chan
       .setAuthor({ name: displayName || user.username, iconURL: user.displayAvatarURL?.() || undefined })
       .setTitle(custom ? null : 'Поздравляю с повышением уровня! ✨')
       .setDescription(text + (!custom && crystals > 0 ? `\n+${crystals} ${crystalName || 'кристаллы'}` : ''))
-      .setFooter(guild.name ? { text: guild.name, iconURL: guild.iconURL?.() || undefined } : null);
+      .setFooter(guild.name ? { text: guild.name, iconURL: guild.iconURL?.() || undefined } : null)
+      .setColor(appearance.embedColor(look));
+    if (card) embed.setImage('attachment://levelup.png');
     payload = { embeds: [embed], allowedMentions: { parse: [] } };
   } else {
     payload = { content: text, allowedMentions: { users: [user.id] } }; // the plain text may ping the member, nobody else
   }
+  if (card && textOn) payload.files = [...(payload.files || []), { attachment: card, name: 'levelup.png' }];
 
   if (settings?.levelUpDestination === 'dm') {
     const target = member || user;
@@ -111,7 +129,7 @@ async function announceLevelUp({ guild, user, displayName, level, oldLevel, chan
   }
   // Only the place chosen for it: if the bot can't write there, the congratulation is skipped, never sent somewhere else.
   const target = channel;
-  if (!target?.send || !canPost(target, guild, Boolean(payload.embeds?.length))) return;
+  if (!target?.send || !canPost(target, guild, Boolean(payload.embeds?.length), Boolean(payload.files?.length))) return;
   await target.send(payload).catch(() => {});
 }
 

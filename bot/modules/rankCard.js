@@ -89,19 +89,20 @@ function makeCanvas(w, h) {
 }
 
 /** The card itself: a flat dark rounded surface with a 1px inner edge so it reads on Discord's dark theme. */
-function paintCard(ctx, W, H) {
-  ctx.fillStyle = COLORS.bg;
+function paintCard(ctx, W, H, C = COLORS) {
+  ctx.fillStyle = C.bg;
   roundRect(ctx, 0, 0, W, H, 24);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.strokeStyle = C.light ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)';
   ctx.lineWidth = 1;
   roundRect(ctx, 0.5, 0.5, W - 1, H - 1, 24);
   ctx.stroke();
 }
 
 /** A tile on the card: the panel colour with a hairline edge (or a coloured one). */
-function paintTile(ctx, x, y, w, h, r = 16, edge = COLORS.hairline) {
-  ctx.fillStyle = COLORS.panel;
+function paintTile(ctx, x, y, w, h, r = 16, edge = null, C = COLORS) {
+  edge = edge || C.hairline;
+  ctx.fillStyle = C.panel;
   roundRect(ctx, x, y, w, h, r);
   ctx.fill();
   ctx.strokeStyle = edge;
@@ -111,8 +112,9 @@ function paintTile(ctx, x, y, w, h, r = 16, edge = COLORS.hairline) {
 }
 
 /** A progress line with a soft glow at its head. */
-function paintBar(ctx, x, y, w, h, ratio, from = COLORS.emberDeep, to = COLORS.emberLight, glow = true) {
-  ctx.fillStyle = COLORS.track;
+function paintBar(ctx, x, y, w, h, ratio, from = null, to = null, glow = true, C = COLORS) {
+  from = from || C.emberDeep; to = to || C.emberLight;
+  ctx.fillStyle = C.track;
   roundRect(ctx, x, y, w, h, h / 2);
   ctx.fill();
   if (!(ratio > 0)) return;
@@ -125,7 +127,7 @@ function paintBar(ctx, x, y, w, h, ratio, from = COLORS.emberDeep, to = COLORS.e
   ctx.fill();
   if (!glow) return;
   ctx.save();
-  ctx.shadowColor = 'rgba(240,192,120,0.8)';
+  ctx.shadowColor = `${to}cc`;
   ctx.shadowBlur = 12;
   ctx.fillStyle = to;
   ctx.beginPath();
@@ -169,7 +171,8 @@ function voiceStat(totalSeconds) {
 }
 
 /** Rounded-square avatar in an ember frame; a letter badge when the picture can't be loaded. */
-async function drawSquareAvatar(ctx, url, name, x, y, size, radius, frame = COLORS.ember, fw = 4) {
+async function drawSquareAvatar(ctx, url, name, x, y, size, radius, frame = undefined, fw = 4, C = COLORS) {
+  if (frame === undefined) frame = C.ember;
   if (frame) {
     ctx.fillStyle = frame;
     roundRect(ctx, x - fw, y - fw, size + fw * 2, size + fw * 2, radius + fw);
@@ -184,11 +187,11 @@ async function drawSquareAvatar(ctx, url, name, x, y, size, radius, frame = COLO
     ctx.drawImage(img, x, y, size, size);
   } catch {
     const grad = ctx.createLinearGradient(x, y, x + size, y + size);
-    grad.addColorStop(0, '#2b2e37');
-    grad.addColorStop(1, '#1b1d23');
+    grad.addColorStop(0, C.raised);
+    grad.addColorStop(1, C.panel);
     ctx.fillStyle = grad;
     ctx.fillRect(x, y, size, size);
-    ctx.fillStyle = COLORS.ember;
+    ctx.fillStyle = C.ember;
     ctx.font = `${Math.round(size * 0.48)}px CardSansBold, CardFallbackBold`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -208,14 +211,15 @@ async function drawSquareAvatar(ctx, url, name, x, y, size, radius, frame = COLO
  * @returns {Promise<Buffer>}
  */
 async function drawRankCard(data) {
+  const C = data.colors || COLORS; // the server's theme (bot/modules/appearance.js)
   ensureFonts();
   const W = 900;
   const H = 376;
   const { canvas, ctx } = makeCanvas(W, H);
 
-  paintCard(ctx, W, H);
+  paintCard(ctx, W, H, C);
 
-  await drawSquareAvatar(ctx, data.avatarURL, data.username, 40, 32, 132, 26);
+  await drawSquareAvatar(ctx, data.avatarURL, data.username, 40, 32, 132, 26, undefined, 4, C);
 
   const left = 200;
   const right = W - 36;
@@ -226,7 +230,7 @@ async function drawRankCard(data) {
   ctx.font = '16px CardMonoBold, CardFallbackBold';
   const xpW = ctx.measureText(xpText).width;
   ctx.textAlign = 'right';
-  ctx.fillStyle = COLORS.emberLight;
+  ctx.fillStyle = C.emberLight;
   ctx.fillText(xpText, right, 120);
   ctx.textAlign = 'left';
 
@@ -235,25 +239,26 @@ async function drawRankCard(data) {
   if (data.badge) {
     ctx.font = '13px CardSansBold, CardFallbackBold';
     badgeW = ctx.measureText(data.badge).width + 24;
-    ctx.strokeStyle = COLORS.ember; ctx.lineWidth = 1.5;
+    ctx.strokeStyle = C.ember; ctx.lineWidth = 1.5;
     roundRect(ctx, right - badgeW, 40, badgeW, 26, 13); ctx.stroke();
-    ctx.fillStyle = COLORS.emberLight; ctx.textAlign = 'right';
+    ctx.fillStyle = C.emberLight; ctx.textAlign = 'right';
     ctx.fillText(data.badge, right - 12, 58); ctx.textAlign = 'left';
   }
-  ctx.fillStyle = COLORS.paper;
+  ctx.fillStyle = C.paper;
   ctx.font = '36px CardSansBold, CardFallbackBold';
   ctx.fillText(truncateToWidth(ctx, data.username, right - left - (badgeW ? badgeW + 16 : 0)), left, 88);
 
   let place = '';
   if (data.rank && data.totalMembers) place = `  ·  #${fmt(data.rank)} из ${fmt(data.totalMembers)}`;
   else if (data.rank) place = `  ·  #${fmt(data.rank)}`;
-  ctx.fillStyle = 'rgba(236,232,224,0.75)';
+  ctx.fillStyle = C.paper; ctx.globalAlpha = 0.75;
   ctx.font = '17px CardSans, CardFallback';
   ctx.fillText(truncateToWidth(ctx, `${fmt(data.level)} уровень${place}`, right - left - xpW - 24), left, 120);
+  ctx.globalAlpha = 1;
 
   // XP bar with a soft glow at its head
   const ratio = data.xpNeeded > 0 ? Math.max(0, Math.min(1, data.xpIntoLevel / data.xpNeeded)) : 0;
-  paintBar(ctx, left, 142, right - left, 10, ratio);
+  paintBar(ctx, left, 142, right - left, 10, ratio, null, null, true, C);
 
   // Three groups of two numbers
   const groups = [
@@ -268,21 +273,21 @@ async function drawRankCard(data) {
   const gw = (W - gx0 * 2 - gap * 2) / 3;
   groups.forEach(([title, items], i) => {
     const gx = gx0 + i * (gw + gap);
-    paintTile(ctx, gx, gy, gw, gh);
+    paintTile(ctx, gx, gy, gw, gh, 16, null, C);
 
-    ctx.fillStyle = COLORS.ember;
+    ctx.fillStyle = C.ember;
     roundRect(ctx, gx + 20, gy + 22, 4, 14, 2);
     ctx.fill();
-    ctx.fillStyle = COLORS.fog;
+    ctx.fillStyle = C.fog;
     ctx.font = '12px CardSansBold, CardFallbackBold';
     ctx.fillText(title, gx + 32, gy + 34);
 
     const colW = (gw - 40) / 2;
     items.forEach(([value, label], j) => {
       const sx = gx + 20 + j * colW;
-      ctx.fillStyle = COLORS.paper;
+      ctx.fillStyle = C.paper;
       ctx.fillText(fitNumber(ctx, value, colW - 18, 30, 16), sx, gy + 92);
-      ctx.fillStyle = COLORS.fog;
+      ctx.fillStyle = C.fog;
       ctx.font = '13px CardSans, CardFallback';
       ctx.fillText(truncateToWidth(ctx, label, colW - 10), sx, gy + 118);
     });
@@ -315,6 +320,7 @@ function renderRankCard(data) {
 // The leaderboard in the profile card's style: a heading with an ember mark, then one tile per member —
 // place, framed square avatar, name with a progress line, and the level (or voice time) on the right.
 async function renderLeaderboard(data) {
+  const C = data.colors || COLORS; // the server's theme (bot/modules/appearance.js)
   ensureFonts();
   const rows = data.rows.slice(0, 10);
   const W = 900;
@@ -324,7 +330,7 @@ async function renderLeaderboard(data) {
   const PAD_BOTTOM = 26;
   const H = HEADER + rows.length * ROW - (ROW - TILE) + PAD_BOTTOM;
   const { canvas, ctx } = makeCanvas(W, H);
-  paintCard(ctx, W, H);
+  paintCard(ctx, W, H, C);
 
   const left = 36;
   const right = W - 36;
@@ -336,10 +342,10 @@ async function renderLeaderboard(data) {
     const text = `стр. ${data.page} / ${data.pages}`;
     ctx.font = '15px CardSansBold, CardFallbackBold';
     pillW = ctx.measureText(text).width + 28;
-    ctx.fillStyle = COLORS.raised;
+    ctx.fillStyle = C.raised;
     roundRect(ctx, right - pillW, 38, pillW, 32, 16);
     ctx.fill();
-    ctx.fillStyle = COLORS.paper;
+    ctx.fillStyle = C.paper;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, right - pillW / 2, 54.5);
@@ -347,17 +353,17 @@ async function renderLeaderboard(data) {
     ctx.textBaseline = 'alphabetic';
   }
   const titleW = right - left - 20 - pillW - 20;
-  ctx.fillStyle = COLORS.ember;
+  ctx.fillStyle = C.ember;
   roundRect(ctx, left, 36, 5, 50, 2.5);
   ctx.fill();
-  ctx.fillStyle = COLORS.paper;
+  ctx.fillStyle = C.paper;
   ctx.font = '30px CardSansBold, CardFallbackBold';
   ctx.fillText(truncateToWidth(ctx, data.heading || 'Таблица лидеров', titleW), left + 20, 62);
-  ctx.fillStyle = COLORS.fog;
+  ctx.fillStyle = C.fog;
   ctx.font = '15px CardSans, CardFallback';
   ctx.fillText(truncateToWidth(ctx, data.title || '', titleW), left + 20, 85);
 
-  const medal = [COLORS.ember, COLORS.silver, COLORS.bronze];
+  const medal = [C.ember, C.silver, C.bronze];
   const maxXp = Math.max(1, Number(data.maxXp) || 0, ...rows.map((r) => Number(r.xp) || 0));
   // all avatars are fetched at once; drawing below then takes them from the cache
   await Promise.all(rows.map((r) => (r.avatarURL ? loadAvatar(r.avatarURL).catch(() => null) : null)));
@@ -367,7 +373,7 @@ async function renderLeaderboard(data) {
     const y = HEADER + i * ROW;
     const mid = y + TILE / 2;
     const place = r.rank <= 3 ? medal[r.rank - 1] : null;
-    paintTile(ctx, left, y, right - left, TILE, 16, r.rank === 1 ? 'rgba(227,168,87,0.45)' : COLORS.hairline);
+    paintTile(ctx, left, y, right - left, TILE, 16, r.rank === 1 ? `${C.ember}73` : C.hairline, C);
 
     // Place: a filled badge for the first three, a plain number after them
     const bx = left + 16;
@@ -376,7 +382,7 @@ async function renderLeaderboard(data) {
       roundRect(ctx, bx, mid - 16, 32, 32, 10);
       ctx.fill();
     }
-    ctx.fillStyle = place ? COLORS.bg : COLORS.fog;
+    ctx.fillStyle = place ? C.bg : C.fog;
     ctx.font = `${r.rank >= 100 ? 13 : 16}px CardSansBold, CardFallbackBold`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -387,7 +393,7 @@ async function renderLeaderboard(data) {
     // Avatar: a square, framed in the medal colour for the first three
     const ax = left + 66;
     const as = 40;
-    await drawSquareAvatar(ctx, r.avatarURL, r.name, ax, mid - as / 2, as, 11, place, 3);
+    await drawSquareAvatar(ctx, r.avatarURL, r.name, ax, mid - as / 2, as, 11, place, 3, C);
 
     // Level (or voice time) and XP on the right; measured first so the name and the line stop before them
     const big = r.sub || `ур. ${r.level}`;
@@ -398,10 +404,10 @@ async function renderLeaderboard(data) {
     const smallW = ctx.measureText(small).width;
     const sideW = Math.max(110, bigW, smallW);
     ctx.textAlign = 'right';
-    ctx.fillStyle = place || COLORS.paper;
+    ctx.fillStyle = place || C.paper;
     ctx.font = '22px CardSansBold, CardFallbackBold';
     ctx.fillText(big, right - 20, mid + 2);
-    ctx.fillStyle = COLORS.fog;
+    ctx.fillStyle = C.fog;
     ctx.font = '13px CardSans, CardFallback';
     ctx.fillText(small, right - 20, mid + 20);
     ctx.textAlign = 'left';
@@ -409,15 +415,15 @@ async function renderLeaderboard(data) {
     // Name and progress line
     const nx = ax + as + 20;
     const nw = right - 20 - sideW - 28 - nx;
-    ctx.fillStyle = COLORS.paper;
+    ctx.fillStyle = C.paper;
     ctx.font = '19px CardSansBold, CardFallbackBold';
     ctx.fillText(truncateToWidth(ctx, r.name, nw), nx, mid - 3);
-    const from = place || COLORS.emberDeep;
-    const to = r.rank === 1 ? COLORS.emberLight : place || COLORS.ember;
-    paintBar(ctx, nx, mid + 9, nw, 6, (Number(r.xp) || 0) / maxXp, from, to, r.rank === 1);
+    const from = place || C.emberDeep;
+    const to = r.rank === 1 ? C.emberLight : place || C.ember;
+    paintBar(ctx, nx, mid + 9, nw, 6, (Number(r.xp) || 0) / maxXp, from, to, r.rank === 1, C);
   }
 
   return canvas.encode('png');
 }
 
-module.exports = { renderRankCard, renderLeaderboard, cardKit: { ensureFonts, makeCanvas, paintCard, paintTile, drawSquareAvatar, truncateToWidth, COLORS } };
+module.exports = { renderRankCard, renderLeaderboard, cardKit: { ensureFonts, makeCanvas, paintCard, paintTile, paintBar, drawSquareAvatar, truncateToWidth, roundRect, fmt, loadAvatar, COLORS } };

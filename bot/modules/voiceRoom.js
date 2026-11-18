@@ -62,20 +62,30 @@ const BUTTONS = SECTIONS.flatMap(([, list]) => list);
  * three sections, each a line of icons with names and a row of icon buttons under it. The icons are the bot's own line
  * icons (bot/modules/appEmojis.js); until they are uploaded, ordinary emojis stand in. lang: the server's language.
  */
-function panelPayload({ lang } = {}) {
+function panelPayload({ lang, look = null } = {}) {
   const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize, MessageFlags } = require('discord.js');
   const i18n = require('../../i18n');
   const tr = (text) => (lang ? i18n.t(text, lang) : i18n.t(text));
-  const icons = require('./appEmojis');
+  const appearance = require('./appearance');
+  // «Оформление»: own icons or ordinary emojis, the lines with the names of the buttons, names on the buttons, the title,
+  // the text under it and the colour of the frame (bot/modules/appearance.js)
+  const shape = (look || appearance.read(null)).targets.voicePanel;
+  const own = require('./appEmojis');
+  const icons = shape.card ? own : { inline: (id, fb) => fb, emoji: (id, fb) => fb };
   const text = (content) => new TextDisplayBuilder().setContent(content);
   const line = () => new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Large);
-  const box = new ContainerBuilder().setAccentColor(0x9a93ff)
-    .addTextDisplayComponents(text(`### ${icons.inline('mic', '🎙️')} ${tr('Управление комнатой')}\n${tr('Зайдите в свою комнату и нажмите кнопку. Настройки запоминаются для следующего раза.\nСвоей комнаты нет? Зайдите в канал-создатель — бот сделает её и отдаст вам.')}`));
-  for (const [title, list] of SECTIONS) {
-    box.addSeparatorComponents(line())
-      .addTextDisplayComponents(text(`**${tr(title)}**\n${list.map(([id, emoji, label]) => `${icons.inline(id, emoji)} ${tr(label)}`).join(' · ')}`))
-      .addActionRowComponents(new ActionRowBuilder().addComponents(list.map(([id, emoji]) => new ButtonBuilder()
-        .setCustomId(`${PREFIX}${id}`).setEmoji(icons.emoji(id, emoji)).setStyle(ButtonStyle.Secondary))));
+  const title = shape.headline || tr('Управление комнатой');
+  const intro = shape.intro || tr('Зайдите в свою комнату и нажмите кнопку. Настройки запоминаются для следующего раза.\nСвоей комнаты нет? Зайдите в канал-создатель — бот сделает её и отдаст вам.');
+  const box = new ContainerBuilder().setAccentColor(look ? appearance.embedColor(look) : 0x9a93ff)
+    .addTextDisplayComponents(text(`### ${icons.inline('mic', '🎙️')} ${title}\n${intro}`));
+  for (const [section, list] of SECTIONS) {
+    box.addSeparatorComponents(line());
+    if (shape.text) box.addTextDisplayComponents(text(`**${tr(section)}**\n${list.map(([id, emoji, label]) => `${icons.inline(id, emoji)} ${tr(label)}`).join(' · ')}`));
+    else box.addTextDisplayComponents(text(`**${tr(section)}**`));
+    box.addActionRowComponents(new ActionRowBuilder().addComponents(list.map(([id, emoji, label]) => {
+      const b = new ButtonBuilder().setCustomId(`${PREFIX}${id}`).setEmoji(icons.emoji(id, emoji)).setStyle(ButtonStyle.Secondary);
+      return shape.labels ? b.setLabel(tr(label)) : b;
+    })));
   }
   box.addSeparatorComponents(line()).addTextDisplayComponents(text(`-# ${tr('DARK · личные комнаты')}`));
   return { flags: MessageFlags.IsComponentsV2, components: [box], allowedMentions: { parse: [] } };
@@ -88,7 +98,7 @@ function panelPayload({ lang } = {}) {
 async function refreshPanels(client) {
   const { GuildSettings } = require('../../db');
   const { Op } = require('sequelize');
-  const rows = await GuildSettings.findAll({ where: { tempVoicePanelMessageId: { [Op.ne]: null } }, attributes: ['guildId', 'tempVoicePanelChannelId', 'tempVoicePanelMessageId'] });
+  const rows = await GuildSettings.findAll({ where: { tempVoicePanelMessageId: { [Op.ne]: null } }, attributes: ['guildId', 'tempVoicePanelChannelId', 'tempVoicePanelMessageId', 'appearance'] });
   const i18n = require('../../i18n');
   let done = 0;
   for (const r of rows) {
@@ -96,7 +106,7 @@ async function refreshPanels(client) {
     const channel = guild && r.tempVoicePanelChannelId ? await guild.channels.fetch(r.tempVoicePanelChannelId).catch(() => null) : null;
     const msg = channel?.messages ? await channel.messages.fetch(r.tempVoicePanelMessageId).catch(() => null) : null;
     if (!msg || msg.author?.id !== client.user.id) continue;
-    const payload = panelPayload({ lang: i18n.langOf(r.guildId) });
+    const payload = panelPayload({ lang: i18n.langOf(r.guildId), look: require('./appearance').read(r) });
     const ok = await msg.edit({ content: null, embeds: [], ...payload }).then(() => true).catch((err) => { logger.warn(`Room panel ${r.guildId}: ${err.message}`); return false; });
     if (ok) done++;
   }
