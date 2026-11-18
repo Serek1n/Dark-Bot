@@ -19,15 +19,15 @@
         </div>
         <div class="cm-show-act">
           <a class="btn" href="/communities/<%= c.id %>/join" rel="nofollow">Присоединиться</a>
-          <form method="post" action="/communities/<%= c.id %>/vote"><button class="btn btn-secondary" type="submit">▲ <span>Голосовать</span></button></form>
+          <form method="post" action="/communities/<%= c.id %>/vote"><button class="btn btn-secondary cm-vote" type="submit"><%- C.icon('vote', 16) %><span>Голосовать</span></button></form>
         </div>
       </div>
       <% if (!locals.user) { %><p class="hint cm-signin">Войдите через Discord (<a href="/auth/login?next=<%= encodeURIComponent('/communities/' + c.id) %>">вход</a>) перед «Присоединиться» — тогда сообщество получит награду DARK Coins за нового участника.</p><% } %>
       <div class="cm-stats">
-        <div><b><%= fmt(c.memberCount) %></b><small>участников</small></div>
-        <div><b><%= fmt(c.votes) %></b><small>голосов</small></div>
-        <div><b><%= fmt(c.views) %></b><small>просмотров</small></div>
-        <div><b><%= fmt(c.clicks) %></b><small>переходов</small></div>
+        <div><b><%= fmt(c.memberCount) %></b><small><%- C.icon('members', 13) %>участников</small></div>
+        <div><b><%= fmt(c.votes) %></b><small><%- C.icon('vote', 13) %>голосов</small></div>
+        <div><b><%= fmt(c.views) %></b><small><%- C.icon('views', 13) %>просмотров</small></div>
+        <div><b><%= fmt(c.clicks) %></b><small><%- C.icon('clicks', 13) %>переходов</small></div>
       </div>
     </section>
     <div class="cm-show-grid">
@@ -38,7 +38,7 @@
       <div class="card">
         <h2>Категории и теги</h2>
         <div class="cm-tags">
-          <% c.cats.forEach((k) => { const cat = C.CATEGORY[k]; if (cat) { %><a class="cm-tag" href="/communities?category=<%= k %>"><span><%= cat.emoji %></span> <span><%= cat.label %></span></a><% } }) %>
+          <% c.cats.forEach((k) => { const cat = C.CATEGORY[k]; if (cat) { %><a class="cm-tag cm-tag-cat" style="--ic:<%= C.hue(k) %>" href="/communities?category=<%= k %>"><%- C.icon(k, 13) %><span><%= cat.label %></span></a><% } }) %>
           <% c.tagList.forEach((t) => { %><a class="cm-tag muted" href="/communities?q=<%= encodeURIComponent(t) %>">#<%= t %></a><% }) %>
         </div>
         <h3 class="econ-sub">Приглашение</h3>

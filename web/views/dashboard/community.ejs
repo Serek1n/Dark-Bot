@@ -26,7 +26,7 @@
         <label for="cmDesc">Подробное описание</label>
         <textarea id="cmDesc" name="description" rows="6" maxlength="4000" placeholder="Чем живёт сервер, правила, события, кого вы ждёте"><%= c ? c.description || '' : '' %></textarea>
         <label>Категории (до трёх)</label>
-        <div class="cm-pick"><% C.CATEGORIES.forEach(([k, l, e]) => { %><label class="cm-pick-item"><input type="checkbox" name="categories" value="<%= k %>" <%= cats.includes(k) ? 'checked' : '' %> /><span><span><%= e %></span> <span><%= l %></span></span></label><% }) %></div>
+        <div class="cm-pick"><% C.CATEGORIES.forEach(([k, l]) => { %><label class="cm-pick-item" style="--ic:<%= C.hue(k) %>"><input type="checkbox" name="categories" value="<%= k %>" <%= cats.includes(k) ? 'checked' : '' %> /><%- C.icon(k, 16) %><span><%= l %></span></label><% }) %></div>
         <label for="cmTags">Теги через запятую</label>
         <input id="cmTags" type="text" name="tags" maxlength="200" value="<%= c ? c.tags : '' %>" placeholder="minecraft, общение, ивенты" />
         <div class="two-col">
@@ -51,9 +51,9 @@
         <% } else { %>
           <% if (c.moderationNote) { %><p class="appeal-reason"><small>Комментарий модерации</small><span><%= c.moderationNote %></span></p><% } %>
           <div class="cm-stats small">
-            <div><b><%= fmt(c.votes) %></b><small>голосов</small></div>
-            <div><b><%= fmt(c.views) %></b><small>просмотров</small></div>
-            <div><b><%= fmt(c.clicks) %></b><small>переходов</small></div>
+            <div><b><%= fmt(c.votes) %></b><small><%- C.icon('vote', 13) %>голосов</small></div>
+            <div><b><%= fmt(c.views) %></b><small><%- C.icon('views', 13) %>просмотров</small></div>
+            <div><b><%= fmt(c.clicks) %></b><small><%- C.icon('clicks', 13) %>переходов</small></div>
           </div>
           <% const max = Math.max(1, ...stats.series.map((s) => s.views)); %>
           <div class="cm-spark" aria-label="Просмотры за 30 дней"><% stats.series.forEach((s) => { %><i style="height:<%= Math.max(3, Math.round(s.views / max * 100)) %>%" title="<%= s.day %>: <%= s.views %>"></i><% }) %></div>

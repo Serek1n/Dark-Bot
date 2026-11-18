@@ -1,6 +1,23 @@
 [
  {
   "bot": "3.14.0",
+  "panel": "3.22.6",
+  "date": "2026-11-18",
+  "botChanges": [],
+  "panelChanges": [
+   "Сообщества: линейные значки вместо эмодзи — у каждой категории свой значок и цвет",
+   "Значки участников, голосов, просмотров и переходов, «Закреплено» и «Продвигается»"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Communities: line icons instead of emoji — each category has its own icon and colour",
+    "Icons for members, votes, views and clicks, \"Pinned\" and \"Promoted\""
+   ]
+  }
+ },
+ {
+  "bot": "3.14.0",
   "panel": "3.22.5",
   "date": "2026-11-18",
   "botChanges": [

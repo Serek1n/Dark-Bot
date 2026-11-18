@@ -16,6 +16,36 @@ const CATEGORIES = [
   ['memes', 'Мемы', '😂'], ['sport', 'Спорт', '⚽'], ['crypto', 'Финансы', '📈'], ['other', 'Другое', '✨']
 ];
 const CATEGORY = Object.fromEntries(CATEGORIES.map(([k, label, emoji]) => [k, { key: k, label, emoji }]));
+
+// Line icons of the catalog (24-unit drawings, stroke = currentColor), with a colour of each category — instead of emoji,
+// which look different on every system. icon(name, size) gives an inline <svg>; the page colours it with --ic.
+const ICON_PATHS = {
+  gaming: '<path d="M6.5 7.5h11A4.5 4.5 0 0 1 22 12v.5a4 4 0 0 1-7.2 2.4L14 14h-4l-.8.9A4 4 0 0 1 2 12.5V12a4.5 4.5 0 0 1 4.5-4.5Z"/><path d="M7.5 10.5v3M6 12h3"/><circle cx="16" cy="11" r=".6" fill="currentColor"/><circle cx="17.8" cy="12.8" r=".6" fill="currentColor"/>',
+  social: '<path d="M20.5 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 20.5 12Z"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01"/>',
+  anime: '<path d="M12 3.5 13.9 9l5.6.4-4.3 3.6 1.4 5.5L12 15.5l-4.6 3 1.4-5.5-4.3-3.6L10.1 9Z"/>',
+  music: '<path d="M9 18.5V5.5l11-2v13"/><circle cx="6.5" cy="18.5" r="2.5"/><circle cx="17.5" cy="16.5" r="2.5"/>',
+  art: '<path d="M12 3a9 9 0 0 0 0 18c1.2 0 1.8-.9 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.8-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3Z"/><circle cx="7.5" cy="11.5" r="1" fill="currentColor"/><circle cx="10" cy="7.5" r="1" fill="currentColor"/><circle cx="14.5" cy="7.5" r="1" fill="currentColor"/>',
+  tech: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/><path d="m9 8.5-2 1.8 2 1.7M15 8.5l2 1.8-2 1.7"/>',
+  study: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5Z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5Z"/>',
+  rp: '<path d="M4 6c2.7 1 5.3 1 8 0s5.3-1 8 0v5a8 8 0 0 1-16 0Z"/><path d="M8.5 11h.01M15.5 11h.01M9.5 15c1.5 1 3.5 1 5 0"/>',
+  memes: '<circle cx="12" cy="12" r="9"/><path d="M8 14.5a5 5 0 0 0 8 0M9 9.5h.01M15 9.5h.01"/>',
+  sport: '<path d="M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11M12 14v3.5M8.5 20.5h7M9.5 17.5h5"/>',
+  crypto: '<path d="M3.5 17.5 9 12l3.5 3.5 8-8"/><path d="M15 7.5h5.5V13"/>',
+  other: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.5 2.5M15.2 15.2l2.5 2.5M6.3 17.7l2.5-2.5M15.2 8.8l2.5-2.5"/>',
+  all: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+  members: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1a5 5 0 0 1 5-5h3a5 5 0 0 1 5 5v1"/><path d="M15.5 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.3a5 5 0 0 1 3 4.7v1"/>',
+  vote: '<path d="M12 4.5 20 13h-4.5v6.5h-7V13H4Z"/>',
+  pin: '<path d="M9 3.5h6l-1 5 3.5 3.5h-11L10 8.5Z"/><path d="M12 12v8.5"/>',
+  bolt: '<path d="M13 2.5 4.5 13.5H12l-1 8 8.5-11H12Z"/>',
+  views: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>',
+  clicks: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/>'
+};
+const CATEGORY_HUE = { gaming: '#8f8cff', social: '#5fb8f0', anime: '#f08cc4', music: '#c38cf0', art: '#f0b04a', tech: '#5fd0c0', study: '#7fb36a', rp: '#e08a6a', memes: '#f0d24a', sport: '#6ad08f', crypto: '#4ad0a0', other: '#a0a6ba', all: '#b3adff' };
+function icon(name, size = 16) {
+  const body = ICON_PATHS[name] || ICON_PATHS.other;
+  return `<svg class="cm-ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+}
+const hue = (k) => CATEGORY_HUE[k] || CATEGORY_HUE.other;
 const PROMOS = {
   bump: { label: 'Поднятие', desc: 'Сообщество поднимается в начало каталога (после закреплённых) на сутки.', perDay: false, def: 50 },
   pin: { label: 'Закрепление', desc: 'Карточка стоит в самом верху каталога, над всеми остальными.', perDay: true, def: 300 },
@@ -308,6 +338,6 @@ async function statsOf(communityId) {
 }
 
 module.exports = {
-  CommunityError, CATEGORIES, CATEGORY, PROMOS, DAYS, SORTS, PER_PAGE, BANNER_HOSTS, VOTE_EVERY,
+  CommunityError, CATEGORIES, CATEGORY, icon, hue, PROMOS, DAYS, SORTS, PER_PAGE, BANNER_HOSTS, VOTE_EVERY,
   platform, setPlatform, cleanFields, cleanInvite, save, setVisible, remove, moderate, activePromos, buy, view, click, joinIntent, vote, report, catalog, one, statsOf, iconUrl, accountAge, listOf
 };

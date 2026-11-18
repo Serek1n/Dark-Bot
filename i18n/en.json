@@ -4362,5 +4362,9 @@
  "Помощь с оплатой\n\nОпишите проблему и пришлите номер заказа из сообщения об оплате. Связь: {0}.\n\nЕсли оплата прошла, а монеты не пришли, — мы проверим платёж и зачислим их. Возврат звёзд не предусмотрен.": "Payment help\n\nDescribe the problem and send the order number from the payment message. Contact: {0}.\n\nIf the payment went through but the coins didn't arrive, we'll check the payment and credit them. Stars are not refunded.",
  "Оплата звёздами Telegram в нашем боте. Монеты придут на кошелёк того аккаунта Discord, с которого вы вошли сюда. Покупка окончательная, звёзды не возвращаются. Если монеты не пришли — команда /paysupport в боте.": "Payment in Telegram Stars in our bot. Coins go to the wallet of the Discord account you signed in with here. A purchase is final, Stars are not refunded. If the coins didn't arrive — the /paysupport command in the bot.",
  "Вы уже голосовали за это сообщество. Снова можно через {0} (в {1} по Москве).": "You already voted for this community. You can vote again in {0} (at {1} Moscow time).",
- "Управление комнатой": "Room controls"
+ "Управление комнатой": "Room controls",
+ "Голосов": "Votes",
+ "Закреплено": "Pinned",
+ "Продвигается": "Promoted",
+ "Голосовать": "Vote"
 }
