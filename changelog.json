@@ -1,6 +1,23 @@
 [
  {
   "bot": "3.15.0",
+  "panel": "3.25.1",
+  "date": "2026-11-18",
+  "botChanges": [],
+  "panelChanges": [
+   "Vice Nights: фон больше не обрезается — пальмы целиком у обоих краёв на ПК и телефоне",
+   "Небо и сетка закреплены за окном и на телефонах, без полосы у края прокрутки"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Vice Nights: the background is no longer cut off — whole palms at both edges",
+    "The sky and the grid stay fixed on phones too, with no strip by the scrollbar"
+   ]
+  }
+ },
+ {
+  "bot": "3.15.0",
   "panel": "3.25.0",
   "date": "2026-11-18",
   "botChanges": [

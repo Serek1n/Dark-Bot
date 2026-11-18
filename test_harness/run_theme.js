@@ -88,7 +88,7 @@ const web = path.join(__dirname, '..', 'web');
     assert(!(await ejs.renderFile(path.join(web, 'views/partials/season-switch.ejs'), {})).includes('button'), 'no switch out of season');
     const css = require('../web/styles').stylesheet().text;
     assert(css.includes('html[data-season="vice"] {') && css.includes('html[data-season="vice"][data-theme="light"] {'), 'both themes styled');
-    for (const f of ['vice-dark.svg', 'vice-light.svg']) assert(fs.existsSync(path.join(web, 'public/season', f)), 'scene ' + f);
+    for (const f of ['vice-grid-dark.svg', 'vice-grid-light.svg', 'vice-palms-left-dark.svg', 'vice-palms-right-dark.svg', 'vice-palms-left-light.svg', 'vice-palms-right-light.svg']) assert(fs.existsSync(path.join(web, 'public/season', f)), 'scene ' + f);
   });
   await test('head loads the theme script before the page is drawn, and the picker pages have a theme button', async () => {
     const head = fs.readFileSync(path.join(web, 'views/partials/head.ejs'), 'utf8');
