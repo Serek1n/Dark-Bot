@@ -99,3 +99,37 @@
 .cm-once { display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: var(--r-10); border: 1px dashed var(--hairline); color: var(--fog); font-size: var(--fs-13); }
 .cm-promo-card .cm-promos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 600px) { .cm-promo-card .cm-promos { grid-template-columns: 1fr; } }
+
+/* ---------- the DARK Coins wallet ---------- */
+.wl-order { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-color: var(--ember); }
+.wl-order > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 320px; }
+.wl-daily { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px; border-radius: var(--r-14); background: var(--panel-raised); flex-wrap: wrap; }
+.wl-daily > div { display: flex; flex-direction: column; gap: 2px; flex: 1 1 220px; }
+.wl-daily form { margin: 0; }
+.wl-packs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.wl-pack { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 14px; border-radius: var(--r-14); background: var(--panel-raised); border: 1px solid var(--hairline); margin: 0; }
+.wl-pack b { font-size: var(--fs-24); color: var(--ember); }
+.wl-pack small { color: var(--fog); margin-bottom: 8px; }
+.wl-pack .btn { width: 100%; justify-content: center; }
+.cm-show-grid:has(.wl-packs) { grid-template-columns: 1fr 1fr; }
+@media (max-width: 900px) { .cm-show-grid:has(.wl-packs) { grid-template-columns: 1fr; } }
+.cm-wallets { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.cm-wallets > div { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--r-12); background: var(--panel-raised); }
+.cm-wallets small { color: var(--fog); font-size: var(--fs-12); }
+.cm-wallets b { font-size: var(--fs-20); color: var(--ember); }
+.cm-wallets a, .cm-wallets span { font-size: var(--fs-12); }
+.cm-promo select + select { margin-top: 6px; }
+.cm-signin { margin: 12px 24px 0; }
+.pf-freeze { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline-soft); }
+.pf-earn { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; margin-bottom: 14px; }
+.pf-earn label, .pf-pack label:not(.checkbox-row) { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-12); color: var(--fog); margin: 0; }
+.pf-earn input, .pf-pack input[type=number] { margin: 0; }
+.pf-packs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.pf-pack { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: var(--r-12); background: var(--panel-raised); }
+@media (max-width: 600px) { .pf-earn, .pf-packs, .cm-wallets { grid-template-columns: 1fr; } }
+.cm-hero-act { display: flex; gap: 8px; flex-wrap: wrap; }
+.pf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; align-items: stretch; }
+.pf-grid > .card { margin: 0; }
+.cm-page form.ach-find { display: flex; flex-direction: row; gap: 8px; }
+@media (min-width: 1000px) { .pf-earn { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .pf-grid { grid-template-columns: 1fr; } }

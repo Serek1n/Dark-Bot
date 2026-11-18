@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: 'Кошелёк DARK Coins' }) %></head>
+<body>
+  <div class="night-sky"></div>
+  <main class="cm-page">
+    <header class="cm-hero">
+      <div><h1>Кошелёк DARK Coins</h1><p class="page-intro">Валюта платформы Dark для продвижения сообществ в каталоге. Не связана с монетами серверов, её нельзя вывести или обменять.</p></div>
+      <a class="btn btn-secondary" href="/communities">Каталог сообществ</a>
+    </header>
+    <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU');
+       const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+       const KIND = { grant: 'Начисление', revoke: 'Списание', promo: 'Продвижение', daily: 'Ежедневный бонус', vote: 'Голос в каталоге', join: 'Вход из каталога', quest: 'Задание', top: 'Топ недели', purchase: 'Покупка', refund: 'Возврат' };
+       const PST = { pending: 'ожидает', paid: 'зачислено', cancelled: 'отменено', held: 'на проверке' };
+       const OST = { created: 'не оплачен', paid: 'оплачен', refunded: 'возвращён' }; %>
+    <% if (error) { %><div class="card mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
+    <% if (done === 'daily') { %><div class="card appeal-ok"><p style="margin:0">Бонус получен: <b>+<%= got %></b> DARK Coins.</p></div><% } %>
+    <% if (done === 'held') { %><div class="card appeal-ok"><p style="margin:0">Бонус засчитан и ждёт проверки: сегодня платформа уже выдала много монет. Он придёт после решения администрации.</p></div><% } %>
+    <% if (frozen) { %><div class="card mod-alert"><p style="margin:0">Кошелёк заморожен администрацией платформы: награды не начисляются, тратить нельзя.</p></div><% } %>
+    <% if (order && orderLink) { %>
+      <div class="card wl-order">
+        <div><b>Заказ №<%= order.id %>: <%= fmt(order.coins) %> DARK Coins за <%= fmt(order.stars) %> ⭐</b><span class="muted">Откройте бота в Telegram — он пришлёт счёт. Заказ действует 24 часа, монеты придут на этот кошелёк сразу после оплаты.</span></div>
+        <a class="btn" href="<%= orderLink %>" target="_blank" rel="noopener">Оплатить в Telegram</a>
+      </div>
+    <% } %>
+    <div class="cm-show-grid">
+      <div class="card">
+        <div class="appeal-status"><h2>Баланс</h2><span class="cm-balance"><b><%= fmt(balance) %></b> <span>DARK Coins</span></span></div>
+        <div class="wl-daily">
+          <div><b>Ежедневный бонус</b><span class="muted"><%= earn.daily %> DARK Coins, каждый день подряд +1 (до +<%= earn.dailyStreakMax %>). Серия: <%= daily.streak %>.</span></div>
+          <form method="post" action="/wallet/daily"><button class="btn" type="submit"<%= daily.taken || frozen ? ' disabled' : '' %>><%= daily.taken ? 'Уже получен сегодня' : 'Забрать' %></button></form>
+        </div>
+        <h3 class="econ-sub">Как ещё получить</h3>
+        <ul class="ap-steps">
+          <li>Голосуйте за сообщества в каталоге: <b>+<%= earn.vote %></b> за голос, до <%= earn.votePaidPerDay %> оплачиваемых голосов в день.</li>
+          <li>Добавьте свой сервер в каталог: серверу начисляется <b>+<%= earn.join %></b> за каждого, кто вошёл в каталоге через Discord, нажал «Присоединиться» и остался на сервере, плюс задания и награды недельного топа. Эти монеты лежат в кошельке сервера, их тратят те, кто им управляет.</li>
+          <li>Ивенты и конкурсы платформы.</li>
+        </ul>
+        <p class="hint" style="margin:0">Награды за голоса и входы приходят через <%= earn.holdHours %> ч: так платформа отсеивает накрутку.</p>
+      </div>
+      <div class="card">
+        <h2>Купить за Telegram Stars</h2>
+        <% if (!tg) { %>
+          <p class="empty-state">Покупка через Telegram пока не подключена.</p>
+        <% } else { %>
+          <div class="wl-packs">
+            <% Object.values(packages).filter((p) => p.on).forEach((p) => { %>
+              <form method="post" action="/wallet/buy" class="wl-pack">
+                <input type="hidden" name="pkg" value="<%= p.key %>" />
+                <b><%= fmt(p.coins) %></b><small>DARK Coins</small>
+                <button class="btn" type="submit"<%= frozen ? ' disabled' : '' %>><%= fmt(p.stars) %> ⭐</button>
+              </form>
+            <% }) %>
+          </div>
+          <p class="hint" style="margin-bottom:0">Оплата звёздами Telegram в нашем боте. Монеты придут на кошелёк того аккаунта Discord, с которого вы вошли сюда. Возврат — пока купленные монеты не потрачены (команда /paysupport в боте).</p>
+        <% } %>
+      </div>
+    </div>
+    <% if (pending.length) { %>
+      <div class="card">
+        <h2>Награды в ожидании</h2>
+        <div class="table-scroll"><table>
+          <thead><tr><th>За что</th><th>Сумма</th><th>Придёт</th><th>Состояние</th></tr></thead>
+          <tbody><% pending.forEach((p) => { %><tr><td><%= p.note || KIND[p.kind] %></td><td class="nowrap">+<%= fmt(p.amount) %></td><td class="nowrap"><%= when(p.payAt) %></td><td><%= PST[p.status] || p.status %><% if (p.reason && p.status !== 'paid') { %> <span class="muted">· <%= p.reason %></span><% } %></td></tr><% }) %></tbody>
+        </table></div>
+      </div>
+    <% } %>
+    <div class="card">
+      <h2>История</h2>
+      <% if (!log.length) { %><p class="empty-state">Пока ни одной операции.</p><% } else { %>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Когда</th><th>Что</th><th>Сумма</th><th>Баланс</th><th>Подробности</th></tr></thead>
+          <tbody><% log.forEach((t) => { %><tr><td class="nowrap"><%= when(t.createdAt) %></td><td class="nowrap"><%= KIND[t.kind] || t.kind %></td><td class="nowrap"><%= t.amount > 0 ? '+' : '' %><%= fmt(t.amount) %></td><td class="nowrap"><%= fmt(t.balanceAfter) %></td><td class="muted"><%= t.note || '' %></td></tr><% }) %></tbody>
+        </table></div>
+      <% } %>
+      <% if (orders.length) { %>
+        <h3 class="econ-sub">Заказы в Telegram</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>№</th><th>Создан</th><th>Пакет</th><th>Состояние</th><th></th></tr></thead>
+          <tbody><% orders.forEach((o) => { %><tr><td>#<%= o.id %></td><td class="nowrap"><%= when(o.createdAt) %></td><td class="nowrap"><%= fmt(o.coins) %> · <%= fmt(o.stars) %> ⭐</td><td><%= OST[o.status] || o.status %></td><td><% if (o.status === 'created' && Date.now() - new Date(o.createdAt).getTime() < 86400000) { %><a href="/wallet?order=<%= o.id %>">Оплатить</a><% } %></td></tr><% }) %></tbody>
+        </table></div>
+      <% } %>
+    </div>
+  </main>
+</body>
+</html>

@@ -97,7 +97,9 @@ async function save(guildId, userId, body) {
     return row;
   }
   const { premoderation } = await platform();
-  return Community.create({ guildId: String(guildId), ownerId: userId, ...fields, ...live, status: premoderation ? 'pending' : 'published', publishedAt: premoderation ? null : new Date() });
+  const created = await Community.create({ guildId: String(guildId), ownerId: userId, ...fields, ...live, status: premoderation ? 'pending' : 'published', publishedAt: premoderation ? null : new Date() });
+  await coins().checkQuests(created).catch(() => {}); // «опубликовать сообщество» — a one-time DARK Coins quest
+  return created;
 }
 
 /** The owner hides / shows his listing (blocked and pending ones he can't publish himself). */
@@ -129,6 +131,7 @@ async function moderate(actorId, communityId, status, note = '') {
   const row = await db().Community.findByPk(Number(communityId));
   if (!row) throw new CommunityError('Сообщество не найдено.');
   await row.update({ status, moderationNote: String(note || '').slice(0, 300) || null, publishedAt: status === 'published' && !row.publishedAt ? new Date() : row.publishedAt });
+  await coins().checkQuests(row).catch(() => {});
   return row;
 }
 
@@ -151,7 +154,7 @@ async function activePromos(ids = null) {
  * form's operation key — a second click with the same key charges nothing and returns the same promotion. The same kind
  * already running is extended (it starts when the current one ends).
  */
-async function buy(guildId, buyerId, kind, days, opKey) {
+async function buy(guildId, buyerId, kind, days, opKey, from = 'me') {
   const { Community, CommunityPromotion, inTransaction } = db();
   const p = PROMOS[kind];
   if (!p) throw new CommunityError('Неизвестный вид продвижения.');
@@ -163,7 +166,9 @@ async function buy(guildId, buyerId, kind, days, opKey) {
   const price = prices[kind] * (p.perDay ? d : 1);
   const key = `promo:${buyerId}:${opKey}`;
   return inTransaction(async (t) => {
-    const { tx, duplicate } = await coins().charge(buyerId, price, { kind: 'promo', opKey: key, note: `${p.label} · ${row.name}${p.perDay ? ` · ${d} дн.` : ''}` }, t);
+    // paid from the buyer's own wallet, or from the server's (filled by the server's rewards)
+    const payer = from === 'server' ? coins().guildWallet(row.guildId) : buyerId;
+    const { tx, duplicate } = await coins().charge(payer, price, { kind: 'promo', opKey: key, actorId: buyerId, note: `${p.label} · ${row.name}${p.perDay ? ` · ${d} дн.` : ''}` }, t);
     if (duplicate) {
       const was = await CommunityPromotion.findOne({ where: { txId: tx.id }, transaction: t });
       return { promotion: was, duplicate: true };
@@ -197,6 +202,14 @@ async function view(communityId, visitorKey) {
 }
 const click = (communityId) => countStat(communityId, 'clicks');
 
+/** «Присоединиться» pressed by a signed-in person: if the bot then sees him join, the server is rewarded (darkCoins.onMemberJoined). */
+async function joinIntent(c, userId, ip) {
+  if (!userId) return;
+  const { CommunityJoin } = db();
+  const [row, created] = await CommunityJoin.findOrCreate({ where: { guildId: c.guildId, userId: String(userId) }, defaults: { ipHash: ipHash(ip), clickedAt: new Date() } });
+  if (!created && !row.joinedAt) await row.update({ clickedAt: new Date(), ipHash: ipHash(ip) });
+}
+
 /** A vote: one per account per community every 12 hours; accounts younger than 7 days can't vote; a network is limited. */
 async function vote(communityId, userId, ip) {
   const { Community, CommunityVote } = db();
@@ -212,8 +225,9 @@ async function vote(communityId, userId, ip) {
     }
     const h = ipHash(ip);
     if (h && (await CommunityVote.count({ where: { ipHash: h, createdAt: { [Op.gt]: new Date(Date.now() - 3600000) } } })) >= IP_VOTES_PER_HOUR) throw new CommunityError('Слишком много голосов из этой сети. Попробуйте позже.');
-    await CommunityVote.create({ communityId: row.id, userId, ipHash: h });
+    const v = await CommunityVote.create({ communityId: row.id, userId, ipHash: h });
     await countStat(row.id, 'votes');
+    await coins().onVote(userId, row.id, v.id).catch(() => {}); // a small DARK Coins reward for the voter (a few a day)
     return row.reload();
   });
 }
@@ -291,5 +305,5 @@ async function statsOf(communityId) {
 
 module.exports = {
   CommunityError, CATEGORIES, CATEGORY, PROMOS, DAYS, SORTS, PER_PAGE, BANNER_HOSTS, VOTE_EVERY,
-  platform, setPlatform, cleanFields, cleanInvite, save, setVisible, remove, moderate, activePromos, buy, view, click, vote, report, catalog, one, statsOf, iconUrl, accountAge, listOf
+  platform, setPlatform, cleanFields, cleanInvite, save, setVisible, remove, moderate, activePromos, buy, view, click, joinIntent, vote, report, catalog, one, statsOf, iconUrl, accountAge, listOf
 };

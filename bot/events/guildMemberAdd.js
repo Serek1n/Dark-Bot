@@ -21,6 +21,7 @@ module.exports = {
   name: 'guildMemberAdd',
   fillTemplate,
   async execute(member) {
+    require('../modules/darkCoins').onMemberJoined(member.guild.id, member.id).catch(() => {}); // came from the catalog: a DARK Coins reward for the server
     require('../modules/reports').joinAlert(member).catch(() => {}); // someone with reports joined: a note for the moderators
     await restoreMember(member); // returning member: roles and nickname come back (works even when the welcome message is off)
     const settings = await getOrCreateSettings(member.guild.id);

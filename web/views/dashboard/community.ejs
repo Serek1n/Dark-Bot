@@ -70,12 +70,17 @@
         <% } %>
       </div>
       <div class="card g-c2 cm-promo-card">
-        <div class="appeal-status"><h2>Продвижение</h2><span class="cm-balance"><span>Ваш баланс:</span> <b><%= fmt(balance) %></b> <span>DARK Coins</span></span></div>
-        <p class="hint" style="margin-top:0">DARK Coins — валюта платформы, не связана с монетами серверов. Их начисляет только администрация платформы DARK; реальных платежей пока нет. Покупка списывает монеты с вашего баланса и включает продвижение сразу; по окончании срока оно выключится само.</p>
+        <h2>Продвижение</h2>
+        <div class="cm-wallets">
+          <div><small>Ваш кошелёк</small><b><%= fmt(balance) %></b><a href="/wallet">Пополнить ›</a></div>
+          <div><small>Кошелёк сервера</small><b><%= fmt(serverBalance) %></b><% if (pendingServer) { %><span class="muted">+<%= fmt(pendingServer) %> ожидает</span><% } else { %><span class="muted">награды каталога</span><% } %></div>
+        </div>
+        <p class="hint" style="margin-top:0">DARK Coins — валюта платформы, не связана с монетами серверов. Ваш кошелёк пополняется ежедневным бонусом, голосами и покупкой за Telegram Stars. Кошелёк сервера — наградами каталога: <b>+<%= earn.join %></b> за каждого, кто вошёл через каталог и остался (через <%= earn.holdHours %> ч), задания и недельный топ. Продвижение включается сразу и выключается само.</p>
         <div class="cm-promos">
           <% Object.entries(C.PROMOS).forEach(([k, p]) => { const active = c && c.promo[k]; %>
             <form method="post" action="<%= g %>/community/buy" class="cm-promo <%= active ? 'on' : '' %>" data-no-guard>
               <input type="hidden" name="kind" value="<%= k %>" /><input type="hidden" name="key" value="<%= key %>-<%= k %>" />
+              <select name="from" aria-label="Чем оплатить"><option value="me">Мой кошелёк</option><option value="server"<%= serverBalance >= plat.prices[k] && balance < plat.prices[k] ? ' selected' : '' %>>Кошелёк сервера</option></select>
               <b><%= p.label %></b>
               <small><%= p.desc %></small>
               <div class="cm-price"><b><%= fmt(plat.prices[k]) %></b> <span><%= p.perDay ? 'DARK Coins в день' : 'DARK Coins' %></span></div>
@@ -85,6 +90,13 @@
             </form>
           <% }) %>
         </div>
+        <% if (serverLog.length) { %>
+          <h3 class="econ-sub">Кошелёк сервера</h3>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Когда</th><th>Сумма</th><th>За что</th></tr></thead>
+            <tbody><% serverLog.forEach((t) => { %><tr><td class="nowrap"><%= when(t.createdAt) %></td><td class="nowrap"><%= t.amount > 0 ? '+' : '' %><%= fmt(t.amount) %></td><td class="muted"><%= t.note || '' %></td></tr><% }) %></tbody>
+          </table></div>
+        <% } %>
         <% if (c && stats.promotions.length) { %>
           <h3 class="econ-sub">История покупок</h3>
           <div class="table-scroll"><table>

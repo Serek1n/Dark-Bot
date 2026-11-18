@@ -7,14 +7,14 @@
     <header class="cm-hero"><div><h1>Платформа DARK</h1><p class="page-intro">Только для владельцев платформы: DARK Coins, цены продвижения, модерация каталога.</p></div><a class="btn btn-secondary" href="/communities">Каталог</a></header>
     <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); const name = (id) => (id ? (users[id] || { name: id }).name : '—');
        const when = (d) => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
-       const KIND = { grant: 'Начисление', revoke: 'Списание', promo: 'Продвижение' };
-       const DONE = { coins: 'Операция проведена.', dup: 'Эта операция уже была проведена — повтор ничего не изменил.', settings: 'Настройки сохранены.', moderated: 'Решение сохранено.', report: 'Жалоба закрыта.' }; %>
+       const KIND = { grant: 'Начисление', revoke: 'Списание', promo: 'Продвижение', daily: 'Ежедневный бонус', vote: 'Голос', join: 'Вход из каталога', quest: 'Задание', top: 'Топ недели', purchase: 'Покупка', refund: 'Возврат' };
+       const DONE = { coins: 'Операция проведена.', dup: 'Эта операция уже была проведена — повтор ничего не изменил.', settings: 'Настройки сохранены.', pending: 'Решение по начислению принято.', frozen: 'Состояние кошелька изменено.', refunded: 'Возврат проведён: звёзды вернулись покупателю, монеты списаны.', moderated: 'Решение сохранено.', report: 'Жалоба закрыта.' }; %>
     <% if (error) { %><div class="card mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
     <% if (done && DONE[done]) { %><div class="card appeal-ok"><p style="margin:0"><%= DONE[done] %></p></div><% } %>
-    <div class="cm-show-grid">
+    <div class="pf-grid">
       <div class="card">
         <h2>DARK Coins</h2>
-        <form method="get" action="/platform" class="ach-find"><input name="user" type="text" inputmode="numeric" value="<%= userId || '' %>" placeholder="ID пользователя Discord" aria-label="ID пользователя" /><button class="btn btn-secondary" type="submit">Найти</button></form>
+        <form method="get" action="/platform" class="ach-find"><input name="user" type="text" inputmode="numeric" value="<%= userId || '' %>" placeholder="ID пользователя или g + ID сервера" aria-label="ID пользователя" /><button class="btn btn-secondary" type="submit">Найти</button></form>
         <% if (userId) { %>
           <p class="cm-balance" style="margin:14px 0"><span><%= name(userId) %>:</span> <b><%= fmt(balance) %></b> <span>DARK Coins</span></p>
           <form method="post" action="/platform/coins">
@@ -26,6 +26,11 @@
             <label for="pfNote">Причина (в журнал)</label>
             <input id="pfNote" type="text" name="note" maxlength="200" required placeholder="Например: награда за ивент платформы" />
             <button class="btn" type="submit">Провести</button>
+          </form>
+          <form method="post" action="/platform/freeze" class="pf-freeze">
+            <input type="hidden" name="userId" value="<%= userId %>" /><input type="hidden" name="frozen" value="<%= frozen ? '0' : '1' %>" />
+            <span class="muted"><%= frozen ? 'Кошелёк заморожен: награды отменяются, тратить нельзя.' : 'Заморозка: награды отменяются, тратить нельзя.' %></span>
+            <button class="btn <%= frozen ? 'btn-secondary' : 'btn-danger' %>" type="submit"><%= frozen ? 'Разморозить' : 'Заморозить' %></button>
           </form>
         <% } %>
         <h3 class="econ-sub">Самые большие балансы</h3>
@@ -42,6 +47,48 @@
         <div class="rules"><label class="rule"><span class="rule-text"><b>Предмодерация</b><span>Новые сообщества появляются в каталоге только после одобрения.</span></span><input type="checkbox" name="premoderation" <%= settings.premoderation ? 'checked' : '' %> /></label></div>
         <button class="btn" type="submit">Сохранить</button>
       </form>
+    </div>
+    <form method="post" action="/platform/earn" class="card">
+        <h2>Правила заработка</h2>
+        <p class="hint" style="margin-top:0">Сегодня автоматически выдано: <b><%= fmt(emitted) %></b> из <b><%= fmt(earn.emissionPerDay) %></b>. Сверх предела награды ждут вашего решения.</p>
+        <div class="pf-earn">
+          <% const L = {"join": "Вход из каталога (серверу)", "joinDailyCap": "Предел входов в день на сервер, монет", "joinMinAgeDays": "Возраст аккаунта для входа, дней", "vote": "Голос (голосующему)", "votePaidPerDay": "Оплачиваемых голосов в день", "daily": "Ежедневный бонус", "dailyStreakMax": "Прибавка за серию, до", "dailyMinAgeDays": "Возраст аккаунта для бонуса, дней", "questPublish": "Задание: опубликовать", "questJoins10": "Задание: 10 входов", "questJoins100": "Задание: 100 входов", "questJoins1000": "Задание: 1000 входов", "questMonth": "Задание: 30 дней в каталоге", "top1": "Топ недели: 1 место", "top2": "Топ недели: 2 место", "top3": "Топ недели: 3 место", "holdHours": "Ожидание наград за входы и голоса, ч", "emissionPerDay": "Предел автоматических наград в день"}; Object.keys(EARN).forEach((k) => { %>
+            <label><span><%= L[k] || k %></span><input type="number" name="<%= k %>" min="0" max="10000000" value="<%= earn[k] %>" /></label>
+          <% }) %>
+        </div>
+        <button class="btn" type="submit">Сохранить правила</button>
+      </form>
+    <div class="card">
+        <h2>Начисления на проверке</h2>
+        <% if (!held.length) { %><p class="empty-state">Ждущих начислений нет.</p><% } else { %>
+          <div class="appeal-list"><% held.forEach((p) => { %>
+            <div class="appeal-row"><div class="appeal-main"><b>+<%= fmt(p.amount) %> · <%= KIND[p.kind] || p.kind %></b><span class="muted"><%= p.wallet.startsWith('g') ? 'сервер ' + p.wallet.slice(1) : name(p.wallet) %> · <%= p.status === 'held' ? 'на проверке: ' + (p.reason || '') : 'ожидает до ' + when(p.payAt) %></span></div>
+              <div class="appeal-act cm-mod"><form method="post" action="/platform/pending/<%= p.id %>"><input type="hidden" name="approve" value="1" /><button class="btn btn-secondary" type="submit">Выдать</button></form><form method="post" action="/platform/pending/<%= p.id %>"><input type="hidden" name="approve" value="0" /><button class="btn btn-danger" type="submit">Отменить</button></form></div></div>
+          <% }) %></div>
+        <% } %>
+    </div>
+    <div class="pf-grid">
+      <form method="post" action="/platform/packages" class="card">
+        <h2>Пакеты Telegram Stars</h2>
+        <% if (!tg) { %><p class="hint" style="margin-top:0">Бот Telegram не подключён: задайте TELEGRAM_BOT_TOKEN в .env.</p><% } %>
+        <div class="pf-packs">
+          <% Object.values(packages).forEach((p) => { %>
+            <div class="pf-pack"><label class="checkbox-row"><input type="checkbox" name="on_<%= p.key %>" <%= p.on ? 'checked' : '' %> /> <span>Продавать</span></label>
+              <label><span>Монет</span><input type="number" name="coins_<%= p.key %>" min="1" max="1000000" value="<%= p.coins %>" /></label>
+              <label><span>Звёзд ⭐</span><input type="number" name="stars_<%= p.key %>" min="1" max="100000" value="<%= p.stars %>" /></label></div>
+          <% }) %>
+        </div>
+        <button class="btn" type="submit">Сохранить пакеты</button>
+      </form>
+      <div class="card">
+        <h2>Покупки за звёзды</h2>
+        <% if (!orders.length) { %><p class="empty-state">Оплаченных заказов ещё не было.</p><% } else { %>
+          <div class="table-scroll"><table>
+            <thead><tr><th>№</th><th>Кто</th><th>Пакет</th><th>Оплачен</th><th></th></tr></thead>
+            <tbody><% orders.forEach((o) => { %><tr><td>#<%= o.id %></td><td class="nowrap"><%= name(o.userId) %></td><td class="nowrap"><%= fmt(o.coins) %> · <%= fmt(o.stars) %> ⭐</td><td class="nowrap"><%= o.paidAt ? when(o.paidAt) : '—' %></td><td><% if (o.status === 'paid') { %><form method="post" action="/platform/orders/<%= o.id %>/refund" data-confirm="Вернуть звёзды и списать купленные монеты?" data-confirm-ok="Вернуть"><button class="btn btn-secondary" type="submit">Вернуть</button></form><% } else { %><span class="muted">возвращён</span><% } %></td></tr><% }) %></tbody>
+          </table></div>
+        <% } %>
+      </div>
     </div>
     <div class="card">
       <h2>Журнал DARK Coins<%= userId ? ' · ' + name(userId) : '' %></h2>

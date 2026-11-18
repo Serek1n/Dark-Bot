@@ -14,8 +14,10 @@ router.get('/:guildId/community', ensureGuildAccess, async (req, res) => {
   const { guildId } = req.params;
   const [guild, settings, row] = await Promise.all([getGuild(guildId), getSettings(guildId), require('../../../db').Community.findOne({ where: { guildId } })]);
   const c = row ? await cm().one(row.id) : null;
-  const [stats, plat, balance, mine] = await Promise.all([c ? cm().statsOf(c.id) : null, cm().platform(), coins().balanceOf(req.user?.id), coins().history(req.user?.id, 10)]);
-  res.render('dashboard/community', { guild, settings, c, stats, plat, balance, mine, key: coins().newKey(), C: cm(), active: 'community',
+  const [stats, plat, balance, mine, serverBalance, serverLog, earn] = await Promise.all([c ? cm().statsOf(c.id) : null, cm().platform(), coins().balanceOf(req.user?.id), coins().history(req.user?.id, 10),
+    coins().balanceOf(coins().guildWallet(guildId)), coins().history(coins().guildWallet(guildId), 15), coins().earnSettings()]);
+  const pendingServer = await require('../../../db').DarkCoinPending.sum('amount', { where: { wallet: coins().guildWallet(guildId), status: 'pending' } }) || 0;
+  res.render('dashboard/community', { guild, settings, c, stats, plat, balance, mine, serverBalance, serverLog, earn, pendingServer, key: coins().newKey(), C: cm(), active: 'community',
     error: req.query.err ? String(req.query.err).slice(0, 200) : null, done: req.query.done || null });
 });
 
@@ -41,7 +43,7 @@ router.post('/:guildId/community/delete', ensureGuildAccess, async (req, res) =>
 });
 router.post('/:guildId/community/buy', ensureGuildAccess, async (req, res) => {
   try {
-    const { duplicate } = await cm().buy(req.params.guildId, req.user?.id, String(req.body.kind || ''), req.body.days, String(req.body.key || ''));
+    const { duplicate } = await cm().buy(req.params.guildId, req.user?.id, String(req.body.kind || ''), req.body.days, String(req.body.key || ''), req.body.from === 'server' ? 'server' : 'me');
     res.redirect(page(req.params.guildId, `done=${duplicate ? 'dup' : 'bought'}`));
   } catch (e) { fail(res, req.params.guildId, e, [cm().CommunityError, coins().CoinError]); }
 });

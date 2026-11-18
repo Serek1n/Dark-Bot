@@ -5,7 +5,7 @@ const router = express.Router();
 
 // ?next=/appeals… : where to come back after signing in. Only the public pages (appeals, communities, the platform page) are
 // accepted — never another site.
-const safeNext = (v) => (typeof v === 'string' && /^\/(appeals(\/\d{1,10}|\/new)?|communities(\/\d{1,10})?|platform)(\?[\w=&%.-]{0,200})?$/.test(v) ? v : null);
+const safeNext = (v) => (typeof v === 'string' && /^\/(appeals(\/\d{1,10}|\/new)?|communities(\/\d{1,10})?|platform|wallet)(\?[\w=&%.-]{0,200})?$/.test(v) ? v : null);
 router.get('/login', (req, res, next) => {
   const to = safeNext(req.query.next);
   if (to && req.session) req.session.returnTo = to;

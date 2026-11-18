@@ -47,6 +47,8 @@ module.exports = {
     startRestoreCleanup(); // forgets old data of members who left
     require('../modules/tickets').sweepClosedTickets(client).catch(() => {}); // closed tickets whose channel outlived a restart
     require('../modules/dbBackup').startDbBackup(); // a copy of the database once a day
+    require('../modules/darkCoins').startDarkCoinsScheduler(); // DARK Coins: waiting rewards, quests, the weekly top
+    require('../modules/telegramShop').startTelegramShop(); // DARK Coins for Telegram Stars (only with TELEGRAM_BOT_TOKEN)
     require('../modules/commandSync').syncCommands(client).catch((err) => logger.warn(`Commands were not registered: ${err.message}`)); // new commands appear without a manual step
     require('../modules/tempRooms').sweepTempRooms(client).catch(() => {}); // rooms that emptied while the bot was off
     require('../modules/giveaways').settleUnpaid?.(client).catch(() => {}); // prizes of giveaways that ended right before a stop

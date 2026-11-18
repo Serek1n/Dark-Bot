@@ -1,5 +1,32 @@
 [
  {
+  "bot": "3.13.0",
+  "panel": "3.22.0",
+  "date": "2026-11-18",
+  "botChanges": [
+   "DARK Coins можно заработать: бонус, голоса, входы из каталога, задания, топ недели",
+   "Покупка DARK Coins за Telegram Stars в отдельном Telegram-боте, возврат звёзд",
+   "Награды за голоса и входы ждут 72 ч и отменяются при накрутке; дневной предел выдачи"
+  ],
+  "panelChanges": [
+   "Страница «Кошелёк»: баланс, ежедневный бонус, награды в ожидании, покупка за звёзды",
+   "У сервера свой кошелёк DARK Coins: награды каталога, оплата продвижения",
+   "Платформа: правила заработка, проверка начислений, заморозка, пакеты, возвраты"
+  ],
+  "en": {
+   "botChanges": [
+    "DARK Coins can be earned: bonus, votes, catalog joins, quests, weekly top",
+    "DARK Coins for Telegram Stars in a separate Telegram bot, Star refunds",
+    "Vote and join rewards wait 72 h and are cancelled for cheating; a daily limit"
+   ],
+   "panelChanges": [
+    "The \"Wallet\" page: balance, daily bonus, pending rewards, buying for Stars",
+    "A server has its own DARK Coins wallet: catalog rewards, paying for promotion",
+    "Platform: earning rules, reward review, freezing, packages, refunds"
+   ]
+  }
+ },
+ {
   "bot": "3.12.0",
   "panel": "3.21.1",
   "date": "2026-11-18",

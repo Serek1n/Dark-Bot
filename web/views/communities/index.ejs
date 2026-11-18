@@ -9,7 +9,7 @@
         <h1>Сообщества DARK</h1>
         <p class="page-intro">Серверы Discord, где живёт бот Dark. Найдите своё место, голосуйте за любимые и добавьте свой сервер из панели.</p>
       </div>
-      <% if (locals.user) { %><a class="btn btn-secondary" href="/dashboard">Добавить свой сервер</a><% } else { %><a class="btn btn-secondary" href="/auth/login?next=%2Fcommunities">Войти через Discord</a><% } %>
+      <% if (locals.user) { %><span class="cm-hero-act"><a class="btn btn-secondary" href="/wallet">Кошелёк DARK Coins</a><a class="btn btn-secondary" href="/dashboard">Добавить свой сервер</a></span><% } else { %><a class="btn btn-secondary" href="/auth/login?next=%2Fcommunities">Войти через Discord</a><% } %>
     </header>
     <% const qs = (patch) => { const o = Object.assign({}, f, { page: '' }, patch); return '/communities?' + Object.keys(o).filter((k) => o[k] && !(k === 'sort' && o[k] === 'popular')).map((k) => k + '=' + encodeURIComponent(o[k])).join('&'); };
        const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); %>

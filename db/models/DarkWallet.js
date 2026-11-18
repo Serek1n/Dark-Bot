@@ -7,8 +7,9 @@ module.exports = (sequelize) => {
   class DarkWallet extends Model {}
   DarkWallet.init(
     {
-      userId: { type: DataTypes.STRING, allowNull: false, unique: true },
-      balance: { type: DataTypes.BIGINT, allowNull: false, defaultValue: 0 }
+      userId: { type: DataTypes.STRING, allowNull: false, unique: true }, // a Discord user id, or g<guildId> — a server's wallet
+      balance: { type: DataTypes.BIGINT, allowNull: false, defaultValue: 0 },
+      frozen: { type: DataTypes.BOOLEAN, defaultValue: false } // by the platform owner: no rewards, no spending
     },
     { sequelize, modelName: 'DarkWallet', tableName: 'dark_wallets' }
   );
