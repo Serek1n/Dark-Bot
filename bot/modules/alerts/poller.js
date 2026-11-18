@@ -99,20 +99,32 @@ async function checkYouTube(alert, client) {
   channel.send({ content: text, allowedMentions: { parse: [] } }).catch(() => {});
 }
 
-async function checkTwitch(alert, client) {
+/**
+ * Who of these Twitch logins is live now: up to 100 logins per request (as the API allows) instead of one request per
+ * subscription, so a round with hundreds of subscriptions takes seconds, not hours. Returns Map(login → stream), or null.
+ */
+async function twitchLive(logins) {
   const token = await getTwitchToken();
-  if (!token) return;
+  if (!token || !logins.length) return null;
+  const live = new Map();
+  const list = [...new Set(logins.map((l) => String(l).toLowerCase()))];
+  for (let i = 0; i < list.length; i += 100) {
+    const qs = new URLSearchParams(list.slice(i, i + 100).map((l) => ['user_login', l])).toString();
+    const { data } = await axios.get(`https://api.twitch.tv/helix/streams?${qs}&first=100`, {
+      headers: { Authorization: `Bearer ${token}`, 'Client-Id': process.env.TWITCH_CLIENT_ID }, timeout: 15000
+    }).catch((err) => {
+      if (err.response?.status === 401) { twitchToken = null; twitchTokenExpiresAt = 0; } // revoked token: get a new one next time
+      throw err;
+    });
+    for (const st of data.data || []) live.set(String(st.user_login).toLowerCase(), st);
+  }
+  return live;
+}
 
-  const { data } = await axios.get('https://api.twitch.tv/helix/streams', {
-    headers: { Authorization: `Bearer ${token}`, 'Client-Id': process.env.TWITCH_CLIENT_ID },
-    params: { user_login: alert.targetId },
-    timeout: 15000
-  }).catch((err) => {
-    if (err.response?.status === 401) { twitchToken = null; twitchTokenExpiresAt = 0; } // revoked token: get a new one next time
-    throw err;
-  });
-
-  const stream = data.data?.[0];
+async function checkTwitch(alert, client, liveMap = null) {
+  const live = liveMap || (await twitchLive([alert.targetId]));
+  if (!live) return;
+  const stream = live.get(String(alert.targetId).toLowerCase());
   const wasLive = alert.isLive;
   const isLiveNow = Boolean(stream);
 
@@ -142,13 +154,16 @@ async function pollOnce(client) {
 
 async function pollAll(client) {
   ytRound = new Map();
-  const alerts = await Alert.findAll();
+  const all = await Alert.findAll();
+  const alerts = [];
+  for (const a of all) if ((await getOrCreateSettings(a.guildId)).alertsEnabled) alerts.push(a); // switched off in the panel: skipped (catches up when on again)
+  // all Twitch subscriptions of the round in a few requests (100 logins each)
+  const twitch = alerts.filter((a) => a.platform === 'twitch');
+  const liveMap = twitch.length ? await twitchLive(twitch.map((a) => a.targetId)).catch((err) => { logger.error('Twitch check failed:', err.message); return null; }) : null;
   for (const alert of alerts) {
     try {
-      // Switched off in the panel: skip (nothing is marked as seen, so it catches up when turned back on).
-      if (!(await getOrCreateSettings(alert.guildId)).alertsEnabled) continue;
       if (alert.platform === 'youtube') await checkYouTube(alert, client);
-      else if (alert.platform === 'twitch') await checkTwitch(alert, client);
+      else if (alert.platform === 'twitch' && liveMap) await checkTwitch(alert, client, liveMap);
     } catch (err) {
       logger.error(`Alert check failed for ${alert.platform}/${alert.targetId}:`, err.message);
     }

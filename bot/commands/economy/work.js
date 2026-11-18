@@ -35,12 +35,16 @@ module.exports = {
     const pay = Math.round((base + p.perLevel * (Number(profile.level) || 0)) * require('../../modules/econ/bank').rateOf(settings));
     const now = new Date();
     // paid only if the previous shift is still older than the cooldown: two clicks at once can't both be paid
-    const rows = await sequelize.query(`UPDATE member_profiles SET balance = balance + ?, lastWorkAt = ?, updatedAt = ?
-      WHERE guildId = ? AND userId = ? AND (lastWorkAt IS NULL OR lastWorkAt <= ?) RETURNING balance`,
-    { replacements: [pay, now, now, guildId, userId, new Date(now.getTime() - cooldown)], type: QueryTypes.SELECT });
-    if (!rows.length) return interaction.reply({ embeds: [embeds.error('Смена ещё не закончилась.')], flags: MessageFlags.Ephemeral });
+    // the payment and its line in the journal in ONE transaction: coins never appear without the line
     const [job, story] = JOBS[crypto.randomInt(JOBS.length)];
-    await ledger.record({ guildId, userId, amount: pay, kind: 'work', note: job }).catch(() => {});
+    const rows = await require('../../../db').inTransaction(async (t) => {
+      const r = await sequelize.query(`UPDATE member_profiles SET balance = balance + ?, lastWorkAt = ?, updatedAt = ?
+        WHERE guildId = ? AND userId = ? AND (lastWorkAt IS NULL OR lastWorkAt <= ?) RETURNING balance`,
+      { replacements: [pay, now, now, guildId, userId, new Date(now.getTime() - cooldown)], type: QueryTypes.SELECT, transaction: t });
+      if (r.length) await ledger.record({ guildId, userId, amount: pay, kind: 'work', note: job }, t);
+      return r;
+    });
+    if (!rows.length) return interaction.reply({ embeds: [embeds.error('Смена ещё не закончилась.')], flags: MessageFlags.Ephemeral });
     const embed = embeds.baseEmbed(embeds.COLORS.success).setTitle(`${job}: смена окончена`)
       .setDescription(`Вы ${story} и заработали **${pay} ${settings.currencyName}**.`)
       .addFields({ name: 'Баланс', value: `${rows[0].balance} ${settings.currencyName}`, inline: true }, { name: 'Следующая смена', value: `<t:${Math.floor((now.getTime() + cooldown) / 1000)}:R>`, inline: true });

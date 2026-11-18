@@ -19,7 +19,10 @@ module.exports = (sequelize) => {
       rewardAmount: { type: DataTypes.INTEGER, allowNull: true },
       rewardRoleId: { type: DataTypes.STRING, allowNull: true },
       rewardSeconds: { type: DataTypes.INTEGER, allowNull: true },
-      rewarded: { type: DataTypes.TEXT, defaultValue: '[]' } // JSON [userId] who already got the prize (a reroll never pays twice)
+      rewarded: { type: DataTypes.TEXT, defaultValue: '[]' }, // JSON [userId] who already got the prize (a reroll never pays twice)
+      rewardSource: { type: DataTypes.STRING, allowNull: true }, // 'treasury': the prize money was taken from the server's treasury at the start
+      refunded: { type: DataTypes.BOOLEAN, defaultValue: false } // the part of a treasury prize nobody won went back to the treasury
+
     },
     { sequelize, modelName: 'Giveaway', tableName: 'giveaways', indexes: [{ fields: ['ended', 'endsAt'] }, { fields: ['guildId'] }] }
   );

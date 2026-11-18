@@ -44,7 +44,9 @@ module.exports = {
       if (tempChannel) {
         const channel = await guild.channels.fetch(oldState.channelId).catch(() => null);
         if (channel && channel.members.size === 0) {
-          await channel.delete().catch(() => {});
+          // the record goes only when the room is really gone; if Discord refused, it stays and the sweep at start retries
+          const deleted = await channel.delete().then(() => true).catch((err) => require('../utils/discordErrors').isGone(err));
+          if (!deleted) { logger.warn(`Temp room ${channel.id} could not be deleted; kept for the next sweep`); return; }
           await tempChannel.destroy();
           forgetTempRoom(oldState.channelId);
           await require('../modules/voiceRoom').logRoom(guild.id, channel, 'empty', { details: 'пустая комната удалена' });

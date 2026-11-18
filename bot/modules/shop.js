@@ -1,6 +1,6 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, MessageFlags } = require('discord.js');
 const { Op } = require('sequelize');
-const { ShopItem, Purchase } = require('../../db');
+const { ShopItem, Purchase, inTransaction } = require('../../db');
 const { getOrCreateProfile, getOrCreateSettings } = require('./leveling');
 const { spend, credit } = require('./wallet');
 const { withLock } = require('../utils/lock');
@@ -73,12 +73,15 @@ async function buildShopPanel(guild, userId) {
  * person can't spend the same coins twice.
  * Returns { ok: true, item, purchase, settings, balanceAfter } or { ok: false, error }.
  */
-function purchaseItem({ guild, member, itemId }) {
+function purchaseItem({ guild, member, itemId, expectedPrice = null }) {
   return withLock(`shop:${guild.id}`, async () => {
     const settings = await getOrCreateSettings(guild.id);
     if (!settings.shopEnabled) return { ok: false, error: 'Магазин выключен.' };
     const item = await ShopItem.findOne({ where: { id: itemId, guildId: guild.id } });
     if (!item || !item.enabled) return { ok: false, error: 'Этот товар больше недоступен.' };
+    if (expectedPrice !== null && Number.isFinite(expectedPrice) && Number(item.price) !== expectedPrice) {
+      return { ok: false, error: `Цена изменилась: теперь ${fmt(item.price)} ${currencyName(settings, item.currency)}. Откройте товар заново.` };
+    }
     if (item.stock !== null && item.stock !== undefined && item.stock <= 0) return { ok: false, error: 'Товар закончился.' };
 
     const profile = await getOrCreateProfile(guild.id, member.id);
@@ -104,67 +107,111 @@ function purchaseItem({ guild, member, itemId }) {
       if (!canSelfGive(role, guild)) return { ok: false, error: 'Эта роль даёт права управления сервером, магазин её не выдаёт. Сообщите администрации.' };
     }
 
-    // A piece of a limited item is reserved atomically first ("take one only if any is left"): the panel may have changed the
-    // stock since it was read. Then the money, also atomically ("take only if enough"), so nobody pays twice with the same coins.
+    // ONE transaction: the piece of a limited item, the money, the line in the journal, the shop tax and the purchase itself.
+    // Either all of it is written or none of it — a stop of the process can no longer leave coins spent with no purchase.
+    // A role is given after that, outside the transaction (it is Discord): its purchase is 'delivering' until the role is
+    // really there; a purchase left 'delivering' by a crash is finished on the next start (resumeDeliveries).
     const limited = item.stock !== null && item.stock !== undefined;
-    const putBack = () => (limited ? ShopItem.increment('stock', { by: 1, where: { id: item.id } }).catch(() => {}) : null);
-    if (limited) {
-      const [[, reserved]] = await ShopItem.decrement('stock', { by: 1, where: { id: item.id, enabled: true, stock: { [Op.gt]: 0 } } });
-      if (!reserved) return { ok: false, error: 'Товар закончился.' };
-    }
-    const balanceAfter = await spend(guild.id, member.id, field, item.price);
-    if (balanceAfter === null) {
-      await putBack();
-      return { ok: false, error: `Не хватает: нужно ${fmt(item.price)} ${cName}.` };
-    }
-
-    // The purchase is written down right after the money is taken and BEFORE Discord is asked for the role: a stop of the
-    // process in between can no longer leave coins spent with no trace of what they were spent on.
-    const status = item.type === 'role' || item.deliveryMessage ? 'done' : 'pending';
-    let purchase;
-    try {
+    const status = item.type === 'role' ? 'delivering' : item.deliveryMessage ? 'done' : 'pending';
+    const econ = require('./econ/config');
+    const ledger = require('./econ/ledger');
+    let purchase; let balanceAfter;
+    const outcome = await inTransaction(async (t) => {
+      if (limited) {
+        const [[, reserved]] = await ShopItem.decrement('stock', { by: 1, where: { id: item.id, enabled: true, stock: { [Op.gt]: 0 } }, transaction: t });
+        if (!reserved) return 'stock';
+      }
+      balanceAfter = await spend(guild.id, member.id, field, item.price, t);
+      if (balanceAfter === null) throw new NotEnough(); // rolls the reserved piece back too
+      await ledger.record({ guildId: guild.id, userId: member.id, currency: item.currency === 'crystals' ? 'crystals' : 'coins', amount: -item.price, kind: 'shop', note: item.name }, t);
+      if (field === 'balance' && econ.isOn(settings, 'treasury')) {
+        const tax = Math.floor(item.price * econ.params(settings, 'treasury').shopTax / 100);
+        if (tax > 0) await ledger.treasuryAdd(guild.id, tax, t);
+      }
       purchase = await Purchase.create({
-        guildId: guild.id,
-        userId: member.id,
-        itemId: item.id,
-        itemName: item.name,
-        itemType: item.type,
-        roleId: item.type === 'role' ? item.roleId : null,
-        price: item.price,
-        currency: item.currency,
-        status,
-        expiresAt: null
-      });
-    } catch (err) {
+        guildId: guild.id, userId: member.id, itemId: item.id, itemName: item.name, itemType: item.type,
+        roleId: item.type === 'role' ? item.roleId : null, price: item.price, currency: item.currency, status, expiresAt: null
+      }, { transaction: t });
+      return 'ok';
+    }).catch((err) => {
+      if (err instanceof NotEnough) return 'money';
       logger.error('Shop: the purchase was not saved:', err);
-      await credit(guild.id, member.id, field, item.price);
-      await putBack();
-      return { ok: false, error: 'Не получилось оформить покупку. С вас ничего не списано.' };
-    }
+      return 'error';
+    });
+    if (outcome === 'stock') return { ok: false, error: 'Товар закончился.' };
+    if (outcome === 'money') return { ok: false, error: `Не хватает: нужно ${fmt(item.price)} ${cName}.` };
+    if (outcome !== 'ok') return { ok: false, error: 'Не получилось оформить покупку. С вас ничего не списано.' };
 
     let term = null;
     if (item.type === 'role') {
-      try {
-        if (timed) term = await tempRoles.giveOrExtend(guild, member, item.roleId, item.durationSeconds * 1000, `shop:${item.id}`, `Покупка в магазине: ${item.name}`);
-        else await member.roles.add(item.roleId, `Покупка в магазине: ${item.name}`);
-      } catch (err) {
-        logger.error('Shop: could not give role:', err);
-        await credit(guild.id, member.id, field, item.price); // give the money back
-        await putBack();
-        await purchase.destroy().catch(() => {});
-        return { ok: false, error: 'Не удалось выдать роль. С вас ничего не списано.' };
-      }
-      if (term) await purchase.update({ expiresAt: term.expiresAt }).catch(() => {});
-    }
-    // The journal of the economy and the shop tax: a share of what is spent on coins goes to the server's treasury instead of vanishing.
-    await require('./econ/ledger').record({ guildId: guild.id, userId: member.id, currency: item.currency === 'crystals' ? 'crystals' : 'coins', amount: -item.price, kind: 'shop', note: item.name }).catch(() => {});
-    const econ = require('./econ/config');
-    if (field === 'balance' && econ.isOn(settings, 'treasury')) {
-      const tax = Math.floor(item.price * econ.params(settings, 'treasury').shopTax / 100);
-      if (tax > 0) await require('./econ/ledger').treasuryAdd(guild.id, tax).catch(() => {});
+      const given = await deliverRole(guild, member, item, purchase);
+      if (!given.ok) return { ok: false, error: 'Не удалось выдать роль. С вас ничего не списано.' };
+      term = given.term;
     }
     return { ok: true, item, purchase, settings, balanceAfter, currencyName: cName, extended: Boolean(term?.extended) };
   });
+}
+
+class NotEnough extends Error {}
+
+/**
+ * Gives the role of a paid purchase and marks it done. If Discord refuses, the whole purchase is undone in ONE transaction
+ * (money back, the piece back, the journal line, status «refunded»). Returns { ok, term }.
+ */
+async function deliverRole(guild, member, item, purchase) {
+  const timed = item.durationSeconds > 0;
+  let term = null;
+  try {
+    if (timed) term = await tempRoles.giveOrExtend(guild, member, item.roleId, item.durationSeconds * 1000, `shop:${item.id}`, `Покупка в магазине: ${item.name}`);
+    else await member.roles.add(item.roleId, `Покупка в магазине: ${item.name}`);
+  } catch (err) {
+    logger.error('Shop: could not give role:', err);
+    await refundPurchase(purchase.id, 'роль не выдана').catch((e) => logger.error('Shop: refund failed:', e));
+    return { ok: false };
+  }
+  await purchase.update({ status: 'done', ...(term ? { expiresAt: term.expiresAt } : {}) });
+  return { ok: true, term };
+}
+
+/**
+ * Undoes a purchase once, in one transaction: status «refunded» (only if it was not yet), the money back, the journal line and
+ * the piece of a limited item. Returns the purchase, or null when it was already refunded. The role itself is the caller's.
+ */
+async function refundPurchase(purchaseId, note = null) {
+  return inTransaction(async (t) => {
+    const p = await Purchase.findByPk(purchaseId, { transaction: t });
+    if (!p || p.status === 'refunded') return null;
+    const [changed] = await Purchase.update({ status: 'refunded' }, { where: { id: p.id, status: { [Op.ne]: 'refunded' } }, transaction: t });
+    if (!changed) return null;
+    const field = currencyField(p.currency);
+    await credit(p.guildId, p.userId, field, p.price, t);
+    await require('./econ/ledger').record({ guildId: p.guildId, userId: p.userId, currency: p.currency === 'crystals' ? 'crystals' : 'coins', amount: p.price, kind: 'refund', note: note ? `${p.itemName}: ${note}` : p.itemName }, t);
+    if (p.itemId) await ShopItem.increment('stock', { by: 1, where: { id: p.itemId, guildId: p.guildId, stock: { [Op.ne]: null } }, transaction: t });
+    return p;
+  });
+}
+
+/**
+ * On start: purchases of a role that were paid but not finished (the process stopped between the payment and the role).
+ * The role is given now; a member who has left, a role that is gone or a Discord that refuses → the purchase is refunded.
+ * A Discord that could not be asked (429, 5xx) → it stays for the next start. Never throws.
+ */
+async function resumeDeliveries(client) {
+  const { isGone } = require('../utils/discordErrors');
+  const rows = await Purchase.findAll({ where: { status: 'delivering' }, limit: 200 }).catch(() => []);
+  for (const p of rows) {
+    try {
+      const guild = client.guilds.cache.get(p.guildId);
+      if (!guild) continue;
+      const item = p.itemId ? await ShopItem.findOne({ where: { id: p.itemId, guildId: p.guildId } }) : null;
+      let member = null;
+      try { member = await guild.members.fetch(p.userId); } catch (err) { if (!isGone(err)) continue; }
+      if (!member || !item || !guild.roles.cache.get(p.roleId)) { await refundPurchase(p.id, 'не удалось выдать'); continue; }
+      await deliverRole(guild, member, { ...item.get({ plain: true }), roleId: p.roleId }, p);
+    } catch (err) {
+      logger.warn(`Shop: purchase ${p.id} after restart: ${err.message}`);
+    }
+  }
 }
 
 /** Has this member already bought this item (a refunded purchase does not count)? */
@@ -202,7 +249,7 @@ function purchaseReceipt(result) {
   return embed;
 }
 
-const STATUS_RU = { done: 'выдано', pending: 'ждёт выдачи', refunded: 'возвращено' };
+const STATUS_RU = { done: 'выдано', pending: 'ждёт выдачи', delivering: 'выдаётся', refunded: 'возвращено' };
 
 async function myPurchasesEmbed(guild, userId) {
   const settings = await getOrCreateSettings(guild.id);
@@ -242,7 +289,7 @@ async function handleShopComponent(interaction) {
       .setTitle('Подтвердите покупку')
       .setDescription(`**${item.name}**${item.description ? `\n${cut(item.description, 300)}` : ''}${item.type === 'role' && item.durationSeconds ? (item.oncePerUser ? `\nСрок: **${formatTerm(item.durationSeconds * 1000)}** — потом роль снимется` : `\nСрок: **${formatTerm(item.durationSeconds * 1000)}** — потом роль снимется (повторная покупка продлевает)`) : ''}${item.oncePerUser ? '\nКупить можно только один раз.' : ''}\n\nЦена: **${fmt(item.price)} ${currencyName(settings, item.currency)}**`);
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`${PREFIX}:buy:${item.id}:${interaction.user.id}`).setLabel('Купить').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(`${PREFIX}:buy:${item.id}:${interaction.user.id}:${item.price}`).setLabel('Купить').setStyle(ButtonStyle.Success),
       new ButtonBuilder().setCustomId(`${PREFIX}:cancel:${interaction.user.id}`).setLabel('Отмена').setStyle(ButtonStyle.Secondary)
     );
     return interaction.reply({ embeds: [embed], components: [row], flags: ephemeral });
@@ -261,11 +308,13 @@ async function handleShopComponent(interaction) {
     // Disable the button right away: a double click must not buy twice.
     await interaction.update({ embeds: [embeds.info('Оформляю покупку…')], components: [] });
     const member = interaction.member || (await interaction.guild.members.fetch(interaction.user.id));
-    const result = await purchaseItem({ guild: interaction.guild, member, itemId });
+    // the price shown on the confirmation is the price paid: if the panel changed it meanwhile, nothing is bought
+    const shownPrice = parts[4] !== undefined ? Number(parts[4]) : null;
+    const result = await purchaseItem({ guild: interaction.guild, member, itemId, expectedPrice: shownPrice });
     if (!result.ok) return interaction.editReply({ embeds: [embeds.error(result.error)], components: [] });
     await interaction.editReply({ embeds: [purchaseReceipt(result)], components: [] });
     await logPurchase(interaction.guild, interaction.user, result);
   }
 }
 
-module.exports = { boughtBefore, buildShopPanel, purchaseItem, logPurchase, purchaseReceipt, isShopComponent, handleShopComponent, listItems, MAX_ITEMS, STATUS_RU, CURRENCIES };
+module.exports = { refundPurchase, resumeDeliveries, deliverRole, boughtBefore, buildShopPanel, purchaseItem, logPurchase, purchaseReceipt, isShopComponent, handleShopComponent, listItems, MAX_ITEMS, STATUS_RU, CURRENCIES };

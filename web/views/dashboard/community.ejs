@@ -20,7 +20,8 @@
       <form method="post" action="<%= g %>/community" class="card g-c1 g-r2">
         <h2>Карточка</h2>
         <label for="cmName">Название</label>
-        <input id="cmName" type="text" name="name" maxlength="60" required value="<%= c ? c.name : guild.name %>" />
+        <input id="cmName" type="text" name="name" maxlength="60" required readonly value="<%= c ? c.name : guild.name %>" />
+        <p class="hint">Название и значок берутся из Discord, а приглашение проверяется: оно должно вести именно на этот сервер.</p>
         <label for="cmShort">Коротко о сервере</label>
         <input id="cmShort" type="text" name="shortDesc" maxlength="160" required value="<%= c ? c.shortDesc : '' %>" placeholder="Одна-две фразы для карточки в каталоге" />
         <label for="cmDesc">Подробное описание</label>

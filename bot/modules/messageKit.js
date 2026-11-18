@@ -353,7 +353,7 @@ const query = (to, extra = {}) => {
 };
 
 /** Sends (or, with messageId, edits) a checked message. Returns { id, channelId }. */
-async function deliver(to, msg, { messageId, canEveryone = false, guildId } = {}) {
+async function deliver(to, msg, { messageId, canEveryone = false, guildId, nonce = null } = {}) {
   let roleIds; // without the "mention everyone" right only the roles the server made mentionable are pinged
   if (!canEveryone && (msg.mentions === 'roles' || msg.mentions === 'everyone')) {
     roleIds = guildId ? await botApi.get(`/guilds/${guildId}/roles`).then((r) => r.data.filter((x) => x.mentionable && x.id !== guildId).map((x) => x.id)).catch(() => []) : [];
@@ -380,7 +380,8 @@ async function deliver(to, msg, { messageId, canEveryone = false, guildId } = {}
     const { data } = await botApi.post(`/channels/${to.channelId}/threads`, { name: to.threadName, message: body });
     return { id: data.message?.id || data.id, channelId: data.id };
   }
-  const { data } = await botApi.post(`/channels/${where}/messages`, body);
+  // a nonce makes Discord drop a second copy of the same message sent within a few minutes (a retry after a crash)
+  const { data } = await botApi.post(`/channels/${where}/messages`, nonce ? { ...body, nonce, enforce_nonce: true } : body);
   return { id: data.id, channelId: data.channel_id };
 }
 

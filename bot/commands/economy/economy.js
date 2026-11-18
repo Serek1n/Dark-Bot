@@ -106,13 +106,17 @@ module.exports = {
         // Compare-and-set in ONE statement: the reward is paid only if the last claim is still older than a day, so even two
         // processes (the bot and the web panel) can never both pay it, and the coins are added to the balance, not written over it.
         const now = new Date();
-        const rows = await sequelize.query(
-          `UPDATE member_profiles SET balance = balance + ?, dailyStreak = ?, lastDailyAt = ?, updatedAt = ?
-           WHERE guildId = ? AND userId = ? AND (lastDailyAt IS NULL OR lastDailyAt <= ?) RETURNING balance`,
-          { replacements: [amount, streak, now, now, guildId, userId, new Date(now.getTime() - DAY_MS)], type: QueryTypes.SELECT }
-        );
+        // the payment and its line in the journal in ONE transaction: coins never appear without the line
+        const rows = await require('../../../db').inTransaction(async (t) => {
+          const r = await sequelize.query(
+            `UPDATE member_profiles SET balance = balance + ?, dailyStreak = ?, lastDailyAt = ?, updatedAt = ?
+             WHERE guildId = ? AND userId = ? AND (lastDailyAt IS NULL OR lastDailyAt <= ?) RETURNING balance`,
+            { replacements: [amount, streak, now, now, guildId, userId, new Date(now.getTime() - DAY_MS)], type: QueryTypes.SELECT, transaction: t }
+          );
+          if (r.length) await ledger.record({ guildId, userId, amount, kind: 'daily', note: streak > 1 ? `серия ${streak}` : null }, t);
+          return r;
+        });
         if (!rows.length) return { wait: DAY_MS };
-        await ledger.record({ guildId, userId, amount, kind: 'daily', note: streak > 1 ? `серия ${streak}` : null }).catch(() => {});
         return { balance: Number(rows[0].balance), currency: settings.currencyName, amount, base, bonus, streak };
       });
 

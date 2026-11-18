@@ -104,12 +104,8 @@ router.post('/:guildId/shop/purchases/:id/refund', ensureGuildAccess, async (req
   if (!purchase || purchase.status === 'refunded') return res.redirect(saved(guildId, 'shop', 'invalid'));
   if (purchase.itemType === 'role' && purchase.roleId && (await roleGuard(guildId, req.user?.id)).check(purchase.roleId)) return res.redirect(saved(guildId, 'shop', 'rolenotallowed'));
   const { Op } = require('sequelize');
-  const [changed] = await Purchase.update({ status: 'refunded' }, { where: { id: purchase.id, status: { [Op.ne]: 'refunded' } } });
-  if (!changed) return res.redirect(saved(guildId, 'shop', 'invalid'));
-  const { credit } = require('../../../bot/modules/wallet');
-  await credit(guildId, purchase.userId, purchase.currency === 'crystals' ? 'crystals' : 'balance', purchase.price);
-  await require('../../../bot/modules/econ/ledger').record({ guildId, userId: purchase.userId, currency: purchase.currency === 'crystals' ? 'crystals' : 'coins', amount: purchase.price, kind: 'refund', note: purchase.itemName }).catch(() => {});
-  if (purchase.itemId) await ShopItem.increment('stock', { by: 1, where: { id: purchase.itemId, guildId, stock: { [Op.ne]: null } } }).catch(() => {});
+  // status, money, journal line and the piece of stock — one transaction (bot/modules/shop.js refundPurchase)
+  if (!(await require('../../../bot/modules/shop').refundPurchase(purchase.id, 'возврат в панели'))) return res.redirect(saved(guildId, 'shop', 'invalid'));
   if (purchase.itemType === 'role' && purchase.roleId) {
     // A role on a term may have been bought several times (each purchase prolongs it). Returning one purchase takes back
     // only its own time: the role goes only when nothing paid for is left.

@@ -53,8 +53,7 @@ async function activeWarnings(guildId, userId, settings) {
 async function dmMember(guild, userId, text, settings) {
   if (settings && settings.modDmEnabled === false) return false;
   try {
-    await guild.client.users.send(userId, `${text}\n— сервер **${guild.name}**`);
-    return true;
+    return (await guild.client.users.send(userId, `${text}\n— сервер **${guild.name}**`)) || true; // the message, to take it back if the punishment fails
   } catch {
     return false;
   }
@@ -80,9 +79,9 @@ async function muteMember(guild, member, ms, { moderatorId, reason, settings }) 
 async function kickMember(guild, member, { moderatorId, reason, settings }) {
   const why = whyCannot(guild, member, 'kick');
   if (why) throw refusal(why);
-  // DM first: after the kick there is no common server any more.
-  await dmMember(guild, member.id, `👢 Вы были выгнаны: ${reason}`, settings ?? (await loadSettings(guild.id)));
-  await callDiscord(() => member.kick(reason), 'kick');
+  // DM first: after the kick there is no common server any more. If the kick then fails, the DM is taken back.
+  const dm = await dmMember(guild, member.id, `👢 Вы были выгнаны: ${reason}`, settings ?? (await loadSettings(guild.id)));
+  await callDiscord(() => member.kick(reason), 'kick').catch(async (err) => { await dm?.delete?.().catch(() => {}); throw err; });
   return recordAndAnnounce(guild, { userId: member.id, moderatorId, action: 'kick', reason });
 }
 
@@ -93,19 +92,23 @@ async function banUser(guild, userId, { moderatorId, reason, ms = null, deleteSe
   if (why) throw refusal(why);
   const until = ms ? `на ${formatDuration(ms)}` : 'навсегда';
   settings = settings ?? (await loadSettings(guild.id));
-  if (member) await dmMember(guild, userId, `🔨 Вы забанены ${until}: ${reason}${require('./appeals').appealHint(settings, 'ban')}`, settings);
-  await callDiscord(() => guild.members.ban(userId, { reason, deleteMessageSeconds: deleteSeconds }), 'ban');
+  // The case is written BEFORE the ban: a stop right after the ban can no longer leave a temporary ban with no record (it
+  // would never be lifted). If the ban fails, the case and the DM are taken back.
+  const { createCase, announceCase } = require('../utils/modlog');
+  const dm = member ? await dmMember(guild, userId, `🔨 Вы забанены ${until}: ${reason}${require('./appeals').appealHint(settings, 'ban')}`, settings) : null;
+  const older = await ModLog.findAll({ where: { guildId: guild.id, userId, action: 'ban', active: true }, attributes: ['id'] });
+  const entry = await createCase(guild.id, { userId, moderatorId, action: 'ban', reason: String(reason || 'Без причины').slice(0, 1000), duration: ms, expiresAt: ms ? new Date(Date.now() + ms) : null, active: Boolean(ms) });
+  require('./serverLog').markReported(guild.id, userId, 'ban'); // before the ban: its Discord event must not be logged twice
+  try {
+    await callDiscord(() => guild.members.ban(userId, { reason, deleteMessageSeconds: deleteSeconds }), 'ban');
+  } catch (err) {
+    await entry.destroy().catch(() => {});
+    await dm?.delete?.().catch(() => {});
+    throw err;
+  }
   // A new ban replaces an older temporary one.
-  await ModLog.update({ active: false }, { where: { guildId: guild.id, userId, action: 'ban', active: true } });
-  return recordAndAnnounce(guild, {
-    userId,
-    moderatorId,
-    action: 'ban',
-    reason,
-    duration: ms,
-    expiresAt: ms ? new Date(Date.now() + ms) : null,
-    active: Boolean(ms)
-  });
+  if (older.length) await ModLog.update({ active: false }, { where: { id: older.map((o) => o.id) } });
+  return announceCase(guild, entry);
 }
 
 async function unbanUser(guild, userId, { moderatorId, reason }) {

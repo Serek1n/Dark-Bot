@@ -54,6 +54,8 @@ module.exports = {
     require('../modules/commandSync').syncCommands(client).catch((err) => logger.warn(`Commands were not registered: ${err.message}`)); // new commands appear without a manual step
     require('../modules/tempRooms').sweepTempRooms(client).catch(() => {}); // rooms that emptied while the bot was off
     require('../modules/giveaways').settleUnpaid?.(client).catch(() => {}); // prizes of giveaways that ended right before a stop
+    require('../modules/shop').resumeDeliveries(client).catch(() => {}); // roles of purchases paid right before a stop
+    require('../modules/reports').releaseStuck().catch(() => {}); // a report left half-decided by a stop goes back to «new»
     require('../modules/voiceRoles').sweepVoiceRoles(client).catch(() => {}); // voice roles of people who left while the bot was off
     require('../modules/updates').announceUpdates(client).catch(() => {}); // "what's new" into the chosen channels after an update
     client.user.setActivity('/help | Dark', { type: ActivityType.Watching });

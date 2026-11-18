@@ -86,6 +86,9 @@ router.post('/:guildId/moderation-punishments/lift', ensureGuildAccess, async (r
   const kind = req.body.kind === 'ban' ? 'ban' : 'mute';
   const g = getClient()?.guilds?.cache?.get(guildId);
   if (!userId || !g) return res.redirect(saved(guildId, 'moderation-punishments', 'invalid'));
+  // the same right as in Discord: «Управлять сервером» opens the panel, but lifting a ban needs «Банить», a mute — «Отправлять подумать»
+  const denied = await appeals().mayDecide(g, req.user?.id, kind);
+  if (denied) return res.redirect(`/dashboard/${guildId}/moderation-punishments?modfail=${encodeURIComponent(denied)}`);
   const reason = `Снято в панели${req.user?.username ? ` (${req.user.username})` : ''}`;
   try {
     if (kind === 'ban') await mod().unbanUser(g, userId, { moderatorId: req.user?.id || g.client.user.id, reason });
@@ -121,7 +124,7 @@ router.get('/:guildId/moderation-warnings', ensureGuildAccess, async (req, res) 
   res.render('dashboard/moderation-warnings', base(req, 'moderation-warnings', {
     guild, settings, users, total, page, f, expireDays,
     rows: rows.map((w) => ({ ...w.get(), auto: parse(w.autoAction), expired: expireDays > 0 && new Date(w.createdAt) < new Date(Date.now() - expireDays * 86400000) })),
-    describe: (a) => (a ? mod().describeEscalation(a) : null), punishmentName: mod().punishmentName
+    describe: (a) => (a ? mod().describeEscalation(a) : null), punishmentName: mod().punishmentName, modfail: String(req.query.modfail || '').slice(0, 300)
   }));
 });
 
@@ -129,6 +132,8 @@ router.post('/:guildId/moderation-warnings/:id/revoke', ensureGuildAccess, async
   const { guildId } = req.params;
   const w = await Warning.findOne({ where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId } });
   if (!w) return res.redirect(saved(guildId, 'moderation-warnings', 'invalid'));
+  const denied = await appeals().mayDecide(getClient()?.guilds?.cache?.get(guildId), req.user?.id, 'warn');
+  if (denied) return res.redirect(`/dashboard/${guildId}/moderation-warnings?modfail=${encodeURIComponent(denied)}`);
   const reason = String(req.body.reason || '').trim().slice(0, 200) || 'Снято в панели';
   if (!(await mod().revokeWarning(w, { by: req.user?.id || 'panel', reason }))) return res.redirect(saved(guildId, 'moderation-warnings', 'already'));
   const g = getClient()?.guilds?.cache?.get(guildId);

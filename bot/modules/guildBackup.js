@@ -45,24 +45,40 @@ async function reconcile(client) {
   return marked;
 }
 
+const PORTION = 2000;
+/** Deletes the rows of a model that match `where`, a portion per transaction. */
+async function inPortions(model, where) {
+  const pk = model.primaryKeyAttribute;
+  if (!pk || pk === 'guildId') return inTransaction((transaction) => model.destroy({ where, transaction }));
+  for (;;) {
+    const n = await inTransaction(async (transaction) => {
+      const ids = (await model.findAll({ where, attributes: [pk], limit: PORTION, raw: true, transaction })).map((r) => r[pk]);
+      if (ids.length) await model.destroy({ where: { [pk]: ids }, transaction });
+      return ids.length;
+    });
+    if (n < PORTION) return;
+    await new Promise((r) => setImmediate(r)); // let the queued work of other servers run
+  }
+}
+
 /** Deletes the data of servers that have been gone for more than 14 days. Returns their ids. */
 async function purgeExpired(client, now = Date.now()) {
   const expired = await GuildSettings.findAll({ where: { leftAt: { [Op.lt]: new Date(now - RETENTION_MS) } }, attributes: ['guildId'] });
   const purged = [];
   for (const { guildId } of expired) {
     if (client.guilds.cache.has(guildId)) { await restore(guildId); continue; } // came back: never delete
-    // Through the one queue of transactions (db/index.js): a big delete beside the bot's own writes would otherwise fight for SQLite's write lock.
-    await inTransaction(async (transaction) => {
-      // Entries of giveaways carry no server id of their own: they go by the giveaways of this server, before those are deleted.
-      const { Giveaway, GiveawayEntry } = sequelize.models;
-      if (Giveaway && GiveawayEntry) {
-        const ids = (await Giveaway.findAll({ where: { guildId }, attributes: ['id'], raw: true, transaction })).map((g) => g.id);
-        if (ids.length) await GiveawayEntry.destroy({ where: { giveawayId: ids }, transaction });
-      }
-      for (const model of Object.values(sequelize.models)) {
-        if (model.rawAttributes.guildId) await model.destroy({ where: { guildId }, transaction });
-      }
-    });
+    // In portions of PORTION rows, each its own short transaction through the one queue (db/index.js): a big server's data
+    // no longer holds that queue for a long time — experience, voice and the economy of all other servers keep going in between.
+    // The server's settings row goes last, so a stop in the middle simply continues next time.
+    const { Giveaway, GiveawayEntry } = sequelize.models;
+    if (Giveaway && GiveawayEntry) {
+      const ids = (await Giveaway.findAll({ where: { guildId }, attributes: ['id'], raw: true })).map((g) => g.id);
+      for (let k = 0; k < ids.length; k += 500) await inPortions(GiveawayEntry, { giveawayId: ids.slice(k, k + 500) });
+    }
+    for (const model of Object.values(sequelize.models)) {
+      if (model.rawAttributes.guildId && model !== GuildSettings) await inPortions(model, { guildId });
+    }
+    await inTransaction((transaction) => GuildSettings.destroy({ where: { guildId }, transaction }));
     purged.push(guildId);
     logger.info(`Server ${guildId}: ${RETENTION_DAYS} days passed since the bot was removed, saved data deleted.`);
   }

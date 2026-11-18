@@ -46,7 +46,7 @@ async function giveaway(settings, { amount, winners, hours }) {
   if (!(await inTransaction((t) => ledger.treasuryTake(guildId, total, t)))) return { error: 'treasury' };
   try {
     const g = await require('../giveaways').startGiveaway({ guild: ch.guild, channel: ch, channelId: ch.id, user: c.user }, {
-      prize: `${fmt(amount)} ${settings.currencyName || 'монет'} из казны сервера`, durationMs: hours * 3600000, winners, reward: { type: 'coins', amount }, channel: ch
+      prize: `${fmt(amount)} ${settings.currencyName || 'монет'} из казны сервера`, durationMs: hours * 3600000, winners, reward: { type: 'coins', amount, source: 'treasury' }, channel: ch
     });
     return { giveaway: g };
   } catch (err) {

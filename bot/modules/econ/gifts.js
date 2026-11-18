@@ -10,15 +10,17 @@ const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I: easy to rea
 const makeCode = () => `DARK-${Array.from({ length: 4 }, () => ALPHABET[crypto.randomInt(ALPHABET.length)]).join('')}-${Array.from({ length: 4 }, () => ALPHABET[crypto.randomInt(ALPHABET.length)]).join('')}`;
 const normalize = (s) => String(s || '').trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
 
-async function createdToday(guildId, userId) {
-  return EconomyGift.count({ where: { guildId, creatorId: userId, createdAt: { [Op.gte]: new Date(`${ledger.day()}T00:00:00Z`) } } });
-}
-
 /** A member's code, paid from his balance. Returns { code } or { error: 'funds' | 'limit' | 'min' }. */
-async function create(guildId, userId, amount, p) {
+function create(guildId, userId, amount, p) {
+  // under the same lock as /pay of this member: the coins he sends today (pay + codes) are counted without a race
+  return require('../../utils/lock').withLock(`pay:${guildId}:${userId}`, () => createNow(guildId, userId, amount, p));
+}
+async function createNow(guildId, userId, amount, p) {
   if (amount < p.minAmount) return { error: 'min' };
-  if ((await createdToday(guildId, userId)) >= p.maxPerDay) return { error: 'limit' };
+  // the count of today's codes is read INSIDE the transaction that makes the new one: two commands at once can't both pass
   return inTransaction(async (t) => {
+    const made = await EconomyGift.count({ where: { guildId, creatorId: userId, createdAt: { [Op.gte]: new Date(`${ledger.day()}T00:00:00Z`) } }, transaction: t });
+    if (made >= p.maxPerDay) return { error: 'limit' };
     if ((await wallet.spend(guildId, userId, 'balance', amount, t)) === null) return { error: 'funds' };
     let code; for (let i = 0; i < 5; i++) { code = makeCode(); if (!(await EconomyGift.findOne({ where: { guildId, code }, transaction: t }))) break; }
     await EconomyGift.create({ guildId, code, amount, creatorId: userId }, { transaction: t });

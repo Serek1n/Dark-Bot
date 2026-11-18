@@ -5,6 +5,7 @@ const { xpForLevel, totalXpForLevel, levelFromXp } = require('./leveling');
 const MAX_XP_PART = totalXpForLevel(500);
 const MAX_MONEY = 1e12;
 const MAX_COUNT = 1e9;
+const MAX_USERS = 200_000; // one file at a time; a bigger export is split
 const num = (v, max) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.max(0, Math.min(max, n)) : 0; };
 
 /**
@@ -15,10 +16,14 @@ const num = (v, max) => { const n = Math.round(Number(v)); return Number.isFinit
  */
 async function importLacuna(guildId, users) {
   if (!Array.isArray(users)) throw new Error('Ожидался массив пользователей');
+  if (users.length > MAX_USERS) throw new Error(`В файле больше ${MAX_USERS.toLocaleString('ru-RU')} записей — разделите его на части.`);
   let imported = 0;
   let skipped = 0;
 
+  let n = 0;
   for (const user of users) {
+    // every 200 members the bot breathes: experience, voice and commands of all servers keep going during a big import
+    if (++n % 200 === 0) await new Promise((r) => setImmediate(r));
     const userId = String(user?._id || '');
     const row = user?.activities?.levels?.find((l) => String(l.guild_id) === String(guildId));
     if (!/^\d{15,25}$/.test(userId) || !row) {

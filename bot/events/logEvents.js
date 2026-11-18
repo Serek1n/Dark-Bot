@@ -468,18 +468,28 @@ on('guildScheduledEventUpdate', async (oldEv, ev) => {
 // A role / nickname / avatar change can only be compared with the old state when the member is cached.
 // After a restart the cache is empty, so members are loaded once for every guild that has the log forum.
 const loaded = new Set();
+// Loading every member of a server is heavy: it is done only on servers up to MEMBERS_CAP members (above that the bot keeps
+// only the members it meets, and the logs and the restore of roles work for them), and a failed load is not repeated every
+// minute — it waits, longer after each failure (5 min, 10, 20 … up to 6 h).
+const MEMBERS_CAP = 25_000;
+const failures = new Map(); // guildId -> { n, until }
 async function loadMembersForLogs(client) {
   for (const guild of client.guilds.cache.values()) {
     if (loaded.has(guild.id)) continue;
+    const f = failures.get(guild.id);
+    if (f && Date.now() < f.until) continue;
+    if ((guild.memberCount || 0) > MEMBERS_CAP) continue;
     // Also where "restore roles on return" is on: a member the bot has not seen since its restart leaves as a bare id,
     // without roles, and nothing could be saved for him.
     const s = await require('../modules/leveling').getOrCreateSettings(guild.id).catch(() => null);
     const restore = !s || (s.restoreOnRejoin !== false && s.restoreOnRejoin !== 0);
     if (!restore && !(await L.getConfig(guild.id))) continue;
     loaded.add(guild.id);
-    await guild.members.fetch().catch((err) => {
+    await guild.members.fetch({ time: 120_000 }).then(() => failures.delete(guild.id)).catch((err) => {
       loaded.delete(guild.id);
-      logger.warn(`Log: could not load members of ${guild.id}: ${err?.message || err}`);
+      const n = (failures.get(guild.id)?.n || 0) + 1;
+      failures.set(guild.id, { n, until: Date.now() + Math.min(6 * 3600_000, 5 * 60_000 * 2 ** (n - 1)) });
+      logger.warn(`Log: could not load members of ${guild.id} (try ${n}): ${err?.message || err}`);
     });
   }
 }

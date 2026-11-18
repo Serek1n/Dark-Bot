@@ -1,5 +1,56 @@
 [
  {
+  "bot": "3.15.1",
+  "panel": "3.25.3",
+  "date": "2026-11-18",
+  "botChanges": [
+   "Розыгрыши: приз не выплачивается дважды; перевыбор переносит монеты, а не печатает новые",
+   "Розыгрыши из казны: невыигранный остаток возвращается в казну",
+   "Магазин: покупка и возврат целиком в одной операции; роль после сбоя выдаётся при запуске",
+   "Магазин: если цена изменилась после открытия товара, покупка не проходит",
+   "Временные роли: сбой Discord не теряет срок, ушедший не вернёт роль навсегда",
+   "Жалобы: два модератора не накажут дважды по одной кнопке",
+   "/pay и подарки: лимит в день не обходится быстрыми повторами",
+   "Тикеты: канал не удаляется, если переписку не удалось сохранить в журнал",
+   "Модерация: бан записывается до действия; ЛС удаляется, если наказать не вышло",
+   "Напоминания и сообщения по расписанию не теряются и не дублируются после сбоя",
+   "Каталог: приглашение проверяется у Discord, премодерация включена по умолчанию",
+   "Нагрузка: загрузка участников ограничена, большие очистки идут частями, Twitch пачками",
+   "Мелочи: автомод, голосовые комнаты, время в голосе, достижения, цели, ежедневка"
+  ],
+  "panelChanges": [
+   "Снятый администратор теряет доступ сразу, даже если Discord не отвечает",
+   "Снять бан или предупреждение в панели можно только с правом на это",
+   "Возврат покупки в панели — одной операцией, без двойного возврата",
+   "Название сообщества в каталоге берётся из Discord",
+   "Страницы апелляций и платформы не сохраняются в кэше браузера"
+  ],
+  "en": {
+   "botChanges": [
+    "Giveaways: a prize is never paid twice; a reroll moves coins instead of printing new ones",
+    "Treasury giveaways: the unwon remainder goes back to the treasury",
+    "Shop: a purchase and a refund are one operation; a role lost to a crash is given on start",
+    "Shop: if the price changed after the item was opened, the purchase does not go through",
+    "Temp roles: a Discord hiccup no longer drops the term; a member who left won't keep it",
+    "Reports: two moderators can't punish twice from the same button",
+    "/pay and gifts: the daily limit can't be bypassed by quick repeats",
+    "Tickets: the channel is kept if the conversation could not be saved to the log",
+    "Moderation: a ban is recorded before the action; the DM is deleted if it failed",
+    "Reminders and scheduled messages are not lost or doubled after a crash",
+    "Catalog: the invite is checked with Discord, pre-moderation is on by default",
+    "Load: member loading is capped, big clean-ups go in parts, Twitch in batches",
+    "Small fixes: automod, voice rooms, voice time, achievements, goals, daily"
+   ],
+   "panelChanges": [
+    "A removed admin loses access at once, even while Discord is not answering",
+    "Lifting a ban or a warning in the panel needs the right to do so",
+    "A refund in the panel is one operation, never twice",
+    "The community name in the catalog comes from Discord",
+    "Appeals and platform pages are not kept in the browser cache"
+   ]
+  }
+ },
+ {
   "bot": "3.15.0",
   "panel": "3.25.2",
   "date": "2026-11-18",

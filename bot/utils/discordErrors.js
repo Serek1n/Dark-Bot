@@ -26,6 +26,15 @@ function errorKey(err) {
   return 'discord';
 }
 
+// The codes by which Discord says "this thing does not exist". Only these mean "gone"; any other failure (429, 5xx, a
+// timeout, a network error) means "could not ask now" and the work is tried again later, never thrown away.
+const GONE = new Set([10003, 10004, 10007, 10008, 10011, 10013, 10015]); // channel, guild, member, message, role, user, webhook
+/** Did Discord answer that the asked thing does not exist (not "could not answer")? */
+function isGone(err) {
+  const code = err?.rawError?.code ?? err?.response?.data?.code ?? (typeof err?.code === 'number' ? err.code : undefined);
+  return GONE.has(code);
+}
+
 const errorText = (keyOrErr) => TEXT[typeof keyOrErr === 'string' ? keyOrErr : errorKey(keyOrErr)] || TEXT.discord;
 
-module.exports = { errorKey, errorText, ERROR_TEXT: TEXT };
+module.exports = { errorKey, errorText, isGone, GONE, ERROR_TEXT: TEXT };

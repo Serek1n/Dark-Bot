@@ -26,34 +26,94 @@ function rewardText(giveaway, settings = {}) {
 
 /**
  * Hands the prize to the winners who have not got it yet. Returns { given: [ids], failed: [ids] }. Never throws.
- * A role is checked at this moment again (it may have got admin rights since the start) and is given for a while when set.
+ * Coins and crystals: the payment and the mark «this one is paid» are ONE transaction, and the list of who is paid is read
+ * inside it — a crash in the middle, a second call at the same time or a restart can never pay a winner twice.
+ * A role is checked at this moment again (it may have got admin rights since the start) and is given for a while when set;
+ * the mark is saved right after each role, not once at the end.
  */
 async function grantRewards(guild, giveaway, winnerIds) {
   const out = { given: [], failed: [] };
   if (!giveaway.rewardType || !winnerIds.length) return out;
-  const done = new Set(parseIds(giveaway.rewarded));
+  const { inTransaction } = require('../../db');
   const role = giveaway.rewardType === 'role' ? guild?.roles?.cache?.get(giveaway.rewardRoleId) : null;
   for (const id of winnerIds) {
-    if (done.has(id)) continue;
     try {
       if (giveaway.rewardType === 'coins' || giveaway.rewardType === 'crystals') {
-        await require('./econ/ledger').give(giveaway.guildId, id, giveaway.rewardType === 'coins' ? 'balance' : 'crystals', giveaway.rewardAmount, 'giveaway', { note: `#${giveaway.id}` });
+        const paid = await inTransaction(async (t) => {
+          const fresh = await Giveaway.findByPk(giveaway.id, { transaction: t });
+          const done = new Set(parseIds(fresh?.rewarded));
+          if (done.has(id)) return false;
+          await require('./econ/ledger').give(giveaway.guildId, id, giveaway.rewardType === 'coins' ? 'balance' : 'crystals', giveaway.rewardAmount, 'giveaway', { note: `#${giveaway.id}` }, t);
+          done.add(id);
+          await fresh.update({ rewarded: JSON.stringify([...done]) }, { transaction: t });
+          giveaway.rewarded = fresh.rewarded;
+          return true;
+        });
+        if (paid) out.given.push(id);
       } else if (giveaway.rewardType === 'role') {
+        if (parseIds(giveaway.rewarded).includes(id)) continue;
         if (!role || !canSelfGive(role, guild)) throw new Error('роль недоступна');
         const member = await guild.members.fetch(id);
         const reason = `Приз розыгрыша №${giveaway.id}`;
         if (giveaway.rewardSeconds > 0) await require('./tempRoles').giveOrExtend(guild, member, role.id, giveaway.rewardSeconds * 1000, `giveaway:${giveaway.id}`, reason);
         else await member.roles.add(role, reason);
-      } else continue;
-      done.add(id); out.given.push(id);
+        giveaway.rewarded = JSON.stringify([...new Set([...parseIds(giveaway.rewarded), id])]);
+        await giveaway.save();
+        out.given.push(id);
+      }
     } catch (err) {
       logger.warn(`Giveaway ${giveaway.id} prize for ${id}: ${err.message}`);
       out.failed.push(id);
     }
   }
-  giveaway.rewarded = JSON.stringify([...done]);
-  await giveaway.save().catch(() => {});
   return out;
+}
+
+/**
+ * A giveaway paid from the treasury took amount × places at the start. The places nobody won (too few entries) go back to
+ * the treasury once, at the end. A winner whose payment failed keeps his place: it is paid on the next start (settleUnpaid).
+ */
+async function refundUnwon(giveaway) {
+  if (giveaway.rewardSource !== 'treasury' || giveaway.rewardType !== 'coins' || giveaway.refunded) return 0;
+  const empty = Math.max(0, Number(giveaway.winnersCount || 0) - parseWinners(giveaway).length);
+  const { inTransaction } = require('../../db');
+  return inTransaction(async (t) => {
+    const fresh = await Giveaway.findByPk(giveaway.id, { transaction: t });
+    if (!fresh || fresh.refunded) return 0;
+    const back = empty * Number(fresh.rewardAmount || 0);
+    if (back > 0) await require('./econ/ledger').treasuryAdd(fresh.guildId, back, t);
+    await fresh.update({ refunded: true }, { transaction: t });
+    giveaway.refunded = true;
+    return back;
+  });
+}
+
+/**
+ * A re-draw of a giveaway with coins or crystals must not print money: the prize of a new winner is taken back from the
+ * winner he replaces. Whoever has already spent it keeps it — and then that place stays without a new prize.
+ * Returns how many prizes may be paid to new winners.
+ */
+async function reclaimForReroll(giveaway, oldWinners = parseWinners(giveaway)) {
+  if (giveaway.rewardType !== 'coins' && giveaway.rewardType !== 'crystals') return Infinity; // roles: nothing is printed
+  const ledger = require('./econ/ledger');
+  const field = giveaway.rewardType === 'coins' ? 'balance' : 'crystals';
+  const paid = parseIds(giveaway.rewarded);
+  const unpaidPlaces = oldWinners.filter((id) => !paid.includes(id)).length;
+  let freed = unpaidPlaces;
+  const { inTransaction } = require('../../db');
+  for (const id of paid) {
+    const ok = await inTransaction(async (t) => {
+      const fresh = await Giveaway.findByPk(giveaway.id, { transaction: t });
+      const list = parseIds(fresh.rewarded);
+      if (!list.includes(id)) return false;
+      if ((await ledger.take(giveaway.guildId, id, field, giveaway.rewardAmount, 'giveaway', { note: `#${giveaway.id}: перевыбор` }, t)) === null) return false;
+      await fresh.update({ rewarded: JSON.stringify(list.filter((x) => x !== id)) }, { transaction: t });
+      giveaway.rewarded = fresh.rewarded;
+      return true;
+    });
+    if (ok) freed++;
+  }
+  return freed;
 }
 const parseWinners = (g) => { try { const v = JSON.parse(g.winners || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
 const unix = (d) => Math.floor(new Date(d).getTime() / 1000);
@@ -98,6 +158,7 @@ function pickWinners(ids, n) {
 }
 
 async function startGiveaway(interaction, { prize, durationMs, winners, roleId, reward = null, channel = null }) {
+  // reward.source 'treasury': the money was already taken from the treasury (bot/modules/econ/treasury.js)
   const target = channel || interaction.channel;
   const giveaway = await Giveaway.create({
     guildId: interaction.guild.id,
@@ -110,7 +171,8 @@ async function startGiveaway(interaction, { prize, durationMs, winners, roleId, 
     rewardType: reward?.type || null,
     rewardAmount: reward?.amount || null,
     rewardRoleId: reward?.roleId || null,
-    rewardSeconds: reward?.seconds || null
+    rewardSeconds: reward?.seconds || null,
+    rewardSource: reward?.source || null
   });
   const settings = reward ? await getOrCreateSettings(interaction.guild.id).catch(() => ({})) : {};
   const message = await target.send({ embeds: [giveawayEmbed(giveaway, { settings })], components: [joinRow(giveaway)], allowedMentions: { parse: [] } });
@@ -129,7 +191,8 @@ async function finishGiveaway(client, giveaway, { reroll = false } = {}) {
     const guild = client.guilds?.cache?.get(giveaway.guildId) || (await client.guilds?.fetch?.(giveaway.guildId).catch(() => null));
     const entries = await GiveawayEntry.findAll({ where: { giveawayId: giveaway.id } });
     let ids = entries.map((e) => e.userId);
-    if (reroll) ids = ids.filter((id) => !parseWinners(giveaway).includes(id));
+    const oldWinners = parseWinners(giveaway);
+    if (reroll) ids = ids.filter((id) => !oldWinners.includes(id));
 
     // Only people who are still on the server (and still have the required role) can win. Entries are drawn in
     // random order and checked one by one until there are enough winners: with thousands of entries only a handful
@@ -137,7 +200,9 @@ async function finishGiveaway(client, giveaway, { reroll = false } = {}) {
     const winnerIds = [];
     for (const id of pickWinners(ids, ids.length)) {
       if (winnerIds.length >= giveaway.winnersCount) break;
-      const member = guild ? await guild.members.fetch(id).catch(() => null) : null;
+      // «left the server» only when Discord says so; a hiccup is asked once more, so a passing error does not cost a win
+      const fetchMember = () => guild.members.fetch(id);
+      const member = guild ? await fetchMember().catch((err) => (require('../utils/discordErrors').isGone(err) ? null : fetchMember().catch(() => null))) : null;
       if (!member) continue;
       if (giveaway.requiredRoleId && !member.roles?.cache?.has?.(giveaway.requiredRoleId)) continue;
       winnerIds.push(id);
@@ -151,7 +216,14 @@ async function finishGiveaway(client, giveaway, { reroll = false } = {}) {
     await giveaway.save();
 
     const settings = giveaway.rewardType ? await getOrCreateSettings(giveaway.guildId).catch(() => ({})) : {};
-    const paid = await grantRewards(guild, giveaway, winnerIds);
+    let payable = winnerIds;
+    if (reroll && winnerIds.length) { // the old winners give the prize back first; only that many new ones are paid
+      const freed = await reclaimForReroll(giveaway, oldWinners).catch((err) => { logger.warn(`Giveaway ${giveaway.id} reroll reclaim: ${err.message}`); return 0; });
+      payable = winnerIds.slice(0, freed);
+    }
+    const paid = await grantRewards(guild, giveaway, payable);
+    paid.notPaid = winnerIds.filter((id) => !payable.includes(id));
+    if (!reroll) await refundUnwon(giveaway).catch((err) => logger.warn(`Giveaway ${giveaway.id} refund: ${err.message}`));
     const channel = await client.channels.fetch(giveaway.channelId).catch(() => null);
     if (channel) {
       const original = giveaway.messageId ? await channel.messages?.fetch?.(giveaway.messageId).catch(() => null) : null;
@@ -161,6 +233,7 @@ async function finishGiveaway(client, giveaway, { reroll = false } = {}) {
         : `Розыгрыш «${giveaway.prize}» закончился без победителя: подходящих участников нет.`;
       if (paid.given.length) text += `\n🎁 Уже начислено: ${rewardText(giveaway, settings)}${paid.given.length < winnerIds.length ? ` (${paid.given.map((id) => `<@${id}>`).join(', ')})` : ''}.`;
       if (paid.failed.length) text += `\n⚠️ Не удалось выдать приз: ${paid.failed.map((id) => `<@${id}>`).join(', ')} — администрация выдаст вручную.`;
+      if (paid.notPaid.length) text += `\nℹ️ Без приза: ${paid.notPaid.map((id) => `<@${id}>`).join(', ')} — прежний победитель уже потратил его, а новых монет перевыбор не создаёт.`;
       await channel.send({ content: text, allowedMentions: { users: winnerIds }, reply: original ? { messageReference: original.id, failIfNotExists: false } : undefined }).catch(() => {});
     }
     return winnerIds;
@@ -239,6 +312,7 @@ async function settleUnpaid(client) {
   const rows = await Giveaway.findAll({ where: { ended: true, rewardType: { [Op.ne]: null }, endsAt: { [Op.gte]: new Date(Date.now() - 24 * 3600 * 1000) } }, limit: 100 });
   for (const g of rows) {
     const winners = parseIds(g.winners); const paid = new Set(parseIds(g.rewarded));
+    if (g.rewardSource === 'treasury' && !g.refunded) await refundUnwon(g).catch(() => {}); // stopped before the refund
     if (!winners.length || winners.every((id) => paid.has(id))) continue;
     const guild = client.guilds.cache.get(g.guildId);
     if (!guild) continue;
@@ -246,4 +320,4 @@ async function settleUnpaid(client) {
   }
 }
 
-module.exports = { settleUnpaid, startGiveaway, finishGiveaway, giveawayEmbed, grantRewards, rewardText, pickWinners, isGiveawayButton, handleGiveawayButton, startGiveawayScheduler, tick, parseWinners };
+module.exports = { settleUnpaid, refundUnwon, reclaimForReroll, startGiveaway, finishGiveaway, giveawayEmbed, grantRewards, rewardText, pickWinners, isGiveawayButton, handleGiveawayButton, startGiveawayScheduler, tick, parseWinners };

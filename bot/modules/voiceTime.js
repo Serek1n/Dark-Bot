@@ -153,18 +153,22 @@ async function xpTick(client) {
 /** Saves time of everyone currently in voice and restarts their windows (so a restart loses < 5 min). */
 async function flushAll(client = null) {
   const now = Date.now();
-  const entries = [];
+  const entries = []; const done = [];
   for (const [k, started] of [...sessions]) {
     const [guildId, userId] = k.split(':');
     // A missed "left voice" event (gateway reconnect, the bot removed from the server) must not count forever:
     // whoever is no longer in a voice channel gets this last window and the session is closed.
     const guild = client?.guilds?.cache?.get(guildId);
     const stillIn = !client || Boolean(guild?.voiceStates?.cache?.get(userId)?.channelId);
-    if (stillIn) sessions.set(k, now);
-    else sessions.delete(k);
+    done.push([k, started, stillIn]);
     entries.push([guildId, userId, Math.floor((now - started) / 1000)]);
   }
+  // the windows restart only AFTER the time is written: a failed write keeps them, and the next flush saves the whole time
   await addSecondsBatch(entries);
+  for (const [k, started, stillIn] of done) {
+    if (sessions.get(k) !== started) continue; // the member left or rejoined meanwhile: that event already handled his window
+    if (stillIn) sessions.set(k, now); else sessions.delete(k);
+  }
 }
 
 /** Live (unsaved) seconds of a currently connected member, to show up-to-date numbers. */

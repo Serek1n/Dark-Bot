@@ -53,7 +53,7 @@ async function ownHooks(guildId) {
 // Previews show pictures from the links typed in the editor: this page alone may load images from any https address.
 function previewImages(req, res, next) {
   const csp = res.get('Content-Security-Policy');
-  if (csp) res.set('Content-Security-Policy', csp.replace("img-src 'self' https://cdn.discordapp.com data:", "img-src 'self' https: data:"));
+  if (csp) res.set('Content-Security-Policy', csp.replace(/img-src [^;]*/, "img-src 'self' https: data:"));
   next();
 }
 

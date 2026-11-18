@@ -29,6 +29,11 @@ async function sentToday(guildId, userId) {
  *   { ok: false, reason: 'funds' | 'limit', left }.
  */
 async function pay(settings, guildId, sender, receiver, field, amount) {
+  // one transfer of a sender at a time: the daily limit is read and the money moves without another /pay of his in between
+  // (two commands sent at once can no longer both pass the limit)
+  return require('../../utils/lock').withLock(`pay:${guildId}:${sender.id}`, () => payNow(settings, guildId, sender, receiver, field, amount));
+}
+async function payNow(settings, guildId, sender, receiver, field, amount) {
   const coins = field === 'balance';
   const protect = config.isOn(settings, 'protect') ? config.params(settings, 'protect') : null;
   const tax = coins && config.isOn(settings, 'treasury') ? ledger.percent(amount, config.params(settings, 'treasury').payTax) : 0;

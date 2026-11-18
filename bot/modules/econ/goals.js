@@ -107,15 +107,22 @@ async function contribute(guildId, goalId, userId, amount) {
 
 /** The goal is reached: do its action and tell everyone. */
 async function complete(goal, settings) {
-  const [changed] = await EconomyGoal.update({ status: 'done' }, { where: { id: goal.id, status: 'open' } });
+  // «done» and the boost of experience in ONE transaction: a stop in between can no longer close the goal without its boost
+  const boost = goal.action === 'boost' && goal.boostMult > 1 && goal.boostHours > 0;
+  const changed = await require('../../../db').inTransaction(async (t) => {
+    const [n] = await EconomyGoal.update({ status: 'done' }, { where: { id: goal.id, status: 'open' }, transaction: t });
+    if (!n) return 0;
+    if (boost) {
+      const fresh = await GuildSettings.findOne({ where: { guildId: goal.guildId }, attributes: ['guildId', 'xpBoostUntil', 'xpBoostMult'], transaction: t });
+      const from = fresh?.xpBoostUntil && new Date(fresh.xpBoostUntil) > new Date() ? new Date(fresh.xpBoostUntil) : new Date();
+      const until = new Date(from.getTime() + goal.boostHours * 3600000);
+      await GuildSettings.update({ xpBoostUntil: until, xpBoostMult: Math.max(goal.boostMult, Number(fresh?.xpBoostMult) || 1) }, { where: { guildId: goal.guildId }, transaction: t });
+    }
+    return n;
+  });
   if (!changed) return;
   goal.status = 'done';
-  if (goal.action === 'boost' && goal.boostMult > 1 && goal.boostHours > 0) {
-    const from = settings.xpBoostUntil && new Date(settings.xpBoostUntil) > new Date() ? new Date(settings.xpBoostUntil) : new Date();
-    const until = new Date(from.getTime() + goal.boostHours * 3600000);
-    await GuildSettings.update({ xpBoostUntil: until, xpBoostMult: Math.max(goal.boostMult, Number(settings.xpBoostMult) || 1) }, { where: { guildId: goal.guildId } });
-    require('../../../web/botBridge').settingsChanged?.(goal.guildId);
-  }
+  if (boost) require('../../../web/botBridge').settingsChanged?.(goal.guildId);
   let given = 0;
   if (goal.action === 'role' && goal.roleId) {
     const c = require('../../../web/botBridge').getClient?.();

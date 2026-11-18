@@ -75,7 +75,7 @@ const G = '777000000000000001';
     await gw.finishGiveaway(client, g); assert.strictEqual(await bal('A'), 1000, 'not twice');
   });
 
-  await test('reroll: new winners get the prize, the old ones are never paid twice', async () => {
+  await test('reroll: the prize moves to the new winner (taken back from the old one), no coins are created', async () => {
     await start({ reward: 'crystals', reward_amount: 5 });
     const g = await db.Giveaway.findOne({ where: { rewardType: 'crystals' } });
     await enter(g, ['C', 'D']);
@@ -83,8 +83,8 @@ const G = '777000000000000001';
     const second = await gw.finishGiveaway(client, g, { reroll: true });
     assert(first.length === 1 && second.length === 1 && first[0] !== second[0]);
     const cr = async (id) => (await db.MemberProfile.findOne({ where: { guildId: G, userId: id } })).crystals;
-    assert(await cr('C') === 5 && await cr('D') === 5, 'each got it once');
-    await g.reload(); assert.deepStrictEqual(JSON.parse(g.rewarded).sort(), ['C', 'D']);
+    assert(await cr(first[0]) === 0 && await cr(second[0]) === 5, 'moved, not doubled');
+    await g.reload(); assert.deepStrictEqual(JSON.parse(g.rewarded), [second[0]]);
   });
 
   await test('a role for a while: given and put on a term; a role that got admin rights meanwhile is not given', async () => {

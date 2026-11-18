@@ -128,7 +128,8 @@ module.exports = {
     if (!giveaway.ended) return deny('Розыгрыш ещё идёт. Сначала закончите его: `/giveaway end`.');
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const winners = await finishGiveaway(interaction.client, giveaway, { reroll: true });
-    const kept = giveaway.rewardType ? ' Прежним победителям выданный приз остаётся, новым он начислен.' : '';
+    const kept = giveaway.rewardType === 'role' ? ' Прежним победителям роль остаётся, новым она выдана.'
+      : giveaway.rewardType ? ' Приз переходит к новым победителям: у прежних он забран (кто уже потратил — у того остаётся, и его место остаётся без приза).' : '';
     return interaction.editReply({ embeds: [winners?.length ? embeds.success(`Новые победители: ${winners.map((id) => `<@${id}>`).join(', ')}.${kept}`) : embeds.info('Больше нет подходящих участников.')], allowedMentions: { parse: [] } });
   }
 };

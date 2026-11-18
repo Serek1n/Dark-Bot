@@ -42,6 +42,16 @@ async function ensureGuildAccess(req, res, next) {
   if (!guild || !hasManageAccess(guild)) {
     return res.status(403).render('error', { message: 'У вас нет прав администратора на этом сервере.' });
   }
+  // Discord's list of the user's servers could not be refreshed just now (it is kept up to an hour): the bot itself, which
+  // is on that server, checks the member's rights right now — an admin who lost the role does not keep the panel meanwhile.
+  if (Date.now() - (Number(req.user.guildsOkAt) || 0) > 2 * 60 * 1000) {
+    const g = require('../botBridge').getClient?.()?.guilds?.cache?.get(guildId);
+    if (g && g.ownerId !== req.user.id) {
+      const m = await g.members.fetch(req.user.id).catch((err) => (require('../../bot/utils/discordErrors').isGone(err) ? null : undefined));
+      const ok = m === undefined || Boolean(m?.permissions?.has?.('Administrator') || m?.permissions?.has?.('ManageGuild'));
+      if (!ok) return res.status(403).render('error', { message: 'У вас нет прав администратора на этом сервере.' });
+    }
+  }
 
   const botGuildIds = await getBotGuildIds();
   if (!botGuildIds.has(guildId)) {

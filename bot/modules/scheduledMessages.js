@@ -120,12 +120,12 @@ function describeRule(rule) {
 const parse = (v, fallback) => { try { const x = JSON.parse(v); return x && typeof x === 'object' ? x : fallback; } catch { return fallback; } };
 
 /** Sends one schedule entry now (also the "Отправить тест" button). Throws on failure. */
-async function sendEntry(entry, { everyoneOk = true } = {}) {
+async function sendEntry(entry, { everyoneOk = true, nonce = null } = {}) {
   const { decrypt } = require('../../db/crypto');
   const target = parse(entry.target, {});
   const to = await kit.resolveTarget(entry.guildId, target, { webhookUrl: entry.webhookUrl ? decrypt(entry.webhookUrl) : null });
   const msg = kit.cleanMessage(parse(entry.data, {}));
-  return kit.deliver(to, msg, { canEveryone: Boolean(entry.canEveryone) && everyoneOk, guildId: entry.guildId });
+  return kit.deliver(to, msg, { canEveryone: Boolean(entry.canEveryone) && everyoneOk, guildId: entry.guildId, nonce });
 }
 
 async function tick() {
@@ -133,16 +133,19 @@ async function tick() {
   const now = Date.now();
   const due = await ScheduledMessage.findAll({ where: { enabled: true, nextRunAt: { [Op.lte]: new Date(now) } }, order: [['nextRunAt', 'ASC']], limit: 25 });
   for (const entry of due) {
-    // the next time is saved BEFORE sending: a slow or failing send never posts the same message twice
-    const next = nextRun(parse(entry.rule, null), entry.timezone || DEFAULT_TZ, Math.max(now, new Date(entry.nextRunAt).getTime()));
-    await entry.update({ nextRunAt: next ? new Date(next) : null, enabled: Boolean(next), lastRunAt: new Date(now) });
+    // Sent FIRST, the next time saved after: a stop in between sends this one again on start instead of losing it, and the
+    // nonce (one per run) makes Discord drop that second copy if the first one did go out. A failure moves on to the next
+    // time as well — a message that can't be delivered is not retried every minute.
+    const runAt = new Date(entry.nextRunAt).getTime();
+    const next = nextRun(parse(entry.rule, null), entry.timezone || DEFAULT_TZ, Math.max(now, runAt));
+    const advance = { nextRunAt: next ? new Date(next) : null, enabled: Boolean(next), lastRunAt: new Date(now) };
     try {
-      await sendEntry(entry);
-      await entry.update({ runs: (entry.runs || 0) + 1, lastError: null });
+      await sendEntry(entry, { nonce: `s${entry.id}.${Math.floor(runAt / 1000).toString(36)}`.slice(0, 25) });
+      await entry.update({ ...advance, runs: (entry.runs || 0) + 1, lastError: null });
     } catch (err) {
       const text = kit.errorText(err);
       logger.warn(`Scheduled message ${entry.id} (${entry.guildId}) failed: ${err?.response?.data?.message || err.message}`);
-      await entry.update({ lastError: text.slice(0, 250), ...(kit.isGone(err) ? { enabled: false } : {}) }).catch(() => {});
+      await entry.update({ ...advance, lastError: text.slice(0, 250), ...(kit.isGone(err) ? { enabled: false } : {}) }).catch(() => {});
     }
   }
 }

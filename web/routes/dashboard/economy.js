@@ -52,12 +52,16 @@ router.post('/:guildId/economy/grant', ensureGuildAccess, async (req, res) => {
   const problem = await require('../../utils/members').memberProblem(guildId, userId);
   if (problem) return res.redirect(saved(guildId, 'economy', problem));
   await MemberProfile.findOrCreate({ where: { guildId, userId } });
-  const before = await MemberProfile.findOne({ where: { guildId, userId }, attributes: [field] });
-  // One SQL statement: the bot may pay out coins in the same second, and a read-then-write here would lose one of the two changes.
-  await MemberProfile.update({ [field]: sequelize.literal(`MAX(0, COALESCE(${field}, 0) + ${amount})`) }, { where: { guildId, userId } });
-  // the journal gets the real change: taking more than there is stops at zero
-  const change = amount < 0 ? -Math.min(-amount, Number(before?.[field]) || 0) : amount;
-  await ledger.record({ guildId, userId, currency: field === 'crystals' ? 'crystals' : 'coins', amount: change, kind: 'admin', otherId: req.user?.id || null, note: 'Панель' }).catch(() => {});
+  // ONE transaction: the balance before, the change (never below zero) and the journal line with the real change — the line
+  // can no longer disagree with what happened, and a failure leaves neither of them
+  await require('../../../db').inTransaction(async (t) => {
+    const before = await MemberProfile.findOne({ where: { guildId, userId }, attributes: [field], transaction: t });
+    const was = Number(before?.[field]) || 0;
+    const change = amount < 0 ? -Math.min(-amount, was) : amount;
+    if (!change) return;
+    await MemberProfile.update({ [field]: sequelize.literal(`MAX(0, COALESCE(${field}, 0) + ${change})`) }, { where: { guildId, userId }, transaction: t });
+    await ledger.record({ guildId, userId, currency: field === 'crystals' ? 'crystals' : 'coins', amount: change, kind: 'admin', otherId: req.user?.id || null, note: 'Панель' }, t);
+  });
   res.redirect(saved(guildId, 'economy', 'granted'));
 });
 

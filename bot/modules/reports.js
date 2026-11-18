@@ -80,23 +80,30 @@ async function handleReportComponent(i) {
   const settings = await getOrCreateSettings(i.guildId);
   const reason = `Жалоба #${r.id}: ${CATEGORIES[r.category] || ''}${r.reason ? ' — ' + r.reason : ''}`.slice(0, 450);
   let decision = 'Отклонена';
+  if (action === 'mute' && !MUTES.find(([v]) => v === (i.values || [])[0])) return deny('Выберите срок мута.');
+  // The report is taken in ONE statement («processing» only if it is still open): two moderators pressing at once, or a
+  // double click, can no longer punish twice. Anything that stops the action gives the report back to «open».
+  const [claimed] = await Report.update({ status: 'processing' }, { where: { id: r.id, status: 'open' } });
+  if (!claimed) return deny('Эту жалобу уже разбирает другой модератор или её закрыли.');
+  const release = () => Report.update({ status: 'open' }, { where: { id: r.id, status: 'processing' } }).catch(() => {});
+  const deny2 = async (t) => { await release(); return deny(t); };
   try {
     if (action !== 'ignore') {
       const target = await i.guild.members.fetch(r.targetId).catch(() => null);
       const hErr = target && hierarchyError(i.member, target);
-      if (hErr) return deny(hErr);
+      if (hErr) return deny2(hErr);
       if (action === 'warn') { const user = target?.user || (await i.client.users.fetch(r.targetId)); await mod.warnMember(i.guild, user, { moderatorId: i.user.id, reason, settings }); decision = 'Предупреждение'; }
       if (action === 'mute') {
         const m = MUTES.find(([v]) => v === (i.values || [])[0]);
-        if (!m || !target) return deny('Участника нет на сервере или срок не выбран.');
+        if (!m || !target) return deny2('Участника нет на сервере или срок не выбран.');
         await mod.muteMember(i.guild, target, m[1], { moderatorId: i.user.id, reason, settings }); decision = `Мут на ${m[2]}`;
       }
-      if (action === 'kick') { if (!target) return deny('Участника уже нет на сервере.'); await mod.kickMember(i.guild, target, { moderatorId: i.user.id, reason, settings }); decision = 'Кик'; }
+      if (action === 'kick') { if (!target) return deny2('Участника уже нет на сервере.'); await mod.kickMember(i.guild, target, { moderatorId: i.user.id, reason, settings }); decision = 'Кик'; }
       if (action === 'ban') { await mod.banUser(i.guild, r.targetId, { moderatorId: i.user.id, reason, settings }); decision = 'Бан'; }
     }
   } catch (err) {
     logger.warn(`Report action ${action} failed: ${err.message}`);
-    return deny(`Не получилось: ${err.message}`);
+    return deny2(`Не получилось: ${err.message}`);
   }
   await r.update({ status: action === 'ignore' ? 'ignored' : 'done', decision, handledBy: i.user.id });
   return i.update({ embeds: [reportEmbed(r)], components: reportComponents(r), allowedMentions: { parse: [] } });
@@ -127,4 +134,9 @@ async function refreshReportMessage(r) {
   return true;
 }
 
-module.exports = { PREFIX, CATEGORIES, MUTES, fileReport, reportEmbed, reportComponents, isReportComponent, handleReportComponent, joinAlert, refreshReportMessage };
+/** On start: a report left «processing» by a stop in the middle of a decision goes back to the moderators. */
+async function releaseStuck() {
+  await Report.update({ status: 'open' }, { where: { status: 'processing' } }).catch(() => {});
+}
+
+module.exports = { releaseStuck, PREFIX, CATEGORIES, MUTES, fileReport, reportEmbed, reportComponents, isReportComponent, handleReportComponent, joinAlert, refreshReportMessage };

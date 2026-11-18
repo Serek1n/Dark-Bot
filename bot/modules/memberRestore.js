@@ -77,9 +77,13 @@ async function restoreMember(member) {
     const have = new Set([...(member.roles?.cache?.keys?.() || [])]);
     const allowStaff = Boolean(settings?.restoreStaffRoles);
     const given = []; const skipped = [];
+    // roles on a term: one whose term ended while he was away is not given back (it would become a role for good)
+    const terms = new Map((await require('../../db').TempRole.findAll({ where: key }).catch(() => [])).map((t) => [t.roleId, t]));
     for (const id of parseIds(snap.roleIds)) {
       const role = guild.roles.cache.get(id);
       if (!role || id === guild.id || have.has(id)) continue; // deleted since, or already given (autorole)
+      const term = terms.get(id);
+      if (term && new Date(term.expiresAt).getTime() <= Date.now()) { await term.destroy().catch(() => {}); continue; }
       if (role.managed || role.position >= top || (!allowStaff && isStaffRole(role))) { skipped.push(id); continue; }
       given.push(id);
     }

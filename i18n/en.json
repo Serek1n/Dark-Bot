@@ -4481,5 +4481,22 @@
  "Предпросмотр панели": "Panel preview",
  "Поздравление — в рамке⟦0⟧⟦1⟧Выключите, чтобы бот писал обычным сообщением (тогда ⟦2⟧{user}⟦3⟧ упомянет участника). Картинка-карточка и цвета — в разделе ⟦4⟧Оформление⟦5⟧.": "Congratulation — in a frame⟦0⟧⟦1⟧Switch it off to have the bot write an ordinary message (then ⟦2⟧{user}⟦3⟧ mentions the member). The picture card and colours are in ⟦4⟧Appearance⟦5⟧.",
  "Сохранено — панель комнаты на сервере обновлена": "Saved — the room panel on the server is updated",
- "Можно включить оба: значки на кнопках и строка с их названиями. Хотя бы одно должно остаться.": "Both can be on: icons on the buttons and a line with their names. At least one has to stay."
+ "Можно включить оба: значки на кнопках и строка с их названиями. Хотя бы одно должно остаться.": "Both can be on: icons on the buttons and a line with their names. At least one has to stay.",
+ "Название и значок берутся из Discord, а приглашение проверяется: оно должно вести именно на этот сервер.": "The name and icon come from Discord, and the invite is checked: it must lead to this very server.",
+ " Прежним победителям роль остаётся, новым она выдана.": " Previous winners keep the role; the new ones have been given it.",
+ " Приз переходит к новым победителям: у прежних он забран (кто уже потратил — у того остаётся, и его место остаётся без приза).": " The prize moves to the new winners: it was taken back from the previous ones (whoever already spent it keeps it, and that place stays without a prize).",
+ "Это приглашение недействительно или истекло. Создайте в Discord бессрочное приглашение и вставьте его.": "This invite is invalid or has expired. Create a never-expiring invite in Discord and paste it.",
+ "Не удалось проверить приглашение у Discord. Попробуйте ещё раз через минуту.": "Couldn't check the invite with Discord. Try again in a minute.",
+ "Приглашение ведёт на другой сервер. Вставьте приглашение именно на этот сервер.": "The invite leads to another server. Paste an invite to this server.",
+ "#{0}: перевыбор": "#{0}: reroll",
+ "\nℹ️ Без приза: {0} — прежний победитель уже потратил его, а новых монет перевыбор не создаёт.": "\nℹ️ No prize: {0} — the previous winner already spent it, and a reroll doesn't create new coins.",
+ "В файле больше {0} записей — разделите его на части.": "The file has more than {0} entries — split it into parts.",
+ "Выберите срок мута.": "Choose the mute duration.",
+ "Эту жалобу уже разбирает другой модератор или её закрыли.": "Another moderator is already handling this report, or it has been closed.",
+ "Цена изменилась: теперь {0} {1}. Откройте товар заново.": "The price has changed: it is now {0} {1}. Open the item again.",
+ "роль не выдана": "role not given",
+ "не удалось выдать": "could not be given",
+ "выдаётся": "being delivered",
+ "Не удалось сохранить переписку в журнал обращений, поэтому канал не удалён. Сохраните нужное и удалите канал вручную.": "Couldn't save the conversation to the ticket log, so the channel was not deleted. Save what you need and delete the channel manually.",
+ "возврат в панели": "refund in the panel"
 }

@@ -6,9 +6,17 @@ const crypto = require('crypto');
 
 const PREFIX = 'enc:v1:';
 
+const warned = new Set();
+function warnOnce(what, text) {
+  if (warned.has(what)) return;
+  warned.add(what);
+  console.warn('[crypto] ' + text);
+}
+
 function key() {
   const secret = process.env.DATA_KEY || process.env.SESSION_SECRET;
-  if (!secret || secret.length < 16) return null;
+  if (!secret || secret.length < 16) { warnOnce('nokey', 'DATA_KEY/SESSION_SECRET is missing or shorter than 16 characters: secrets are kept unencrypted.'); return null; }
+  if (!process.env.DATA_KEY) warnOnce('fallback', 'DATA_KEY is not set: SESSION_SECRET is used as the key. Changing SESSION_SECRET will make saved secrets unreadable; set DATA_KEY to the same value to keep them.');
   return crypto.createHash('sha256').update('dark-bot:data:v1:' + secret).digest();
 }
 
@@ -29,13 +37,14 @@ function encrypt(value) {
 function decrypt(value) {
   if (!isEncrypted(value)) return value;
   const k = key();
-  if (!k) return null;
+  if (!k) { warnOnce('nodecrypt', 'an encrypted secret cannot be read: no key is set.'); return null; }
   try {
     const raw = Buffer.from(value.slice(PREFIX.length), 'base64');
     const decipher = crypto.createDecipheriv('aes-256-gcm', k, raw.subarray(0, 12));
     decipher.setAuthTag(raw.subarray(12, 28));
     return Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString('utf8');
   } catch {
+    warnOnce('badkey', 'an encrypted secret cannot be read (another key or damaged value): reconnect it in the panel.');
     return null;
   }
 }

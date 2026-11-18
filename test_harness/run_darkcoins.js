@@ -28,6 +28,8 @@ fs.mkdirSync('./data', { recursive: true });
   const idAt = (msAgo) => String(BigInt(Date.now() - msAgo - 1420070400000) << 22n);
   const NEW = idAt(2 * 86400000); // two days old
   const G = '800000000000000001';
+  cm.verifyInvite = async () => ({ name: null }); // no Discord here: every invite leads to its own server
+  await cm.setPlatform(OWNER, { premoderation: false }); // these tests publish at once
   const later = (h) => new Date(Date.now() + h * 3600000);
 
   // a fake bot: who is on the server

@@ -76,7 +76,7 @@ app.use((req, res, next) => {
   });
   if (httpsSite) res.set('Strict-Transport-Security', 'max-age=31536000'); // the browser stays on https for a year
   // Pages of the panel hold private data (webhook links, member lists): never kept in a shared or browser cache, never shown by "Back" after logout.
-  if (req.path.startsWith('/dashboard') || req.path.startsWith('/auth')) res.set({ 'Cache-Control': 'no-store', Pragma: 'no-cache' });
+  if (/^\/(dashboard|auth|appeals|platform)(\/|$)/.test(req.path)) res.set({ 'Cache-Control': 'no-store', Pragma: 'no-cache' });
   next();
 });
 

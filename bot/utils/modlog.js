@@ -46,7 +46,12 @@ function caseEmbed(entry) {
 /** Records the action as a case and publishes it to the "Логи" forum and the classic mod-log channel. Returns the case. */
 async function recordAndAnnounce(guild, { userId, moderatorId, action, reason, duration = null, expiresAt = null, active = false }) {
   const entry = await createCase(guild.id, { userId, moderatorId, action, reason: String(reason || 'Без причины').slice(0, 1000), duration, expiresAt, active });
+  return announceCase(guild, entry);
+}
 
+/** Announces a case already written (the journal forum and the mod-log channel). */
+async function announceCase(guild, entry) {
+  const userId = entry.userId; const action = entry.action;
   // Tell the Discord-event log that this action is already known (a ban would be logged twice otherwise).
   serverLog.markReported(guild.id, userId, action);
 
@@ -62,4 +67,4 @@ async function recordAndAnnounce(guild, { userId, moderatorId, action, reason, d
   return entry;
 }
 
-module.exports = { recordAndAnnounce, createCase, caseEmbed, LABELS };
+module.exports = { recordAndAnnounce, announceCase, createCase, caseEmbed, LABELS };

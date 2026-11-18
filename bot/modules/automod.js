@@ -257,6 +257,7 @@ async function logModAction(guildId, userId, moderatorId, action, reason) {
  * What happens after a rule was broken: the message is deleted, then (by the server's choice)
  * the author is only noted, warned (which can escalate by the warning thresholds) or muted.
  */
+const lastLogged = new Map(); // guildId:userId -> when the last case of a deleted message was written
 async function handleViolation(settings, message, reason, ruleKey = null) {
   const guild = message.guild;
   const author = message.author;
@@ -287,7 +288,10 @@ async function handleViolation(settings, message, reason, ruleKey = null) {
       // the case says the mute did NOT happen, and why
       await recordAndAnnounce(guild, { userId: author.id, moderatorId: botId, action: 'automod', reason: `${reason} · ${mod.punishmentName('mute', ms)} не выдан: ${err.message}`.slice(0, 900) });
     }
-  } else {
+  } else if (now - (lastLogged.get(key) || 0) >= ACTION_COOLDOWN) {
+    // a case for a deleted message — but not one per message: a spammer within the pause makes one case, not dozens
+    if (lastLogged.size > 5000) lastLogged.clear();
+    lastLogged.set(key, now);
     await recordAndAnnounce(guild, { userId: author.id, moderatorId: botId, action: 'automod', reason });
   }
 

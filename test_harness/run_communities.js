@@ -47,12 +47,17 @@ fs.mkdirSync('./data', { recursive: true });
     assert(await coins.balanceOf(U) === 0, 'zero, not negative');
   });
 
+  // Discord is asked about an invite; here it answers that every invite «abc…» leads to the server it is saved for
+  cm.verifyInvite = async (url, guildId) => { if (/other/i.test(url)) throw new cm.CommunityError('Приглашение ведёт на другой сервер.'); void guildId; return { name: null }; };
   let c1;
   await test('listing: invite, banner host, categories and texts are checked; a new one is published (or waits with pre-moderation)', async () => {
     await fails(() => cm.save('800000000000000001', ADMIN, form(1, { inviteUrl: 'https://evil.com/x' })), /discord\.gg/);
     await fails(() => cm.save('800000000000000001', ADMIN, form(1, { bannerUrl: 'https://evil.com/b.png' })), /Баннер/);
     await fails(() => cm.save('800000000000000001', ADMIN, form(1, { categories: [] })), /категорию/);
     await fails(() => cm.save('800000000000000001', ADMIN, form(1, { shortDesc: 'коротко' })), /10 символов/);
+    assert((await cm.platform()).premoderation === true, 'pre-moderation is on until the owner switches it off');
+    await fails(() => cm.save('800000000000000001', ADMIN, form(1, { inviteUrl: 'https://discord.gg/other1' })), /другой сервер/);
+    await cm.setPlatform(OWNER, { premoderation: false });
     c1 = await cm.save('800000000000000001', ADMIN, form(1, { inviteUrl: 'discord.com/invite/Abc-1', categories: ['gaming', 'music', 'art', 'tech'] }));
     assert(c1.status === 'published' && c1.inviteUrl === 'https://discord.gg/Abc-1' && c1.categories === 'gaming,music,art', JSON.stringify(c1));
     await fails(() => cm.setPlatform(ADMIN, { premoderation: true }), /владелец/);

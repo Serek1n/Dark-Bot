@@ -72,7 +72,8 @@ async function platform() {
   const o = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   const prices = {};
   for (const [k, p] of Object.entries(PROMOS)) prices[k] = Math.max(1, Number(o[`price_${k}`]) || p.def);
-  return { prices, premoderation: o.premoderation === '1' };
+  // pre-moderation is ON until the platform owner switches it off: a new listing waits for a look before it is shown
+  return { prices, premoderation: o.premoderation !== '0' };
 }
 async function setPlatform(actorId, { prices = {}, premoderation }) {
   if (!coins().isPlatformOwner(actorId)) throw new CommunityError('Это может только владелец платформы.');
@@ -98,7 +99,8 @@ function cleanBanner(v) {
   if (!s) return null;
   let u; try { u = new URL(s); } catch { throw new CommunityError('Ссылка на баннер некорректна.'); }
   if (u.protocol !== 'https:' || !BANNER_HOSTS.includes(u.hostname) || s.length > 300) throw new CommunityError(`Баннер — картинка по https с ${BANNER_HOSTS.join(', ')}.`);
-  return s;
+  // the link goes into a CSS url(''): quotes, brackets, backslashes and spaces are percent-encoded so it cannot close it
+  return u.href.replace(/['"()\\\s]/g, (ch) => '%' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
 }
 
 /** Fields of a listing from a form, checked. */
@@ -114,10 +116,34 @@ function cleanFields(b) {
   return { name, shortDesc, description, categories: cats.join(','), tags: tags.join(','), inviteUrl: cleanInvite(b.inviteUrl), bannerUrl: cleanBanner(b.bannerUrl) };
 }
 
+/**
+ * The invite is asked from Discord: it must lead to THIS server (an admin of one server can no longer list his card with a
+ * link to another one). Returns { name } — the server's real name from Discord, or null when Discord did not give it.
+ * Throws a CommunityError a person can act on.
+ */
+async function verifyInvite(inviteUrl, guildId) {
+  const code = /\/([A-Za-z0-9-]{2,32})$/.exec(inviteUrl)?.[1];
+  let inv = null;
+  try {
+    const c = client();
+    if (c?.fetchInvite) { const x = await c.fetchInvite(code); inv = { guildId: x?.guild?.id || x?.guildId || null, name: x?.guild?.name || null }; } else {
+      const { data } = await require('../../web/discordApi').botApi.get(`/invites/${code}`);
+      inv = { guildId: data?.guild?.id || data?.guild_id || null, name: data?.guild?.name || null };
+    }
+  } catch (err) {
+    const gone = require('../utils/discordErrors').isGone(err) || err?.code === 10006 || err?.rawError?.code === 10006 || err?.response?.data?.code === 10006;
+    throw new CommunityError(gone ? 'Это приглашение недействительно или истекло. Создайте в Discord бессрочное приглашение и вставьте его.' : 'Не удалось проверить приглашение у Discord. Попробуйте ещё раз через минуту.');
+  }
+  if (!inv?.guildId || inv.guildId !== String(guildId)) throw new CommunityError('Приглашение ведёт на другой сервер. Вставьте приглашение именно на этот сервер.');
+  return { name: inv.name };
+}
+
 /** Adds or updates the server's listing. A blocked one stays blocked; with pre-moderation a new one waits. */
 async function save(guildId, userId, body) {
   const { Community } = db();
   const fields = cleanFields(body);
+  const real = await api.verifyInvite(fields.inviteUrl, guildId);
+  if (real.name) fields.name = real.name.slice(0, 60); // the name comes from Discord, like the icon
   const g = client()?.guilds?.cache?.get(String(guildId));
   const live = g ? { iconHash: g.icon || null, memberCount: g.memberCount || 0 } : {};
   const row = await Community.findOne({ where: { guildId: String(guildId) } });
@@ -337,7 +363,8 @@ async function statsOf(communityId) {
   return { series, promotions };
 }
 
-module.exports = {
+const api = module.exports = {
+  verifyInvite,
   CommunityError, CATEGORIES, CATEGORY, icon, hue, PROMOS, DAYS, SORTS, PER_PAGE, BANNER_HOSTS, VOTE_EVERY,
   platform, setPlatform, cleanFields, cleanInvite, save, setVisible, remove, moderate, activePromos, buy, view, click, joinIntent, vote, report, catalog, one, statsOf, iconUrl, accountAge, listOf
 };

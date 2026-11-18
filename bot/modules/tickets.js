@@ -87,22 +87,26 @@ async function openTicket(interaction) {
   });
 }
 
+// Returns the lines, and lines.complete = false when Discord could not be read (then the channel must not be deleted).
 async function transcriptOf(channel) {
   const lines = [];
-  let before;
+  let before; let complete = true;
   for (let page = 0; page < 5; page++) { // up to 500 latest messages
-    const batch = await channel.messages.fetch({ limit: 100, ...(before ? { before } : {}) }).catch(() => null);
+    let batch;
+    try { batch = await channel.messages.fetch({ limit: 100, ...(before ? { before } : {}) }); } catch { complete = false; break; }
     if (!batch?.size) break;
     const arr = [...batch.values()];
     lines.push(...arr);
     before = arr[arr.length - 1].id;
     if (batch.size < 100) break;
   }
-  return lines.reverse().map((m) => {
+  const out = lines.reverse().map((m) => {
     const time = new Date(m.createdTimestamp).toISOString().replace('T', ' ').slice(0, 19);
     const files = m.attachments?.size ? ` [вложения: ${[...m.attachments.values()].map((a) => a.url).join(', ')}]` : '';
     return `[${time}] ${m.author?.username || '?'}: ${m.content || ''}${files}`;
   });
+  out.complete = complete;
+  return out;
 }
 
 async function closeTicket(interaction, { delayMs = 5000 } = {}) {
@@ -127,7 +131,8 @@ async function closeTicket(interaction, { delayMs = 5000 } = {}) {
 
   const lines = await transcriptOf(channel);
   const logChannel = settings.ticketLogChannelId ? await guild.channels.fetch(settings.ticketLogChannelId).catch(() => null) : null;
-  if (logChannel) {
+  let saved = !settings.ticketLogChannelId; // no log channel chosen: there is nowhere to keep it, the channel goes as before
+  if (logChannel && lines.complete) {
     const file = new AttachmentBuilder(Buffer.from(lines.join('\n') || '(сообщений нет)', 'utf8'), { name: `обращение-${pad(ticket.number)}.txt` });
     await logChannel.send({
       embeds: [embeds.baseEmbed().setTitle(`Обращение №${pad(ticket.number)} закрыто`).addFields(
@@ -137,7 +142,12 @@ async function closeTicket(interaction, { delayMs = 5000 } = {}) {
       )],
       files: [file],
       allowedMentions: { parse: [] }
-    }).catch((err) => logger.warn(`Ticket log failed: ${err.message}`));
+    }).then(() => { saved = true; }).catch((err) => logger.warn(`Ticket log failed: ${err.message}`));
+  }
+  // The conversation could not be read or kept: the channel stays, so nothing is lost; the team deletes it by hand.
+  if (settings.ticketLogChannelId && (!lines.complete || !saved)) {
+    await channel.send({ embeds: [embeds.error('Не удалось сохранить переписку в журнал обращений, поэтому канал не удалён. Сохраните нужное и удалите канал вручную.')] }).catch(() => {});
+    return ticket;
   }
 
   const remove = () => channel.delete(`Обращение №${pad(ticket.number)} закрыто`).catch(() => {});

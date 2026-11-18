@@ -147,17 +147,20 @@ function progress(a, m) {
  */
 async function grant(guild, userId, a, grantedBy = null) {
   const guildId = guild.id || guild;
-  // the unique index decides: of two grants at the same moment only one insert succeeds
+  // ONE transaction: the row and the coins/crystals of the reward — a stop in between can no longer leave the achievement
+  // without its reward. The unique index decides: of two grants at the same moment only one insert succeeds.
+  const r = a.reward || {};
+  const ledger = require('./econ/ledger');
   try {
-    await db().MemberAchievement.create({ guildId, userId, key: a.key, grantedBy });
+    await db().inTransaction(async (t) => {
+      await db().MemberAchievement.create({ guildId, userId, key: a.key, grantedBy }, { transaction: t });
+      if (r.coins > 0) await ledger.give(guildId, userId, 'balance', r.coins, 'achievement', { note: a.name }, t);
+      if (r.crystals > 0) await ledger.give(guildId, userId, 'crystals', r.crystals, 'achievement', { note: a.name }, t);
+    });
   } catch (err) {
     if (err?.name === 'SequelizeUniqueConstraintError' || /UNIQUE/i.test(String(err?.message))) return null;
     throw err;
   }
-  const r = a.reward || {};
-  const ledger = require('./econ/ledger');
-  if (r.coins > 0) await ledger.give(guildId, userId, 'balance', r.coins, 'achievement', { note: a.name }).catch((e) => logger.warn(`achievement reward: ${e.message}`));
-  if (r.crystals > 0) await ledger.give(guildId, userId, 'crystals', r.crystals, 'achievement', { note: a.name }).catch((e) => logger.warn(`achievement reward: ${e.message}`));
   if (r.roleId && guild.members) {
     const role = guild.roles.cache.get(r.roleId);
     const refusal = require('../utils/safeRole').selfGiveRefusal(role, guild);

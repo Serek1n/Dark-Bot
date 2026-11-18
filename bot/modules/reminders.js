@@ -13,7 +13,7 @@ async function deliver(client, reminder) {
   let sent = false;
   if (reminder.channelId) {
     const channel = await client.channels.fetch(reminder.channelId).catch(() => null);
-    if (channel) sent = Boolean(await channel.send({ content: text, allowedMentions: { users: [reminder.userId] } }).catch(() => null));
+    if (channel) sent = Boolean(await channel.send({ content: text, allowedMentions: { users: [reminder.userId] }, nonce: `r${reminder.id}`, enforceNonce: true }).catch(() => null));
   }
   if (!sent) {
     const user = await client.users.fetch(reminder.userId).catch(() => null);
@@ -25,8 +25,10 @@ async function tick(client) {
   const due = await Reminder.findAll({ where: { remindAt: { [Op.lte]: new Date() } }, order: [['remindAt', 'ASC']], limit: 50 });
   for (const reminder of due) {
     try {
-      await reminder.destroy(); // first, so a slow send can never fire the same reminder twice
+      // delivered first, removed after: a stop in between sends it again on start instead of losing it (the nonce makes
+      // Discord drop a second copy in the channel); the scheduler runs one tick at a time, so it is never sent twice while running
       await deliver(client, reminder);
+      await reminder.destroy();
     } catch (err) {
       logger.error(`Reminder ${reminder.id} failed:`, err.message);
     }
