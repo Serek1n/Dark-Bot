@@ -66,7 +66,7 @@
         <% } else { %>
           <div class="mini-list">
             <% recent.forEach((r) => { const u = users[r.userId] || { name: r.userId, avatar: '' }; const d = describe(r.auto); %>
-              <div class="mini-row"><span class="rk">#<%= r.id %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="mod-auto <%= d.ok ? 'ok' : 'no' %>"><%= d.text.replace(/<t:(\d+):f>/, (m, t) => new Date(Number(t) * 1000).toLocaleString('ru-RU')) %></span></div>
+              <div class="mini-row"><span class="rk">#<%= r.id %></span><span class="person"><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(u.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= u.name %></span></span><span class="mod-auto <%= d.ok ? 'ok' : 'no' %>"><%= d.text.replace(/<t:(\d+):f>/, (m, t) => new Date(Number(t) * 1000).toLocaleString('ru-RU')) %></span></div>
             <% }) %>
           </div>
         <% } %>

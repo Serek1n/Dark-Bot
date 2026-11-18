@@ -23,7 +23,7 @@
           <% rows.forEach(r => { %>
             <div class="lb-row <%= r.place <= 3 ? 'top-' + r.place : '' %>" data-name="<%= r.user.name.toLowerCase() %>">
               <div class="lb-rank"><%= r.place %></div>
-              <div class="person"><% if (r.user.avatar) { %><img src="<%= r.user.avatar %>" alt="" loading="lazy" /><% } %><span class="nm"><%= r.user.name %></span></div>
+              <div class="person"><% if (r.user.avatar) { %><% if (r.user.avatar) { %><img src="<%= r.user.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(r.user.name || '?').charAt(0).toUpperCase() %></span><% } %><% } %><span class="nm"><%= r.user.name %></span></div>
               <div class="lb-xp">
                 <div class="bar"><i style="width: <%= Math.min(100, Math.round(r.into / Math.max(1, r.need) * 100)) %>%"></i></div>
                 <div class="num"><%= r.xp.toLocaleString('ru-RU') %> XP</div>

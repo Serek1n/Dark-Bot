@@ -77,7 +77,7 @@
         <h3 class="econ-sub">Заказы в Telegram</h3>
         <div class="table-scroll"><table>
           <thead><tr><th>№</th><th>Создан</th><th>Пакет</th><th>Состояние</th><th></th></tr></thead>
-          <tbody><% orders.forEach((o) => { %><tr><td>#<%= o.id %></td><td class="nowrap"><%= when(o.createdAt) %></td><td class="nowrap"><%= fmt(o.coins) %> · <%= fmt(o.stars) %> ⭐</td><td><%= OST[o.status] || o.status %></td><td><% if (o.status === 'created' && Date.now() - new Date(o.createdAt).getTime() < 86400000) { %><a href="/wallet?order=<%= o.id %>">Оплатить</a><% } %></td></tr><% }) %></tbody>
+          <tbody><% orders.forEach((o) => { %><tr><td>#<%= o.id %></td><td class="nowrap"><%= when(o.createdAt) %></td><td class="nowrap"><%= fmt(o.coins) %> · <%= fmt(o.stars) %> ⭐</td><% const live = o.status === 'created' && Date.now() - new Date(o.createdAt).getTime() < 86400000; %><td><%= o.status === 'created' && !live ? 'истёк' : (OST[o.status] || o.status) %></td><td><% if (live) { %><a class="btn btn-secondary" href="/wallet?order=<%= o.id %>">Оплатить</a><% } %></td></tr><% }) %></tbody>
         </table></div>
       <% } %>
     </div>

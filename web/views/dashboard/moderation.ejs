@@ -44,7 +44,7 @@
           <div class="mini-list">
             <% const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' }; %>
             <% recent.forEach((l) => { const u = users[l.userId] || { name: l.userId, avatar: '' }; %>
-              <div class="mini-row"><span class="badge badge-<%= l.action %>"><%= actionRu[l.action] || l.action %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="val">#<%= l.caseNumber || '—' %></span></div>
+              <div class="mini-row"><span class="badge badge-<%= l.action %>"><%= actionRu[l.action] || l.action %></span><span class="person"><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(u.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= u.name %></span></span><span class="val">#<%= l.caseNumber || '—' %></span></div>
             <% }) %>
           </div>
         <% } %>
@@ -57,7 +57,7 @@
         <% } else { %>
           <div class="mini-list">
             <% reports.forEach((r) => { const t = users[r.targetId] || { name: r.targetId, avatar: '' }; %>
-              <div class="mini-row"><span class="rk">#<%= r.id %></span><span class="person"><img src="<%= t.avatar %>" alt="" loading="lazy" /><span><%= t.name %></span></span><span class="val"><%= new Date(r.createdAt).toLocaleDateString('ru-RU') %></span></div>
+              <div class="mini-row"><span class="rk">#<%= r.id %></span><span class="person"><% if (t.avatar) { %><img src="<%= t.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(t.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= t.name %></span></span><span class="val"><%= new Date(r.createdAt).toLocaleDateString('ru-RU') %></span></div>
             <% }) %>
           </div>
         <% } %>

@@ -23,7 +23,7 @@
       <div class="card g-c1">
         <h2>Кто создаёт больше всех<span class="sub">30 дней</span></h2>
         <% if (!topOwners.length) { %><p class="empty-state">Комнат ещё не создавали.</p><% } else { %>
-          <div class="mini-list"><% topOwners.forEach((t, i) => { const u = users[t.actorId] || { name: t.actorId, avatar: '' }; %><div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="val"><%= t.n %></span></div><% }) %></div>
+          <div class="mini-list"><% topOwners.forEach((t, i) => { const u = users[t.actorId] || { name: t.actorId, avatar: '' }; %><div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(u.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= u.name %></span></span><span class="val"><%= t.n %></span></div><% }) %></div>
         <% } %>
       </div>
       <div class="card g-c2">

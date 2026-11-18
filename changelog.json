@@ -1,6 +1,27 @@
 [
  {
   "bot": "3.13.1",
+  "panel": "3.22.2",
+  "date": "2026-11-18",
+  "botChanges": [],
+  "panelChanges": [
+   "Ссылка на открытую страницу не перезагружает её — страница прокручивается вверх",
+   "Таблицы на телефоне — карточками; слова больше не рассыпаются по буквам в узком столбце",
+   "Фильтры наказаний на телефоне в столбик, «Модуль выключен» без узкой колонки текста",
+   "Участник без аватарки — буква вместо пустой картинки; заказы старше суток — «истёк»"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "A link to the open page no longer reloads it — the page scrolls to the top",
+    "Tables on a phone are cards; words no longer fall apart letter by letter",
+    "Punishment filters stack on a phone; \"Module is off\" without a narrow text column",
+    "A member without an avatar shows a letter; orders older than a day show \"expired\""
+   ]
+  }
+ },
+ {
+  "bot": "3.13.1",
   "panel": "3.22.1",
   "date": "2026-11-18",
   "botChanges": [

@@ -141,7 +141,7 @@
           <% } else { %>
             <div class="mini-list">
               <% richest.forEach((p, i) => { const u = users[p.userId] || { name: p.userId, avatar: '' }; %>
-                <div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="val"><%= n(p.balance) %> · <%= n(p.crystals) %> кр.</span></div>
+                <div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(u.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= u.name %></span></span><span class="val"><%= n(p.balance) %> · <%= n(p.crystals) %> кр.</span></div>
               <% }) %>
             </div>
           <% } %>

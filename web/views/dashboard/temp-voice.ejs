@@ -31,7 +31,7 @@
               <% rooms.forEach((r) => { const u = users[r.ownerId] || { name: r.ownerId, avatar: '' }; %>
                 <tr>
                   <td>🔊 <%= chName(r.channelId) || r.channelId %></td>
-                  <td class="nowrap"><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span></td>
+                  <td class="nowrap"><span class="person"><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(u.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= u.name %></span></span></td>
                   <td><%= { open: 'Открыта', locked: 'Закрыта', hidden: 'Скрыта' }[r.access] || r.access %></td>
                   <td class="nowrap"><%= new Date(r.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) %></td>
                 </tr>

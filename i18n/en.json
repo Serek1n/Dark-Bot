@@ -4356,5 +4356,6 @@
  "Telegram не принял TELEGRAM_BOT_TOKEN (Unauthorized) — проверьте токен в .env": "Telegram refused TELEGRAM_BOT_TOKEN (Unauthorized) — check the token in .env",
  "Бот подключён: ⟦0⟧@⟦1⟧⟦2⟧. Покупки работают.": "Bot connected: ⟦0⟧@⟦1⟧⟦2⟧. Purchases work.",
  "Покупки не работают.": "Purchases don't work.",
- "Покупка за звёзды сейчас недоступна. Попробуйте позже.": "Buying for Stars is unavailable right now. Try later."
+ "Покупка за звёзды сейчас недоступна. Попробуйте позже.": "Buying for Stars is unavailable right now. Try later.",
+ "истёк": "expired"
 }

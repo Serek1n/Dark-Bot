@@ -458,7 +458,7 @@
     });
     Array.prototype.forEach.call(document.querySelectorAll('thead th:not([scope])'), function (th) { th.setAttribute('scope', 'col'); });
     // On a phone a table row becomes a card: every cell says which column it belongs to (CSS shows it as a caption).
-    Array.prototype.forEach.call(document.querySelectorAll('.content table'), function (t) {
+    Array.prototype.forEach.call(document.querySelectorAll('.content table, .cm-page table'), function (t) {
       var heads = t.tHead ? Array.prototype.map.call(t.tHead.rows[0] ? t.tHead.rows[0].cells : [], function (th) { return { text: th.textContent.trim(), span: th.colSpan || 1 }; }) : [];
       if (!heads.length) return;
       var names = []; heads.forEach(function (h) { for (var k = 0; k < h.span; k++) names.push(k ? '' : h.text); });
@@ -673,4 +673,27 @@
   }, true);
   // a read-only field with a link: one click selects it whole
   document.addEventListener('click', function (e) { var t = e.target; if (t && t.matches && t.matches('input[data-select-all]')) t.select(); });
+})();
+
+// A link to the page that is already open (the active tab, a menu item, the logo) does not reload it: the page stays as it
+// is and scrolls back to the top. Links with a #part, new-tab links, downloads and Ctrl/⌘/Shift/middle clicks are left alone.
+(function () {
+  document.addEventListener('click', function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a || a.target === '_blank' || a.hasAttribute('download') || a.hasAttribute('data-reload')) return;
+    var url;
+    try { url = new URL(a.getAttribute('href'), location.href); } catch (err) { return; }
+    if (url.origin !== location.origin || url.hash) return;
+    var here = location.pathname.replace(/\/+$/, '') + location.search;
+    var there = url.pathname.replace(/\/+$/, '') + url.search;
+    if (here !== there) return;
+    e.preventDefault();
+    // a menu that was opened to get here is closed
+    var open = document.querySelector('[data-mods-open][aria-expanded="true"]');
+    if (open) open.click();
+    if (document.documentElement.classList.contains('nd-open')) { var x = document.querySelector('#navDrawer [data-menu-close]'); if (x) x.click(); }
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+  });
 })();

@@ -85,3 +85,13 @@ input:hover, select:hover, textarea:hover, .fs-btn:hover { border-color: var(--f
   table.rt td:last-child:has(> form), table.rt td:last-child:has(> .btn) { justify-content: flex-end; flex-wrap: wrap; }
   .table-wrap:has(table.rt) { overflow: visible; }
 }
+
+/* 2026-11-18: tables in a scroll box keep words whole — a narrow screen scrolls the table sideways instead of stacking a
+   word letter by letter (overflow-wrap: anywhere let a column shrink to one letter). Very long tokens still break. */
+.table-scroll td, .table-scroll th { overflow-wrap: break-word; word-break: normal; }
+.table-scroll td :is(a, .btn, button, .badge), .table-scroll th { white-space: nowrap; }
+.table-scroll td { min-width: 0; }
+/* a person without an avatar picture: the first letter in the avatar's place */
+.av-letter { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--panel-raised); color: var(--fog); font-size: var(--fs-12); font-weight: 700; }
+.ach-person .av-letter { width: 48px; height: 48px; border-radius: var(--r-12); font-size: var(--fs-18); }
+.lb-row .person .av-letter { width: 34px; height: 34px; }

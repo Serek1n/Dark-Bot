@@ -457,3 +457,13 @@ td form .btn, td > .btn { white-space: nowrap; }
 .mh-tabs.more-right { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
 .mh-tabs.more-left { -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%); mask-image: linear-gradient(90deg, transparent, #000 15%); }
 .mh-tabs.more-left.more-right { -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); }
+/* filter rows of the moderation tabs on narrow screens: two per row, then one (the button takes the full width) */
+@media (max-width: 900px) { .econ-filters.mod-wfilter, .econ-filters.mod-lfilter { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .econ-filters.mod-wfilter, .econ-filters.mod-lfilter { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 900px) { .econ-filters > .btn { grid-column: 1 / -1; } }
+/* «Модуль выключен» on a phone: the text takes the whole width, the button goes under it */
+@media (max-width: 600px) {
+  .mh-off { flex-wrap: wrap; align-items: flex-start; }
+  .mh-off > div { flex: 1 1 calc(100% - 40px); }
+  .mh-off > .btn { flex: 1 1 100%; justify-content: center; }
+}

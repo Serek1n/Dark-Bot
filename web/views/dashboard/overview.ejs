@@ -118,7 +118,7 @@
               <% } else { %>
                 <div class="mini-list">
                   <% topMembers.forEach((p, i) => { const u = users[p.userId] || { name: p.userId, avatar: '' }; %>
-                    <div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="val">ур. <%= p.level %></span></div>
+                    <div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(u.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= u.name %></span></span><span class="val">ур. <%= p.level %></span></div>
                   <% }) %>
                 </div>
                 <% if (topMembers.length < Math.max(recentLogs.length, 7)) { %>
@@ -142,7 +142,7 @@
               <% } else { %>
                 <div class="mini-list">
                   <% recentLogs.forEach(l => { const u = users[l.userId] || { name: l.userId, avatar: '' }; %>
-                    <div class="mini-row"><span class="badge badge-<%= l.action %>"><%= actionRu[l.action] || l.action %></span><span class="person"><img src="<%= u.avatar %>" alt="" loading="lazy" /><span><%= u.name %></span></span><span class="when"><%= ago(l.createdAt) %></span></div>
+                    <div class="mini-row"><span class="badge badge-<%= l.action %>"><%= actionRu[l.action] || l.action %></span><span class="person"><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(u.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= u.name %></span></span><span class="when"><%= ago(l.createdAt) %></span></div>
                   <% }) %>
                 </div>
                 <% if (recentLogs.length < Math.max(topMembers.length, 7)) { %>

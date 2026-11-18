@@ -22,7 +22,7 @@
         <div class="hint"><%= bad ? 'Это не похоже на ID участника. ' : '' %>ID — правый клик по участнику в Discord → «Копировать ID» (нужен режим разработчика). Или выберите из списка справа.</div>
         <% if (view) { %>
           <div class="ach-person">
-            <% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" width="48" height="48" /><% } %>
+            <% if (u.avatar) { %><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" width="48" height="48" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(u.name || '?').charAt(0).toUpperCase() %></span><% } %><% } %>
             <div><b><%= u.name %></b><small><span>Открыто</span> <b><%= view.have.length %></b> <span>из</span> <b><%= view.total %></b></small></div>
           </div>
           <div class="ach-facts">
@@ -38,7 +38,7 @@
       <div class="card g-c2">
         <h2>Больше всех достижений</h2>
         <% if (!top.length) { %><p class="empty-state">Ещё никто ничего не открыл.</p><% } else { %>
-          <div class="mini-list"><% top.slice(0, 10).forEach((t, i) => { const p = users[t.userId] || { name: t.userId, avatar: '' }; %><a class="mini-row" href="<%= g %>/achievements-members?user=<%= t.userId %>"><span class="rk"><%= i + 1 %></span><span class="person"><img src="<%= p.avatar %>" alt="" loading="lazy" /><span><%= p.name %></span></span><span class="val"><%= t.n %></span></a><% }) %></div>
+          <div class="mini-list"><% top.slice(0, 10).forEach((t, i) => { const p = users[t.userId] || { name: t.userId, avatar: '' }; %><a class="mini-row" href="<%= g %>/achievements-members?user=<%= t.userId %>"><span class="rk"><%= i + 1 %></span><span class="person"><% if (p.avatar) { %><img src="<%= p.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(p.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= p.name %></span></span><span class="val"><%= t.n %></span></a><% }) %></div>
         <% } %>
       </div>
       <% if (view) { %>
