@@ -4347,5 +4347,14 @@
  "Награды в ожидании": "Pending rewards",
  "Пока ни одной операции.": "No operations yet.",
  "Заказы в Telegram": "Telegram orders",
- "Оплатить": "Pay"
+ "Оплатить": "Pay",
+ "TELEGRAM_BOT_TOKEN не задан в .env.": "TELEGRAM_BOT_TOKEN is not set in .env.",
+ "TELEGRAM_BOT_TOKEN не похож на токен от @BotFather (вид: 1234567890:AAH...). Проверьте, что он скопирован целиком.": "TELEGRAM_BOT_TOKEN doesn't look like a @BotFather token (1234567890:AAH...). Check it was copied in full.",
+ "Telegram не принял токен (Unauthorized): он неверный или был сброшен. Возьмите актуальный в @BotFather → /mybots → бот → API Token и перезапустите бота.": "Telegram refused the token (Unauthorized): it's wrong or was reset. Get the current one in @BotFather → /mybots → bot → API Token and restart the bot.",
+ "Telegram недоступен: {0}": "Telegram is unreachable: {0}",
+ "Покупка через Telegram временно недоступна: бот оплаты сейчас не отвечает. Попробуйте позже — администрация платформы уже видит ошибку.": "Buying through Telegram is temporarily unavailable: the payment bot isn't answering. Try later — the platform administration already sees the error.",
+ "Telegram не принял TELEGRAM_BOT_TOKEN (Unauthorized) — проверьте токен в .env": "Telegram refused TELEGRAM_BOT_TOKEN (Unauthorized) — check the token in .env",
+ "Бот подключён: ⟦0⟧@⟦1⟧⟦2⟧. Покупки работают.": "Bot connected: ⟦0⟧@⟦1⟧⟦2⟧. Purchases work.",
+ "Покупки не работают.": "Purchases don't work.",
+ "Покупка за звёзды сейчас недоступна. Попробуйте позже.": "Buying for Stars is unavailable right now. Try later."
 }

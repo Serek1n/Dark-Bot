@@ -1,5 +1,28 @@
 [
  {
+  "bot": "3.13.1",
+  "panel": "3.22.1",
+  "date": "2026-11-18",
+  "botChanges": [
+   "Telegram-бот оплаты: неверный токен больше не создаёт заказы с нерабочей ссылкой",
+   "Токен прощает кавычки, пробелы и приставку bot; ошибка Unauthorized пишется в лог один раз"
+  ],
+  "panelChanges": [
+   "Кошелёк: при неработающем боте — понятное сообщение вместо «Telegram: Unauthorized»",
+   "Платформа: состояние Telegram-бота и точная причина, если покупки не работают"
+  ],
+  "en": {
+   "botChanges": [
+    "Payment Telegram bot: a wrong token no longer makes orders with a dead link",
+    "The token forgives quotes, spaces and a bot prefix; Unauthorized is logged once"
+   ],
+   "panelChanges": [
+    "Wallet: a clear message instead of \"Telegram: Unauthorized\" when the bot is down",
+    "Platform: the Telegram bot's state and the exact reason when purchases don't work"
+   ]
+  }
+ },
+ {
   "bot": "3.13.0",
   "panel": "3.22.0",
   "date": "2026-11-18",

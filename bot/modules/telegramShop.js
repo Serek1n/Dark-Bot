@@ -15,7 +15,8 @@ class ShopError extends Error {}
 const db = () => require('../../db');
 const coins = () => require('./darkCoins');
 let fetchImpl = (...a) => fetch(...a);
-const token = () => (process.env.TELEGRAM_BOT_TOKEN || '').trim();
+// the token as @BotFather gives it; quotes, spaces and a pasted "bot" prefix are forgiven
+const token = () => String(process.env.TELEGRAM_BOT_TOKEN || '').trim().replace(/^['"]|['"]$/g, '').trim().replace(/^bot(?=\d)/i, '');
 const enabled = () => Boolean(token());
 let botUsername = (process.env.TELEGRAM_BOT_USERNAME || '').replace(/^@/, '') || null;
 
@@ -65,9 +66,41 @@ async function username() {
   return botUsername;
 }
 
+/**
+ * Is the Telegram bot really connected? Asks Telegram (getMe) at most once a minute. { ok, username, error } — error is a
+ * plain explanation for the platform owner (shown on /platform), never the token itself.
+ */
+let statusCache = null;
+async function status(force = false) {
+  if (!enabled()) return { ok: false, error: 'TELEGRAM_BOT_TOKEN не задан в .env.' };
+  if (!force && statusCache && Date.now() - statusCache.at < 60000) return statusCache.value;
+  let value;
+  if (!/^\d{5,15}:[\w-]{30,}$/.test(token())) {
+    value = { ok: false, error: 'TELEGRAM_BOT_TOKEN не похож на токен от @BotFather (вид: 1234567890:AAH...). Проверьте, что он скопирован целиком.' };
+  } else {
+    try {
+      const me = await api('getMe');
+      botUsername = me.username;
+      value = { ok: true, username: me.username };
+    } catch (err) {
+      value = { ok: false, error: /Unauthorized|401/i.test(err.message)
+        ? 'Telegram не принял токен (Unauthorized): он неверный или был сброшен. Возьмите актуальный в @BotFather → /mybots → бот → API Token и перезапустите бота.'
+        : `Telegram недоступен: ${err.message}` };
+    }
+  }
+  statusCache = { at: Date.now(), value };
+  return value;
+}
+
 /** A new order of one package for a Discord user. Returns { order, link }. */
 async function createOrder(userId, packageKey) {
   if (!enabled()) throw new ShopError('Покупка через Telegram пока не подключена.');
+  // the bot must really work before an order is made (else the person gets a dead link)
+  const st = await status();
+  if (!st.ok) {
+    logger.warn(`Telegram shop: ${st.error}`);
+    throw new ShopError('Покупка через Telegram временно недоступна: бот оплаты сейчас не отвечает. Попробуйте позже — администрация платформы уже видит ошибку.');
+  }
   if (!coins().isWallet(userId) || String(userId).startsWith('g')) throw new ShopError('Неверный пользователь.');
   const p = (await packages())[packageKey];
   if (!p || !p.on) throw new ShopError('Такого пакета нет.');
@@ -195,8 +228,15 @@ function startTelegramShop() {
   username().then((n) => logger.info(`Telegram shop: @${n}`)).catch((err) => logger.warn(`Telegram shop: ${err.message}`));
   api('setMyCommands', { commands: [{ command: 'start', description: 'Магазин DARK Coins' }, { command: 'terms', description: 'Условия покупки' }, { command: 'paysupport', description: 'Помощь с оплатой' }] }).catch(() => {});
   (async function loop() {
+    let lastError = '';
     while (running) {
-      try { await pollOnce(); } catch (err) { logger.warn(`Telegram polling: ${err.message}`); await new Promise((r) => setTimeout(r, 15000)); }
+      try { await pollOnce(); lastError = ''; } catch (err) {
+        const unauthorized = /Unauthorized|401/i.test(err.message);
+        const text = unauthorized ? 'Telegram не принял TELEGRAM_BOT_TOKEN (Unauthorized) — проверьте токен в .env' : `Telegram polling: ${err.message}`;
+        if (text !== lastError) logger.warn(text); // the same error is written once, not every few seconds
+        lastError = text;
+        await new Promise((r) => setTimeout(r, unauthorized ? 5 * 60 * 1000 : 15000));
+      }
     }
   })();
   return true;
@@ -204,6 +244,6 @@ function startTelegramShop() {
 function stopTelegramShop() { running = false; }
 
 module.exports = {
-  ShopError, PACKAGE_DEFAULTS, enabled, packages, setPackages, createOrder, handleUpdate, creditPurchase, refundOrder, pollOnce, startTelegramShop, stopTelegramShop, username, TEXT,
+  ShopError, PACKAGE_DEFAULTS, enabled, status, packages, setPackages, createOrder, handleUpdate, creditPurchase, refundOrder, pollOnce, startTelegramShop, stopTelegramShop, username, TEXT,
   _setFetch: (f) => { fetchImpl = f; }, _setUsername: (n) => { botUsername = n; }
 };

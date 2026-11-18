@@ -5,7 +5,7 @@
 // once, the refund; the /wallet and /platform pages.
 process.env.DATABASE_PATH = './data/test_darkcoins.sqlite';
 process.env.BOT_OWNER_IDS = '700000000000000001';
-process.env.TELEGRAM_BOT_TOKEN = '123:TEST';
+process.env.TELEGRAM_BOT_TOKEN = '"bot1234567890:AAHtestTokenTestTokenTestTokenTest"'; // quotes and a "bot" prefix are forgiven
 const path = require('path');
 const stub = (rel, exports) => { const f = require.resolve(path.join('..', 'web', rel)); require.cache[f] = { id: f, filename: f, loaded: true, exports }; };
 stub('middleware/ensureGuildAccess.js', { ensureGuildAccess: (q, s, n) => n() });
@@ -37,12 +37,13 @@ fs.mkdirSync('./data', { recursive: true });
 
   // a fake Telegram
   const calls = [];
-  shop._setFetch(async (url, opt) => {
+  const fakeTg = async (url, opt) => {
     const method = url.split('/').pop(); const body = JSON.parse(opt.body || '{}');
     calls.push({ method, body });
     const result = method === 'getMe' ? { username: 'dark_coins_bot' } : method === 'getUpdates' ? [] : true;
     return { json: async () => (method === 'refundStarPayment' && body.telegram_payment_charge_id === 'fail' ? { ok: false, description: 'CHARGE_NOT_FOUND' } : { ok: true, result }) };
-  });
+  };
+  shop._setFetch(fakeTg);
 
   await test('daily bonus: new accounts and people with no server profile can\'t; once a day; the streak grows', async () => {
     await fails(() => coins.claimDaily(NEW), /старше 30/);
@@ -136,6 +137,18 @@ fs.mkdirSync('./data', { recursive: true });
   });
 
   let order;
+  await test('Telegram: a token Telegram refuses — no order is made, the person gets a plain message, /platform gets the reason', async () => {
+    shop._setFetch(async () => ({ status: 401, json: async () => ({ ok: false, error_code: 401, description: 'Unauthorized' }) }));
+    shop._setUsername(null);
+    const st = await shop.status(true);
+    assert(!st.ok && /Unauthorized/.test(st.error) && /BotFather/.test(st.error), st.error);
+    const before = await db.DarkCoinOrder.count();
+    await fails(() => shop.createOrder(OLD, 'm'), /временно недоступна/);
+    assert(await db.DarkCoinOrder.count() === before, 'no dead order');
+    shop._setFetch(fakeTg);
+    assert((await shop.status(true)).ok, 'works with a good token');
+  });
+
   await test('Telegram: an order for the signed-in user, the bot sends an invoice in Stars', async () => {
     const r = await shop.createOrder(OLD, 'm');
     order = r.order;

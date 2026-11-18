@@ -133,3 +133,6 @@
 .cm-page form.ach-find { display: flex; flex-direction: row; gap: 8px; }
 @media (min-width: 1000px) { .pf-earn { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .pf-grid { grid-template-columns: 1fr; } }
+.pf-tg { padding: 10px 12px; border-radius: var(--r-10); }
+.pf-tg.ok { background: rgba(92, 185, 138, .12); }
+.pf-tg.bad { background: rgba(255, 141, 147, .12); color: var(--paper); }

@@ -41,7 +41,7 @@
       <div class="card">
         <h2>Купить за Telegram Stars</h2>
         <% if (!tg) { %>
-          <p class="empty-state">Покупка через Telegram пока не подключена.</p>
+          <p class="empty-state">Покупка за звёзды сейчас недоступна. Попробуйте позже.</p>
         <% } else { %>
           <div class="wl-packs">
             <% Object.values(packages).filter((p) => p.on).forEach((p) => { %>

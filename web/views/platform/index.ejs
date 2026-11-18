@@ -70,7 +70,7 @@
     <div class="pf-grid">
       <form method="post" action="/platform/packages" class="card">
         <h2>Пакеты Telegram Stars</h2>
-        <% if (!tg) { %><p class="hint" style="margin-top:0">Бот Telegram не подключён: задайте TELEGRAM_BOT_TOKEN в .env.</p><% } %>
+        <% if (tgStatus.ok) { %><p class="hint pf-tg ok" style="margin-top:0">Бот подключён: <b>@<%= tgStatus.username %></b>. Покупки работают.</p><% } else { %><p class="hint pf-tg bad" style="margin-top:0"><b>Покупки не работают.</b> <%= tgStatus.error %></p><% } %>
         <div class="pf-packs">
           <% Object.values(packages).forEach((p) => { %>
             <div class="pf-pack"><label class="checkbox-row"><input type="checkbox" name="on_<%= p.key %>" <%= p.on ? 'checked' : '' %> /> <span>Продавать</span></label>

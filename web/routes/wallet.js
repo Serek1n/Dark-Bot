@@ -27,7 +27,7 @@ router.get('/', signedIn, async (req, res) => {
     order = await DarkCoinOrder.findOne({ where: { id: Number(req.query.order) || 0, userId: me, status: 'created' } });
     if (order) orderLink = `https://t.me/${await shop().username().catch(() => null)}?start=${order.token}`;
   }
-  res.render('wallet/index', { order, orderLink, title: 'Кошелёк DARK Coins', balance, log, pending, daily, earn, packages, orders, frozen, tg: shop().enabled(),
+  res.render('wallet/index', { order, orderLink, title: 'Кошелёк DARK Coins', balance, log, pending, daily, earn, packages, orders, frozen, tg: shop().enabled() && (await shop().status()).ok,
     done: req.query.done || null, got: Number(req.query.got) || 0, error: req.query.err ? String(req.query.err).slice(0, 200) : null });
 });
 

@@ -44,7 +44,7 @@ router.get('/', signedIn, ownerOnly, async (req, res) => {
   ]);
   const users = await getUsers([...new Set([...top.map((w) => w.userId), ...log.flatMap((t) => [t.userId, t.actorId]), ...orders.map((o) => o.userId), ...held.map((p) => p.wallet), ...(userId ? [userId] : [])].filter((id) => /^\d{15,25}$/.test(String(id || ''))))]);
   res.render('platform/index', { title: 'Платформа DARK', settings, pending, reports, listed, byId, top, log, users, userId, balance: userId ? await coins().balanceOf(userId) : null,
-    key: coins().newKey(), C: cm(), earn, EARN: coins().EARN_DEFAULTS, packages, held, orders, emitted, frozen, tg: shop().enabled(), done: req.query.done || null, error: req.query.err ? String(req.query.err).slice(0, 200) : null });
+    key: coins().newKey(), C: cm(), earn, EARN: coins().EARN_DEFAULTS, packages, held, orders, emitted, frozen, tg: shop().enabled(), tgStatus: await shop().status(true), done: req.query.done || null, error: req.query.err ? String(req.query.err).slice(0, 200) : null });
 });
 
 router.post('/coins', signedIn, ownerOnly, async (req, res) => {
