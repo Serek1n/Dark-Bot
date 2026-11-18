@@ -111,7 +111,8 @@
       var col = [0, 0], last = [null, null], top = 0;
       function level() { // end of a section: the shorter column's last card takes the few missing pixels
         var lo = col[0] <= col[1] ? 0 : 1, hi = 1 - lo, card = last[lo];
-        if (card && col[hi] - col[lo] > 0 && col[hi] - col[lo] <= LEVEL) {
+        var gap = col[hi] - col[lo], emptyOnly = card && card.querySelector('.empty-state') && !card.querySelector('form, input, select, textarea, table, .card'); // a card that only says "nothing yet" may grow more: its message stays centred
+        if (card && gap > 0 && (gap <= LEVEL || (emptyOnly && gap <= 320))) {
           var h = card.offsetHeight + col[hi] - col[lo];
           st(card).minHeight = h + 'px'; card.setAttribute('data-levelled', ''); card.__h = h;
           var start = parseInt(st(card).gridRow, 10);
@@ -465,7 +466,7 @@
       Array.prototype.forEach.call(t.tBodies, function (tb) {
         Array.prototype.forEach.call(tb.rows, function (tr) {
           var col = 0;
-          Array.prototype.forEach.call(tr.cells, function (td) { if (names[col] && !td.hasAttribute('data-label')) td.setAttribute('data-label', names[col]); var fld = names[col] && td.querySelector('input:not([type=hidden]), select, textarea'); if (fld && !(fld.labels && fld.labels.length) && !fld.getAttribute('aria-label')) fld.setAttribute('aria-label', names[col]); if (td.colSpan > 1) td.classList.add('rt-wide'); col += td.colSpan || 1; });
+          Array.prototype.forEach.call(tr.cells, function (td) { if (names[col] && !td.hasAttribute('data-label')) td.setAttribute('data-label', names[col]); var fld = names[col] && td.querySelector('input:not([type=hidden]), select, textarea'); if (fld && !(fld.labels && fld.labels.length) && !fld.getAttribute('aria-label')) fld.setAttribute('aria-label', names[col]); if (td.colSpan > 1) td.classList.add('rt-wide'); if (/^(№|#)$/.test(names[col] || '')) td.classList.add('rt-head'); else if (!td.children.length && /^[\s—–-]*$/.test(td.textContent)) td.classList.add('rt-empty'); col += td.colSpan || 1; });
         });
       });
       t.classList.add('rt');

@@ -60,13 +60,13 @@ html[data-season="vice"][data-theme="light"] {
   --fog: #6b4563;
   --fog-dim: #7a5570;
 
-  --ember: #c4246f;
-  --ember-hover: #a51b5c;
+  --ember: #b51e64;
+  --ember-hover: #9a1854;
   --ember-tint: #ffe1ee;
   --ember-tint-strong: #ffcde2;
   --on-ember: #ffffff;
 
-  --signal: #00808a;
+  --signal: #006b74;
   --signal-tint: #d9f6f6;
   --gold: #a35d00;
 
@@ -98,7 +98,7 @@ html[data-season="vice"] body { background: transparent; }
 html[data-season="vice"] body::before {
   content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: min(42vh, 440px); z-index: -1; pointer-events: none;
   background: var(--vice-scene) center bottom / cover no-repeat; opacity: var(--vice-scene-opacity);
-  -webkit-mask-image: linear-gradient(to top, #000 55%, transparent); mask-image: linear-gradient(to top, #000 55%, transparent);
+  -webkit-mask-image: linear-gradient(to top, #000 70%, rgba(0, 0, 0, 0.25)); mask-image: linear-gradient(to top, #000 70%, rgba(0, 0, 0, 0.25));
 }
 html[data-season="vice"] .night-sky { display: none !important; }
 
@@ -153,3 +153,6 @@ html[data-season="vice"] .feature-list span { border-color: color-mix(in srgb, v
 @media print {
   html[data-season="vice"] body::before, html[data-season="vice"] .topbar::after { display: none; }
 }
+
+/* the pink count on a pink tint is too faint at 11 px */
+html[data-season="vice"] .tb-count { color: var(--paper); background: color-mix(in srgb, var(--vice-pink) 32%, transparent); }

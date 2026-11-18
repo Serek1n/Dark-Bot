@@ -118,7 +118,7 @@
 .cm-wallets small { color: var(--fog); font-size: var(--fs-12); }
 .cm-wallets b { font-size: var(--fs-20); color: var(--ember); }
 .cm-wallets a, .cm-wallets span { font-size: var(--fs-12); }
-.cm-promo select + select { margin-top: 6px; }
+.cm-promo select + select, .cm-promo .cm-once + select { margin-top: 0; }
 .cm-signin { margin: 12px 24px 0; }
 .pf-freeze { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline-soft); }
 .pf-earn { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; margin-bottom: 14px; }

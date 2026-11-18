@@ -45,6 +45,10 @@ input:hover, select:hover, textarea:hover, .fs-btn:hover { border-color: var(--f
   .feature-link { min-height: 44px; line-height: 44px; }
   .num-step { display: none; } /* the on-screen keyboard does it better than 17px arrows */
   .content textarea { min-height: 44px; }
+  /* small links and switches keep their look, the finger gets a bigger area around them */
+  .mh-crumbs a, .ev-links a, .legal-links a, td a, .person a { display: inline-block; padding: 10px 0; margin: -10px 0; }
+  .mod-sw { padding: 10px 4px; margin: -10px -4px; }
+  .cm-wallets a { display: inline-block; padding: 8px 0; margin: -8px 0; }
 }
 .checkbox-row .cr-text { flex: 1; min-width: 0; }
 
@@ -78,6 +82,10 @@ input:hover, select:hover, textarea:hover, .fs-btn:hover { border-color: var(--f
   table.rt tbody tr:hover { background: var(--soft); }
   table.rt td { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--hairline-soft); text-align: right; white-space: normal !important; }
   table.rt td:last-child { border-bottom: 0; }
+  /* the number of a case is the card's title; empty cells ("—") are not repeated on every card */
+  table.rt td.rt-head { justify-content: flex-start; font-weight: 700; color: var(--fog); font-size: var(--fs-13); padding-top: 6px; }
+  table.rt td.rt-head::before { display: none; }
+  table.rt td.rt-empty { display: none; }
   table.rt td[data-label]::before { content: attr(data-label); flex: 0 0 auto; max-width: 45%; color: var(--fog-dim); font-size: var(--fs-13); text-align: left; }
   table.rt td:not([data-label]), table.rt td.rt-wide { justify-content: flex-start; text-align: left; }
   table.rt td > * { min-width: 0; }
@@ -95,3 +103,16 @@ input:hover, select:hover, textarea:hover, .fs-btn:hover { border-color: var(--f
 .av-letter { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--panel-raised); color: var(--fog); font-size: var(--fs-12); font-weight: 700; }
 .ach-person .av-letter { width: 48px; height: 48px; border-radius: var(--r-12); font-size: var(--fs-18); }
 .lb-row .person .av-letter { width: 34px; height: 34px; }
+
+/* An odd last tile in a two-column row of numbers fills the row instead of leaving a hole next to it */
+@media (max-width: 900px) {
+  .stat-row:not(.four) > .stat-box:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+.cm-promo .btn { justify-content: center; }
+/* Phones: each item of an interactive message is one framed block, so the rows of different items don't run together */
+@media (max-width: 760px) {
+  .im-items { gap: 10px; }
+  .im-item { padding: 10px; border: 1px solid var(--hairline); border-radius: var(--r-12); background: var(--soft); }
+}
+/* a native list (phones show it instead of ours) keeps room for its arrow, so a long choice never runs under it */
+.content select:not([multiple]), select:not([multiple]) { padding-right: 36px; text-overflow: ellipsis; }

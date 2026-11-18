@@ -31,6 +31,7 @@
         <div>
           <label>Роль</label>
           <select name="roleId" required>
+            <option value="" disabled selected hidden>— выберите роль —</option>
             <% roles.forEach(r => { %>
               <option value="<%= r.id %>" <%= r.blocked ? 'disabled' : '' %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option>
             <% }) %>

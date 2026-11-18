@@ -1,6 +1,33 @@
 [
  {
   "bot": "3.14.0",
+  "panel": "3.23.1",
+  "date": "2026-11-18",
+  "botChanges": [],
+  "panelChanges": [
+   "Телефон: таблицы-карточки без пустых строк «—», номер дела — заголовком",
+   "Телефон: третья плитка с числом занимает всю строку вместо дыры рядом",
+   "Телефон: длинный выбор в списке не залезает на стрелку; пункты сообщения — в рамках",
+   "Телефон: мелкие ссылки и переключатели нажимаются легче",
+   "Пустые карточки «пока нет» выравниваются по высоте с соседней колонкой",
+   "Продвижение: «чем оплатить» перед кнопкой, пояснение, пока карточки нет в каталоге",
+   "Светлая тема: читаемые подписи редкости в каталоге достижений, контраст меток"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Phone: table cards drop empty \"—\" rows, the case number is the title",
+    "Phone: a third number tile fills its row instead of leaving a hole",
+    "Phone: a long choice no longer runs under the arrow; message items are framed",
+    "Phone: small links and switches are easier to tap",
+    "Empty \"nothing yet\" cards match the height of the column next to them",
+    "Promotion: \"pay with\" sits above the button, a note while the card is unlisted",
+    "Light theme: readable rarity labels in the achievement catalog, badge contrast"
+   ]
+  }
+ },
+ {
+  "bot": "3.14.0",
   "panel": "3.23.0",
   "date": "2026-11-18",
   "botChanges": [],

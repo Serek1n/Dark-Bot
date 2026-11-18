@@ -79,7 +79,7 @@
                   <% if (t.required) { %>
                     <span class="ev-always">Всегда</span>
                   <% } else { %>
-                    <span class="mod-sw sm"><input type="checkbox" name="on_<%= t.key %>" <%= st.on ? 'checked' : '' %> aria-label="<%= t.title %>" /></span>
+                    <label class="mod-sw sm"><input type="checkbox" name="on_<%= t.key %>" <%= st.on ? 'checked' : '' %> aria-label="<%= t.title %>" /></label>
                   <% } %>
                   <select name="ch_<%= t.key %>" aria-label="Канал: <%= t.title %>">
                     <option value="">Общий канал</option>

@@ -80,3 +80,5 @@ tr.muted-row td { color: var(--fog); }
 }
 .ap-steps { margin: 0 0 4px; padding-left: 20px; color: var(--fog); font-size: var(--fs-14); display: flex; flex-direction: column; gap: 6px; }
 .mini-list + .econ-sub { margin-top: 22px; }
+/* light theme: the rarity colour is mixed with the text colour, so the small label stays readable on white */
+[data-theme="light"] .ach-tile-title small { color: color-mix(in srgb, var(--rc, var(--fog)) 55%, var(--paper)); }
