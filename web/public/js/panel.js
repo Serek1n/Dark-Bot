@@ -290,3 +290,18 @@ document.addEventListener('DOMContentLoaded', function () {
   sel.addEventListener('change', sync);
   sync();
 })();
+
+// Module tabs on a narrow screen scroll sideways: bring the open tab into view and show a fade where more tabs hide.
+(function () {
+  var tabs = document.querySelector('.mh-tabs');
+  if (!tabs) return;
+  var on = tabs.querySelector('a.on');
+  if (on && tabs.scrollWidth > tabs.clientWidth) tabs.scrollLeft = Math.max(0, on.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2);
+  function edges() {
+    tabs.classList.toggle('more-left', tabs.scrollLeft > 4);
+    tabs.classList.toggle('more-right', tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 4);
+  }
+  tabs.addEventListener('scroll', edges, { passive: true });
+  window.addEventListener('resize', edges);
+  edges();
+})();

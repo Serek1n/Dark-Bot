@@ -10,7 +10,22 @@
         <p class="page-intro">Включайте только то, что нужно серверу. Переключатель срабатывает сразу: выключенный модуль перестаёт работать и пропадает из работающих, а все его настройки и данные сохраняются — после включения всё вернётся как было.</p>
       </div>
       <% const M = locals.M || global.__darkModules; const mods = locals.mods || M.moduleState(settings); %>
-      <% mods.groups.forEach((g) => { %>
+      <%
+        // two columns of equal height: the groups are split so that the counts of rows on both sides are closest
+        // (each group keeps its place inside its column; on narrow screens the columns simply stack)
+        const weights = mods.groups.map((g) => g.modules.length + 2);
+        let best = 0; let bestDiff = Infinity;
+        for (let mask = 0; mask < (1 << weights.length); mask++) {
+          if (!(mask & 1)) continue; // the first group always on the left
+          const left = weights.reduce((n, w, i) => n + (mask & (1 << i) ? w : 0), 0);
+          const diff = Math.abs(2 * left - weights.reduce((a, b) => a + b, 0));
+          if (diff < bestDiff) { bestDiff = diff; best = mask; }
+        }
+        const cols = [mods.groups.filter((g, i) => best & (1 << i)), mods.groups.filter((g, i) => !(best & (1 << i)))];
+      %>
+      <div class="mods-cols g-span">
+      <% cols.forEach((col) => { %><div class="mods-col">
+      <% col.forEach((g) => { %>
         <section class="card mods-group">
           <h2><%= g.title %> <small><%= g.modules.filter((m) => m.on).length %> из <%= g.modules.length %></small></h2>
           <% g.modules.forEach((m) => { const cmds = (m.commands || []).filter((c) => !/[A-Z]/.test(c)); %>
@@ -32,6 +47,8 @@
           <% }) %>
         </section>
       <% }) %>
+      </div><% }) %>
+      </div>
       <form method="post" action="/dashboard/<%= guild.id %>/language" class="card lang-card g-span" data-no-guard>
         <h2>Язык бота на сервере</h2>
         <div class="two-col">

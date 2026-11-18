@@ -286,9 +286,6 @@ button, input, select, textarea, optgroup { font-family: inherit; }
   .card.g-fields > h2, .card.g-fields > .btn, .card.g-fields > .hint, .card.g-fields > .rules, .card.g-fields > .checkbox-row { grid-column: 1 / -1; }
   .card.g-fields > .two-col { grid-column: span 2; }
   .card.g-fields > .btn { justify-self: start; margin-top: 8px; }
-  /* the modules page: the two longer groups side by side, then the two shorter ones, then the language */
-  .app-layout > .content > section.mods-group:nth-of-type(2), .app-layout > .content > section.mods-group:nth-of-type(4) { order: 1; }
-  .app-layout > .content > .lang-card { order: 2; }
 }
 @media (min-width: 1200px) {
   /* a card is a column box now: its buttons keep their own width instead of stretching across it */
@@ -450,3 +447,13 @@ td form .btn, td > .btn { white-space: nowrap; }
   .rules.rules-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
   .g-split > div > .econ-sub:first-child { margin-top: 0; }
 }
+
+/* the modules page: groups in two balanced columns (split in features.ejs), stacked on narrow screens */
+.mods-cols { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+.mods-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.mods-col > .card { margin: 0; }
+@media (min-width: 1200px) { .mods-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* module tabs that scroll sideways: a soft fade on the side where more tabs are hidden */
+.mh-tabs.more-right { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+.mh-tabs.more-left { -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%); mask-image: linear-gradient(90deg, transparent, #000 15%); }
+.mh-tabs.more-left.more-right { -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); }

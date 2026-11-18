@@ -1,6 +1,25 @@
 [
  {
   "bot": "3.12.0",
+  "panel": "3.21.1",
+  "date": "2026-11-18",
+  "botChanges": [],
+  "panelChanges": [
+   "Модули: группы делятся на две колонки равной высоты, без пустой полосы",
+   "Наказания: таблицы банов на всю ширину, карточки больше не разной высоты",
+   "Вкладки модуля на телефоне: открытая вкладка сразу видна, края подсказывают прокрутку"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Modules: groups split into two columns of equal height, no empty strip",
+    "Punishments: ban tables full width, cards no longer of different heights",
+    "Module tabs on a phone: the open tab is in view, the edges hint at scrolling"
+   ]
+  }
+ },
+ {
+  "bot": "3.12.0",
   "panel": "3.21.0",
   "date": "2026-11-17",
   "botChanges": [
