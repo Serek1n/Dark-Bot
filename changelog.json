@@ -1,6 +1,29 @@
 [
  {
   "bot": "3.14.0",
+  "panel": "3.24.0",
+  "date": "2026-11-18",
+  "botChanges": [],
+  "panelChanges": [
+   "Сезонное оформление можно выключить и включить обратно — выбор запоминается",
+   "Переключатель: значок пальмы в верхней панели, строка в меню, кнопка на входе",
+   "Каталог, кошелёк, апелляции и документы: кнопки языка, темы и оформления сверху",
+   "Vice Nights: ретро-солнце на входе, закатные числа, переключатели и вкладки",
+   "Неоновая кромка у меню, списков и поиска; розовое выделение текста и полосы прокрутки"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "The seasonal look can be turned off and on again — the choice is remembered",
+    "The switch: a palm icon in the top bar, a line in the menus, a button on sign-in",
+    "Catalog, wallet, appeals and documents: language, theme and look buttons on top",
+    "Vice Nights: a retro sun on sign-in, sunset numbers, switches and tabs",
+    "Neon edge on menus, lists and search; pink text selection and scrollbars"
+   ]
+  }
+ },
+ {
+  "bot": "3.14.0",
   "panel": "3.23.1",
   "date": "2026-11-18",
   "botChanges": [],

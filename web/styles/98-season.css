@@ -85,7 +85,7 @@ html[data-season="vice"][data-theme="light"] {
   --vice-btn: linear-gradient(100deg, #c4246f, #d2512c);
   --vice-btn-hover: linear-gradient(100deg, #ad1d61, #bb4420);
   --vice-scene: url("/season/vice-light.svg");
-  --vice-scene-opacity: 0.35;
+  --vice-scene-opacity: 0.28;
   --vice-sky: radial-gradient(1200px 520px at 50% 108%, rgba(255, 140, 120, 0.22), transparent 70%),
     radial-gradient(900px 420px at 92% -10%, rgba(63, 201, 207, 0.12), transparent 65%),
     radial-gradient(900px 420px at 4% -8%, rgba(255, 111, 174, 0.14), transparent 65%);
@@ -102,33 +102,76 @@ html[data-season="vice"] body::before {
 }
 html[data-season="vice"] .night-sky { display: none !important; }
 
-/* Top bar: a neon line under it instead of the plain border */
-html[data-season="vice"] .topbar { border-bottom-color: transparent; }
+/* ---------------------------------------------------------------------------------------------------------------------
+   Top bar, menus and popovers
+   --------------------------------------------------------------------------------------------------------------------- */
+html[data-season="vice"] .topbar { border-bottom-color: transparent; background: color-mix(in srgb, var(--rail) 86%, transparent); }
 html[data-season="vice"] .topbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--vice-line); opacity: 0.9; pointer-events: none; }
 html[data-season="vice"] .tb-group.is-on { background: var(--ember-tint); box-shadow: inset 0 -2px 0 var(--vice-pink); }
 html[data-season="vice"] .tb-guild .guild-initial { background: var(--vice-btn); color: var(--on-ember); }
+html[data-season="vice"] .tb-count { color: var(--paper); background: color-mix(in srgb, var(--vice-pink) 32%, transparent); } /* pink on pink is too faint at 11 px */
+html[data-season="vice"] .tb-search:hover, html[data-season="vice"] .tb-icon:hover { border-color: color-mix(in srgb, var(--vice-pink) 60%, var(--hairline)); }
+/* windows that open over the page get a soft neon edge */
+html[data-season="vice"] .mods-menu, html[data-season="vice"] .tb-user-menu, html[data-season="vice"] .fs-pop, html[data-season="vice"] .qj-panel {
+  border-color: color-mix(in srgb, var(--vice-pink) 40%, var(--hairline));
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6), 0 0 0 1px color-mix(in srgb, var(--vice-pink) 12%, transparent), 0 0 40px -18px var(--vice-pink);
+}
+html[data-season="vice"] .nd-panel { border-right-color: color-mix(in srgb, var(--vice-pink) 35%, var(--hairline)); }
+html[data-season="vice"] .nd-panel::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--vice-line); pointer-events: none; }
 
-/* Titles: sunset gradient */
+/* ---------------------------------------------------------------------------------------------------------------------
+   Type and accents
+   --------------------------------------------------------------------------------------------------------------------- */
 html[data-season="vice"] h1 {
   width: fit-content; max-width: 100%; background: var(--vice-title); -webkit-background-clip: text; background-clip: text; color: transparent;
   -webkit-text-fill-color: transparent;
 }
 html[data-season="vice"]:not([data-theme="light"]) h1 { filter: drop-shadow(0 0 18px rgba(255, 95, 174, 0.28)); }
+html[data-season="vice"] ::selection { background: color-mix(in srgb, var(--vice-pink) 45%, transparent); color: var(--paper); }
+html[data-season="vice"] { scrollbar-color: color-mix(in srgb, var(--vice-pink) 45%, var(--hairline)) transparent; accent-color: var(--vice-pink); }
+/* module icon in a page head: a sunset tile */
+html[data-season="vice"] .mh-icon { background: linear-gradient(150deg, color-mix(in srgb, var(--vice-orange) 22%, transparent), color-mix(in srgb, var(--vice-pink) 26%, transparent)); color: var(--vice-pink); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vice-pink) 30%, transparent); }
+/* tabs of a module: a neon underline */
+html[data-season="vice"] .mh-tabs a.on { border-bottom-color: transparent; background-image: var(--vice-btn); background-size: 100% 2px; background-position: bottom; background-repeat: no-repeat; }
 
-/* Main buttons: pink-orange, with a glow */
+/* ---------------------------------------------------------------------------------------------------------------------
+   Buttons, switches, cards
+   --------------------------------------------------------------------------------------------------------------------- */
 html[data-season="vice"] .btn:not(.btn-secondary):not(.btn-danger):not(.danger) { background: var(--vice-btn); }
 html[data-season="vice"] .btn:not(.btn-secondary):not(.btn-danger):not(.danger):hover { background: var(--vice-btn-hover); box-shadow: 0 8px 26px -8px var(--vice-pink); }
+html[data-season="vice"] .btn:not(.btn-secondary):not(.btn-danger):not(.danger):disabled { background: var(--vice-btn); opacity: 0.45; box-shadow: none; }
 html[data-season="vice"] .btn-secondary:hover { border-color: var(--vice-teal); }
-
-/* Cards: a thin warm edge on top */
+/* switches: a sunset track when on */
+html[data-season="vice"] .mod-sw input:checked,
+html[data-season="vice"] .checkbox-row input[type=checkbox]:checked,
+html[data-season="vice"] .rule input[type=checkbox]:checked { background: var(--vice-btn); border-color: transparent; box-shadow: 0 0 14px -4px var(--vice-pink); }
+html[data-season="vice"] .mod-sw input:checked::after,
+html[data-season="vice"] .checkbox-row input[type=checkbox]:checked::after,
+html[data-season="vice"] .rule input[type=checkbox]:checked::after { background: #fff; }
+/* cards: a thin warm edge on top; number tiles get a sunset value */
 html[data-season="vice"] .card, html[data-season="vice"] .stat-box { border-top-color: color-mix(in srgb, var(--vice-pink) 45%, var(--hairline)); }
-html[data-season="vice"] .stat-box .value { color: var(--paper); }
+html[data-season="vice"] .stat-box .value { background: var(--vice-title); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; width: fit-content; max-width: 100%; }
+html[data-season="vice"] .empty-state svg { color: var(--vice-pink); opacity: 0.55; }
+html[data-season="vice"] .chip.active { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vice-pink) 45%, transparent); }
+html[data-season="vice"] input:focus-visible, html[data-season="vice"] select:focus-visible, html[data-season="vice"] textarea:focus-visible, html[data-season="vice"] .fs-btn:focus-visible { border-color: var(--vice-teal); }
 
-/* Fields and switches */
-html[data-season="vice"] input:focus-visible, html[data-season="vice"] select:focus-visible, html[data-season="vice"] textarea:focus-visible { border-color: var(--vice-teal); }
-html[data-season="vice"] a:not(.btn):not(.tb-group):not(.tb-guild):hover { text-shadow: none; }
+/* ---------------------------------------------------------------------------------------------------------------------
+   Sign-in page: the moon becomes a striped retro sun
+   --------------------------------------------------------------------------------------------------------------------- */
+html[data-season="vice"] .login-page .wordmark .crescent { display: none; }
+html[data-season="vice"] .login-page .wordmark::after {
+  content: ""; display: block; width: 92px; height: 92px; border-radius: 50%;
+  background: linear-gradient(180deg, #ffd36e 0%, #ff8a5c 48%, #ff4fa3 78%, #b86bff 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0 50%, transparent 50% 54%, #000 54% 62%, transparent 62% 66%, #000 66% 73%, transparent 73% 77%, #000 77% 83%, transparent 83% 87%, #000 87% 92%, transparent 92%);
+  mask-image: linear-gradient(180deg, #000 0 50%, transparent 50% 54%, #000 54% 62%, transparent 62% 66%, #000 66% 73%, transparent 73% 77%, #000 77% 83%, transparent 83% 87%, #000 87% 92%, transparent 92%);
+  filter: drop-shadow(0 0 26px rgba(255, 95, 174, 0.55));
+}
+html[data-season="vice"] .login-page .moon-glow::before { background: radial-gradient(closest-side, rgba(255, 95, 174, 0.30), rgba(255, 154, 60, 0.08) 55%, transparent 75%); }
+html[data-season="vice"] .login-page .season-pill { margin-bottom: 18px; }
+html[data-season="vice"] .login-page h1 { font-size: var(--fs-48); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 800; }
+html[data-season="vice"] .feature-list span { border-color: color-mix(in srgb, var(--vice-pink) 35%, var(--hairline)); background: color-mix(in srgb, var(--panel) 70%, transparent); }
 
-/* Season mark: a small pill on the sign-in page and in the profile menu */
+/* Season mark on the sign-in page */
 .season-pill { display: none; }
 html[data-season="vice"] .season-pill {
   display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: var(--r-pill);
@@ -138,21 +181,57 @@ html[data-season="vice"] .season-pill {
 }
 html[data-season="vice"] .season-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--vice-teal); box-shadow: 0 0 8px var(--vice-teal); flex: 0 0 8px; }
 html[data-season="vice"] .season-pill .sp-until { font-weight: 600; letter-spacing: 0.02em; text-transform: none; color: var(--fog); }
-html[data-season="vice"] .tb-user-menu .season-pill { display: flex; margin: 4px 4px 2px; justify-content: center; }
 
-/* Sign-in page: the moon turns into a sunset */
-html[data-season="vice"] .login-page .season-pill { margin-bottom: 18px; }
-html[data-season="vice"] .login-page .crescent > circle { fill: var(--vice-pink); }
-html[data-season="vice"] .login-page .moon-glow { filter: drop-shadow(0 0 22px rgba(255, 95, 174, 0.55)); }
-html[data-season="vice"] .login-page h1 { font-size: var(--fs-48); letter-spacing: 0.02em; text-transform: uppercase; font-weight: 800; }
-html[data-season="vice"] .feature-list span { border-color: color-mix(in srgb, var(--vice-pink) 35%, var(--hairline)); }
+/* ---------------------------------------------------------------------------------------------------------------------
+   The switch of the seasonal look (partials/season-switch.ejs). Drawn in both states, so it lives outside the scope.
+   --------------------------------------------------------------------------------------------------------------------- */
+.season-sw { display: inline-flex; align-items: center; gap: 8px; font: inherit; cursor: pointer; color: var(--fog); background: transparent; }
+.season-sw .ss-ic { flex: none; transition: color .15s ease, filter .15s ease; }
+.season-sw .ss-name { font-size: var(--fs-14); font-weight: 600; white-space: nowrap; }
+.season-sw .ss-name small { font-weight: 500; color: var(--fog-dim); font-size: var(--fs-12); margin-left: 4px; }
+.season-sw .ss-knob { position: relative; flex: none; width: 30px; height: 18px; border-radius: var(--r-pill); background: var(--panel-raised); border: 1px solid var(--hairline); transition: background .15s ease, border-color .15s ease; }
+.season-sw .ss-knob::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--fog); transition: transform .15s ease, background .15s ease; }
+html[data-season] .season-sw { color: var(--paper); }
+html[data-season] .season-sw .ss-ic { color: var(--vice-pink, var(--ember)); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--vice-pink, var(--ember)) 60%, transparent)); }
+html[data-season] .season-sw .ss-knob { background: var(--vice-btn, var(--ember)); border-color: transparent; }
+html[data-season] .season-sw .ss-knob::after { transform: translateX(12px); background: #fff; }
+/* "pill": on the sign-in page, the server list and the public pages */
+.season-sw-pill { min-height: 38px; padding: 0 12px; border-radius: var(--r-pill); border: 1px solid var(--hairline); background: color-mix(in srgb, var(--panel) 85%, transparent); }
+.season-sw-pill:hover { color: var(--paper); border-color: var(--fog-dim); }
+html[data-season] .season-sw-pill { border-color: color-mix(in srgb, var(--vice-pink, var(--ember)) 50%, var(--hairline)); }
+/* "icon": the top bar of the panel */
+.season-sw-icon { justify-content: center; padding: 0; }
+.season-sw-icon:hover { color: var(--paper); }
+html[data-season] .season-sw-icon { border-color: color-mix(in srgb, var(--vice-pink, var(--ember)) 45%, var(--hairline)); background: color-mix(in srgb, var(--vice-pink, var(--ember)) 10%, transparent); }
+/* "row": a line in the profile menu and in the drawer */
+.season-sw-row { width: 100%; justify-content: flex-start; padding: 10px; border: 0; border-radius: var(--r-8); text-align: left; }
+.season-sw-row .ss-name { flex: 1; font-weight: 500; }
+.season-sw-row:hover { background: var(--panel-raised); }
+.tb-user-menu .season-sw-row { margin: 2px 0 4px; }
+.nd-foot .season-sw-row { padding: 8px 6px; font-size: var(--fs-14); }
+@media (max-width: 640px) { .tb-season { display: none; } } /* on a phone the switch is in the drawer and the profile menu */
+
+/* Language, theme and season on the pages without the top bar */
+.page-tools { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.pt-tool { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; min-width: 38px; padding: 0 12px; border-radius: var(--r-pill); border: 1px solid var(--hairline); background: color-mix(in srgb, var(--panel) 85%, transparent); color: var(--fog); font: inherit; font-size: var(--fs-14); text-decoration: none; cursor: pointer; }
+.pt-tool:hover { color: var(--paper); border-color: var(--fog-dim); }
+.theme-tool { padding: 0; width: 38px; }
+.theme-tool .ic-moon { display: none; }
+html[data-theme="light"] .theme-tool .ic-sun { display: none; }
+html[data-theme="light"] .theme-tool .ic-moon { display: block; }
+.error-page .page-tools { position: fixed; top: 16px; right: 16px; margin: 0; }
+@media (pointer: coarse) { .pt-tool { min-height: 44px; min-width: 44px; } }
 
 @media (max-width: 640px) {
   html[data-season="vice"] body::before { height: 34vh; --vice-scene-opacity: 0.35; }
+  .pt-tool-text { display: none; }
 }
 @media print {
   html[data-season="vice"] body::before, html[data-season="vice"] .topbar::after { display: none; }
 }
-
-/* the pink count on a pink tint is too faint at 11 px */
-html[data-season="vice"] .tb-count { color: var(--paper); background: color-mix(in srgb, var(--vice-pink) 32%, transparent); }
+/* phones: the buttons in the corner of the sign-in page and the server list keep to one line — language and theme as icons */
+@media (max-width: 640px) {
+  .fab-row { left: 16px; justify-content: flex-end; }
+  .fab-row:has(.season-sw) .theme-fab span, .fab-row:has(.season-sw) .lang-fab span { display: none; }
+  .fab-row:has(.season-sw) .theme-fab, .fab-row:has(.season-sw) .lang-fab { width: 44px; min-width: 44px; padding: 0; justify-content: center; }
+}

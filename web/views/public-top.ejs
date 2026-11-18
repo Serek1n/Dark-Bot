@@ -4,6 +4,7 @@
 <body>
   <div class="night-sky"></div>
   <main class="public-top">
+    <%- include('partials/page-tools') %>
     <header class="pt-head">
       <% if (guild.icon) { %><img class="pt-icon" src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png?size=128" alt="" /><% } else { %><div class="pt-icon pt-letter"><%= (guild.name || '?').trim().charAt(0).toUpperCase() %></div><% } %>
       <div>

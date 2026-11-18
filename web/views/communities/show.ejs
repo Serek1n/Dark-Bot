@@ -4,6 +4,7 @@
 <body>
   <div class="night-sky"></div>
   <main class="cm-page">
+    <%- include('../partials/page-tools') %>
     <p class="cm-back"><a href="/communities">← Все сообщества</a></p>
     <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); %>
     <% if (msg === 'voted') { %><div class="card appeal-ok"><p style="margin:0">Спасибо, ваш голос учтён! Проголосовать снова можно через 12 часов.</p></div><% } %>

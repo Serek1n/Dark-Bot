@@ -71,6 +71,21 @@ const web = path.join(__dirname, '..', 'web');
       querySelector: (q) => (q.includes('dark-season') ? { getAttribute: () => 'vice' } : null), querySelectorAll: () => [], addEventListener() {} };
     vm.runInNewContext(src, { document: doc, localStorage: { getItem: () => null, setItem() {} }, Array });
     assert(attrs['data-season'] === 'vice', 'html gets data-season');
+    // the visitor switched it off: it stays off on the next page, and the switch turns it back on
+    const store = { 'dark-season-off': 'vice' }; const a2 = {}; const listeners = []; const btn = { setAttribute() {}, hasAttribute: (k) => k === 'data-season-toggle' };
+    const doc2 = { documentElement: { setAttribute: (k, v) => { a2[k] = v; }, getAttribute: (k) => a2[k], hasAttribute: (k) => k in a2, removeAttribute: (k) => { delete a2[k]; }, classList: { add() {}, contains: () => false } },
+      querySelector: (q) => (q.includes('dark-season') ? { getAttribute: () => 'vice' } : null), querySelectorAll: () => [btn], addEventListener: (ev, fn) => listeners.push([ev, fn]) };
+    vm.runInNewContext(src, { document: doc2, localStorage: { getItem: (k) => store[k] ?? null, setItem: (k, v) => { store[k] = v; } }, Array });
+    assert(!('data-season' in a2), 'stays off after the visitor turned it off');
+    listeners.find((l) => l[0] === 'DOMContentLoaded')[1]();
+    const click = listeners.filter((l) => l[0] === 'click').pop()[1];
+    click({ target: { closest: () => btn } });
+    assert(a2['data-season'] === 'vice' && store['dark-season-off'] === '', 'the switch turns it on and remembers');
+    click({ target: { closest: () => btn } });
+    assert(!('data-season' in a2) && store['dark-season-off'] === 'vice', 'and off again');
+    const sw = await ejs.renderFile(path.join(web, 'views/partials/season-switch.ejs'), { season: 'vice', variant: 'icon' });
+    assert(sw.includes('data-season-toggle') && sw.includes('role="switch"'), 'switch markup');
+    assert(!(await ejs.renderFile(path.join(web, 'views/partials/season-switch.ejs'), {})).includes('button'), 'no switch out of season');
     const css = require('../web/styles').stylesheet().text;
     assert(css.includes('html[data-season="vice"] {') && css.includes('html[data-season="vice"][data-theme="light"] {'), 'both themes styled');
     for (const f of ['vice-dark.svg', 'vice-light.svg']) assert(fs.existsSync(path.join(web, 'public/season', f)), 'scene ' + f);

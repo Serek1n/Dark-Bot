@@ -4,6 +4,7 @@
 <body>
   <div class="night-sky"></div>
   <main class="cm-page">
+    <%- include('../partials/page-tools') %>
     <header class="cm-hero"><div><h1>Платформа DARK</h1><p class="page-intro">Только для владельцев платформы: DARK Coins, цены продвижения, модерация каталога.</p></div><a class="btn btn-secondary" href="/communities">Каталог</a></header>
     <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); const name = (id) => (id ? (users[id] || { name: id }).name : '—');
        const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });

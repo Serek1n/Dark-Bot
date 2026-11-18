@@ -34,6 +34,7 @@
         <span class="tb-search-text">Поиск</span><kbd class="qj-kbd">Ctrl K</kbd>
       </button>
       <%- include('lang-switch', { cls: 'tb-icon tb-lang', labelCls: 'sr-only' }) %>
+      <%- include('season-switch', { variant: 'icon', cls: 'tb-icon tb-season' }) %>
       <button type="button" class="tb-icon tb-theme" data-theme-toggle aria-label="Сменить тему" title="Сменить тему">
         <svg class="ic-sun" width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.5"/><path d="M10 2.500v2M10 15.500v2M2.500 10h2M15.500 10h2M4.700 4.700l1.400 1.400M13.900 13.900l1.400 1.400M4.700 15.300l1.400-1.400M13.900 6.100l1.400-1.400"/></svg>
         <svg class="ic-moon" width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.500 11.500A6.500 6.500 0 118.500 3.500a5.200 5.200 0 008 8z"/></svg>
@@ -43,7 +44,7 @@
           <summary aria-label="Профиль"><img src="<%= user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : 'https://cdn.discordapp.com/embed/avatars/0.png' %>" alt="" data-fallback="https://cdn.discordapp.com/embed/avatars/0.png" /></summary>
           <div class="tb-user-menu">
             <div class="tb-user-name"><%= user.global_name || user.username %></div>
-            <% if (locals.season === 'vice') { %><span class="season-pill" title="Сезонное оформление сайта">Vice Nights <span class="sp-until">до 30 ноября</span></span><% } %>
+            <%- include('season-switch', { variant: 'row' }) %>
             <a href="/dashboard">Все серверы</a>
             <% if (locals.sys) { %><a href="/dashboard/<%= gid %>/changelog">Бот v<%= sys.bot %> · панель v<%= sys.panel %></a><% } %>
             <form method="post" action="/auth/logout"><button type="submit">Выйти</button></form>
@@ -118,6 +119,7 @@
     <div class="nd-foot">
       <a href="/dashboard" class="nd-foot-link">← Все серверы</a>
       <%- include('lang-switch', { cls: 'nd-foot-link nd-lang', labelCls: '' }) %>
+      <%- include('season-switch', { variant: 'row', cls: 'nd-season' }) %>
       <% if (locals.sys) { %><a class="nd-foot-link" href="/dashboard/<%= gid %>/changelog">Бот v<%= sys.bot %> · панель v<%= sys.panel %></a><% } %>
     </div>
   </aside>
