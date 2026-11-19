@@ -20,6 +20,15 @@ router.get('/', async (req, res) => {
   res.render('communities/index', { title: 'Сообщества', ...data, f, C: cm(), favCount: favs.size });
 });
 
+// the catalog's pictures kept by the bot (bot/modules/communityMedia.js): WebP only, cached for a month
+router.get('/media/:gid(\\d{15,25})/:file([a-f0-9]{20}\\.webp)', (req, res) => {
+  const media = require('../../bot/modules/communityMedia');
+  const file = media.fileOf(`/communities/media/${req.params.gid}/${req.params.file}`);
+  if (!file) return res.status(404).end();
+  res.set({ 'Content-Type': 'image/webp', 'Cache-Control': 'public, max-age=2592000, immutable', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'" });
+  res.sendFile(file, (err) => { if (err && !res.headersSent) res.status(404).end(); });
+});
+
 router.get('/:id(\\d+)', async (req, res) => {
   const c = await cm().one(req.params.id);
   if (!c || c.status !== 'published') return res.status(404).render('error', { message: 'Сообщество не найдено или скрыто.' });

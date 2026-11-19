@@ -4,6 +4,7 @@
 process.env.DATABASE_PATH = './data/test_communities2.sqlite';
 process.env.BOT_OWNER_IDS = '700000000000000001';
 process.env.WEB_BASE_URL = 'https://dark.example';
+process.env.MEDIA_DIR = './data/test_media_communities';
 const path = require('path');
 const stub = (rel, exports) => { const f = require.resolve(path.join('..', 'web', rel)); require.cache[f] = { id: f, filename: f, loaded: true, exports }; };
 stub('middleware/ensureGuildAccess.js', { ensureGuildAccess: (q, s, n) => n() });
@@ -11,6 +12,7 @@ stub('discordApi.js', { getBotGuildIds: async () => [], getGuildChannels: async 
 const fs = require('fs');
 fs.mkdirSync('./data', { recursive: true });
 ['', '-shm', '-wal'].forEach((x) => fs.rmSync(process.env.DATABASE_PATH + x, { force: true }));
+fs.rmSync(process.env.MEDIA_DIR, { recursive: true, force: true });
 
 (async () => {
   const db = require('../db'); await db.init();
@@ -34,6 +36,15 @@ fs.mkdirSync('./data', { recursive: true });
   const guilds = new Map([[G1, guild(G1, 1)], [G2, guild(G2, 20)], [G3, guild(G3, 3)]]);
   require('../web/botBridge').setClient({ guilds: { cache: guilds }, isReady: () => true });
   cm.verifyInvite = async () => ({ name: null });
+  // no network here: «downloading» a link gives a small picture of its own, or the answer Discord gives for an old link
+  const media = require('../bot/modules/communityMedia');
+  const { createCanvas } = require('@napi-rs/canvas');
+  const png = (w, h, color = '#f80') => { const cv = createCanvas(w, h); const x = cv.getContext('2d'); x.fillStyle = color; x.fillRect(0, 0, w, h); return cv.toBuffer('image/png'); };
+  media.importUrl = async (guildId, url) => {
+    if (/expired/.test(url)) throw new media.MediaError('Ссылка на картинку устарела (Discord выдаёт такие ссылки на сутки). Загрузите картинку файлом.');
+    if (!/^https:\/\/(cdn\.discordapp\.com|media\.discordapp\.net|i\.imgur\.com)\//.test(url)) throw new media.MediaError('Картинки по ссылке — только с cdn.discordapp.com, media.discordapp.net, i.imgur.com. Или загрузите файл.');
+    return media.store(guildId, png(40 + url.length % 50, 30, '#' + (url.length * 99999).toString(16).slice(0, 6).padEnd(6, '0')));
+  };
   await cm.setPlatform(OWNER, { premoderation: false });
   const form = (n, extra = {}) => ({ name: 'Сервер ' + n, shortDesc: 'Дружное сообщество номер ' + n, categories: ['gaming'], tags: 'minecraft', inviteUrl: 'https://discord.gg/abc' + n, ...extra });
 
@@ -47,10 +58,39 @@ fs.mkdirSync('./data', { recursive: true });
     c1 = await cm.one((await db.Community.findOne({ where: { guildId: G1 } })).id);
     assert(c1.ruleList.join('|') === 'Без спама|Уважайте друг друга', c1.ruleList.join('|'));
     assert(c1.linkList.length === 2 && c1.linkList[1].label === 'youtube.com', JSON.stringify(c1.linkList));
-    assert(c1.galleryList.length === 2 && c1.notifyChannelId === '810000000000000001', 'gallery and channel');
+    assert(c1.galleryList.length === 2 && c1.galleryList.every((u) => media.isLocal(u) && fs.existsSync(media.fileOf(u))) && c1.notifyChannelId === '810000000000000001', 'gallery kept by the bot: ' + c1.galleryList);
+    await fails(() => cm.save(G1, ADMIN, form(1, { gallery: 'https://cdn.discordapp.com/attachments/1/2/expired.png' })), /Скриншот 1: Ссылка на картинку устарела/);
+    await fails(() => cm.save(G1, ADMIN, form(1, { gallery: `/communities/media/${G2}/${'a'.repeat(20)}.webp` })), /другому серверу/);
+    // a save without one of the pictures removes its file
+    const gone = c1.galleryList[0];
+    await cm.save(G1, ADMIN, form(1, { gallery: c1.galleryList[1], notifyChannelId: '810000000000000001', rules: 'Без спама\nУважайте друг друга', linkLabel: ['Сайт', ''], linkUrl: ['https://dark.example/', 'https://www.youtube.com/@dark'] }));
+    assert(!fs.existsSync(media.fileOf(gone)) && fs.existsSync(media.fileOf(c1.galleryList[1])), 'unused picture removed');
+    await cm.save(G1, ADMIN, form(1, { gallery: c1.galleryList[1] + '\nhttps://i.imgur.com/x.png', notifyChannelId: '810000000000000001', rules: 'Без спама\nУважайте друг друга', linkLabel: ['Сайт', ''], linkUrl: ['https://dark.example/', 'https://www.youtube.com/@dark'] }));
+    c1 = await cm.one(c1.id);
     await cm.save(G2, ADMIN, form(2, { categories: ['gaming', 'social'], tags: 'pvp' }));
     await cm.save(G3, ADMIN, form(3, { categories: ['music'] }));
     c2 = await db.Community.findOne({ where: { guildId: G2 } }); c3 = await db.Community.findOne({ where: { guildId: G3 } });
+  });
+
+  await test('pictures: only real images are kept, drawn anew as WebP at most 1920 px; anything else is refused', async () => {
+    await fails(() => media.store(G3, Buffer.from('<svg onload=alert(1)></svg>          ')), /Это не картинка/);
+    await fails(() => media.store(G3, Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(40)])), /не удалось прочитать/);
+    await fails(() => media.store(G3, Buffer.alloc(9 * 1024 * 1024, 1)), /больше 8 МБ/);
+    const u = await media.store(G3, png(3000, 1000));
+    const out = fs.readFileSync(media.fileOf(u));
+    assert(media.kindOf(out) === 'webp', 'webp');
+    const { loadImage } = require('@napi-rs/canvas'); const im = await loadImage(out);
+    assert(im.width === 1920 && im.height === 640, im.width + '×' + im.height);
+    assert(await media.store(G3, png(3000, 1000)) === u, 'the same picture is kept once');
+    await media.prune(G3, []);
+    assert(!fs.existsSync(media.fileOf(u)), 'pruned');
+  });
+
+  await test('old Discord links in cards are taken in once; dead ones are dropped', async () => {
+    await db.Community.update({ bannerUrl: 'https://cdn.discordapp.com/banner.png', gallery: JSON.stringify(['https://media.discordapp.net/a.png', 'https://cdn.discordapp.com/attachments/expired.png']) }, { where: { id: c3.id } });
+    await cm.adoptOldPictures();
+    const r = await db.Community.findByPk(c3.id);
+    assert(media.isLocal(r.bannerUrl) && JSON.parse(r.gallery).length === 1 && media.isLocal(JSON.parse(r.gallery)[0]), r.bannerUrl + ' ' + r.gallery);
   });
 
   await test('reviews: not from a fresh account, not from someone who is not a member, not before a day on the server, not the owner', async () => {
@@ -186,16 +226,29 @@ fs.mkdirSync('./data', { recursive: true });
     assert(/err=/.test(r.headers.get('location')), 'error back');
     const page = await (await fetch(`${base}/communities/${c2.id}`)).text();
     ['Хорошее сообщество', 'cm-starpick', 'Изменить отзыв', 'Похожие сообщества', 'в сети', 'data-share'].forEach((s) => assert(page.includes(s), 'no ' + s));
+    // a kept picture is served as WebP with a long cache; anything else is 404
+    const shot = (await cm.one(c3.id)).galleryList[0];
+    let pic = await fetch(base + shot);
+    assert(pic.status === 200 && pic.headers.get('content-type') === 'image/webp' && /immutable/.test(pic.headers.get('cache-control')) && media.kindOf(Buffer.from(await pic.arrayBuffer())) === 'webp', 'served');
+    assert((await fetch(`${base}/communities/media/${G3}/${'b'.repeat(20)}.webp`)).status === 404, 'missing → 404');
+    assert((await fetch(`${base}/communities/media/${G3}/..%2F..%2Fx.webp`)).status === 404, 'no path tricks');
+    const show3 = await (await fetch(`${base}/communities/${c3.id}`)).text();
+    assert(show3.includes(`src="${shot}"`) && show3.includes("background-image:url('/communities/media/"), 'page shows kept pictures');
     r = await post(`/communities/${c2.id}/favorite`, { from: '/communities?sort=new' });
     assert(r.headers.get('location') === '/communities?sort=new', 'back to the list');
     r = await post(`/communities/${c2.id}/favorite`, { from: 'https://evil.com' });
     assert(/unfaved=1/.test(r.headers.get('location')), 'no open redirect: ' + r.headers.get('location'));
     const rv = await db.CommunityReview.findOne({ where: { communityId: c2.id } });
     who = ADMIN;
+    const up = await fetch(`${base}/dashboard/${G2}/community/upload`, { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: png(200, 100) });
+    const upj = await up.json();
+    assert(up.status === 200 && media.isLocal(upj.url) && upj.url.startsWith(`/communities/media/${G2}/`), JSON.stringify(upj));
+    const bad = await fetch(`${base}/dashboard/${G2}/community/upload`, { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: Buffer.from('not a picture, just text here') });
+    assert(bad.status === 400 && /не картинка/.test((await bad.json()).error), 'not a picture');
     r = await post(`/dashboard/${G2}/community/review/${rv.id}/reply`, { reply: 'Рады, что нравится!' });
     assert(/done=replied/.test(r.headers.get('location')) && (await rv.reload()).reply === 'Рады, что нравится!', 'reply');
     const own = await (await fetch(`${base}/dashboard/${G2}/community`)).text();
-    ['Статистика по дням', 'class="sc-svg"', 'Рады, что нравится!', 'Куда присылать новые отзывы', 'linkUrl'].forEach((s) => assert(own.includes(s), 'owner page: no ' + s));
+    ['Статистика по дням', 'class="sc-svg"', 'Рады, что нравится!', 'Куда присылать новые отзывы', 'linkUrl', 'data-cm-upload="shots"', 'data-cm-upload="banner"'].forEach((s) => assert(own.includes(s), 'owner page: no ' + s));
     who = U3;
     await post(`/communities/${c2.id}/review/${rv.id}/report`, { reason: 'Подозрительный отзыв' });
     who = OWNER;

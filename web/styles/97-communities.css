@@ -249,7 +249,7 @@
   .cm-stats.six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cm-gallery.n3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cm-gallery.n3 a:first-child { grid-column: 1 / -1; }
-  .cm-links-edit { grid-template-columns: minmax(0, 1fr); }
+  .cm-links-edit { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
 }
 .cm-charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 @media (max-width: 1000px) { .cm-charts { grid-template-columns: minmax(0, 1fr); } }
@@ -265,3 +265,29 @@
 .cm-owner-reviews { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: stretch; }
 .cm-owner-reviews details summary { cursor: pointer; color: var(--ember); font-size: var(--fs-13); margin-top: 8px; width: max-content; }
 @media (max-width: 900px) { .cm-owner-reviews { grid-template-columns: minmax(0, 1fr); } }
+/* pictures of the card: the banner strip and the screenshot tiles (web/public/js/community-media.js) */
+.cm-banner-edit { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.cm-banner-pv { height: 90px; border-radius: var(--r-12); border: 1px solid var(--hairline); background: linear-gradient(120deg, var(--ember-tint-strong), var(--signal-tint)) center / cover no-repeat, var(--panel-raised); }
+.cm-banner-pv:not(.empty) { background-size: cover; }
+.cm-banner-row { display: flex; gap: 8px; align-items: stretch; }
+.cm-banner-row input { flex: 1; min-width: 0; margin: 0; }
+.cm-upload { flex: none; margin: 0; display: inline-flex; align-items: center; cursor: pointer; }
+.cm-banner-edit .hint { margin: 0; }
+.cm-shots-head { margin-top: 14px; }
+.cm-shots-head span { font-weight: 400; text-transform: none; letter-spacing: 0; }
+.cm-shots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 8px 0; }
+.cm-shot, .cm-shot-add { position: relative; aspect-ratio: 16 / 9; border-radius: var(--r-10); overflow: hidden; }
+.cm-shot { background: var(--panel-raised); border: 1px solid var(--hairline); }
+.cm-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cm-shot.broken { background: repeating-linear-gradient(45deg, var(--panel-raised), var(--panel-raised) 8px, var(--panel) 8px, var(--panel) 16px); border-color: var(--danger); }
+.cm-shot.broken::after { content: '!'; position: absolute; inset: 0; display: grid; place-items: center; color: var(--danger); font-weight: 800; font-size: var(--fs-20); }
+.cm-shot-x { position: absolute; top: 4px; right: 4px; z-index: 1; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .65); color: #fff; font-size: var(--fs-18); line-height: 1; cursor: pointer; }
+.cm-shot-x:hover, .cm-shot-x:focus-visible { background: var(--danger); }
+.cm-shot-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; margin: 0; border: 1px dashed var(--fog-dim); color: var(--fog); cursor: pointer; }
+.cm-shot-add:hover, .cm-shot-add:focus-within { border-color: var(--ember); color: var(--ember); }
+.cm-shot-add span { font-size: var(--fs-24); line-height: 1; }
+.cm-shot-add small { font-size: var(--fs-12); }
+.cm-shot-add[hidden] { display: none; }
+.cm-shot-links summary { cursor: pointer; color: var(--fog); font-size: var(--fs-13); width: max-content; }
+.cm-bad { color: var(--danger) !important; }
+@media (pointer: coarse) { .cm-shot-x { width: 36px; height: 36px; } }

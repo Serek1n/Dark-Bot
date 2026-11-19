@@ -1,5 +1,30 @@
 [
  {
+  "bot": "3.17.1",
+  "panel": "3.28.1",
+  "date": "2026-11-19",
+  "botChanges": [
+   "Скриншоты и баннер сообществ бот хранит сам: ссылки Discord больше не устаревают",
+   "Уже сохранённые ссылки из Discord бот при запуске скачивает к себе, устаревшие убирает"
+  ],
+  "panelChanges": [
+   "Скриншоты и баннер загружаются файлом прямо в панели, с превью и кнопкой «Убрать»",
+   "Ссылку на картинку из Discord или Imgur бот скачивает при сохранении карточки",
+   "Поля ссылок в карточке на телефоне — в два столбца: название и адрес рядом"
+  ],
+  "en": {
+   "botChanges": [
+    "The bot keeps community screenshots and banners itself: Discord links no longer expire",
+    "On start the bot downloads already saved Discord links and drops the expired ones"
+   ],
+   "panelChanges": [
+    "Screenshots and the banner are uploaded as files in the panel, with previews and «Remove»",
+    "A picture link from Discord or Imgur is downloaded by the bot when the card is saved",
+    "Link fields of the card on a phone are in two columns: name and address side by side"
+   ]
+  }
+ },
+ {
   "bot": "3.17.0",
   "panel": "3.28.0",
   "date": "2026-11-19",

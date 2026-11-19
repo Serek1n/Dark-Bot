@@ -30,11 +30,18 @@
         <div class="cm-pick"><% C.CATEGORIES.forEach(([k, l]) => { %><label class="cm-pick-item" style="--ic:<%= C.hue(k) %>"><input type="checkbox" name="categories" value="<%= k %>" <%= cats.includes(k) ? 'checked' : '' %> /><%- C.icon(k, 16) %><span><%= l %></span></label><% }) %></div>
         <label for="cmTags">Теги через запятую</label>
         <input id="cmTags" type="text" name="tags" maxlength="200" value="<%= c ? c.tags : '' %>" placeholder="minecraft, общение, ивенты" />
-        <div class="two-col">
-          <div><label for="cmInv">Ссылка-приглашение</label><input id="cmInv" type="text" inputmode="url" name="inviteUrl" maxlength="120" required value="<%= c ? c.inviteUrl : '' %>" placeholder="https://discord.gg/код" /></div>
-          <div><label for="cmBan">Баннер (необязательно)</label><input id="cmBan" type="text" inputmode="url" name="bannerUrl" maxlength="300" value="<%= c ? c.bannerUrl || '' : '' %>" placeholder="https://cdn.discordapp.com/…" /></div>
+        <label for="cmInv">Ссылка-приглашение</label>
+        <input id="cmInv" type="text" inputmode="url" name="inviteUrl" maxlength="120" required value="<%= c ? c.inviteUrl : '' %>" placeholder="https://discord.gg/код" />
+        <div class="hint">Приглашение — бессрочное, иначе ссылка в каталоге перестанет работать. Аватар и число участников бот берёт с сервера сам.</div>
+        <label for="cmBan">Баннер (необязательно)</label>
+        <div class="cm-banner-edit" data-cm-banner>
+          <div class="cm-banner-pv" data-cm-banner-pv></div>
+          <div class="cm-banner-row">
+            <input id="cmBan" type="text" inputmode="url" name="bannerUrl" maxlength="1500" value="<%= c ? c.bannerUrl || '' : '' %>" placeholder="Загрузите файл или вставьте ссылку" />
+            <label class="btn btn-secondary cm-upload">Загрузить<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-cm-upload="banner" hidden /></label>
+          </div>
+          <p class="hint" data-cm-banner-msg>Широкая картинка, лучше 1600 × 400. Ссылку из Discord или Imgur бот скачает и сохранит у себя.</p>
         </div>
-        <div class="hint">Приглашение — бессрочное, иначе ссылка в каталоге перестанет работать. Баннер — картинка с <%= C.BANNER_HOSTS.join(', ') %>. Аватар и число участников бот берёт с сервера сам.</div>
         <button class="btn" type="submit"><%= c ? 'Сохранить' : 'Добавить в каталог' %></button>
       </form>
       <div class="card g-c2">
@@ -81,9 +88,17 @@
             <input form="cmForm" type="text" inputmode="url" name="linkUrl" maxlength="200" value="<%= l.url || '' %>" placeholder="https://…" aria-label="Адрес ссылки <%= i + 1 %>" />
           <% }) %>
         </div>
-        <label for="cmGal">Скриншоты (до шести, каждая ссылка с новой строки)</label>
-        <textarea form="cmForm" id="cmGal" name="gallery" rows="3" maxlength="2000" placeholder="https://cdn.discordapp.com/attachments/…"><%= c ? c.galleryList.join('\n') : '' %></textarea>
-        <p class="hint">Картинки — по https с <%= C.BANNER_HOSTS.join(', ') %>: загрузите скриншот в Discord и скопируйте ссылку.</p>
+        <div class="look-sub cm-shots-head">Скриншоты <span data-cm-shots-count></span></div>
+        <div class="cm-shots" data-cm-shots>
+          <label class="cm-shot-add"><input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple data-cm-upload="shots" hidden /><span>+</span><small>Загрузить</small></label>
+        </div>
+        <p class="hint" data-cm-shots-msg>До шести картинок: PNG, JPEG, WebP или GIF, до 8 МБ. Бот хранит их сам — ссылки не устаревают.</p>
+        <details class="cm-shot-links">
+          <summary>Добавить по ссылке</summary>
+          <label for="cmGal">Ссылки на картинки, каждая с новой строки</label>
+          <textarea form="cmForm" id="cmGal" name="gallery" rows="3" maxlength="9000" placeholder="https://cdn.discordapp.com/attachments/…" data-cm-gallery><%= c ? c.galleryList.join('\n') : '' %></textarea>
+          <p class="hint">Ссылки с <%= C.BANNER_HOSTS.join(', ') %>: при сохранении бот скачает картинки и сохранит у себя.</p>
+        </details>
         <label for="cmNotify">Куда присылать новые отзывы</label>
         <select form="cmForm" id="cmNotify" name="notifyChannelId">
           <option value="">Никуда — смотреть здесь</option>
@@ -176,5 +191,6 @@
       <% } %>
     </main>
   </div>
+  <script src="/js/community-media.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
 </body>
 </html>

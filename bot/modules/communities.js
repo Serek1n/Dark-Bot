@@ -103,14 +103,6 @@ function cleanInvite(v) {
   if (!m) throw new CommunityError('Ссылка-приглашение должна быть вида https://discord.gg/код.');
   return `https://discord.gg/${m[1]}`;
 }
-function cleanBanner(v, what = 'Баннер') {
-  const s = String(v || '').trim();
-  if (!s) return null;
-  let u; try { u = new URL(s); } catch { throw new CommunityError(`${what}: ссылка некорректна.`); }
-  if (u.protocol !== 'https:' || !BANNER_HOSTS.includes(u.hostname) || s.length > 300) throw new CommunityError(`${what} — картинка по https с ${BANNER_HOSTS.join(', ')}.`);
-  // the link goes into a CSS url(''): quotes, brackets, backslashes and spaces are percent-encoded so it cannot close it
-  return u.href.replace(/['"()\\\s]/g, (ch) => '%' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
-}
 
 /** Fields of a listing from a form, checked. */
 function cleanFields(b) {
@@ -133,11 +125,14 @@ function cleanFields(b) {
     links.push({ label: String(labels[i] || '').trim().slice(0, 30) || u.hostname.replace(/^www\./, ''), url: u.href });
   });
   if (links.length > 4) throw new CommunityError('Не больше четырёх ссылок.');
+  // pictures: our own addresses (uploaded before) or links that save() downloads and keeps (see communityMedia.js)
   const shots = String(b.gallery || '').split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
   if (shots.length > 6) throw new CommunityError('Не больше шести скриншотов.');
-  const gallery = shots.map((x) => cleanBanner(x, 'Скриншот'));
+  const picture = (x, what) => { if (require('./communityMedia').isLocal(x) || /^https:\/\/\S{1,1500}$/.test(x)) return x; throw new CommunityError(`${what}: нужна ссылка https:// или загруженный файл.`); };
+  const gallery = shots.map((x, i) => picture(x, `Скриншот ${i + 1}`));
+  const banner = String(b.bannerUrl || '').trim() ? picture(String(b.bannerUrl).trim(), 'Баннер') : null;
   const notifyChannelId = /^\d{15,25}$/.test(String(b.notifyChannelId || '')) ? String(b.notifyChannelId) : null;
-  return { name, shortDesc, description, categories: cats.join(','), tags: tags.join(','), inviteUrl: cleanInvite(b.inviteUrl), bannerUrl: cleanBanner(b.bannerUrl),
+  return { name, shortDesc, description, categories: cats.join(','), tags: tags.join(','), inviteUrl: cleanInvite(b.inviteUrl), bannerUrl: banner,
     rules, links: links.length ? JSON.stringify(links) : null, gallery: gallery.length ? JSON.stringify(gallery) : null, notifyChannelId };
 }
 
@@ -169,17 +164,30 @@ async function save(guildId, userId, body) {
   const fields = cleanFields(body);
   const real = await api.verifyInvite(fields.inviteUrl, guildId);
   if (real.name) fields.name = real.name.slice(0, 60); // the name comes from Discord, like the icon
+  // pictures are kept by the bot: a link from Discord would stop working in a day
+  const media = require('./communityMedia');
+  const kept = async (ref, what) => { try { return await media.keep(String(guildId), ref); } catch (e) { if (e instanceof media.MediaError) throw new CommunityError(`${what}: ${e.message}`); throw e; } };
+  if (fields.bannerUrl) fields.bannerUrl = await kept(fields.bannerUrl, 'Баннер');
+  const shots = jsonList(fields.gallery);
+  const keptShots = [];
+  for (let i = 0; i < shots.length; i++) keptShots.push(await kept(shots[i], `Скриншот ${i + 1}`));
+  fields.gallery = keptShots.length ? JSON.stringify([...new Set(keptShots)]) : null;
+  const before = await db().Community.findOne({ where: { guildId: String(guildId) }, attributes: ['bannerUrl', 'gallery'], raw: true });
+  const was = before ? [before.bannerUrl, ...jsonList(before.gallery)].filter(Boolean) : [];
+  const tidy = () => media.prune(String(guildId), [fields.bannerUrl, ...keptShots].filter(Boolean), was).catch(() => {});
   const g = client()?.guilds?.cache?.get(String(guildId));
   const live = g ? { iconHash: g.icon || null, memberCount: g.memberCount || 0 } : {};
   const row = await Community.findOne({ where: { guildId: String(guildId) } });
   if (row) {
     if (row.status === 'blocked') throw new CommunityError('Сообщество заблокировано модерацией платформы — изменить его нельзя.');
     await row.update({ ...fields, ...live });
+    await tidy();
     return row;
   }
   const { premoderation } = await platform();
   const created = await Community.create({ guildId: String(guildId), ownerId: userId, ...fields, ...live, status: premoderation ? 'pending' : 'published', publishedAt: premoderation ? null : new Date() });
   await coins().checkQuests(created).catch(() => {}); // «опубликовать сообщество» — a one-time DARK Coins quest
+  await tidy();
   return created;
 }
 
@@ -204,6 +212,7 @@ async function remove(guildId) {
     for (const M of [CommunityVote, CommunityStat, CommunityReport, CommunityReview, CommunityFavorite]) await M.destroy({ where: { communityId: row.id }, transaction: t });
     await row.destroy({ transaction: t });
   });
+  await require('./communityMedia').prune(String(guildId), []).catch(() => {});
   return true;
 }
 
@@ -626,6 +635,24 @@ async function statsOf(communityId) {
   return { series, promotions, newReviews, favorites };
 }
 
+// ---- pictures saved before the bot kept them: links from Discord are taken in once (dead ones are dropped) ----
+async function adoptOldPictures() {
+  const { Community } = db();
+  const media = require('./communityMedia');
+  const rows = await Community.findAll({ where: { [Op.or]: [{ bannerUrl: { [Op.like]: 'https://%' } }, { gallery: { [Op.like]: '%https://%' } }] } });
+  let moved = 0;
+  for (const row of rows) {
+    const take = async (u) => {
+      if (!u || media.isLocal(u)) return u;
+      try { moved++; return await media.keep(row.guildId, u); } catch (e) { return e instanceof media.MediaError && /устарела|только с/.test(e.message) ? null : u; }
+    };
+    const banner = await take(row.bannerUrl);
+    const shots = (await Promise.all(jsonList(row.gallery).map(take))).filter(Boolean);
+    await row.update({ bannerUrl: banner, gallery: shots.length ? JSON.stringify([...new Set(shots)]) : null });
+  }
+  return moved;
+}
+
 // ---- buttons of /vote ----
 const isCommunityButton = (i) => i.isButton?.() && /^cm(vote|remind):\d+$/.test(i.customId || '');
 async function handleCommunityButton(interaction) {
@@ -647,7 +674,7 @@ async function handleCommunityButton(interaction) {
 }
 
 const api = module.exports = {
-  isCommunityButton, handleCommunityButton,
+  isCommunityButton, handleCommunityButton, adoptOldPictures,
   verifyInvite,
   CommunityError, CATEGORIES, CATEGORY, icon, hue, PROMOS, DAYS, SORTS, SIZES, PER_PAGE, BANNER_HOSTS, VOTE_EVERY, REVIEWS_PER_PAGE,
   rating, liveExtra, similar, favoriteIds, toggleFavorite, mayReview, saveReview, deleteReview, replyReview, reportReview, moderateReview, reviewsOf, notifyReview, forGuild, remindVote,

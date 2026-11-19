@@ -44,6 +44,18 @@ router.post('/:guildId/community/delete', ensureGuildAccess, async (req, res) =>
     res.redirect(page(req.params.guildId, 'deleted=1'));
   } catch (e) { fail(res, req.params.guildId, e, [cm().CommunityError]); }
 });
+// a picture for the card (screenshot or banner) sent as the file itself; answers { url } of the kept picture
+router.post('/:guildId/community/upload', ensureGuildAccess, express.raw({ type: () => true, limit: '8mb' }), async (req, res) => {
+  const media = require('../../../bot/modules/communityMedia');
+  try {
+    const url = await media.store(req.params.guildId, req.body);
+    res.json({ url });
+  } catch (e) {
+    if (!(e instanceof media.MediaError)) throw e;
+    res.status(400).json({ error: e.message });
+  }
+});
+
 router.post('/:guildId/community/review/:rid/reply', ensureGuildAccess, async (req, res) => {
   try {
     await cm().replyReview(req.params.guildId, req.params.rid, req.user?.id, req.body.reply);

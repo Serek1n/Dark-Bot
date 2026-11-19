@@ -14,7 +14,7 @@
     <% if (msg) { %><div class="card appeal-ok"><p style="margin:0"><%= MSG[msg] %></p></div><% } %>
     <% if (error) { %><div class="card mod-alert"><p style="margin:0"><%= error %></p></div><% } %>
     <section class="cm-show <%= c.highlighted ? 'hl' : '' %>">
-      <div class="cm-banner"<% const bannerCss = /^https:\/\/[^'"()\\\s]+$/.test(c.bannerUrl || '') ? c.bannerUrl : null; %><% if (bannerCss) { %> style="background-image:url('<%= bannerCss %>')"<% } %>></div>
+      <div class="cm-banner"<% const bannerCss = /^(https:\/\/[^'"()\\\s]+|\/communities\/media\/\d+\/[a-f0-9]{20}\.webp)$/.test(c.bannerUrl || '') ? c.bannerUrl : null; %><% if (bannerCss) { %> style="background-image:url('<%= bannerCss %>')"<% } %>></div>
       <div class="cm-show-head">
         <% if (c.icon) { %><img class="cm-icon big" src="<%= c.icon %>" alt="" width="96" height="96" /><% } else { %><span class="cm-icon big cm-letter"><%= c.name.charAt(0).toUpperCase() %></span><% } %>
         <div class="cm-show-title">
@@ -50,7 +50,7 @@
           <div class="card">
             <h2>Скриншоты</h2>
             <div class="cm-gallery n<%= Math.min(c.galleryList.length, 3) %>">
-              <% c.galleryList.forEach((u, i) => { if (/^https:\/\/[^'"<>\s]+$/.test(u)) { %><a href="<%= u %>" target="_blank" rel="noopener noreferrer nofollow"><img src="<%= u %>" alt="Скриншот <%= i + 1 %>" loading="lazy" /></a><% } }) %>
+              <% c.galleryList.forEach((u, i) => { if (/^(https:\/\/[^'"<>\s]+|\/communities\/media\/\d+\/[a-f0-9]{20}\.webp)$/.test(u)) { %><a href="<%= u %>" target="_blank" rel="noopener noreferrer nofollow"><img src="<%= u %>" alt="Скриншот <%= i + 1 %>" loading="lazy" /></a><% } }) %>
             </div>
           </div>
         <% } %>
