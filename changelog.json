@@ -1,5 +1,26 @@
 [
  {
+  "bot": "3.18.0",
+  "panel": "3.28.3",
+  "date": "2026-11-19",
+  "botChanges": [
+   "Команда /platform: очередь модерации каталога и кнопка на страницу «Платформа DARK»",
+   "Без BOT_OWNER_IDS владелец платформы — владелец приложения бота в Discord Developer Portal"
+  ],
+  "panelChanges": [
+   "Страница «Платформа DARK» открывается владельцу приложения, даже если BOT_OWNER_IDS пуст"
+  ],
+  "en": {
+   "botChanges": [
+    "The /platform command: the moderation queue and a link to the «DARK Platform» page",
+    "Without BOT_OWNER_IDS the platform owner is the owner of the bot's application in Discord"
+   ],
+   "panelChanges": [
+    "The «DARK Platform» page opens for the application owner even with an empty BOT_OWNER_IDS"
+   ]
+  }
+ },
+ {
   "bot": "3.17.2",
   "panel": "3.28.2",
   "date": "2026-11-19",
