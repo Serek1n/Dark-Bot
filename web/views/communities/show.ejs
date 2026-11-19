@@ -6,9 +6,12 @@
   <main class="cm-page">
     <%- include('../partials/page-tools') %>
     <p class="cm-back"><a href="/communities">← Все сообщества</a></p>
-    <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); %>
-    <% if (msg === 'voted') { %><div class="card appeal-ok"><p style="margin:0">Спасибо, ваш голос учтён! Проголосовать снова можно через 12 часов.</p></div><% } %>
-    <% if (msg === 'reported') { %><div class="card appeal-ok"><p style="margin:0">Жалоба отправлена модерации платформы.</p></div><% } %>
+    <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU');
+       const MSG = { voted: 'Спасибо, ваш голос учтён! Проголосовать снова можно через 12 часов.', reported: 'Жалоба отправлена модерации платформы.', reviewed: 'Отзыв сохранён — спасибо!', unreviewed: 'Ваш отзыв удалён.', rreported: 'Жалоба на отзыв отправлена модерации платформы.', faved: 'Сообщество добавлено в избранное.', unfaved: 'Сообщество убрано из избранного.' };
+       const stars = (n) => '★'.repeat(Math.round(n || 0)) + '☆'.repeat(5 - Math.round(n || 0));
+       const when = (d) => new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+       const pageUrl = (base || '') + '/communities/' + c.id; %>
+    <% if (msg) { %><div class="card appeal-ok"><p style="margin:0"><%= MSG[msg] %></p></div><% } %>
     <% if (error) { %><div class="card mod-alert"><p style="margin:0"><%= error %></p></div><% } %>
     <section class="cm-show <%= c.highlighted ? 'hl' : '' %>">
       <div class="cm-banner"<% const bannerCss = /^https:\/\/[^'"()\\\s]+$/.test(c.bannerUrl || '') ? c.bannerUrl : null; %><% if (bannerCss) { %> style="background-image:url('<%= bannerCss %>')"<% } %>></div>
@@ -21,39 +24,148 @@
         <div class="cm-show-act">
           <a class="btn" href="/communities/<%= c.id %>/join" rel="nofollow">Присоединиться</a>
           <form method="post" action="/communities/<%= c.id %>/vote"><button class="btn btn-secondary cm-vote" type="submit"><%- C.icon('vote', 16) %><span>Голосовать</span></button></form>
+          <form method="post" action="/communities/<%= c.id %>/favorite"><button class="btn btn-secondary cm-fav<%= fav ? ' on' : '' %>" type="submit" aria-pressed="<%= fav %>" title="<%= fav ? 'Убрать из избранного' : 'В избранное' %>"><%- C.icon('heart', 16) %><span><%= fav ? 'В избранном' : 'В избранное' %></span></button></form>
+          <button class="btn btn-secondary cm-share" type="button" data-share="<%= pageUrl %>" data-share-title="<%= c.name %>"><%- C.icon('share', 16) %><span>Поделиться</span></button>
         </div>
       </div>
       <% if (!locals.user) { %><p class="hint cm-signin">Войдите через Discord (<a href="/auth/login?next=<%= encodeURIComponent('/communities/' + c.id) %>">вход</a>) перед «Присоединиться» — тогда сообщество получит награду DARK Coins за нового участника.</p><% } %>
-      <div class="cm-stats">
+      <div class="cm-stats six">
         <div><b><%= fmt(c.memberCount) %></b><small><%- C.icon('members', 13) %>участников</small></div>
+        <div><b><%= extra.online === null ? '—' : fmt(extra.online) %></b><small class="cm-on"><%- C.icon('online', 13) %>в сети</small></div>
+        <div><b><%= c.rating === null ? '—' : String(c.rating).replace('.', ',') %></b><small><%- C.icon('star', 13) %><%= c.ratingCount ? fmt(c.ratingCount) + ' отзывов' : 'нет отзывов' %></small></div>
         <div><b><%= fmt(c.votes) %></b><small><%- C.icon('vote', 13) %>голосов</small></div>
+        <div><b><%= extra.boosts === null ? '—' : fmt(extra.boosts) %></b><small><%- C.icon('boost', 13) %>бустов<%= extra.tier ? ' · ур. ' + extra.tier : '' %></small></div>
         <div><b><%= fmt(c.views) %></b><small><%- C.icon('views', 13) %>просмотров</small></div>
-        <div><b><%= fmt(c.clicks) %></b><small><%- C.icon('clicks', 13) %>переходов</small></div>
       </div>
     </section>
+
     <div class="cm-show-grid">
-      <div class="card">
-        <h2>О сообществе</h2>
-        <p class="appeal-text"><%= c.description || c.shortDesc %></p>
-      </div>
-      <div class="card">
-        <h2>Категории и теги</h2>
-        <div class="cm-tags">
-          <% c.cats.forEach((k) => { const cat = C.CATEGORY[k]; if (cat) { %><a class="cm-tag cm-tag-cat" style="--ic:<%= C.hue(k) %>" href="/communities?category=<%= k %>"><%- C.icon(k, 13) %><span><%= cat.label %></span></a><% } }) %>
-          <% c.tagList.forEach((t) => { %><a class="cm-tag muted" href="/communities?q=<%= encodeURIComponent(t) %>">#<%= t %></a><% }) %>
+      <div class="cm-col">
+        <div class="card">
+          <h2>О сообществе</h2>
+          <p class="appeal-text"><%= c.description || c.shortDesc %></p>
+          <% if (c.publishedAt) { %><p class="hint">В каталоге с <%= when(c.publishedAt) %></p><% } %>
         </div>
-        <h3 class="econ-sub">Приглашение</h3>
-        <p class="ap-link"><code><%= c.inviteUrl %></code></p>
-        <details class="cm-report">
-          <summary>Пожаловаться</summary>
-          <form method="post" action="/communities/<%= c.id %>/report">
-            <label for="cmRep">Что не так с этим сообществом</label>
-            <textarea id="cmRep" name="reason" rows="3" maxlength="500" required></textarea>
-            <button class="btn btn-danger" type="submit">Отправить жалобу</button>
-          </form>
-        </details>
+        <% if (c.galleryList.length) { %>
+          <div class="card">
+            <h2>Скриншоты</h2>
+            <div class="cm-gallery n<%= Math.min(c.galleryList.length, 3) %>">
+              <% c.galleryList.forEach((u, i) => { if (/^https:\/\/[^'"<>\s]+$/.test(u)) { %><a href="<%= u %>" target="_blank" rel="noopener noreferrer nofollow"><img src="<%= u %>" alt="Скриншот <%= i + 1 %>" loading="lazy" /></a><% } }) %>
+            </div>
+          </div>
+        <% } %>
+        <% if (c.ruleList.length) { %>
+          <div class="card">
+            <h2><%- C.icon('rules', 18) %> Правила</h2>
+            <ol class="cm-rules"><% c.ruleList.forEach((r) => { %><li><%= r %></li><% }) %></ol>
+          </div>
+        <% } %>
+
+      </div>
+
+      <div class="cm-col">
+        <div class="card">
+          <h2>Категории и теги</h2>
+          <div class="cm-tags">
+            <% c.cats.forEach((k) => { const cat = C.CATEGORY[k]; if (cat) { %><a class="cm-tag cm-tag-cat" style="--ic:<%= C.hue(k) %>" href="/communities?category=<%= k %>"><%- C.icon(k, 13) %><span><%= cat.label %></span></a><% } }) %>
+            <% c.tagList.forEach((t) => { %><a class="cm-tag muted" href="/communities?tag=<%= encodeURIComponent(t) %>">#<%= t %></a><% }) %>
+          </div>
+          <% if (c.linkList.length) { %>
+            <h3 class="econ-sub">Ссылки</h3>
+            <div class="cm-links"><% c.linkList.forEach((l) => { if (/^https:\/\/[^'"<>\s]+$/.test(l.url)) { %><a href="<%= l.url %>" target="_blank" rel="noopener noreferrer nofollow ugc"><%- C.icon('link', 14) %><span><%= l.label %></span></a><% } }) %></div>
+          <% } %>
+          <h3 class="econ-sub">Приглашение</h3>
+          <p class="ap-link"><code><%= c.inviteUrl %></code></p>
+          <p class="hint">Голосовать можно и прямо в Discord: команда <code>/vote</code> на этом сервере.</p>
+          <details class="cm-report">
+            <summary>Пожаловаться на сообщество</summary>
+            <form method="post" action="/communities/<%= c.id %>/report">
+              <label for="cmRep">Что не так с этим сообществом</label>
+              <textarea id="cmRep" name="reason" rows="3" maxlength="500" required></textarea>
+              <button class="btn btn-danger" type="submit">Отправить жалобу</button>
+            </form>
+          </details>
+        </div>
+        <% if (similar.length) { %>
+          <div class="card">
+            <h2>Похожие сообщества</h2>
+            <div class="mini-list cm-similar">
+              <% similar.forEach((s) => { %>
+                <a class="cm-sim" href="/communities/<%= s.id %>">
+                  <% if (s.icon) { %><img src="<%= s.icon %>" alt="" width="40" height="40" loading="lazy" /><% } else { %><span class="cm-letter"><%= s.name.charAt(0).toUpperCase() %></span><% } %>
+                  <span><b><%= s.name %></b><small><%- C.icon('members', 12) %><%= fmt(s.memberCount) %><% if (s.rating !== null) { %> · ★ <%= String(s.rating).replace('.', ',') %><% } %></small></span>
+                </a>
+              <% }) %>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+        <div class="card cm-rev-card" id="reviews">
+      <div class="cm-rev-layout">
+      <div class="cm-rev-aside">
+      <div class="cm-rev-head">
+        <h2>Отзывы</h2>
+        <% if (c.ratingCount) { %><span class="cm-rating-big"><b><%= String(c.rating).replace('.', ',') %></b><span class="cm-stars" aria-label="Оценка <%= c.rating %> из 5"><%= stars(c.rating) %></span><small><%= fmt(c.ratingCount) %> отзывов</small></span><% } %>
+      </div>
+      <% if (c.ratingCount) { const top = Math.max(1, ...reviews.dist); %>
+        <div class="cm-dist" aria-label="Оценки по звёздам">
+          <% [5, 4, 3, 2, 1].forEach((n) => { %><div class="cm-dist-row"><span><%= n %> ★</span><i><b style="width:<%= Math.round(reviews.dist[n - 1] / top * 100) %>%"></b></i><span class="muted"><%= reviews.dist[n - 1] %></span></div><% }) %>
+        </div>
+      <% } %>
+      <% if (locals.user) { const m = reviews.mine; %>
+        <form method="post" action="/communities/<%= c.id %>/review" class="cm-rev-form">
+          <fieldset class="cm-starpick">
+            <legend><%= m ? 'Ваш отзыв' : 'Оцените сообщество' %></legend>
+            <span class="cm-sp"><% [5, 4, 3, 2, 1].forEach((n) => { %><input type="radio" id="rs<%= n %>" name="rating" value="<%= n %>" <%= m && m.rating === n ? 'checked' : '' %> required /><label for="rs<%= n %>" title="<%= n %> из 5">★</label><% }) %></span>
+          </fieldset>
+          <label for="rvText">Пара слов (необязательно)</label>
+          <textarea id="rvText" name="text" rows="3" maxlength="600" placeholder="Что понравилось, чего не хватает"><%= m ? m.text : '' %></textarea>
+          <div class="btn-row">
+            <button class="btn" type="submit"><%= m ? 'Изменить отзыв' : 'Оставить отзыв' %></button>
+            <% if (m) { %><button class="btn btn-secondary" type="submit" formaction="/communities/<%= c.id %>/review/delete" formnovalidate>Удалить</button><% } %>
+          </div>
+          <p class="hint">Отзыв могут оставить участники сервера через сутки после входа. Один отзыв от человека — его можно изменить.</p>
+        </form>
+      <% } else { %>
+        <p class="hint"><a href="/auth/login?next=<%= encodeURIComponent('/communities/' + c.id + '#reviews') %>">Войдите через Discord</a>, чтобы оценить сообщество.</p>
+      <% } %>
+      </div>
+      <div class="cm-rev-main">
+      <% if (!reviews.items.length) { %>
+        <p class="empty-state">Отзывов пока нет — станьте первым.</p>
+      <% } else { %>
+        <div class="cm-reviews">
+          <% reviews.items.forEach((r) => { const u = users[r.userId] || { name: 'Участник' }; %>
+            <article class="cm-review">
+              <div class="cm-rv-top">
+                <% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" width="32" height="32" loading="lazy" /><% } else { %><span class="cm-rv-ava"><%= (u.name || '?').charAt(0).toUpperCase() %></span><% } %>
+                <b><%= u.name %></b>
+                <span class="cm-stars small" aria-label="<%= r.rating %> из 5"><%= stars(r.rating) %></span>
+                <span class="muted cm-rv-when"><%= when(r.createdAt) %></span>
+              </div>
+              <% if (r.text) { %><p class="cm-rv-text"><%= r.text %></p><% } %>
+              <% if (r.reply) { %><div class="cm-rv-reply"><small>Ответ сервера</small><p><%= r.reply %></p></div><% } %>
+              <% if (locals.user && user.id !== r.userId) { %>
+                <details class="cm-rv-report"><summary>Пожаловаться</summary>
+                  <form method="post" action="/communities/<%= c.id %>/review/<%= r.id %>/report"><label for="rr<%= r.id %>">Что не так с отзывом</label><input id="rr<%= r.id %>" type="text" name="reason" maxlength="300" required /><button class="btn btn-danger" type="submit">Отправить</button></form>
+                </details>
+              <% } %>
+            </article>
+          <% }) %>
+        </div>
+        <% if (reviews.pages > 1) { %>
+          <nav class="cm-pager" aria-label="Страницы отзывов">
+            <% if (reviews.page > 1) { %><a class="btn btn-secondary" href="?rpage=<%= reviews.page - 1 %>#reviews">← Новее</a><% } %>
+            <span class="muted"><span>Страница</span> <%= reviews.page %> <span>из</span> <%= reviews.pages %></span>
+            <% if (reviews.page < reviews.pages) { %><a class="btn btn-secondary" href="?rpage=<%= reviews.page + 1 %>#reviews">Старее →</a><% } %>
+          </nav>
+        <% } %>
+      <% } %>
+    </div>
       </div>
     </div>
   </main>
+  <script src="/js/communities.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
 </body>
 </html>

@@ -157,6 +157,10 @@ document.addEventListener('DOMContentLoaded', function () {
       submitting = true;
     });
   });
+  // fields that belong to a form from another card (the form="…" attribute) mark that form as edited too
+  ['input', 'change'].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { var f = e.target && e.target.form; if (f && forms.indexOf(f) >= 0 && !f.contains(e.target)) mark(f); });
+  });
   document.getElementById('sbSave').addEventListener('click', function () { if (dirty.length) submitAll(dirty[dirty.length - 1]); });
   document.getElementById('sbReset').addEventListener('click', function () { submitting = true; location.reload(); });
   window.addEventListener('beforeunload', function (e) { if (dirty.length && !submitting) { e.preventDefault(); e.returnValue = ''; } });

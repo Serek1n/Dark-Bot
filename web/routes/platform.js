@@ -35,6 +35,11 @@ router.get('/', signedIn, ownerOnly, async (req, res) => {
     coins().history(userId, 50)
   ]);
   const byId = new Map(listed.map((c) => [c.id, c]));
+  const { CommunityReview, CommunityReviewReport } = db();
+  const { Op } = require('sequelize');
+  const badReviews = await CommunityReview.findAll({ where: { [Op.or]: [{ reports: { [Op.gt]: 0 } }, { status: 'hidden' }] }, order: [['reports', 'DESC'], ['id', 'DESC']], limit: 50, raw: true });
+  const reviewReasons = badReviews.length ? await CommunityReviewReport.findAll({ where: { reviewId: badReviews.map((r) => r.id) }, order: [['id', 'DESC']], raw: true }) : [];
+  for (const r of badReviews) if (!byId.has(r.communityId)) { const c = await Community.findByPk(r.communityId); if (c) byId.set(c.id, c); }
   const { DarkCoinPending, DarkCoinOrder } = db();
   const [earn, packages, held, orders, emitted, frozen] = await Promise.all([
     coins().earnSettings(), shop().packages(),
@@ -42,8 +47,8 @@ router.get('/', signedIn, ownerOnly, async (req, res) => {
     DarkCoinOrder.findAll({ where: { status: 'paid' }, order: [['id', 'DESC']], limit: 30 }),
     coins().emittedToday(), userId ? coins().isFrozen(userId) : false
   ]);
-  const users = await getUsers([...new Set([...top.map((w) => w.userId), ...log.flatMap((t) => [t.userId, t.actorId]), ...orders.map((o) => o.userId), ...held.map((p) => p.wallet), ...(userId ? [userId] : [])].filter((id) => /^\d{15,25}$/.test(String(id || ''))))]);
-  res.render('platform/index', { title: 'Платформа DARK', settings, pending, reports, listed, byId, top, log, users, userId, balance: userId ? await coins().balanceOf(userId) : null,
+  const users = await getUsers([...new Set([...badReviews.map((r) => r.userId), ...top.map((w) => w.userId), ...log.flatMap((t) => [t.userId, t.actorId]), ...orders.map((o) => o.userId), ...held.map((p) => p.wallet), ...(userId ? [userId] : [])].filter((id) => /^\d{15,25}$/.test(String(id || ''))))]);
+  res.render('platform/index', { title: 'Платформа DARK', settings, pending, reports, listed, byId, badReviews, reviewReasons, top, log, users, userId, balance: userId ? await coins().balanceOf(userId) : null,
     key: coins().newKey(), C: cm(), earn, EARN: coins().EARN_DEFAULTS, packages, held, orders, emitted, frozen, tg: shop().enabled(), tgStatus: await shop().status(true), done: req.query.done || null, error: req.query.err ? String(req.query.err).slice(0, 200) : null });
 });
 
@@ -80,6 +85,8 @@ router.post('/moderate', signedIn, ownerOnly, async (req, res) => {
     res.redirect(go(`err=${encodeURIComponent(e.message)}`));
   }
 });
+
+router.post('/reviews/:id(\\d+)', signedIn, ownerOnly, act((req) => cm().moderateReview(req.user.id, req.params.id, String(req.body.action || '')), 'review'));
 
 router.post('/reports/:id(\\d+)/close', signedIn, ownerOnly, async (req, res) => {
   await db().CommunityReport.update({ status: 'closed' }, { where: { id: Number(req.params.id) } });

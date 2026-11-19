@@ -1,5 +1,38 @@
 [
  {
+  "bot": "3.17.0",
+  "panel": "3.28.0",
+  "date": "2026-11-19",
+  "botChanges": [
+   "Отзывы о сообществах: оценка 1–5 и текст от участников сервера, ответы администраторов",
+   "Новые отзывы бот присылает в выбранный канал сервера",
+   "Команда /vote: карточка сервера в каталоге и голос прямо в Discord, напоминание через 12 ч"
+  ],
+  "panelChanges": [
+   "Страница сообщества: онлайн, бусты, оценка, скриншоты, правила, ссылки, похожие серверы",
+   "Отзывы со звёздами и распределением оценок, жалобы на отзывы, «Поделиться», избранное",
+   "Каталог: «Растущие» и «По оценкам», фильтры по размеру, оценке, тегу и избранному",
+   "Блок «Растущие на этой неделе» на первой странице каталога",
+   "Владельцу: статистика по дням (просмотры, переходы, голоса), ответы на отзывы",
+   "Платформе: модерация отзывов с жалобами — скрыть, вернуть или отклонить жалобы"
+  ],
+  "en": {
+   "botChanges": [
+    "Community reviews: a 1–5 rating and text from server members, replies from the admins",
+    "The bot posts new reviews to the chosen channel of the server",
+    "The /vote command: the server's catalog card and voting right in Discord, a 12 h reminder"
+   ],
+   "panelChanges": [
+    "Community page: online, boosts, rating, screenshots, rules, links, similar servers",
+    "Reviews with stars and a rating breakdown, reporting reviews, «Share», favourites",
+    "Catalog: «Growing» and «By rating» sorts, filters by size, rating, tag and favourites",
+    "A «Growing this week» row on the first page of the catalog",
+    "For owners: statistics by day (views, clicks, votes) and replies to reviews",
+    "For the platform: moderation of reported reviews — hide, restore or dismiss reports"
+   ]
+  }
+ },
+ {
   "bot": "3.16.0",
   "panel": "3.27.0",
   "date": "2026-11-19",

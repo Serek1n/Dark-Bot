@@ -38,7 +38,15 @@ const ICON_PATHS = {
   pin: '<path d="M9 3.5h6l-1 5 3.5 3.5h-11L10 8.5Z"/><path d="M12 12v8.5"/>',
   bolt: '<path d="M13 2.5 4.5 13.5H12l-1 8 8.5-11H12Z"/>',
   views: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/>',
-  clicks: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/>'
+  clicks: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 18.5v-11A1.5 1.5 0 0 1 5.5 6H10"/>',
+  star: '<path d="M12 3.5 14.6 9l5.9.6-4.4 4 1.3 5.9L12 16.6l-5.4 2.9 1.3-5.9-4.4-4 5.9-.6Z"/>',
+  heart: '<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10Z"/>',
+  share: '<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="m8.2 10.8 7.6-4.1M8.2 13.2l7.6 4.1"/>',
+  online: '<circle cx="12" cy="12" r="4" fill="currentColor"/><circle cx="12" cy="12" r="8.5"/>',
+  boost: '<path d="M12 3 18.5 7v10L12 21l-6.5-4V7Z"/><path d="M12 8v8M9 11l3-3 3 3"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  rules: '<path d="M7 3.5h10A1.5 1.5 0 0 1 18.5 5v15.5l-6.5-3-6.5 3V5A1.5 1.5 0 0 1 7 3.5Z"/><path d="M9 8.5h6M9 12h4"/>',
+  trend: '<path d="M3.5 17 9 11.5l3.5 3.5 8-8"/><path d="M15 7h5.5v5.5"/>'
 };
 const CATEGORY_HUE = { gaming: '#8f8cff', social: '#5fb8f0', anime: '#f08cc4', music: '#c38cf0', art: '#f0b04a', tech: '#5fd0c0', study: '#7fb36a', rp: '#e08a6a', memes: '#f0d24a', sport: '#6ad08f', crypto: '#4ad0a0', other: '#a0a6ba', all: '#b3adff' };
 function icon(name, size = 16) {
@@ -53,7 +61,8 @@ const PROMOS = {
   featured: { label: 'Рекомендации', desc: 'Сообщество показывается в блоке «Рекомендуем» над каталогом.', perDay: true, def: 200 }
 };
 const DAYS = [1, 3, 7, 14, 30];
-const SORTS = { popular: 'Популярные', votes: 'По голосам', members: 'По участникам', new: 'Новые' };
+const SORTS = { popular: 'Популярные', trending: 'Растущие', rating: 'По оценкам', votes: 'По голосам', members: 'По участникам', new: 'Новые' };
+const SIZES = { s: ['До 100 участников', 0, 99], m: ['100–1 000', 100, 1000], l: ['Больше 1 000', 1001, Infinity] };
 const PER_PAGE = 12;
 const VOTE_EVERY = 12 * 3600 * 1000;
 const MIN_ACCOUNT_AGE = 7 * 86400000;
@@ -94,11 +103,11 @@ function cleanInvite(v) {
   if (!m) throw new CommunityError('Ссылка-приглашение должна быть вида https://discord.gg/код.');
   return `https://discord.gg/${m[1]}`;
 }
-function cleanBanner(v) {
+function cleanBanner(v, what = 'Баннер') {
   const s = String(v || '').trim();
   if (!s) return null;
-  let u; try { u = new URL(s); } catch { throw new CommunityError('Ссылка на баннер некорректна.'); }
-  if (u.protocol !== 'https:' || !BANNER_HOSTS.includes(u.hostname) || s.length > 300) throw new CommunityError(`Баннер — картинка по https с ${BANNER_HOSTS.join(', ')}.`);
+  let u; try { u = new URL(s); } catch { throw new CommunityError(`${what}: ссылка некорректна.`); }
+  if (u.protocol !== 'https:' || !BANNER_HOSTS.includes(u.hostname) || s.length > 300) throw new CommunityError(`${what} — картинка по https с ${BANNER_HOSTS.join(', ')}.`);
   // the link goes into a CSS url(''): quotes, brackets, backslashes and spaces are percent-encoded so it cannot close it
   return u.href.replace(/['"()\\\s]/g, (ch) => '%' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
 }
@@ -113,7 +122,23 @@ function cleanFields(b) {
   const cats = [...new Set([].concat(b.categories || []).map(String).filter((k) => CATEGORY[k]))].slice(0, 3);
   if (!cats.length) throw new CommunityError('Выберите хотя бы одну категорию (до трёх).');
   const tags = [...new Set(String(b.tags || '').split(',').map((t) => t.trim().toLowerCase().replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 20)).filter(Boolean))].slice(0, 6);
-  return { name, shortDesc, description, categories: cats.join(','), tags: tags.join(','), inviteUrl: cleanInvite(b.inviteUrl), bannerUrl: cleanBanner(b.bannerUrl) };
+  const rules = String(b.rules || '').replace(/\r\n/g, '\n').split('\n').map((l) => l.trim().slice(0, 200)).filter(Boolean).slice(0, 20).join('\n') || null;
+  // links: up to four, https only, with a short label of their own
+  const labels = [].concat(b.linkLabel || []); const urls = [].concat(b.linkUrl || []);
+  const links = [];
+  urls.forEach((raw, i) => {
+    const url = String(raw || '').trim(); if (!url) return;
+    let u; try { u = new URL(url); } catch { throw new CommunityError(`Ссылка «${url.slice(0, 40)}» некорректна.`); }
+    if (u.protocol !== 'https:' || url.length > 200) throw new CommunityError('Ссылки — только https://, до 200 символов.');
+    links.push({ label: String(labels[i] || '').trim().slice(0, 30) || u.hostname.replace(/^www\./, ''), url: u.href });
+  });
+  if (links.length > 4) throw new CommunityError('Не больше четырёх ссылок.');
+  const shots = String(b.gallery || '').split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
+  if (shots.length > 6) throw new CommunityError('Не больше шести скриншотов.');
+  const gallery = shots.map((x) => cleanBanner(x, 'Скриншот'));
+  const notifyChannelId = /^\d{15,25}$/.test(String(b.notifyChannelId || '')) ? String(b.notifyChannelId) : null;
+  return { name, shortDesc, description, categories: cats.join(','), tags: tags.join(','), inviteUrl: cleanInvite(b.inviteUrl), bannerUrl: cleanBanner(b.bannerUrl),
+    rules, links: links.length ? JSON.stringify(links) : null, gallery: gallery.length ? JSON.stringify(gallery) : null, notifyChannelId };
 }
 
 /**
@@ -169,12 +194,14 @@ async function setVisible(guildId, visible) {
 
 /** Removes the listing with its votes and statistics (promotions and the coin journal stay in the history). */
 async function remove(guildId) {
-  const { Community, CommunityVote, CommunityStat, CommunityReport, inTransaction } = db();
+  const { Community, CommunityVote, CommunityStat, CommunityReport, CommunityReview, CommunityReviewReport, CommunityFavorite, inTransaction } = db();
   const row = await Community.findOne({ where: { guildId: String(guildId) } });
   if (!row) return false;
   if (row.status === 'blocked') throw new CommunityError('Заблокированное сообщество удалить нельзя — напишите модерации платформы.');
   await inTransaction(async (t) => {
-    for (const M of [CommunityVote, CommunityStat, CommunityReport]) await M.destroy({ where: { communityId: row.id }, transaction: t });
+    const reviewIds = (await CommunityReview.findAll({ where: { communityId: row.id }, attributes: ['id'], raw: true, transaction: t })).map((r) => r.id);
+    if (reviewIds.length) await CommunityReviewReport.destroy({ where: { reviewId: reviewIds }, transaction: t });
+    for (const M of [CommunityVote, CommunityStat, CommunityReport, CommunityReview, CommunityFavorite]) await M.destroy({ where: { communityId: row.id }, transaction: t });
     await row.destroy({ transaction: t });
   });
   return true;
@@ -310,28 +337,61 @@ function liveOf(c) {
   return { memberCount: g?.memberCount ?? c.memberCount, iconHash: g ? g.icon : c.iconHash };
 }
 
+const rating = (c) => (c.ratingCount ? Math.round((c.ratingSum / c.ratingCount) * 10) / 10 : null);
+// for sorting by marks: a few reviews do not outweigh many (the average pulled towards 3.5 by five imaginary reviews)
+const ratingScore = (c) => (5 * 3.5 + (c.ratingSum || 0)) / (5 + (c.ratingCount || 0));
+const jsonList = (v) => { try { const x = JSON.parse(v || '[]'); return Array.isArray(x) ? x : []; } catch { return []; } };
+
+/** Activity of the last 7 days by community: { votes, clicks, views } — for «Растущие». Kept for a minute. */
+let weekCache = { at: 0, map: new Map() };
+async function weekActivity() {
+  if (Date.now() - weekCache.at < 60000) return weekCache.map;
+  const since = day(new Date(Date.now() - 6 * 86400000));
+  const rows = await db().CommunityStat.findAll({ where: { day: { [Op.gte]: since } }, raw: true });
+  const map = new Map();
+  for (const r of rows) {
+    const o = map.get(r.communityId) || { votes: 0, clicks: 0, views: 0 };
+    o.votes += r.votes || 0; o.clicks += r.clicks || 0; o.views += r.views || 0;
+    map.set(r.communityId, o);
+  }
+  weekCache = { at: Date.now(), map };
+  return map;
+}
+const trendOf = (w) => (w ? w.votes * 3 + w.clicks * 2 + w.views * 0.1 : 0);
+
 /**
- * The catalog page: published listings filtered by text and category, sorted; pinned ones always first, bumped ones next
- * (for «Популярные»). Returns { items, total, page, pages, featured }.
+ * The catalog page: published listings filtered by text, category, tag, size, rating and favourites, sorted; pinned ones
+ * always first, bumped ones next (for «Популярные»). Returns { items, total, page, pages, featured, trending }.
  */
-async function catalog({ q = '', category = '', sort = 'popular', page = 1 } = {}) {
+async function catalog({ q = '', category = '', sort = 'popular', page = 1, tag = '', size = '', minRating = 0, favIds = null } = {}) {
   const { Community, CommunityVote } = db();
   let rows = await Community.findAll({ where: { status: 'published' }, raw: true });
+  const all = rows;
   const query = String(q || '').trim().toLowerCase().slice(0, 60);
+  const tg = String(tag || '').trim().toLowerCase().slice(0, 20);
   if (query) rows = rows.filter((c) => `${c.name} ${c.shortDesc} ${c.tags}`.toLowerCase().includes(query));
   if (CATEGORY[category]) rows = rows.filter((c) => listOf(c.categories).includes(category));
-  const ids = rows.map((c) => c.id);
+  if (tg) rows = rows.filter((c) => listOf(c.tags).includes(tg));
+  if (favIds) rows = rows.filter((c) => favIds.has(c.id));
+  if (minRating) rows = rows.filter((c) => (rating(c) || 0) >= minRating);
+  const ids = all.map((c) => c.id);
   const promos = await activePromos(ids.length ? ids : [-1]);
   const recent = ids.length ? await CommunityVote.findAll({ where: { communityId: { [Op.in]: ids }, createdAt: { [Op.gt]: new Date(Date.now() - 30 * 86400000) } }, attributes: ['communityId'], raw: true }) : [];
   const votes30 = new Map();
   for (const v of recent) votes30.set(v.communityId, (votes30.get(v.communityId) || 0) + 1);
-  const items = rows.map((c) => {
+  const week = await weekActivity();
+  const shape = (c) => {
     const live = liveOf(c);
     const pr = promos.get(c.id) || {};
-    return { ...c, ...live, icon: iconUrl({ ...c, ...live }), cats: listOf(c.categories), tagList: listOf(c.tags), votes30: votes30.get(c.id) || 0, promo: pr, pinned: Boolean(pr.pin), bumped: Boolean(pr.bump), highlighted: Boolean(pr.highlight), featured: Boolean(pr.featured) };
-  });
+    return { ...c, ...live, icon: iconUrl({ ...c, ...live }), cats: listOf(c.categories), tagList: listOf(c.tags), votes30: votes30.get(c.id) || 0, trend: trendOf(week.get(c.id)), rating: rating(c),
+      promo: pr, pinned: Boolean(pr.pin), bumped: Boolean(pr.bump), highlighted: Boolean(pr.highlight), featured: Boolean(pr.featured), fav: Boolean(favIds && favIds.has(c.id)) };
+  };
+  let items = rows.map(shape);
+  if (SIZES[size]) items = items.filter((c) => c.memberCount >= SIZES[size][1] && c.memberCount <= SIZES[size][2]);
   const key = {
     popular: (c) => [c.pinned ? 1 : 0, c.bumped ? new Date(c.bumpedAt || 0).getTime() : 0, c.votes30 * 10 + Math.log10(1 + c.memberCount)],
+    trending: (c) => [c.pinned ? 1 : 0, 0, c.trend],
+    rating: (c) => [c.pinned ? 1 : 0, 0, ratingScore(c)],
     votes: (c) => [c.pinned ? 1 : 0, 0, c.votes],
     members: (c) => [c.pinned ? 1 : 0, 0, c.memberCount],
     new: (c) => [c.pinned ? 1 : 0, 0, new Date(c.publishedAt || c.createdAt).getTime()]
@@ -339,8 +399,12 @@ async function catalog({ q = '', category = '', sort = 'popular', page = 1 } = {
   items.sort((a, b) => { const x = key(a); const y = key(b); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return y[i] - x[i]; return a.id - b.id; });
   const pages = Math.max(1, Math.ceil(items.length / PER_PAGE));
   const p = Math.min(pages, Math.max(1, Math.trunc(Number(page)) || 1));
-  const featured = query || category || p > 1 ? [] : items.filter((c) => c.featured).slice(0, 4);
-  return { items: items.slice((p - 1) * PER_PAGE, p * PER_PAGE), total: items.length, page: p, pages, featured };
+  const front = !query && !CATEGORY[category] && !tg && !favIds && !minRating && !SIZES[size] && p === 1;
+  const featured = front ? items.filter((c) => c.featured).slice(0, 4) : [];
+  // «Растущие на этой неделе»: the most active of the week (not the same as «Рекомендуем»)
+  let trending = front && sort !== 'trending' ? all.map(shape).filter((c) => c.trend > 0 && !c.featured).sort((a, b) => b.trend - a.trend).slice(0, 4) : [];
+  if (trending.length < 2) trending.length = 0; // one alone is not a «row»
+  return { items: items.slice((p - 1) * PER_PAGE, p * PER_PAGE), total: items.length, page: p, pages, featured, trending };
 }
 
 /** One community for its page (published, or any status for its own admins / the platform). */
@@ -349,7 +413,201 @@ async function one(id) {
   if (!c) return null;
   const live = liveOf(c);
   const promo = (await activePromos([c.id])).get(c.id) || {};
-  return { ...c, ...live, icon: iconUrl({ ...c, ...live }), cats: listOf(c.categories), tagList: listOf(c.tags), promo, highlighted: Boolean(promo.highlight) };
+  return { ...c, ...live, icon: iconUrl({ ...c, ...live }), cats: listOf(c.categories), tagList: listOf(c.tags), promo, highlighted: Boolean(promo.highlight),
+    rating: rating(c), linkList: jsonList(c.links), galleryList: jsonList(c.gallery), ruleList: String(c.rules || '').split('\n').filter(Boolean) };
+}
+
+// Live numbers of the server's page: online (asked from Discord at most once in ten minutes) and boosts.
+const onlineCache = new Map();
+async function liveExtra(c) {
+  const g = client()?.guilds?.cache?.get(c.guildId);
+  if (!g) return { online: null, boosts: null, tier: null };
+  let hit = onlineCache.get(c.guildId);
+  if (!hit || Date.now() - hit.at > 600000) {
+    const fresh = await g.client.guilds.fetch({ guild: g.id, withCounts: true, force: true }).catch(() => null);
+    hit = { at: Date.now(), online: fresh?.approximatePresenceCount ?? null };
+    if (onlineCache.size > 5000) onlineCache.clear();
+    onlineCache.set(c.guildId, hit);
+  }
+  return { online: hit.online, boosts: g.premiumSubscriptionCount || 0, tier: g.premiumTier || 0 };
+}
+
+/** Up to `n` published communities like this one: sharing a category, the most voted for first. */
+async function similar(c, n = 4) {
+  const mine = new Set(listOf(c.categories));
+  if (!mine.size) return [];
+  const rows = await db().Community.findAll({ where: { status: 'published', id: { [Op.ne]: c.id } }, raw: true });
+  return rows.map((r) => ({ r, common: listOf(r.categories).filter((k) => mine.has(k)).length }))
+    .filter((x) => x.common > 0)
+    .sort((a, b) => b.common - a.common || b.r.votes - a.r.votes)
+    .slice(0, n)
+    .map(({ r }) => { const live = liveOf(r); return { ...r, ...live, icon: iconUrl({ ...r, ...live }), rating: rating(r) }; });
+}
+
+// ---- favourites ----
+async function favoriteIds(userId) {
+  if (!userId) return new Set();
+  const rows = await db().CommunityFavorite.findAll({ where: { userId: String(userId) }, attributes: ['communityId'], raw: true });
+  return new Set(rows.map((r) => r.communityId));
+}
+/** Adds to «Избранное» or removes from it; returns whether it is there now. */
+async function toggleFavorite(userId, communityId) {
+  const { CommunityFavorite, Community } = db();
+  const c = await Community.findByPk(Number(communityId));
+  if (!c || c.status !== 'published') throw new CommunityError('Сообщество не найдено.');
+  const gone = await CommunityFavorite.destroy({ where: { userId: String(userId), communityId: c.id } });
+  if (gone) return false;
+  if ((await CommunityFavorite.count({ where: { userId: String(userId) } })) >= 200) throw new CommunityError('В избранном уже 200 сообществ — уберите лишние.');
+  await CommunityFavorite.findOrCreate({ where: { userId: String(userId), communityId: c.id } });
+  return true;
+}
+
+// ---- reviews ----
+const REVIEW_MIN_STAY = 24 * 3600 * 1000;
+/** Who may review: a Discord account older than 7 days, on the server for a day at least, not its owner. */
+async function mayReview(c, userId) {
+  if (accountAge(userId) < MIN_ACCOUNT_AGE) throw new CommunityError('Оставить отзыв можно с аккаунта Discord старше 7 дней.');
+  if (String(c.ownerId) === String(userId)) throw new CommunityError('Свой сервер оценивать нельзя.');
+  const g = client()?.guilds?.cache?.get(c.guildId);
+  if (!g) throw new CommunityError('Сейчас нельзя проверить, что вы участник сервера. Попробуйте позже.');
+  if (g.ownerId === String(userId)) throw new CommunityError('Свой сервер оценивать нельзя.');
+  const m = await g.members.fetch(String(userId)).catch(() => null);
+  if (!m) throw new CommunityError('Отзыв могут оставить только участники сервера — сначала присоединитесь.');
+  if (m.joinedTimestamp && Date.now() - m.joinedTimestamp < REVIEW_MIN_STAY) throw new CommunityError('Отзыв можно оставить через сутки после входа на сервер.');
+}
+
+/** Writes (or changes) the person's review; the marks of the community change in the same transaction. */
+async function saveReview(communityId, userId, { rating: r, text }) {
+  const { Community, CommunityReview, inTransaction } = db();
+  const c = await Community.findByPk(Number(communityId));
+  if (!c || c.status !== 'published') throw new CommunityError('Сообщество не найдено.');
+  const mark = Math.trunc(Number(r));
+  if (!(mark >= 1 && mark <= 5)) throw new CommunityError('Поставьте оценку от 1 до 5 звёзд.');
+  const body = String(text || '').replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim().slice(0, 600);
+  if (body && body.length < 10) throw new CommunityError('Отзыв — хотя бы 10 символов, или оставьте только оценку.');
+  await mayReview(c, userId);
+  let isNew = false;
+  const review = await inTransaction(async (t) => {
+    const was = await CommunityReview.findOne({ where: { communityId: c.id, userId: String(userId) }, transaction: t });
+    if (was) {
+      if (was.status === 'published') await Community.increment({ ratingSum: mark - was.rating }, { where: { id: c.id }, transaction: t });
+      await was.update({ rating: mark, text: body }, { transaction: t });
+      return was;
+    }
+    isNew = true;
+    const row = await CommunityReview.create({ communityId: c.id, userId: String(userId), rating: mark, text: body }, { transaction: t });
+    await Community.increment({ ratingSum: mark, ratingCount: 1 }, { where: { id: c.id }, transaction: t });
+    return row;
+  });
+  if (isNew) notifyReview(c, review).catch(() => {});
+  return review;
+}
+
+async function deleteReview(communityId, userId) {
+  const { Community, CommunityReview, CommunityReviewReport, inTransaction } = db();
+  return inTransaction(async (t) => {
+    const r = await CommunityReview.findOne({ where: { communityId: Number(communityId), userId: String(userId) }, transaction: t });
+    if (!r) return false;
+    if (r.status === 'published') await Community.increment({ ratingSum: -r.rating, ratingCount: -1 }, { where: { id: r.communityId }, transaction: t });
+    await CommunityReviewReport.destroy({ where: { reviewId: r.id }, transaction: t });
+    await r.destroy({ transaction: t });
+    return true;
+  });
+}
+
+/** The server's admins answer a review of their community (an empty text removes the answer). */
+async function replyReview(guildId, reviewId, actorId, text) {
+  const { Community, CommunityReview } = db();
+  const c = await Community.findOne({ where: { guildId: String(guildId) } });
+  const r = c ? await CommunityReview.findByPk(Number(reviewId)) : null;
+  if (!r || r.communityId !== c.id) throw new CommunityError('Отзыв не найден.');
+  const body = String(text || '').trim().slice(0, 600);
+  await r.update(body ? { reply: body, replyBy: String(actorId), replyAt: new Date() } : { reply: null, replyBy: null, replyAt: null });
+  return r;
+}
+
+async function reportReview(reviewId, userId, reason) {
+  const { CommunityReview, CommunityReviewReport } = db();
+  const r = await CommunityReview.findByPk(Number(reviewId));
+  if (!r || r.status !== 'published') throw new CommunityError('Отзыв не найден.');
+  const text = String(reason || '').trim().slice(0, 300);
+  if (text.length < 5) throw new CommunityError('Опишите, что не так с отзывом.');
+  const [, created] = await CommunityReviewReport.findOrCreate({ where: { reviewId: r.id, userId: String(userId) }, defaults: { reason: text } });
+  if (!created) throw new CommunityError('Вы уже жаловались на этот отзыв.');
+  await r.increment({ reports: 1 });
+  return true;
+}
+
+/** Platform moderation of a review: hide (it stops counting), restore, or dismiss the complaints. */
+async function moderateReview(actorId, reviewId, action) {
+  if (!coins().isPlatformOwner(actorId)) throw new CommunityError('Это может только модерация платформы.');
+  const { Community, CommunityReview, CommunityReviewReport, inTransaction } = db();
+  return inTransaction(async (t) => {
+    const r = await CommunityReview.findByPk(Number(reviewId), { transaction: t });
+    if (!r) throw new CommunityError('Отзыв не найден.');
+    if (action === 'hide' && r.status === 'published') {
+      await Community.increment({ ratingSum: -r.rating, ratingCount: -1 }, { where: { id: r.communityId }, transaction: t });
+      await r.update({ status: 'hidden' }, { transaction: t });
+    } else if (action === 'restore' && r.status === 'hidden') {
+      await Community.increment({ ratingSum: r.rating, ratingCount: 1 }, { where: { id: r.communityId }, transaction: t });
+      await r.update({ status: 'published', reports: 0 }, { transaction: t });
+      await CommunityReviewReport.destroy({ where: { reviewId: r.id }, transaction: t });
+    } else if (action === 'dismiss') {
+      await r.update({ reports: 0 }, { transaction: t });
+      await CommunityReviewReport.destroy({ where: { reviewId: r.id }, transaction: t });
+    } else throw new CommunityError('Неизвестное действие.');
+    return r;
+  });
+}
+
+const REVIEWS_PER_PAGE = 10;
+/** Reviews of a community for its page: newest first, the person's own on top; marks by star for the bars. */
+async function reviewsOf(communityId, { page = 1, userId = null, all = false } = {}) {
+  const { CommunityReview } = db();
+  const where = { communityId: Number(communityId) };
+  if (!all) where.status = 'published';
+  const total = await CommunityReview.count({ where });
+  const pages = Math.max(1, Math.ceil(total / REVIEWS_PER_PAGE));
+  const p = Math.min(pages, Math.max(1, Math.trunc(Number(page)) || 1));
+  const items = await CommunityReview.findAll({ where, order: [['createdAt', 'DESC'], ['id', 'DESC']], limit: REVIEWS_PER_PAGE, offset: (p - 1) * REVIEWS_PER_PAGE, raw: true });
+  const marks = await CommunityReview.findAll({ where: { communityId: Number(communityId), status: 'published' }, attributes: ['rating'], raw: true });
+  const dist = [0, 0, 0, 0, 0];
+  for (const m of marks) if (m.rating >= 1 && m.rating <= 5) dist[m.rating - 1]++;
+  const mine = userId ? await CommunityReview.findOne({ where: { communityId: Number(communityId), userId: String(userId) }, raw: true }) : null;
+  return { items, total, page: p, pages, dist, mine };
+}
+
+/** A new review is told about in the channel the server chose (Dashboard → «Сообщество в каталоге»). */
+async function notifyReview(c, review) {
+  if (!c.notifyChannelId) return;
+  const g = client()?.guilds?.cache?.get(c.guildId);
+  const ch = g?.channels?.cache?.get(c.notifyChannelId);
+  if (!ch?.send) return;
+  const { EmbedBuilder } = require('discord.js');
+  const base = (process.env.WEB_BASE_URL || '').replace(/\/+$/, '');
+  const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+  const e = new EmbedBuilder().setColor(0xf0b132).setTitle(`Новый отзыв о сервере: ${stars}`).setDescription(`${review.text ? review.text.slice(0, 600) : '*Без текста — только оценка.*'}\n\n— <@${review.userId}>`);
+  if (base) e.setURL(`${base}/communities/${c.id}#reviews`).setFooter({ text: 'Ответить можно в панели: «Сообщество в каталоге»' });
+  await ch.send({ embeds: [e], allowedMentions: { parse: [] } });
+}
+
+// ---- voting from Discord (/vote) ----
+/** The published listing of a server, or null. */
+async function forGuild(guildId) {
+  const row = await db().Community.findOne({ where: { guildId: String(guildId), status: 'published' }, raw: true });
+  return row ? one(row.id) : null;
+}
+/** «Напомнить» after a vote: a direct message when voting is possible again (once; a second press changes nothing). */
+async function remindVote(communityId, userId) {
+  const { CommunityVote, Reminder, Community } = db();
+  const c = await Community.findByPk(Number(communityId));
+  if (!c) throw new CommunityError('Сообщество не найдено.');
+  const last = await CommunityVote.findOne({ where: { communityId: c.id, userId: String(userId) }, order: [['id', 'DESC']] });
+  const at = new Date((last ? new Date(last.createdAt).getTime() : Date.now()) + VOTE_EVERY);
+  const base = (process.env.WEB_BASE_URL || '').replace(/\/+$/, '');
+  const text = `Можно снова проголосовать за «${c.name}»: ${base ? `${base}/communities/${c.id}` : 'команда /vote на сервере'}`.slice(0, 250);
+  const [, created] = await Reminder.findOrCreate({ where: { userId: String(userId), text }, defaults: { guildId: null, channelId: null, remindAt: at } });
+  return { at, created };
 }
 
 /** Statistics for the owner: the last 30 days by day, promotions bought. */
@@ -359,12 +617,39 @@ async function statsOf(communityId) {
   const rows = await CommunityStat.findAll({ where: { communityId, day: { [Op.gte]: since } }, order: [['day', 'ASC']], raw: true });
   const byDay = new Map(rows.map((r) => [r.day, r]));
   const series = Array.from({ length: 30 }, (_, i) => { const d = day(new Date(Date.now() - (29 - i) * 86400000)); const r = byDay.get(d) || {}; return { day: d, views: r.views || 0, clicks: r.clicks || 0, votes: r.votes || 0 }; });
+  const { CommunityReview, CommunityFavorite } = db();
+  const [newReviews, favorites] = await Promise.all([
+    CommunityReview.count({ where: { communityId, createdAt: { [Op.gte]: new Date(Date.now() - 30 * 86400000) } } }),
+    CommunityFavorite.count({ where: { communityId } })
+  ]);
   const promotions = await CommunityPromotion.findAll({ where: { communityId }, order: [['id', 'DESC']], limit: 30, raw: true });
-  return { series, promotions };
+  return { series, promotions, newReviews, favorites };
+}
+
+// ---- buttons of /vote ----
+const isCommunityButton = (i) => i.isButton?.() && /^cm(vote|remind):\d+$/.test(i.customId || '');
+async function handleCommunityButton(interaction) {
+  const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+  const embeds = require('../utils/embeds');
+  const [kind, id] = interaction.customId.split(':');
+  try {
+    if (kind === 'cmvote') {
+      const row = await vote(id, interaction.user.id, null);
+      const again = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`cmremind:${id}`).setLabel('Напомнить через 12 ч').setEmoji('⏰').setStyle(ButtonStyle.Secondary));
+      return interaction.reply({ embeds: [embeds.success(`Голос за «${row.name}» учтён — спасибо! Теперь голосов: ${Number(row.votes).toLocaleString('ru-RU')}.`)], components: [again], flags: MessageFlags.Ephemeral });
+    }
+    const { at, created } = await remindVote(id, interaction.user.id);
+    return interaction.reply({ embeds: [embeds.success(created ? `Напомню в личные сообщения <t:${Math.floor(at / 1000)}:R>.` : 'Напоминание уже стоит.')], flags: MessageFlags.Ephemeral });
+  } catch (e) {
+    if (!(e instanceof CommunityError)) throw e;
+    return interaction.reply({ embeds: [embeds.error(e.message)], flags: MessageFlags.Ephemeral });
+  }
 }
 
 const api = module.exports = {
+  isCommunityButton, handleCommunityButton,
   verifyInvite,
-  CommunityError, CATEGORIES, CATEGORY, icon, hue, PROMOS, DAYS, SORTS, PER_PAGE, BANNER_HOSTS, VOTE_EVERY,
+  CommunityError, CATEGORIES, CATEGORY, icon, hue, PROMOS, DAYS, SORTS, SIZES, PER_PAGE, BANNER_HOSTS, VOTE_EVERY, REVIEWS_PER_PAGE,
+  rating, liveExtra, similar, favoriteIds, toggleFavorite, mayReview, saveReview, deleteReview, replyReview, reportReview, moderateReview, reviewsOf, notifyReview, forGuild, remindVote,
   platform, setPlatform, cleanFields, cleanInvite, save, setVisible, remove, moderate, activePromos, buy, view, click, joinIntent, vote, report, catalog, one, statsOf, iconUrl, accountAge, listOf
 };

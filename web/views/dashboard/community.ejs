@@ -17,7 +17,7 @@
       <% if (error) { %><div class="card g-span mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
       <% if (done === 'bought') { %><div class="card g-span appeal-ok"><p style="margin:0">Продвижение куплено и уже работает.</p></div><% } %>
       <% if (done === 'dup') { %><div class="card g-span appeal-ok"><p style="margin:0">Эта покупка уже проведена — повторно ничего не списано.</p></div><% } %>
-      <form method="post" action="<%= g %>/community" class="card g-c1 g-r2">
+      <form method="post" action="<%= g %>/community" class="card g-c1 g-r2" id="cmForm">
         <h2>Карточка</h2>
         <label for="cmName">Название</label>
         <input id="cmName" type="text" name="name" maxlength="60" required readonly value="<%= c ? c.name : guild.name %>" />
@@ -51,14 +51,13 @@
           </ol>
         <% } else { %>
           <% if (c.moderationNote) { %><p class="appeal-reason"><small>Комментарий модерации</small><span><%= c.moderationNote %></span></p><% } %>
+          <% const sum = (k) => stats.series.reduce((n, s) => n + s[k], 0); const v30 = sum('views'); const c30 = sum('clicks'); %>
           <div class="cm-stats small">
             <div><b><%= fmt(c.votes) %></b><small><%- C.icon('vote', 13) %>голосов</small></div>
-            <div><b><%= fmt(c.views) %></b><small><%- C.icon('views', 13) %>просмотров</small></div>
-            <div><b><%= fmt(c.clicks) %></b><small><%- C.icon('clicks', 13) %>переходов</small></div>
+            <div><b><%= c.rating === null ? '—' : String(c.rating).replace('.', ',') %></b><small><%- C.icon('star', 13) %><%= fmt(c.ratingCount) %> отзывов</small></div>
+            <div><b><%= fmt(stats.favorites) %></b><small><%- C.icon('heart', 13) %>в избранном</small></div>
           </div>
-          <% const max = Math.max(1, ...stats.series.map((s) => s.views)); %>
-          <div class="cm-spark" aria-label="Просмотры за 30 дней"><% stats.series.forEach((s) => { %><i style="height:<%= Math.max(3, Math.round(s.views / max * 100)) %>%" title="<%= s.day %>: <%= s.views %>"></i><% }) %></div>
-          <p class="hint" style="margin-top:4px">Просмотры за 30 дней · за последние 7 дней: <b><%= stats.series.slice(-7).reduce((n, s) => n + s.views, 0) %></b> просмотров, <b><%= stats.series.slice(-7).reduce((n, s) => n + s.clicks, 0) %></b> переходов, <b><%= stats.series.slice(-7).reduce((n, s) => n + s.votes, 0) %></b> голосов.</p>
+          <p class="hint" style="margin-top:0">За 30 дней: <b><%= fmt(v30) %></b> просмотров, <b><%= fmt(c30) %></b> переходов (<%= v30 ? Math.round(c30 / v30 * 100) : 0 %>% от просмотров), <b><%= fmt(sum('votes')) %></b> голосов, <b><%= fmt(stats.newReviews) %></b> новых отзывов.</p>
           <div class="btn-row">
             <% if (c.status === 'published') { %><a class="btn btn-secondary" href="/communities/<%= c.id %>" target="_blank" rel="noopener">Открыть в каталоге</a><% } %>
             <% if (c.status === 'published' || c.status === 'hidden') { %>
@@ -70,7 +69,28 @@
           </div>
         <% } %>
       </div>
-      <div class="card g-c2 cm-promo-card">
+      <div class="card g-c2 cm-page-card">
+        <h2>Страница сообщества</h2>
+        <p class="hint" style="margin-top:0">Что увидят на странице сервера в каталоге, кроме описания. Сохраняется вместе с карточкой.</p>
+        <label for="cmRules">Правила (каждое с новой строки)</label>
+        <textarea form="cmForm" id="cmRules" name="rules" rows="4" maxlength="4000" placeholder="Уважайте друг друга&#10;Без рекламы и спама"><%= c ? c.rules || '' : '' %></textarea>
+        <label>Ссылки (до четырёх): сайт, YouTube, Telegram…</label>
+        <div class="cm-links-edit">
+          <% const L = c ? c.linkList : []; [0, 1, 2, 3].forEach((i) => { const l = L[i] || {}; %>
+            <input form="cmForm" type="text" name="linkLabel" maxlength="30" value="<%= l.label || '' %>" placeholder="Название" aria-label="Название ссылки <%= i + 1 %>" />
+            <input form="cmForm" type="text" inputmode="url" name="linkUrl" maxlength="200" value="<%= l.url || '' %>" placeholder="https://…" aria-label="Адрес ссылки <%= i + 1 %>" />
+          <% }) %>
+        </div>
+        <label for="cmGal">Скриншоты (до шести, каждая ссылка с новой строки)</label>
+        <textarea form="cmForm" id="cmGal" name="gallery" rows="3" maxlength="2000" placeholder="https://cdn.discordapp.com/attachments/…"><%= c ? c.galleryList.join('\n') : '' %></textarea>
+        <p class="hint">Картинки — по https с <%= C.BANNER_HOSTS.join(', ') %>: загрузите скриншот в Discord и скопируйте ссылку.</p>
+        <label for="cmNotify">Куда присылать новые отзывы</label>
+        <select form="cmForm" id="cmNotify" name="notifyChannelId">
+          <option value="">Никуда — смотреть здесь</option>
+          <% channels.forEach((ch) => { %><option value="<%= ch.id %>" <%= c && c.notifyChannelId === ch.id ? 'selected' : '' %>>#<%= ch.name %></option><% }) %>
+        </select>
+      </div>
+      <div class="card g-span cm-promo-card">
         <h2>Продвижение</h2>
         <div class="cm-wallets">
           <div><small>Ваш кошелёк</small><b><%= fmt(balance) %></b><a href="/wallet">Пополнить ›</a></div>
@@ -107,6 +127,53 @@
           </table></div>
         <% } %>
       </div>
+      <% if (c) { %>
+        <div class="card g-span">
+          <h2>Статистика по дням</h2>
+          <div class="cm-charts">
+            <%- chart.bars({ id: 'cmv', title: 'Просмотры', sub: 'страницы в каталоге', days: stats.series, value: (d) => d.views }) %>
+            <%- chart.bars({ id: 'cmc', title: 'Переходы', sub: '«Присоединиться»', days: stats.series, value: (d) => d.clicks }) %>
+            <%- chart.bars({ id: 'cmg', title: 'Голоса', days: stats.series, value: (d) => d.votes }) %>
+          </div>
+        </div>
+        <div class="card g-span" id="reviews">
+          <h2>Отзывы<% if (c.ratingCount) { %><span class="sub">★ <%= String(c.rating).replace('.', ',') %> · <%= fmt(c.ratingCount) %></span><% } %></h2>
+          <% if (done === 'replied') { %><p class="appeal-ok" style="margin:0 0 10px">Ответ сохранён.</p><% } %>
+          <% if (!reviews.items.length) { %>
+            <p class="empty-state">Отзывов пока нет. Их оставляют участники сервера на странице сообщества<%= c.notifyChannelId ? '' : '; выберите канал в карточке — бот будет присылать новые туда' %>.</p>
+          <% } else { %>
+            <div class="cm-owner-reviews">
+              <% reviews.items.forEach((r) => { const u = users[r.userId] || { name: 'Участник' }; %>
+                <article class="cm-review<%= r.status === 'hidden' ? ' hidden-rv' : '' %>">
+                  <div class="cm-rv-top">
+                    <% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" width="32" height="32" loading="lazy" /><% } else { %><span class="cm-rv-ava"><%= (u.name || '?').charAt(0).toUpperCase() %></span><% } %>
+                    <b><%= u.name %></b><span class="cm-stars small"><%= '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating) %></span>
+                    <% if (r.status === 'hidden') { %><span class="badge badge-mute">Скрыт модерацией</span><% } %>
+                    <span class="muted cm-rv-when"><%= when(r.createdAt) %></span>
+                  </div>
+                  <% if (r.text) { %><p class="cm-rv-text"><%= r.text %></p><% } %>
+                  <% if (r.reply) { %><div class="cm-rv-reply"><small>Ваш ответ</small><p><%= r.reply %></p></div><% } %>
+                  <details>
+                    <summary><%= r.reply ? 'Изменить ответ' : 'Ответить' %></summary>
+                    <form method="post" action="<%= g %>/community/review/<%= r.id %>/reply" data-no-guard>
+                      <textarea id="rp<%= r.id %>" aria-label="Ответ на отзыв" name="reply" rows="2" maxlength="600" placeholder="Ответ увидят все на странице сообщества"><%= r.reply || '' %></textarea>
+                      <div class="btn-row"><button class="btn btn-secondary" type="submit">Опубликовать ответ</button></div>
+                    </form>
+                  </details>
+                </article>
+              <% }) %>
+            </div>
+            <% if (reviews.pages > 1) { %>
+              <nav class="cm-pager" aria-label="Страницы отзывов">
+                <% if (reviews.page > 1) { %><a class="btn btn-secondary" href="?rpage=<%= reviews.page - 1 %>#reviews">← Новее</a><% } %>
+                <span class="muted"><span>Страница</span> <%= reviews.page %> <span>из</span> <%= reviews.pages %></span>
+                <% if (reviews.page < reviews.pages) { %><a class="btn btn-secondary" href="?rpage=<%= reviews.page + 1 %>#reviews">Старее →</a><% } %>
+              </nav>
+            <% } %>
+          <% } %>
+          <p class="hint">Удалить чужой отзыв нельзя, но можно ответить. Оскорбительные отзывы скрывает модерация платформы по жалобам.</p>
+        </div>
+      <% } %>
     </main>
   </div>
 </body>

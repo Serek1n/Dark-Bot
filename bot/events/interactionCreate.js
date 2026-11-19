@@ -85,6 +85,11 @@ module.exports = {
       return;
     }
 
+    if (require('../modules/communities').isCommunityButton(interaction)) {
+      try { await require('../modules/communities').handleCommunityButton(interaction); } catch (err) { logger.error('Community button failed:', err); await tellFailed(interaction); }
+      return;
+    }
+
     if (require('../modules/achievements').isAchievementComponent(interaction)) {
       try { await require('../modules/achievements').handleComponent(interaction); } catch (err) { logger.error('Achievements button failed:', err); await tellFailed(interaction); }
       return;

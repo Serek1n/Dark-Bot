@@ -23,6 +23,12 @@ module.exports = (sequelize) => {
       views: { type: DataTypes.INTEGER, defaultValue: 0 },
       clicks: { type: DataTypes.INTEGER, defaultValue: 0 },
       bumpedAt: { type: DataTypes.DATE, allowNull: true },
+      ratingSum: { type: DataTypes.INTEGER, defaultValue: 0 }, // marks of the published reviews, added up
+      ratingCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+      rules: { type: DataTypes.TEXT, allowNull: true }, // the server's rules, one per line
+      links: { type: DataTypes.TEXT, allowNull: true }, // JSON: [{ label, url }] — site, YouTube, Telegram…
+      gallery: { type: DataTypes.TEXT, allowNull: true }, // JSON: [url] — up to 6 screenshots
+      notifyChannelId: { type: DataTypes.STRING, allowNull: true }, // where the bot tells about new reviews
       publishedAt: { type: DataTypes.DATE, allowNull: true }
     },
     { sequelize, modelName: 'Community', tableName: 'communities', indexes: [{ fields: ['status'] }] }

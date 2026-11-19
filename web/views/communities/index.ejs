@@ -16,19 +16,36 @@
        const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); %>
     <form class="cm-search" method="get" action="/communities" role="search">
       <input type="text" inputmode="search" name="q" value="<%= f.q %>" placeholder="Название, описание или тег" aria-label="Поиск сообществ" />
-      <% if (f.category) { %><input type="hidden" name="category" value="<%= f.category %>" /><% } %>
+      <% ['category', 'tag', 'fav'].forEach((k) => { if (f[k]) { %><input type="hidden" name="<%= k %>" value="<%= f[k] %>" /><% } }) %>
       <select name="sort" aria-label="Сортировка"><% Object.entries(C.SORTS).forEach(([k, l]) => { %><option value="<%= k %>" <%= f.sort === k ? 'selected' : '' %>><%= l %></option><% }) %></select>
+      <select name="size" aria-label="Размер сервера"><option value="">Любой размер</option><% Object.entries(C.SIZES).forEach(([k, s]) => { %><option value="<%= k %>" <%= f.size === k ? 'selected' : '' %>><%= s[0] %></option><% }) %></select>
+      <select name="min" aria-label="Оценка"><option value="">Любая оценка</option><option value="4" <%= f.min === '4' ? 'selected' : '' %>>★ 4 и выше</option><option value="3" <%= f.min === '3' ? 'selected' : '' %>>★ 3 и выше</option></select>
       <button class="btn" type="submit">Найти</button>
     </form>
     <nav class="chips cm-cats" aria-label="Категории">
       <a class="chip cm-chip <%= !f.category ? 'active' : '' %>" style="--ic:<%= C.hue('all') %>" href="<%= qs({ category: '' }) %>"><%- C.icon('all', 15) %><span>Все</span></a>
       <% C.CATEGORIES.forEach(([k, l]) => { %><a class="chip cm-chip <%= f.category === k ? 'active' : '' %>" style="--ic:<%= C.hue(k) %>" href="<%= qs({ category: k }) %>"><%- C.icon(k, 15) %><span><%= l %></span></a><% }) %>
+      <% if (locals.user) { %><a class="chip cm-chip <%= f.fav ? 'active' : '' %>" style="--ic:#f07a9a" href="<%= qs({ fav: f.fav ? '' : '1' }) %>"><%- C.icon('heart', 15) %><span>Избранное</span><% if (favCount) { %> <small><%= favCount %></small><% } %></a><% } %>
     </nav>
+    <% if (f.tag) { %><p class="cm-active-filter"><span>Тег</span> <b>#<%= f.tag %></b> <a href="<%= qs({ tag: '' }) %>" aria-label="Убрать тег">✕</a></p><% } %>
     <% if (featured.length) { %>
       <section class="cm-featured">
         <h2>Рекомендуем</h2>
         <div class="cm-feat-row">
           <% featured.forEach((c) => { %>
+            <a class="cm-feat" href="/communities/<%= c.id %>">
+              <% if (c.icon) { %><img src="<%= c.icon %>" alt="" width="48" height="48" loading="lazy" /><% } else { %><span class="cm-letter"><%= c.name.charAt(0).toUpperCase() %></span><% } %>
+              <span><b><%= c.name %></b><small><%- C.icon('members', 13) %><%= fmt(c.memberCount) %> <span>участников</span></small></span>
+            </a>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+    <% if (trending.length) { %>
+      <section class="cm-featured cm-trending">
+        <h2><%- C.icon('trend', 18) %> Растущие на этой неделе</h2>
+        <div class="cm-feat-row">
+          <% trending.forEach((c) => { %>
             <a class="cm-feat" href="/communities/<%= c.id %>">
               <% if (c.icon) { %><img src="<%= c.icon %>" alt="" width="48" height="48" loading="lazy" /><% } else { %><span class="cm-letter"><%= c.name.charAt(0).toUpperCase() %></span><% } %>
               <span><b><%= c.name %></b><small><%- C.icon('members', 13) %><%= fmt(c.memberCount) %> <span>участников</span></small></span>
@@ -48,16 +65,17 @@
               <% if (c.icon) { %><img class="cm-icon" src="<%= c.icon %>" alt="" width="56" height="56" loading="lazy" /><% } else { %><span class="cm-icon cm-letter"><%= c.name.charAt(0).toUpperCase() %></span><% } %>
               <div class="cm-title">
                 <h3><a href="/communities/<%= c.id %>"><%= c.name %></a></h3>
-                <div class="cm-meta"><span title="Участников"><%- C.icon('members', 14) %><%= fmt(c.memberCount) %></span><span title="Голосов"><%- C.icon('vote', 14) %><%= fmt(c.votes) %></span></div>
+                <div class="cm-meta"><span title="Участников"><%- C.icon('members', 14) %><%= fmt(c.memberCount) %></span><span title="Голосов"><%- C.icon('vote', 14) %><%= fmt(c.votes) %></span><% if (c.rating !== null) { %><span class="cm-rt" title="Оценка, отзывов: <%= c.ratingCount %>"><%- C.icon('star', 14) %><%= String(c.rating).replace('.', ',') %></span><% } %></div>
               </div>
               <% if (c.pinned) { %><span class="cm-badge"><%- C.icon('pin', 13) %><span>Закреплено</span></span><% } else if (c.bumped || c.highlighted) { %><span class="cm-badge"><%- C.icon('bolt', 13) %><span>Продвигается</span></span><% } %>
             </div>
             <p class="cm-desc"><%= c.shortDesc %></p>
             <div class="cm-tags">
               <% c.cats.forEach((k) => { const cat = C.CATEGORY[k]; if (cat) { %><a class="cm-tag cm-tag-cat" style="--ic:<%= C.hue(k) %>" href="<%= qs({ category: k }) %>"><%- C.icon(k, 13) %><span><%= cat.label %></span></a><% } }) %>
-              <% c.tagList.slice(0, 3).forEach((t) => { %><span class="cm-tag muted">#<%= t %></span><% }) %>
+              <% c.tagList.slice(0, 3).forEach((t) => { %><a class="cm-tag muted" href="<%= qs({ tag: t }) %>">#<%= t %></a><% }) %>
             </div>
             <div class="cm-actions">
+              <% if (locals.user) { %><form method="post" action="/communities/<%= c.id %>/favorite" class="cm-fav-form"><input type="hidden" name="from" value="<%= qs({ page: page > 1 ? page : '' }) %>" /><button class="btn btn-secondary cm-fav<%= c.fav ? ' on' : '' %>" type="submit" aria-pressed="<%= c.fav %>" aria-label="<%= c.fav ? 'Убрать из избранного' : 'В избранное' %>" title="<%= c.fav ? 'Убрать из избранного' : 'В избранное' %>"><%- C.icon('heart', 16) %></button></form><% } %>
               <a class="btn btn-secondary" href="/communities/<%= c.id %>">Подробнее</a>
               <a class="btn" href="/communities/<%= c.id %>/join" rel="nofollow">Присоединиться</a>
             </div>

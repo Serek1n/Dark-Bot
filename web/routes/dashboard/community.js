@@ -2,7 +2,7 @@
 // promotion with the admin's own DARK Coins. Only people who manage the server get here (ensureGuildAccess).
 const express = require('express');
 const { ensureGuildAccess } = require('../../middleware/ensureGuildAccess');
-const { getGuild } = require('../../discordApi');
+const { getGuild, getGuildChannels, getUsers } = require('../../discordApi');
 const { getSettings } = require('../../utils/common');
 
 const router = express.Router();
@@ -17,7 +17,10 @@ router.get('/:guildId/community', ensureGuildAccess, async (req, res) => {
   const [stats, plat, balance, mine, serverBalance, serverLog, earn] = await Promise.all([c ? cm().statsOf(c.id) : null, cm().platform(), coins().balanceOf(req.user?.id), coins().history(req.user?.id, 10),
     coins().balanceOf(coins().guildWallet(guildId)), coins().history(coins().guildWallet(guildId), 15), coins().earnSettings()]);
   const pendingServer = await require('../../../db').DarkCoinPending.sum('amount', { where: { wallet: coins().guildWallet(guildId), status: 'pending' } }) || 0;
+  const [channels, reviews] = await Promise.all([getGuildChannels(guildId), c ? cm().reviewsOf(c.id, { page: req.query.rpage, all: true }) : null]);
+  const users = reviews ? await getUsers(reviews.items.map((r) => r.userId)).catch(() => ({})) : {};
   res.render('dashboard/community', { guild, settings, c, stats, plat, balance, mine, serverBalance, serverLog, earn, pendingServer, key: coins().newKey(), C: cm(), active: 'community',
+    channels: channels.filter((ch) => ch.type === 0 || ch.type === 5), reviews, users, chart: require('../../utils/statChart'),
     error: req.query.err ? String(req.query.err).slice(0, 200) : null, done: req.query.done || null });
 });
 
@@ -39,6 +42,12 @@ router.post('/:guildId/community/delete', ensureGuildAccess, async (req, res) =>
   try {
     await cm().remove(req.params.guildId);
     res.redirect(page(req.params.guildId, 'deleted=1'));
+  } catch (e) { fail(res, req.params.guildId, e, [cm().CommunityError]); }
+});
+router.post('/:guildId/community/review/:rid/reply', ensureGuildAccess, async (req, res) => {
+  try {
+    await cm().replyReview(req.params.guildId, req.params.rid, req.user?.id, req.body.reply);
+    res.redirect(page(req.params.guildId, 'done=replied') + '#reviews');
   } catch (e) { fail(res, req.params.guildId, e, [cm().CommunityError]); }
 });
 router.post('/:guildId/community/buy', ensureGuildAccess, async (req, res) => {

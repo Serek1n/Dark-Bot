@@ -9,7 +9,7 @@
     <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); const name = (id) => (id ? (users[id] || { name: id }).name : '—');
        const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
        const KIND = { grant: 'Начисление', revoke: 'Списание', promo: 'Продвижение', daily: 'Ежедневный бонус', vote: 'Голос', join: 'Вход из каталога', quest: 'Задание', top: 'Топ недели', purchase: 'Покупка', refund: 'Возврат' };
-       const DONE = { coins: 'Операция проведена.', dup: 'Эта операция уже была проведена — повтор ничего не изменил.', settings: 'Настройки сохранены.', pending: 'Решение по начислению принято.', frozen: 'Состояние кошелька изменено.', moderated: 'Решение сохранено.', report: 'Жалоба закрыта.' }; %>
+       const DONE = { review: 'Решение по отзыву применено.', coins: 'Операция проведена.', dup: 'Эта операция уже была проведена — повтор ничего не изменил.', settings: 'Настройки сохранены.', pending: 'Решение по начислению принято.', frozen: 'Состояние кошелька изменено.', moderated: 'Решение сохранено.', report: 'Жалоба закрыта.' }; %>
     <% if (error) { %><div class="card mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
     <% if (done && DONE[done]) { %><div class="card appeal-ok"><p style="margin:0"><%= DONE[done] %></p></div><% } %>
     <div class="pf-grid">
@@ -119,6 +119,22 @@
         <div class="appeal-list"><% reports.forEach((r) => { const c = byId.get(r.communityId); %>
           <div class="appeal-row"><div class="appeal-main"><b><%= c ? c.name : '#' + r.communityId %></b><span class="muted"><%= r.reason %></span></div>
             <div class="appeal-act"><form method="post" action="/platform/reports/<%= r.id %>/close"><button class="btn btn-secondary" type="submit">Закрыть жалобу</button></form></div></div>
+        <% }) %></div>
+      <% } %>
+      <% if (badReviews.length) { %>
+        <h3 class="econ-sub">Отзывы с жалобами</h3>
+        <div class="appeal-list"><% badReviews.forEach((r) => { const c = byId.get(r.communityId); const why = reviewReasons.filter((x) => x.reviewId === r.id).slice(0, 3); %>
+          <div class="appeal-row"><div class="appeal-main">
+            <b><%= '★'.repeat(r.rating) %> · <%= name(r.userId) %> → <%= c ? c.name : '#' + r.communityId %><%= r.status === 'hidden' ? ' · скрыт' : '' %></b>
+            <span><%= r.text || '(только оценка)' %></span>
+            <% if (why.length) { %><span class="muted">Жалобы (<%= r.reports %>): <%= why.map((x) => x.reason).join(' · ') %></span><% } %>
+          </div>
+            <div class="appeal-act">
+              <form method="post" action="/platform/reviews/<%= r.id %>" class="cm-mod">
+                <select name="action" aria-label="Решение по отзыву"><% if (r.status === 'hidden') { %><option value="restore">Вернуть</option><% } else { %><option value="hide">Скрыть</option><option value="dismiss">Жалобы необоснованны</option><% } %></select>
+                <button class="btn btn-secondary" type="submit">Применить</button>
+              </form>
+            </div></div>
         <% }) %></div>
       <% } %>
       <h3 class="econ-sub">Все сообщества</h3>
