@@ -93,7 +93,6 @@ body.has-save-bar .content { padding-bottom: 120px; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
 .toolbar .search { flex: 1; min-width: 200px; }
 .toolbar .count { color: var(--fog-dim); font-size: var(--fs-13); }
-.preview strong { color: #fff; font-weight: 600; }
 
 /* Economy stats */
 

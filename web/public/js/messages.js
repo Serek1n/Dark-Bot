@@ -354,12 +354,6 @@
       case 'date-del': b.parentNode.remove(); return;
       case 'schedule': saveSchedule(); return;
       case 'schedule-cancel': resetSchedule(); return;
-      case 'ansi-add': ansiAdd(false); return;
-      case 'ansi-newline': ansiAdd(true); return;
-      case 'ansi-del': pieces.splice(+b.getAttribute('data-i'), 1); drawAnsi(); return;
-      case 'ansi-clear': pieces = []; drawAnsi(); return;
-      case 'ansi-copy': copy($('#a-code').value, b); return;
-      case 'ansi-insert': if (!pieces.length) return; if (state.kind === 'v2') state.blocks.push({ t: 'text', content: $('#a-code').value }); else state.content = (state.content ? state.content + '\n' : '') + $('#a-code').value; renderAll(); showTab('editor'); return;
       case 'hook-info': hookInfo(); return;
       default: return;
     }
@@ -367,7 +361,7 @@
   });
   function copy(text, btn) {
     var done = function () { var t = btn.textContent; btn.textContent = 'Скопировано'; setTimeout(function () { btn.textContent = t; }, 1500); };
-    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {}); else { var ta = $('#a-code'); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { /* no clipboard */ } }
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {}); else { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { /* no clipboard */ } ta.remove(); }
   }
 
   // ---------- send / edit / load ----------
@@ -478,28 +472,15 @@
   }
 
   // ---------- tools ----------
-  var pieces = [];
-  function ansiAdd(newline) {
-    if (newline) { pieces.push({ nl: true }); drawAnsi(); return; }
-    var t = $('#a-text').value; if (!t) return $('#a-text').focus();
-    pieces.push({ text: t.replace(/\u0060/g, 'ˋ'), fg: $('#a-fg').value, bg: $('#a-bg').value, b: $('#a-bold').checked, u: $('#a-under').checked });
-    $('#a-text').value = ''; $('#a-text').focus(); drawAnsi();
-  }
-  function ansiCode() {
-    var body = pieces.map(function (p) {
-      if (p.nl) return '\n';
-      var codes = [p.b ? 1 : 0, p.u ? 4 : 0, p.fg, p.bg].filter(Boolean);
-      return codes.length ? '\u001b[' + codes.join(';') + 'm' + p.text + '\u001b[0m' : p.text;
-    }).join('');
-    return '```ansi\n' + body + '\n```';
-  }
+  // «Цветной текст»: the same ANSI editor as under 🎨 of a text field (web/public/js/dcp.js); the block goes to the end of the text
   function drawAnsi() {
-    $('#a-pieces').innerHTML = pieces.map(function (p, i) {
-      return '<span class="ansi-piece">' + (p.nl ? '↵' : esc(p.text)) + '<button type="button" class="btn-link danger" data-act="ansi-del" data-i="' + i + '" aria-label="Убрать">✕</button></span>';
-    }).join('');
-    var code = pieces.length ? ansiCode() : '';
-    $('#a-code').value = code;
-    $('#a-preview').innerHTML = code ? '<div class="dcp" data-dcp-theme="ash"><div class="dcp-md">' + window.DCP.md(code) + '</div></div>' : '<div class="dm-empty">Добавьте кусок текста — здесь появится результат.</div>';
+    var host = $('#a-editor'); if (!host || !window.DCP || !window.DCP.ansiEditor) return;
+    var ta = document.createElement('textarea'); // a scratch field: the editor writes the block into it
+    window.DCP.ansiEditor(host, ta, function () {
+      var block = ta.value.trim(); if (!block) return;
+      if (state.kind === 'v2') state.blocks.push({ t: 'text', content: block }); else state.content = (state.content ? state.content + '\n' : '') + block;
+      renderAll(); showTab('editor'); drawAnsi();
+    });
   }
   function hookInfo() {
     var out = $('#w-out'); var url = $('#w-url').value.trim();

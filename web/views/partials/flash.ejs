@@ -1,0 +1,8 @@
+<%# A notice after an action («Отзыв сохранён», «Не получилось: …») shown over the page, not as a block at its top.
+    Locals: text, error (true: stays until closed), head (optional bold start), param (query names to drop from the address,
+    comma-separated: a reload must not show it again). Hiding, closing and the address: web/public/js/ui.js. %>
+<div class="toast flash<%= locals.error ? ' error' : '' %>" role="<%= locals.error ? 'alert' : 'status' %>" data-flash="<%= locals.error ? 'error' : 'ok' %>" data-flash-param="<%= locals.param || '' %>">
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="<%= locals.error ? 'M10 6V11M10 14H10.01' : 'M4.5 10.5L8.2 14L15.5 6' %>"/></svg>
+  <span><% if (locals.head) { %><b><%= head %></b> <% } %><%= text %></span>
+  <button type="button" class="toast-x" data-flash-x aria-label="Закрыть">×</button>
+</div>

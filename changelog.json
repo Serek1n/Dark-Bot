@@ -1,6 +1,39 @@
 [
  {
   "bot": "3.18.0",
+  "panel": "3.29.0",
+  "date": "2026-11-19",
+  "botChanges": [],
+  "panelChanges": [
+   "Приветствие: одно превью вместо двух; карточка с аватаркой видна в нём, как в Discord",
+   "Превью сообщения на телефоне — от края до края карточки, сразу в виде «Телефон»",
+   "Подсветка упоминания в превью тянется на всю ширину сообщения, как в Discord",
+   "Цветной текст (ANSI): палитра вместо списков — окно больше не закрывается при выборе",
+   "ANSI: куски разного цвета, новые строки и правка блока, который уже есть в тексте",
+   "Сообщества: скриншоты открываются поверх страницы — стрелки, свайп, Esc",
+   "Уведомления («Отзыв сохранён», ошибки) — всплывают поверх страницы, а не блоком сверху",
+   "Каталог на телефоне: «Присоединиться» больше не выходит за край карточки",
+   "Страница сообщества на телефоне: ровная шапка, кнопки в один ряд",
+   "Платформа на телефоне: решение по сообществу — поля во всю ширину"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Welcome: one preview instead of two; the avatar card shows in it, as in Discord",
+    "The message preview on a phone spans the card edge to edge and opens in the «Phone» view",
+    "A mention's highlight in the preview spans the whole message width, as in Discord",
+    "Coloured text (ANSI): swatches instead of lists — the popup no longer closes on a pick",
+    "ANSI: pieces of different colours, new lines and editing a block already in the text",
+    "Communities: screenshots open over the page — arrows, swipe, Esc",
+    "Notices («Review saved», errors) pop up over the page instead of a block at the top",
+    "Catalog on a phone: «Join» no longer goes past the card's edge",
+    "Community page on a phone: an even header, buttons in one row",
+    "Platform on a phone: the decision on a community has full-width fields"
+   ]
+  }
+ },
+ {
+  "bot": "3.18.0",
   "panel": "3.28.3",
   "date": "2026-11-19",
   "botChanges": [

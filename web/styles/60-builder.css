@@ -63,14 +63,7 @@
 .msg-item-main .muted { font-size: var(--fs-13); }
 .msg-item-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .msg-item-actions form { margin: 0; }
-.ansi-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
-.ansi-controls > input { flex: 1 1 200px; }
-.ansi-controls label { display: inline-flex; gap: 6px; align-items: center; margin: 0; font-size: var(--fs-13); color: var(--fog); }
-.ansi-controls select { width: auto; }
-.ansi-controls input[type="checkbox"] { width: auto; }
-.ansi-pieces { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-.ansi-piece { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 10px; border-radius: var(--r-pill); background: var(--panel-raised); font-size: var(--fs-13); }
-.ansi-out { margin-bottom: 10px; }
+.ansi-tool { margin-top: 12px; max-width: 520px; }
 .msg-hookinfo { margin-top: 12px; }
 .msg-hookcard { display: flex; gap: 14px; align-items: flex-start; }
 .msg-hookcard img { width: 56px; height: 56px; border-radius: 50%; }

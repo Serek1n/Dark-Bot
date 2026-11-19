@@ -266,27 +266,6 @@ document.addEventListener('DOMContentLoaded', function () {
   syncAdd();
 })();
 
-// --- Welcome: live preview of the message.
-(function () {
-  var input = document.getElementById('welcomeMessage');
-  var out = document.getElementById('welcomePreview');
-  if (!input || !out) return;
-  var server = out ? out.getAttribute('data-server') || '' : '';
-  function esc(t) { return t.replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
-  function render() {
-    out.innerHTML = esc(input.value)
-      .replace(/\{user\}/g, '<span class="mention">@Новый участник</span>')
-      .replace(/\{name\}/g, 'Новый участник')
-      .replace(/\{count\}/g, '128')
-      .replace(/\{server\}/g, esc(server))
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
-      .replace(/\n/g, '<br>');
-  }
-  input.addEventListener('input', render);
-  render();
-})();
-
 // Achievement editor: the amount for counted conditions, the role for "has a role", nothing for "by hand".
 (function () {
   var sel = document.querySelector('[data-ach-cond]');

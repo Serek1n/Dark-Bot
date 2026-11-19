@@ -1,6 +1,7 @@
 <%# The embed part of a message: a switch, the fields and a live preview (web/public/js/dcp.js). Locals: prefix (field names),
     data (stored JSON or null), hint (optional text under the switch), textFor (id of the message's text field: the preview
-    shows the whole message), preview (false: the page draws its own preview). Every text field takes the same templates as the message. %>
+    shows the whole message), preview (false: the page draws its own preview), attach ({ field, url, name }: a picture the bot attaches when the
+    checkbox `field` is on — the embed's image with the embed, a file under the text without it). Every text field takes the same templates as the message. %>
 <% let E = null; try { E = typeof data === 'string' ? JSON.parse(data) : data; } catch (e) { E = null; } E = E && E.on ? E : { on: false }; %>
 <div class="embed-editor" data-embed-editor="<%= prefix %>">
   <label class="checkbox-row">
@@ -30,6 +31,6 @@
     <p class="hint">Заменители работают во всех полях эмбеда.</p>
   </div>
   <% if (locals.preview !== false) { %>
-    <div class="ee-preview" data-ee-preview data-text-for="<%= locals.textFor || '' %>" aria-label="Как будет выглядеть сообщение"></div>
+    <div class="ee-preview" data-ee-preview data-text-for="<%= locals.textFor || '' %>"<% if (locals.attach) { %> data-attach-field="<%= attach.field %>" data-attach-url="<%= attach.url %>" data-attach-name="<%= attach.name %>"<% } %> aria-label="Как будет выглядеть сообщение"></div>
   <% } %>
 </div>

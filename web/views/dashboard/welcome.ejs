@@ -28,18 +28,11 @@
           <textarea name="welcomeMessage" id="welcomeMessage" data-md maxlength="1800" placeholder="Можно оставить пустым, если включён эмбед"><%= settings.welcomeMessage %></textarea>
           <%- include('../partials/replacers-help', { target: 'welcomeMessage' }) %>
         </div>
-        <%- include('../partials/embed-editor', { prefix: 'welcomeEmbed', data: settings.welcomeEmbed, textFor: 'welcomeMessage', hint: 'Текст выше пойдёт над эмбедом, его можно оставить пустым. Карточка с аватаркой станет картинкой эмбеда.' }) %>
-        <div>
-          <label>Как это увидят в Discord</label>
-          <div class="preview">
-            <div class="pv-avatar"><svg width="22" height="22" viewBox="0 0 56 56" aria-hidden="true"><mask id="pv-moon"><rect width="56" height="56" fill="#fff"/><circle cx="36" cy="20" r="15" fill="#000"/></mask><circle cx="27" cy="29" r="19" fill="#e3a857" mask="url(#pv-moon)"/></svg></div>
-            <div><div class="pv-name">Dark<em>БОТ</em></div><div id="welcomePreview" data-server="<%= guild.name %>"></div></div>
-          </div>
-        </div>
         <label class="checkbox-row">
           <input type="checkbox" name="welcomeCard" <%= settings.welcomeCard ? 'checked' : '' %> />
           <span>Прикладывать картинку-карточку с аватаркой нового участника</span>
         </label>
+        <%- include('../partials/embed-editor', { prefix: 'welcomeEmbed', data: settings.welcomeEmbed, textFor: 'welcomeMessage', attach: { field: 'welcomeCard', url: '/dashboard/' + guild.id + '/appearance/preview/welcome.png', name: 'welcome.png' }, hint: 'Текст выше пойдёт над эмбедом, его можно оставить пустым. Карточка с аватаркой станет картинкой эмбеда.' }) %>
         <div>
           <label>Роль новичкам</label>
           <select name="autoRoleId">

@@ -244,24 +244,8 @@
       <section class="msg-pane" data-pane="tools" hidden>
         <div class="card">
           <h2>Цветной текст</h2>
-          <div class="hint">Discord красит текст в блоке кода <code>ansi</code>. Соберите строку из кусков разного цвета и вставьте её в сообщение. Цвета видны в Discord на компьютере.</div>
-          <div class="ansi-controls">
-            <input type="text" id="a-text" maxlength="300" placeholder="Текст куска" />
-            <label>Цвет <select id="a-fg"><option value="">обычный</option><option value="30">серый</option><option value="31">красный</option><option value="32">зелёный</option><option value="33">жёлтый</option><option value="34">синий</option><option value="35">розовый</option><option value="36">бирюзовый</option><option value="37">белый</option></select></label>
-            <label>Фон <select id="a-bg"><option value="">нет</option><option value="40">тёмно-синий</option><option value="41">оранжевый</option><option value="42">серый</option><option value="43">светло-серый</option><option value="44">сизый</option><option value="45">индиго</option><option value="46">светлый</option><option value="47">белый</option></select></label>
-            <label><input type="checkbox" id="a-bold" /> жирный</label>
-            <label><input type="checkbox" id="a-under" /> подчёркнутый</label>
-            <button type="button" class="btn btn-secondary" data-act="ansi-add">Добавить</button>
-            <button type="button" class="btn btn-secondary" data-act="ansi-newline">Новая строка</button>
-          </div>
-          <div class="ansi-pieces" id="a-pieces"></div>
-          <div class="msg-preview ansi-out" id="a-preview"></div>
-          <textarea id="a-code" rows="4" readonly class="mono"></textarea>
-          <div class="msg-inline">
-            <button type="button" class="btn btn-secondary" data-act="ansi-copy">Копировать</button>
-            <button type="button" class="btn btn-secondary" data-act="ansi-insert">Вставить в текст сообщения</button>
-            <button type="button" class="btn btn-secondary" data-act="ansi-clear">Очистить</button>
-          </div>
+          <div class="hint">Discord красит текст в блоке кода <code>ansi</code>. Соберите текст из кусков разного цвета и вставьте его в сообщение. Тот же редактор есть в кнопке 🎨 над каждым текстовым полем — там можно и поправить блок, который уже есть в тексте.</div>
+          <div class="ansi-tool" id="a-editor"></div>
         </div>
 
         <div class="card">

@@ -14,9 +14,9 @@
        const KIND = { grant: 'Начисление', revoke: 'Списание', promo: 'Продвижение', daily: 'Ежедневный бонус', vote: 'Голос в каталоге', join: 'Вход из каталога', quest: 'Задание', top: 'Топ недели', purchase: 'Покупка', refund: 'Возврат' };
        const PST = { pending: 'ожидает', paid: 'зачислено', cancelled: 'отменено', held: 'на проверке' };
        const OST = { created: 'не оплачен', paid: 'оплачен', refunded: 'возвращён' }; %>
-    <% if (error) { %><div class="card mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
-    <% if (done === 'daily') { %><div class="card appeal-ok"><p style="margin:0">Бонус получен: <b>+<%= got %></b> DARK Coins.</p></div><% } %>
-    <% if (done === 'held') { %><div class="card appeal-ok"><p style="margin:0">Бонус засчитан и ждёт проверки: сегодня платформа уже выдала много монет. Он придёт после решения администрации.</p></div><% } %>
+    <% if (error) { %><%- include('../partials/flash', { head: 'Не получилось:', text: error, error: true, param: 'err' }) %><% } %>
+    <% if (done === 'daily') { %><%- include('../partials/flash', { head: 'Бонус получен:', text: '+' + got + ' DARK Coins.', param: 'done,got' }) %><% } %>
+    <% if (done === 'held') { %><%- include('../partials/flash', { text: 'Бонус засчитан и ждёт проверки: сегодня платформа уже выдала много монет. Он придёт после решения администрации.', param: 'done,got' }) %><% } %>
     <% if (frozen) { %><div class="card mod-alert"><p style="margin:0">Кошелёк заморожен администрацией платформы: награды не начисляются, тратить нельзя.</p></div><% } %>
     <% if (order && orderLink) { %>
       <div class="card wl-order">

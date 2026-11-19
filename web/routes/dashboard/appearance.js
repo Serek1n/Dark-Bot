@@ -75,6 +75,7 @@ router.get('/:guildId/appearance/preview/:kind.png', ensureGuildAccess, async (r
     else if (kind === 'coin') png = await cards.renderGameCard({ game: 'coinflip', heads: true, player: name, colors });
     else if (kind === '8ball') png = await cards.renderGameCard({ game: '8ball', question: 'Повезёт ли мне сегодня?', answer: 'Знаки говорят: да.', mood: 'good', player: name, colors });
     else if (kind === 'rps') png = await cards.renderGameCard({ game: 'rps', you: 'paper', bot: 'rock', result: 'win', player: name, colors });
+    else if (kind === 'welcome') png = await require('../../../bot/modules/welcomeCard').renderWelcomeCard({ username: name, avatarURL, serverName: require('../../botBridge').getClient()?.guilds?.cache?.get(guildId)?.name || 'Ваш сервер', memberCount: require('../../botBridge').getClient()?.guilds?.cache?.get(guildId)?.memberCount || 128, colors });
     else return res.status(404).end();
   } catch (err) {
     return res.status(500).end();

@@ -14,9 +14,10 @@
          const ST = { published: 'Опубликовано', pending: 'Ждёт проверки', hidden: 'Скрыто', blocked: 'Заблокировано' };
          const chip = { published: 'badge-unban', pending: 'badge-note', hidden: 'badge-mute', blocked: 'badge-ban' };
          const cats = c ? c.cats : []; const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); %>
-      <% if (error) { %><div class="card g-span mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
-      <% if (done === 'bought') { %><div class="card g-span appeal-ok"><p style="margin:0">Продвижение куплено и уже работает.</p></div><% } %>
-      <% if (done === 'dup') { %><div class="card g-span appeal-ok"><p style="margin:0">Эта покупка уже проведена — повторно ничего не списано.</p></div><% } %>
+      <% if (error) { %><%- include('../partials/flash', { head: 'Не получилось:', text: error, error: true, param: 'err' }) %><% } %>
+      <% if (done === 'bought') { %><%- include('../partials/flash', { text: 'Продвижение куплено и уже работает.', param: 'done' }) %><% } %>
+      <% if (done === 'dup') { %><%- include('../partials/flash', { text: 'Эта покупка уже проведена — повторно ничего не списано.', param: 'done' }) %><% } %>
+      <% if (done === 'replied') { %><%- include('../partials/flash', { text: 'Ответ сохранён.', param: 'done' }) %><% } %>
       <form method="post" action="<%= g %>/community" class="card g-c1 g-r2" id="cmForm">
         <h2>Карточка</h2>
         <label for="cmName">Название</label>
@@ -154,7 +155,6 @@
         </div>
         <div class="card g-span" id="reviews">
           <h2>Отзывы<% if (c.ratingCount) { %><span class="sub">★ <%= String(c.rating).replace('.', ',') %> · <%= fmt(c.ratingCount) %></span><% } %></h2>
-          <% if (done === 'replied') { %><p class="appeal-ok" style="margin:0 0 10px">Ответ сохранён.</p><% } %>
           <% if (!reviews.items.length) { %>
             <p class="empty-state">Отзывов пока нет. Их оставляют участники сервера на странице сообщества<%= c.notifyChannelId ? '' : '; выберите канал в карточке — бот будет присылать новые туда' %>.</p>
           <% } else { %>

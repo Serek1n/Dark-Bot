@@ -11,8 +11,8 @@
        const stars = (n) => '★'.repeat(Math.round(n || 0)) + '☆'.repeat(5 - Math.round(n || 0));
        const when = (d) => new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
        const pageUrl = (base || '') + '/communities/' + c.id; %>
-    <% if (msg) { %><div class="card appeal-ok"><p style="margin:0"><%= MSG[msg] %></p></div><% } %>
-    <% if (error) { %><div class="card mod-alert"><p style="margin:0"><%= error %></p></div><% } %>
+    <% if (msg) { %><%- include('../partials/flash', { text: MSG[msg], param: Object.keys(MSG).join(',') }) %><% } %>
+    <% if (error) { %><%- include('../partials/flash', { text: error, error: true, param: 'err' }) %><% } %>
     <% if (locals.preview) { const ST = { pending: 'ждёт проверки модерацией платформы', hidden: 'скрыто из каталога', blocked: 'заблокировано модерацией' }; %>
       <div class="card cm-preview-bar"><p style="margin:0"><b>Предпросмотр:</b> сообщество <%= ST[c.status] || c.status %> — в каталоге его не видно, страницу видите только вы. Голосовать и оставлять отзывы можно после публикации.</p>
         <% if (locals.platformOwner) { %>
@@ -35,9 +35,9 @@
         </div>
         <div class="cm-show-act">
           <a class="btn" href="/communities/<%= c.id %>/join" rel="nofollow">Присоединиться</a>
-          <form method="post" action="/communities/<%= c.id %>/vote"><button class="btn btn-secondary cm-vote" type="submit"><%- C.icon('vote', 16) %><span>Голосовать</span></button></form>
+          <form method="post" action="/communities/<%= c.id %>/vote"><button class="btn btn-secondary cm-vote" type="submit" title="Голосовать"><%- C.icon('vote', 16) %><span>Голосовать</span></button></form>
           <form method="post" action="/communities/<%= c.id %>/favorite"><button class="btn btn-secondary cm-fav<%= fav ? ' on' : '' %>" type="submit" aria-pressed="<%= fav %>" title="<%= fav ? 'Убрать из избранного' : 'В избранное' %>"><%- C.icon('heart', 16) %><span><%= fav ? 'В избранном' : 'В избранное' %></span></button></form>
-          <button class="btn btn-secondary cm-share" type="button" data-share="<%= pageUrl %>" data-share-title="<%= c.name %>"><%- C.icon('share', 16) %><span>Поделиться</span></button>
+          <button class="btn btn-secondary cm-share" type="button" title="Поделиться" data-share="<%= pageUrl %>" data-share-title="<%= c.name %>"><%- C.icon('share', 16) %><span>Поделиться</span></button>
         </div>
       </div>
       <% if (!locals.user) { %><p class="hint cm-signin">Войдите через Discord (<a href="/auth/login?next=<%= encodeURIComponent('/communities/' + c.id) %>">вход</a>) перед «Присоединиться» — тогда сообщество получит награду DARK Coins за нового участника.</p><% } %>
@@ -61,7 +61,7 @@
         <% if (c.galleryList.length) { %>
           <div class="card">
             <h2>Скриншоты</h2>
-            <div class="cm-gallery n<%= Math.min(c.galleryList.length, 3) %>">
+            <div class="cm-gallery n<%= Math.min(c.galleryList.length, 3) %>" data-lightbox>
               <% c.galleryList.forEach((u, i) => { if (/^(https:\/\/[^'"<>\s]+|\/communities\/media\/\d+\/[a-f0-9]{20}\.webp)$/.test(u)) { %><a href="<%= u %>" target="_blank" rel="noopener noreferrer nofollow"><img src="<%= u %>" alt="Скриншот <%= i + 1 %>" loading="lazy" /></a><% } }) %>
             </div>
           </div>

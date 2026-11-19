@@ -14,7 +14,7 @@
     </header>
     <% const chip = { new: 'badge-note', review: 'badge-mute', approved: 'badge-unban', rejected: 'badge-ban' };
        const ST = { new: 'Подана', review: 'Взята на рассмотрение', approved: 'Одобрена', rejected: 'Отклонена' }; %>
-    <% if (sent) { %><div class="card appeal-ok"><p style="margin:0"><b>Апелляция отправлена.</b> Модераторы сервера её увидят; решение придёт сюда и в личные сообщения, если бот может вам написать.</p></div><% } %>
+    <% if (sent) { %><%- include('../partials/flash', { head: 'Апелляция отправлена.', text: 'Модераторы сервера её увидят; решение придёт сюда и в личные сообщения, если бот может вам написать.', param: 'sent' }) %><% } %>
     <div class="card">
       <div class="appeal-status"><h2>Статус</h2><span class="badge <%= chip[appeal.status] %>"><%= A.STATUS[appeal.status] %></span></div>
       <div class="appeal-facts">

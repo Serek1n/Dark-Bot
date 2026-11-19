@@ -338,14 +338,19 @@
       var host = box.querySelector('[data-ee-preview]');
       var textField = host && host.getAttribute('data-text-for') ? document.getElementById(host.getAttribute('data-text-for')) : null;
       var pv = null;
+      // a picture the bot attaches (the welcome card): the embed's image when there is an embed, a file under the text otherwise
+      var attachBox = host && host.getAttribute('data-attach-field') ? (box.closest('form') || document).querySelector('[name="' + host.getAttribute('data-attach-field') + '"]') : null;
+      var attachName = host ? host.getAttribute('data-attach-name') : '';
+      var attached = function () { return Boolean(attachBox && attachBox.checked); };
       var payload = function () {
         var S = window.DCP.sample; var C = window.DCP.ctx;
         var msg = { content: textField ? S(textField.value) : '', embeds: [] };
+        if (attached() && !toggle.checked) msg.attachments = [{ url: host.getAttribute('data-attach-url'), filename: attachName }];
         if (toggle.checked) {
           var th = get('thumbnail').value; var img = get('image').value.trim();
           msg.embeds.push({
             title: S(get('title').value), description: S(get('description').value), color: get('color').value || '#8b7cf6',
-            image: img ? { url: img } : undefined,
+            image: attached() ? { url: 'attachment://' + attachName } : img ? { url: img } : undefined,
             thumbnail: th === 'avatar' ? { url: C.user.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png' } : th === 'icon' ? { url: C.bot.avatar || 'https://cdn.discordapp.com/embed/avatars/1.png' } : undefined,
             footer: get('footer').value ? { text: S(get('footer').value) } : undefined,
             timestamp: get('timestamp').checked ? new Date().toISOString() : undefined
@@ -358,11 +363,12 @@
         if (!host || !window.DCP) return;
         host.hidden = !toggle.checked && !textField;
         if (host.hidden) return;
-        if (!pv) pv = window.DCP.mount(host, function () { return { payload: payload(), opts: { tokens: true, empty: 'Пустое сообщение не отправится — напишите текст или включите эмбед.' } }; });
+        if (!pv) pv = window.DCP.mount(host, function () { var f = {}; if (attached()) f[attachName] = host.getAttribute('data-attach-url'); return { payload: payload(), opts: { tokens: true, files: f, empty: 'Пустое сообщение не отправится — напишите текст или включите эмбед.' } }; });
         else pv.update();
       };
       box.addEventListener('input', draw); box.addEventListener('change', draw);
       if (textField) textField.addEventListener('input', draw);
+      if (attachBox) attachBox.addEventListener('change', draw);
       draw();
     });
   }
@@ -717,4 +723,37 @@
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
   });
+})();
+
+// Notices after an action (web/views/partials/flash.ejs): over the page; a success one goes away by itself, an error stays
+// until closed. The query that brought it (?msg=…, ?error=…) is taken out of the address, so a reload does not repeat it.
+// window.flashToast(text, error) shows one from a script (e.g. «Ссылка скопирована»).
+(function () {
+  function wire(t) {
+    document.body.appendChild(t); // out of the page's flow, whatever block it was written in
+    var n = document.querySelectorAll('.toast.flash:not(.leaving)').length - 1;
+    if (n > 0) t.style.bottom = 'calc(' + (n * 64) + 'px + var(--toast-gap, 24px))';
+    var gone = function () { t.classList.add('leaving'); setTimeout(function () { t.remove(); }, 200); };
+    t.querySelector('[data-flash-x]').addEventListener('click', gone);
+    if (t.getAttribute('data-flash') === 'ok') {
+      var timer = setTimeout(gone, t.textContent.trim().length > 90 ? 8000 : 4500);
+      t.addEventListener('mouseenter', function () { clearTimeout(timer); });
+      t.addEventListener('mouseleave', function () { timer = setTimeout(gone, 2500); });
+    }
+  }
+  window.flashToast = function (text, error) {
+    var t = document.createElement('div');
+    t.className = 'toast flash' + (error ? ' error' : ''); t.setAttribute('role', error ? 'alert' : 'status'); t.setAttribute('data-flash', error ? 'error' : 'ok');
+    t.innerHTML = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + (error ? 'M10 6V11M10 14H10.01' : 'M4.5 10.5L8.2 14L15.5 6') + '"/></svg><span></span><button type="button" class="toast-x" data-flash-x aria-label="Закрыть">×</button>';
+    t.querySelector('span').textContent = text;
+    wire(t);
+  };
+  var all = document.querySelectorAll('[data-flash]');
+  if (!all.length) return;
+  var params = new URLSearchParams(location.search); var changed = false;
+  Array.prototype.forEach.call(all, function (t) {
+    wire(t);
+    (t.getAttribute('data-flash-param') || '').split(',').forEach(function (k) { k = k.trim(); if (k && params.has(k)) { params.delete(k); changed = true; } });
+  });
+  if (changed) { var q = params.toString(); history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); }
 })();

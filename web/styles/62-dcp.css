@@ -29,12 +29,13 @@
 .dcp[data-dcp-theme="light"] { --d-bg: #fff; --d-surface: #f2f3f5; --d-embed: #f2f3f5; --d-deep: #e3e5e8; --d-text: #313338; --d-head: #060607; --d-muted: #5c5e66;
   --d-line: #d4d7dc; --d-hover: #ebedef; --d-link: #0068e0; --d-mention: #505cdc; --d-mention-bg: rgba(88, 101, 242, .15); --d-code: #f2f3f5; --d-border: rgba(0,0,0,.08);
   --d-btn2: #6d6f78; --d-btn2-text: #fff; --d-select: #fff; --d-hl: rgba(240, 177, 50, .14); }
-.dcp-screen { padding: 14px 16px 16px 0; }
+.dcp-screen { padding: 14px 0 16px; }
 .dcp[data-device="mobile"] { max-width: 390px; margin-inline: auto; font-size: var(--fs-15); }
-.dcp[data-device="mobile"] .dcp-screen { padding: 12px 12px 14px 0; }
+.dcp[data-device="mobile"] .dcp-screen { padding: 12px 0 14px; }
+.dcp[data-device="mobile"] .dcp-msg { padding-inline: 12px; }
 
 /* the message */
-.dcp-msg { position: relative; padding: 2px 0 2px 16px; }
+.dcp-msg { position: relative; padding: 2px 16px; } /* the highlight of a mention spans the whole width, as in Discord */
 .dcp-msg.mentioned { background: var(--d-hl); box-shadow: inset 2px 0 0 var(--d-hl-bar); }
 .dcp-msg.ephemeral { background: color-mix(in srgb, var(--d-blurple) 6%, transparent); box-shadow: inset 2px 0 0 var(--d-blurple); }
 .dcp-ctx { position: relative; display: flex; align-items: center; gap: 6px; margin: 0 0 4px 56px; font-size: var(--fs-14); color: var(--d-muted); white-space: nowrap; overflow: hidden; }
@@ -190,3 +191,36 @@ img.dcp-bemoji { width: 18px; height: 18px; }
 .dcp-pemo img { width: 26px; height: 26px; object-fit: contain; }
 @media (pointer: coarse) { .dcp-tools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; } .dcp-tools > button { flex: none; min-width: 40px; height: 40px; } .dcp-tsep { flex: none; } .dcp-seg button { padding: 8px 12px; } .dcp-json { padding: 8px 12px; } }
 .dcp-pv code { all: unset; font: inherit; white-space: pre-wrap; }
+
+/* On a phone the preview takes the whole width of its card (edge to edge), as the chat does in the Discord app: with the
+   card's padding around it the lines broke earlier than they will in Discord. */
+@media (max-width: 640px) {
+  .card .dcp-stage { margin-inline: -22px; }
+  .card .dcp-stage .dcp { border-radius: 0; border-inline-width: 0; }
+  .card .dcp[data-device="mobile"] { max-width: none; }
+}
+
+/* the ANSI editor: pieces of text, colour swatches, a new block or one under the cursor */
+.dcp-pop.wide { width: min(440px, calc(100vw - 32px)); }
+.dcp-ablocks, .dcp-apieces, .dcp-aadd, .dcp-aacts { display: flex; flex-wrap: wrap; gap: 6px; }
+.dcp-ablocks button { padding: 4px 10px; border: 1px solid var(--hairline); border-radius: var(--r-pill); background: none; color: var(--fog); font: inherit; font-size: var(--fs-12); cursor: pointer; }
+.dcp-ablocks button[aria-pressed="true"] { border-color: var(--ember); background: var(--ember-tint); color: var(--paper); }
+.dcp-apieces { padding: 6px; border-radius: var(--r-8); background: #1e1f22; min-height: 40px; }
+.dcp-apiece { display: inline-flex; align-items: stretch; border-radius: var(--r-6); box-shadow: 0 0 0 1px rgba(255,255,255,.12); overflow: hidden; }
+.dcp-apiece.on { box-shadow: 0 0 0 2px var(--ember); }
+.dcp-apiece button { padding: 3px 8px; border: 0; background: none; color: #dbdee1; font-family: var(--font-mono); font-size: var(--fs-13); cursor: pointer; white-space: pre; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+.dcp-apiece .x { padding: 0 7px; background: rgba(255,255,255,.06); color: #949ba4; font-family: inherit; }
+.dcp-apiece .x:hover { color: #fff; }
+.dcp-pop textarea[data-a-text] { min-height: 0; margin: 0; resize: vertical; font-family: var(--font-mono); }
+.dcp-arow { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 8px; font-size: var(--fs-13); color: var(--fog); }
+.dcp-sws { display: flex; flex-wrap: wrap; gap: 5px; }
+.dcp-sw { width: 26px; height: 26px; padding: 0; border: 1px solid rgba(255,255,255,.18); border-radius: var(--r-6); background: var(--sw); cursor: pointer; }
+.dcp-sw.none { background: linear-gradient(135deg, transparent 45%, var(--danger) 45% 55%, transparent 55%), #2b2d31; }
+.dcp-sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--panel-raised), 0 0 0 4px var(--ember); }
+.dcp-tg { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border: 1px solid var(--hairline); border-radius: var(--r-pill); background: none; color: var(--fog); font: inherit; font-size: var(--fs-12); cursor: pointer; }
+.dcp-tg[aria-pressed="true"] { border-color: var(--ember); background: var(--ember-tint); color: var(--paper); }
+.dcp-aadd .btn, .dcp-aacts .btn { padding: 6px 12px; font-size: var(--fs-13); }
+.dcp-aacts .btn:first-child { flex: 1; }
+@media (pointer: coarse) { .dcp-sw { width: 32px; height: 32px; } }
+.dcp-aed { display: flex; flex-direction: column; gap: 10px; }
+.dcp-aacts [hidden] { display: none; }

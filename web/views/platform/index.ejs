@@ -10,8 +10,8 @@
        const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
        const KIND = { grant: 'Начисление', revoke: 'Списание', promo: 'Продвижение', daily: 'Ежедневный бонус', vote: 'Голос', join: 'Вход из каталога', quest: 'Задание', top: 'Топ недели', purchase: 'Покупка', refund: 'Возврат' };
        const DONE = { review: 'Решение по отзыву применено.', coins: 'Операция проведена.', dup: 'Эта операция уже была проведена — повтор ничего не изменил.', settings: 'Настройки сохранены.', pending: 'Решение по начислению принято.', frozen: 'Состояние кошелька изменено.', moderated: 'Решение сохранено.', report: 'Жалоба закрыта.' }; %>
-    <% if (error) { %><div class="card mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
-    <% if (done && DONE[done]) { %><div class="card appeal-ok"><p style="margin:0"><%= DONE[done] %></p></div><% } %>
+    <% if (error) { %><%- include('../partials/flash', { head: 'Не получилось:', text: error, error: true, param: 'err' }) %><% } %>
+    <% if (done && DONE[done]) { %><%- include('../partials/flash', { text: DONE[done], param: 'done' }) %><% } %>
     <div class="card" id="moderation">
       <h2>Модерация каталога</h2>
       <% const queueN = pending.length + reports.length + badReviews.filter((r) => r.status !== 'hidden').length; %>
@@ -55,7 +55,7 @@
       <% if (!listed.length) { %><p class="empty-state">Каталог пуст.</p><% } else { %>
         <div class="table-scroll"><table>
           <thead><tr><th>Сообщество</th><th>Состояние</th><th>Голоса</th><th>Решение</th></tr></thead>
-          <tbody><% listed.forEach((c) => { %><tr><td><a href="/communities/<%= c.id %>"><%= c.name %></a><div class="muted"><%= c.guildId %></div></td><td class="nowrap"><%= ({ published: 'Опубликовано', pending: 'Ждёт проверки', hidden: 'Скрыто', blocked: 'Заблокировано' })[c.status] || c.status %></td><td><%= c.votes %></td><td><% modForm(c) %></td></tr><% }) %></tbody>
+          <tbody><% listed.forEach((c) => { %><tr><td><span class="pf-cmname"><a href="/communities/<%= c.id %>"><%= c.name %></a><small class="muted"><%= c.guildId %></small></span></td><td class="nowrap"><%= ({ published: 'Опубликовано', pending: 'Ждёт проверки', hidden: 'Скрыто', blocked: 'Заблокировано' })[c.status] || c.status %></td><td><%= c.votes %></td><td><% modForm(c) %></td></tr><% }) %></tbody>
         </table></div>
       <% } %>
     </div>

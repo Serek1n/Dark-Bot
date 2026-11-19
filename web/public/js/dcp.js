@@ -92,6 +92,36 @@
     return out;
   }
 
+  // The pieces of an ANSI block: [{ t: text, fg: '31', bg: '40', b: 1, u: 1 }]. Parsed from a block that is already in the
+  // field (to edit it) and written back with a reset before every piece, so each piece carries only its own style.
+  function ansiParse(text) {
+    var out = []; var st = {}; var parts = String(text || '').split(/\u001b\[([\d;]*)m/);
+    for (var i = 0; i < parts.length; i++) {
+      if (i % 2) {
+        (parts[i] || '0').split(';').forEach(function (c) {
+          c = +c;
+          if (c === 0) st = {}; else if (c === 1) st = Object.assign({}, st, { b: 1 }); else if (c === 4) st = Object.assign({}, st, { u: 1 });
+          else if (ANSI_FG[c]) st = Object.assign({}, st, { fg: String(c) }); else if (ANSI_BG[c]) st = Object.assign({}, st, { bg: String(c) });
+        });
+      } else if (parts[i]) {
+        var last = out[out.length - 1];
+        if (last && last.fg === st.fg && last.bg === st.bg && last.b === st.b && last.u === st.u) last.t += parts[i];
+        else out.push({ t: parts[i], fg: st.fg, bg: st.bg, b: st.b, u: st.u });
+      }
+    }
+    return out;
+  }
+  function ansiWrite(pieces) {
+    var styled = false;
+    var s = pieces.map(function (p) {
+      var codes = [p.b ? '1' : '', p.u ? '4' : '', p.bg || '', p.fg || ''].filter(Boolean);
+      var pre = codes.length ? '\u001b[0;' + codes.join(';') + 'm' : styled ? '\u001b[0m' : '';
+      styled = codes.length > 0;
+      return pre + p.t;
+    }).join('');
+    return styled ? s + '\u001b[0m' : s;
+  }
+
   // ---------- markdown ----------
   var EMOJI_RE = /^(?:\s|\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Emoji_Component}|‍|️|⃣|<a?:\w{2,32}:\d{15,25}>)+$/u;
   var EMOJI_ONE = /\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|️|‍\p{Extended_Pictographic})*|[0-9#*]️?⃣|\p{Regional_Indicator}{2}|<a?:\w{2,32}:\d{15,25}>/gu;
@@ -435,7 +465,7 @@
     mopts = mopts || {};
     if (!host) return { update: function () {} };
     var theme = store.get('theme', document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
-    var device = store.get('device', 'desktop');
+    var device = store.get('device', window.matchMedia && window.matchMedia('(max-width: 640px)').matches ? 'mobile' : 'desktop'); // a phone opens on the phone view
     host.classList.add('dcp-host');
     host.innerHTML = '<div class="dcp-bar">' + seg('theme', THEMES, theme) + seg('device', DEVICES, device) +
       '<button type="button" class="dcp-json" data-dcp-json aria-expanded="false">JSON</button></div>' +
@@ -501,7 +531,7 @@
     ['sp', '▒', 'Спойлер', '||', '||'], ['c', '&lt;/&gt;', 'Код в строке', '`', '`'], ['cb', '{ }', 'Блок кода', '```\n', '\n```'],
     ['|'], ['h1', 'H1', 'Заголовок 1', '# ', '', 'line'], ['h2', 'H2', 'Заголовок 2', '## ', '', 'line'], ['h3', 'H3', 'Заголовок 3', '### ', '', 'line'], ['sub', '-#', 'Мелкий текст', '-# ', '', 'line'],
     ['q', '❝', 'Цитата', '> ', '', 'line'], ['ul', '•', 'Список', '- ', '', 'line'], ['ol', '1.', 'Нумерованный список', '1. ', '', 'line'],
-    ['|'], ['link', '🔗', 'Ссылка с текстом'], ['time', '🕒', 'Дата и время'], ['at', '@', 'Упоминание, канал или эмодзи'], ['ansi', '🎨', 'Цветной текст (ANSI)']
+    ['|'], ['link', '🔗', 'Ссылка с текстом'], ['time', '🕒', 'Дата и время'], ['at', '@', 'Упоминание, канал или эмодзи'], ['ansi', '🎨', 'Цветной текст (ANSI): новый блок или правка блока под курсором']
   ];
   function wrapSel(ta, before, after, perLine) {
     var a = ta.selectionStart; var b = ta.selectionEnd; var v = ta.value;
@@ -529,12 +559,6 @@
       var local = new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
       return '<label>Когда<input type="datetime-local" data-p="when" value="' + local + '" /></label><label>Вид<select data-p="style">' + STYLES.map(function (s) { return '<option value="' + s[0] + '"' + (s[0] === 'f' ? ' selected' : '') + '>' + esc(s[1]) + '</option>'; }).join('') + '</select></label><div class="dcp-pv" data-p-pv></div><button type="button" class="btn" data-p-ok>Вставить</button><small>Каждый увидит время в своём часовом поясе.</small>';
     }
-    if (kind === 'ansi') {
-      var fg = [['', 'Обычный'], ['30', 'Серый'], ['31', 'Красный'], ['32', 'Зелёный'], ['33', 'Жёлтый'], ['34', 'Синий'], ['35', 'Розовый'], ['36', 'Бирюзовый'], ['37', 'Белый']];
-      var bg = [['', 'Без фона'], ['40', 'Тёмно-синий'], ['41', 'Оранжевый'], ['42', 'Мраморно-синий'], ['43', 'Серо-бирюзовый'], ['44', 'Серый'], ['45', 'Индиго'], ['46', 'Светло-серый'], ['47', 'Белый']];
-      var opt = function (l) { return l.map(function (x) { return '<option value="' + x[0] + '">' + esc(x[1]) + '</option>'; }).join(''); };
-      return '<label>Текст<input type="text" data-p="text" maxlength="300" /></label><div class="dcp-p2"><label>Цвет<select data-p="fg">' + opt(fg) + '</select></label><label>Фон<select data-p="bg">' + opt(bg) + '</select></label></div><div class="dcp-p2"><label class="dcp-pc"><input type="checkbox" data-p="b" /> Жирный</label><label class="dcp-pc"><input type="checkbox" data-p="un" /> Подчёркнутый</label></div><div class="dcp-pv" data-p-pv></div><button type="button" class="btn" data-p-ok>Вставить</button><small>Цвета видны на ПК и в браузере; в телефоне — обычный текст.</small>';
-    }
     // mentions, channels, emoji
     var roles = Object.keys(CTX.roles).map(function (k) { return CTX.roles[k]; }).slice(0, 60);
     var chans = Object.keys(CTX.channels).map(function (k) { return CTX.channels[k]; }).filter(function (c) { return c.type !== 4; }).slice(0, 80);
@@ -547,12 +571,99 @@
       (CTX.emojis.length ? '<div class="dcp-pgroup">Эмодзи сервера</div><div class="dcp-pemo">' + CTX.emojis.slice(0, 120).map(function (e) { return '<button type="button" data-p-ins="<' + (e.animated ? 'a' : '') + ':' + esc(e.name) + ':' + esc(e.id) + '>" title=":' + esc(e.name) + ':"><img src="https://cdn.discordapp.com/emojis/' + esc(e.id) + '.' + (e.animated ? 'gif' : 'webp') + '?size=48" alt=":' + esc(e.name) + ':" loading="lazy" /></button>'; }).join('') + '</div>' : '') +
       '</div>';
   }
-  function ansiCode(pop) {
-    var g = function (k) { return pop.querySelector('[data-p="' + k + '"]'); };
-    var codes = [g('b').checked ? '1' : '', g('un').checked ? '4' : '', g('bg').value, g('fg').value].filter(Boolean);
-    var t = g('text').value || 'текст';
-    return codes.length ? '\u001b[' + codes.join(';') + 'm' + t + '\u001b[0m' : t;
+  // ---------- the ANSI editor: coloured pieces of text, a new block or one already in the field ----------
+  var A_FG = [['', 'Обычный', ''], ['30', 'Серый'], ['31', 'Красный'], ['32', 'Зелёный'], ['33', 'Жёлтый'], ['34', 'Синий'], ['35', 'Розовый'], ['36', 'Бирюзовый'], ['37', 'Белый']];
+  var A_BG = [['', 'Без фона', ''], ['40', 'Тёмно-синий'], ['41', 'Оранжевый'], ['42', 'Мраморно-синий'], ['43', 'Серо-бирюзовый'], ['44', 'Серый'], ['45', 'Индиго'], ['46', 'Светло-серый'], ['47', 'Кремовый']];
+  var ANSI_BLOCK = /\x60{3}ansi\n([\s\S]*?)\n?\x60{3}/g;
+  function ansiBlocks(v) { var r = []; var m; ANSI_BLOCK.lastIndex = 0; while ((m = ANSI_BLOCK.exec(v))) r.push({ from: m.index, to: m.index + m[0].length, body: m[1] }); return r; }
+  function ansiEditor(outer, ta, done) {
+    outer.innerHTML = ''; var pop = document.createElement('div'); pop.className = 'dcp-aed'; outer.appendChild(pop); // fresh each time: no handlers of an earlier opening
+    var caret = ta.selectionStart; var selText = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+    var blocks = ansiBlocks(ta.value);
+    var editing = -1; // index of the block being edited, -1: a new one
+    blocks.forEach(function (b, i) { if (caret >= b.from && caret <= b.to) editing = i; });
+    var pieces = []; var cur = 0;
+    var load = function () {
+      pieces = editing >= 0 ? ansiParse(blocks[editing].body) : [];
+      if (!pieces.length) pieces = [{ t: editing >= 0 ? '' : (selText && selText.indexOf('\x60') < 0 ? selText : '') }];
+      cur = 0;
+    };
+    load();
+    var sw = function (list, key) {
+      return list.map(function (c) {
+        var col = c[0] ? (key === 'fg' ? ANSI_FG[c[0]] : ANSI_BG[c[0]]) : '';
+        return '<button type="button" class="dcp-sw' + (c[0] ? '' : ' none') + '" data-a-' + key + '="' + c[0] + '" title="' + esc(c[1]) + '" aria-label="' + esc(c[1]) + '"' + (col ? ' style="--sw:' + col + '"' : '') + '></button>';
+      }).join('');
+    };
+    pop.innerHTML =
+      (blocks.length ? '<div class="dcp-ablocks" role="group" aria-label="Что редактировать"><button type="button" data-a-block="-1">Новый блок</button>' + blocks.map(function (b, i) { return '<button type="button" data-a-block="' + i + '">Блок ' + (i + 1) + '</button>'; }).join('') + '</div>' : '') +
+      '<div class="dcp-apieces" data-a-pieces aria-label="Куски текста"></div>' +
+      '<label>Текст куска<textarea data-a-text rows="2" maxlength="500" placeholder="Например: Готово!"></textarea></label>' +
+      '<div class="dcp-arow"><span>Цвет</span><div class="dcp-sws" role="group" aria-label="Цвет">' + sw(A_FG, 'fg') + '</div></div>' +
+      '<div class="dcp-arow"><span>Фон</span><div class="dcp-sws" role="group" aria-label="Фон">' + sw(A_BG, 'bg') + '</div></div>' +
+      '<div class="dcp-arow"><span></span><div class="dcp-sws"><button type="button" class="dcp-tg" data-a-b aria-pressed="false"><b>Ж</b> Жирный</button><button type="button" class="dcp-tg" data-a-u aria-pressed="false"><u>Ч</u> Подчёркнутый</button></div></div>' +
+      '<div class="dcp-aadd"><button type="button" class="btn btn-secondary" data-a-add>+ Кусок другим цветом</button><button type="button" class="btn btn-secondary" data-a-nl>↵ Новая строка</button></div>' +
+      '<div class="dcp-pv" data-a-pv></div>' +
+      '<div class="dcp-aacts"><button type="button" class="btn" data-a-ok></button><button type="button" class="btn btn-secondary" data-a-del hidden>Удалить блок</button></div>' +
+      '<small>Цвета видны в Discord на ПК и в браузере; в телефоне — обычный текст.</small>';
+    var q = function (sel) { return pop.querySelector(sel); };
+    var text = q('[data-a-text]');
+    var label = function (p) { return p.t === '\n' ? '↵' : (p.t.replace(/\n/g, ' ↵ ').slice(0, 24) || '…'); };
+    var draw = function () {
+      pop.querySelectorAll('[data-a-block]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-a-block') === editing)); });
+      q('[data-a-pieces]').innerHTML = pieces.map(function (p, i) {
+        var css = (p.fg ? 'color:' + ANSI_FG[p.fg] + ';' : '') + (p.bg ? 'background:' + ANSI_BG[p.bg] + ';' : '') + (p.b ? 'font-weight:700;' : '') + (p.u ? 'text-decoration:underline;' : '');
+        return '<span class="dcp-apiece' + (i === cur ? ' on' : '') + '"><button type="button" data-a-pick="' + i + '" style="' + css + '">' + esc(label(p)) + '</button>' + (pieces.length > 1 ? '<button type="button" class="x" data-a-rm="' + i + '" aria-label="Убрать кусок">×</button>' : '') + '</span>';
+      }).join('');
+      var p = pieces[cur];
+      if (document.activeElement !== text) text.value = p.t === '\n' ? '' : p.t;
+      text.disabled = p.t === '\n';
+      pop.querySelectorAll('[data-a-fg]').forEach(function (b) { b.setAttribute('aria-pressed', String((p.fg || '') === b.getAttribute('data-a-fg'))); });
+      pop.querySelectorAll('[data-a-bg]').forEach(function (b) { b.setAttribute('aria-pressed', String((p.bg || '') === b.getAttribute('data-a-bg'))); });
+      q('[data-a-b]').setAttribute('aria-pressed', String(Boolean(p.b)));
+      q('[data-a-u]').setAttribute('aria-pressed', String(Boolean(p.u)));
+      var body = ansiWrite(pieces.filter(function (x) { return x.t; }));
+      q('[data-a-pv]').innerHTML = '<pre class="dcp-code"><code>' + (body ? ansiHtml(body) : '<span style="opacity:.6">Пусто</span>') + '</code></pre>';
+      q('[data-a-ok]').textContent = editing >= 0 ? 'Сохранить блок' : 'Вставить';
+      q('[data-a-del]').hidden = editing < 0;
+    };
+    text.addEventListener('input', function () { pieces[cur].t = text.value; draw(); });
+    pop.addEventListener('click', function (e) {
+      var t = e.target.closest('button'); if (!t || !pop.contains(t)) return;
+      e.stopPropagation(); // the bar's own handler must not see it
+      var p = pieces[cur];
+      if (t.hasAttribute('data-a-block')) { editing = +t.getAttribute('data-a-block'); load(); text.value = pieces[0].t; }
+      else if (t.hasAttribute('data-a-pick')) { cur = +t.getAttribute('data-a-pick'); text.value = pieces[cur].t === '\n' ? '' : pieces[cur].t; text.focus(); }
+      else if (t.hasAttribute('data-a-rm')) { pieces.splice(+t.getAttribute('data-a-rm'), 1); cur = Math.min(cur, pieces.length - 1); text.value = pieces[cur].t; }
+      else if (t.hasAttribute('data-a-fg')) p.fg = t.getAttribute('data-a-fg') || undefined;
+      else if (t.hasAttribute('data-a-bg')) p.bg = t.getAttribute('data-a-bg') || undefined;
+      else if (t.hasAttribute('data-a-b')) p.b = p.b ? undefined : 1;
+      else if (t.hasAttribute('data-a-u')) p.u = p.u ? undefined : 1;
+      else if (t.hasAttribute('data-a-add')) { pieces.splice(cur + 1, 0, { t: '', fg: p.fg, bg: undefined }); cur++; text.value = ''; text.focus(); }
+      else if (t.hasAttribute('data-a-nl')) { pieces.splice(cur + 1, 0, { t: '\n' }, { t: '', fg: p.fg }); cur += 2; text.value = ''; text.focus(); }
+      else if (t.hasAttribute('data-a-del')) { var bd = blocks[editing]; ta.value = ta.value.slice(0, bd.from) + ta.value.slice(bd.to).replace(/^\n/, ''); ta.selectionStart = ta.selectionEnd = bd.from; ta.focus(); ta.dispatchEvent(new Event('input', { bubbles: true })); done(); return; }
+      else if (t.hasAttribute('data-a-ok')) {
+        var body = ansiWrite(pieces.filter(function (x) { return x.t; }));
+        if (!body.replace(/\s|\u001b\[[\d;]*m/g, '')) { text.focus(); return; }
+        var block = '\x60\x60\x60ansi\n' + body + '\n\x60\x60\x60';
+        if (editing >= 0) {
+          var b = blocks[editing];
+          ta.value = ta.value.slice(0, b.from) + block + ta.value.slice(b.to);
+          ta.selectionStart = ta.selectionEnd = b.from + block.length;
+          ta.focus(); ta.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          ta.selectionStart = caret; ta.selectionEnd = caret + selText.length;
+          var v = ta.value; var before = v.slice(0, caret);
+          insertAt(ta, (before && !/\n$/.test(before) ? '\n' : '') + block + (v.slice(caret + selText.length) && !/^\n/.test(v.slice(caret + selText.length)) ? '\n' : ''));
+        }
+        done(); return;
+      } else return;
+      draw();
+    });
+    draw();
+    text.focus();
   }
+
   function toolbar(ta) {
     if (!ta || ta.dataset.mdBar) return;
     ta.dataset.mdBar = '1';
@@ -563,11 +674,10 @@
     wrap.appendChild(bar); wrap.appendChild(pop);
     ta.parentNode.insertBefore(wrap, ta);
     var open = '';
-    var close = function () { pop.hidden = true; open = ''; };
+    var close = function () { pop.hidden = true; pop.classList.remove('wide'); pop.innerHTML = ''; open = ''; };
     var refreshPv = function () {
       var pv = pop.querySelector('[data-p-pv]'); if (!pv) return;
       if (open === 'time') { var w = pop.querySelector('[data-p="when"]').value; var d = w ? new Date(w) : null; pv.innerHTML = d && !isNaN(d) ? '<span class="dcp-time">' + esc(stamp(Math.floor(d / 1000), pop.querySelector('[data-p="style"]').value)) + '</span>' : ''; }
-      if (open === 'ansi') pv.innerHTML = '<pre class="dcp-code"><code>' + ansiHtml(ansiCode(pop)) + '</code></pre>';
     };
     bar.addEventListener('mousedown', function (e) { if (e.target.closest('[data-tool]')) e.preventDefault(); }); // keep the selection in the field
     wrap.addEventListener('click', function (e) {
@@ -578,6 +688,7 @@
         if (open === t[0]) { close(); return; }
         open = t[0];
         var render2 = function () { pop.innerHTML = popHtml(open); pop.hidden = false; refreshPv(); var f = pop.querySelector('input,select'); if (f) f.focus(); };
+        if (open === 'ansi') { pop.hidden = false; pop.classList.add('wide'); ansiEditor(pop, ta, close); return; }
         if (open === 'at') context().then(render2); else render2();
         if (open === 'link') { var s = ta.value.slice(ta.selectionStart, ta.selectionEnd); if (s) pop.querySelector('[data-p="text"]').value = s; }
         return;
@@ -592,10 +703,6 @@
         } else if (open === 'time') {
           var w = pop.querySelector('[data-p="when"]').value; if (!w) return;
           insertAt(ta, '<t:' + Math.floor(new Date(w) / 1000) + ':' + pop.querySelector('[data-p="style"]').value + '>');
-        } else if (open === 'ansi') {
-          var code = ansiCode(pop); var v = ta.value; var at = ta.selectionStart;
-          var inside = /\x60{3}ansi\n[^\x60]*$/.test(v.slice(0, at)) && /^[^\x60]*\x60{3}/.test(v.slice(at));
-          insertAt(ta, inside ? code : '```ansi\n' + code + '\n```');
         }
         close();
       }
@@ -605,8 +712,13 @@
       refreshPv();
     });
     pop.addEventListener('change', refreshPv);
+    // the popup's own fields are not the form's: their input/change must not reach the page (a builder that redraws on
+    // change, the save bar) — that redraw used to close the popup while a colour was being picked
+    ['input', 'change'].forEach(function (n) { wrap.addEventListener(n, function (e) { if (pop.contains(e.target)) e.stopPropagation(); }); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) { close(); ta.focus(); } });
-    document.addEventListener('click', function (e) { if (!pop.hidden && !wrap.contains(e.target)) close(); });
+    // a click outside closes the popup; a click on something the popup has just redrawn (no longer in the page) or on a native
+    // list (a <select> opened over the page) is not «outside»
+    document.addEventListener('click', function (e) { if (!pop.hidden && e.target.isConnected && e.target !== document.documentElement && !wrap.contains(e.target)) close(); });
     // Ctrl+B / Ctrl+I / Ctrl+U in the field
     ta.addEventListener('keydown', function (e) {
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
@@ -631,5 +743,5 @@
     return String(text || '').replace(/\{([a-z_][\w.]{0,40})\}/gi, function (all, k) { return Object.prototype.hasOwnProperty.call(map, k.toLowerCase()) ? map[k.toLowerCase()] : all; });
   }
 
-  window.DCP = { render: render, md: md, validate: validate, mount: mount, toolbar: toolbar, context: context, sample: sample, api: api, stamp: stamp, isJumbo: isJumbo, ctx: CTX, onContext: function (f) { listeners.push(f); } };
+  window.DCP = { ansiEditor: ansiEditor, ansiParse: ansiParse, ansiWrite: ansiWrite, render: render, md: md, validate: validate, mount: mount, toolbar: toolbar, context: context, sample: sample, api: api, stamp: stamp, isJumbo: isJumbo, ctx: CTX, onContext: function (f) { listeners.push(f); } };
 })();

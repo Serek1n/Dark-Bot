@@ -92,6 +92,17 @@ test('API JSON: colours as numbers, the V2 flag, no own keys', () => {
   assert(b.flags === 32768 && b.components[0].accent_color === 0x00ff00 && !('v2' in b), JSON.stringify(b));
 });
 
+test('ANSI editor: a block is read into coloured pieces and written back the same; plain after styled is reset', () => {
+  const body = '\u001b[0;1;40;31mПривет\u001b[0;32m мир\u001b[0m\n\u001b[0;4;34mлиния 2\u001b[0m';
+  const pieces = D.ansiParse(body);
+  const want = [{ t: 'Привет', fg: '31', bg: '40', b: 1 }, { t: ' мир', fg: '32' }, { t: '\n' }, { t: 'линия 2', fg: '34', u: 1 }];
+  const clean = (a) => a.map((p) => Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined)));
+  if (JSON.stringify(clean(pieces)) !== JSON.stringify(want)) throw new Error(JSON.stringify(clean(pieces)));
+  if (D.ansiWrite(pieces) !== body) throw new Error(JSON.stringify(D.ansiWrite(pieces)));
+  if (D.ansiWrite([{ t: 'a', fg: '31' }, { t: 'b' }]) !== '\u001b[0;31ma\u001b[0mb') throw new Error('reset before a plain piece');
+  if (D.ansiWrite([{ t: 'just text' }]) !== 'just text') throw new Error('no codes for plain text');
+});
+
 results.forEach((r) => console.log(r.ok ? '✅' : '❌', r.l, r.ok ? '' : '\n   ' + r.e));
 console.log(`\nИтого: ${results.filter((r) => r.ok).length}/${results.length} прошли успешно`);
 process.exit(results.every((r) => r.ok) ? 0 : 1);

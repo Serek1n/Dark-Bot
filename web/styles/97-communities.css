@@ -19,7 +19,7 @@
 .cm-feat > span { display: flex; flex-direction: column; min-width: 0; }
 .cm-feat small { color: var(--fog); }
 .cm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-.cm-card { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: var(--r-16); background: var(--panel); border: 1px solid var(--hairline); transition: transform .15s, border-color .15s, box-shadow .15s; min-width: 0; }
+.cm-card { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: var(--r-16); background: var(--panel); border: 1px solid var(--hairline); transition: transform .15s, border-color .15s, box-shadow .15s; min-width: 0; container: cmcard / inline-size; }
 .cm-card:hover { transform: translateY(-2px); border-color: var(--fog-dim); box-shadow: 0 8px 24px rgba(0, 0, 0, .25); }
 .cm-card.hl { border-color: var(--ember); box-shadow: 0 0 0 1px var(--ember-tint-strong), 0 8px 28px var(--ember-tint); }
 .cm-card.pinned { background: linear-gradient(180deg, var(--ember-tint), var(--panel) 45%); }
@@ -36,9 +36,14 @@
 .cm-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .cm-tag { font-size: var(--fs-12); padding: 4px 10px; border-radius: var(--r-pill); background: var(--panel-raised); color: var(--paper); border: 1px solid var(--hairline); }
 .cm-tag.muted { color: var(--fog); }
-.cm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.cm-actions:has(.cm-fav-form) { grid-template-columns: auto 1fr 1fr; }
-.cm-actions .btn { text-align: center; justify-content: center; }
+.cm-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.cm-actions:has(.cm-fav-form) { grid-template-columns: auto repeat(2, minmax(0, 1fr)); }
+.cm-actions .btn { min-width: 0; text-align: center; justify-content: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* a narrow card: «Присоединиться» gets a row of its own instead of going past the card's edge */
+@container cmcard (max-width: 330px) {
+  .cm-actions:has(.cm-fav-form) { grid-template-columns: auto minmax(0, 1fr); }
+  .cm-actions > .btn:last-child { grid-column: 1 / -1; }
+}
 .cm-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 22px 0 8px; }
 .cm-back { margin: 0 0 12px; }
 .cm-show { border-radius: var(--r-20); background: var(--panel); border: 1px solid var(--hairline); overflow: hidden; margin-bottom: 16px; }
@@ -301,3 +306,57 @@
 #moderation { margin-bottom: 16px; scroll-margin-top: 16px; }
 .cm-pending-note { margin: 0 0 12px; }
 .cm-preview-bar { display: grid; gap: 12px; border-color: var(--ember); }
+
+/* screenshots over the page (public/js/communities.js) */
+.lb { position: fixed; inset: 0; z-index: 200; display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; grid-template-rows: auto minmax(0, 1fr); background: rgba(6, 4, 12, .92); backdrop-filter: blur(6px); animation: lb-in .15s ease-out; }
+.lb[hidden] { display: none; }
+@keyframes lb-in { from { opacity: 0; } }
+.lb-top { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 12px 12px 8px 20px; color: #fff; }
+.lb-count { font-size: var(--fs-14); opacity: .8; }
+.lb-open { margin-left: auto; font-size: var(--fs-13); color: #fff; opacity: .75; }
+.lb-open:hover { opacity: 1; }
+.lb-x { width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.08); color: #fff; font-size: var(--fs-28); line-height: 1; cursor: pointer; }
+.lb-x:hover, .lb-x:focus-visible { background: rgba(255,255,255,.18); }
+.lb-stage { grid-column: 2; margin: 0; display: grid; place-items: center; min-height: 0; padding: 0 0 24px; }
+.lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--r-8); box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.lb-nav { align-self: center; justify-self: center; width: 48px; height: 48px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.08); color: #fff; cursor: pointer; }
+.lb-nav:hover, .lb-nav:focus-visible { background: rgba(255,255,255,.18); }
+.lb-nav[hidden] { visibility: hidden; display: grid; }
+.lb-nav.prev { grid-column: 1; grid-row: 2; } .lb-nav.next { grid-column: 3; grid-row: 2; }
+html.lb-lock { overflow: hidden; }
+.cm-gallery a { cursor: zoom-in; }
+@media (max-width: 640px) {
+  .lb { grid-template-columns: 0 minmax(0, 1fr) 0; grid-template-rows: auto minmax(0, 1fr) auto; }
+  .lb-stage { padding: 0 8px 12px; }
+  .lb-nav.prev, .lb-nav.next { grid-column: 1 / -1; grid-row: 3; margin-bottom: 20px; }
+  .lb-nav.prev { transform: translateX(-34px); } .lb-nav.next { transform: translateX(34px); }
+}
+
+/* the head of a community on a phone: the icon and the name side by side, the description and the buttons under them,
+   «Присоединиться» across the whole width and the three others in one even row */
+@media (max-width: 640px) {
+  .cm-show-head { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: end; gap: 10px 14px; margin-top: -36px; }
+  .cm-show-head .cm-icon.big { width: 72px; height: 72px; border-radius: var(--r-16); }
+  .cm-show-head .cm-icon.big.cm-letter { font-size: var(--fs-28); }
+  .cm-show-title { display: contents; }
+  .cm-show-title h1 { align-self: end; margin: 0; padding-top: 44px; font-size: var(--fs-24); line-height: 1.2; }
+  .cm-show-title .page-intro { grid-column: 1 / -1; }
+  .cm-show-act { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, 44px); gap: 8px; padding: 2px 0 0; }
+  .cm-show-act form, .cm-show-act .btn { min-width: 0; }
+  .cm-show-act .btn { width: 100%; height: 44px; justify-content: center; white-space: nowrap; }
+  .cm-show-act form .btn, .cm-show-act .cm-share { padding: 0; }
+  /* the three small ones keep their words for screen readers and as a tooltip, the icon is what is seen */
+  .cm-show-act form .btn span, .cm-show-act .cm-share span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+
+/* a decision on a community inside a table that turns into cards on a phone: the comment over the whole width, the
+   choice and the button under it — not three narrow controls squeezed to the right */
+@media (max-width: 640px) {
+  table.rt td:has(> form.cm-mod) { flex-direction: column; align-items: stretch; text-align: left; }
+  table.rt td:has(> form.cm-mod)::before { max-width: none; }
+  table.rt td > form.cm-mod { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; width: 100%; }
+  table.rt td > form.cm-mod input[type=text] { grid-column: 1 / -1; width: 100% !important; max-width: none; flex: none; }
+  table.rt td > form.cm-mod select { width: 100% !important; max-width: none; flex: none; }
+  table.rt td .muted { overflow-wrap: anywhere; }
+}
+.pf-cmname { display: inline-grid; gap: 2px; }
