@@ -29,10 +29,10 @@
         </div>
         <div>
           <label>Ответ бота</label>
-          <textarea name="response" id="ccResponse" placeholder="Правила сервера: ... (можно оставить пустым, если ответ — эмбед)"></textarea>
+          <textarea name="response" id="ccResponse" data-md placeholder="Правила сервера: ... (можно оставить пустым, если ответ — эмбед)"></textarea>
           <%- include('../partials/replacers-help', { target: 'ccResponse' }) %>
         </div>
-        <%- include('../partials/embed-editor', { prefix: 'ccEmbed', data: null, hint: 'Чтобы изменить команду, введите тот же триггер — ответ и эмбед заменятся.' }) %>
+        <%- include('../partials/embed-editor', { prefix: 'ccEmbed', data: null, textFor: 'ccResponse', hint: 'Чтобы изменить команду, введите тот же триггер — ответ и эмбед заменятся.' }) %>
         <button class="btn" type="submit">Добавить / обновить</button>
       </form>
 

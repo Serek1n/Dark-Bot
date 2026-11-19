@@ -308,7 +308,11 @@
         out.hidden = false; out.textContent = '…';
         fetch(btn.getAttribute('data-preview-url'), { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: field.value }) })
           .then(function (r) { return r.json(); })
-          .then(function (j) { out.textContent = j.text || '(пусто)'; })
+          .then(function (j) {
+            if (!window.DCP || !j.text) { out.textContent = j.text || '(пусто)'; return; }
+            var th = 'dark'; try { th = localStorage.getItem('dcp-theme') || th; } catch (e2) { /* storage off */ }
+            out.innerHTML = '<div class="dcp" data-dcp-theme="' + th.replace(/[^a-z]/g, '') + '"><div class="dcp-screen">' + window.DCP.render({ content: j.text }, {}) + '</div></div>';
+          })
           .catch(function () { out.textContent = 'Не удалось получить предпросмотр'; });
       });
     });
@@ -325,28 +329,41 @@
     });
   }
 
-  // 7) Message editor: the embed fields show up with the switch, and the preview follows what is typed.
+  // 7) Message editor: the embed fields show up with the switch; the preview (web/public/js/dcp.js) shows the whole message —
+  //    the text of the field named by data-text-for and the embed — with the {templates} filled in with examples.
   function embedEditors() {
     Array.prototype.forEach.call(document.querySelectorAll('[data-embed-editor]'), function (box) {
       var toggle = box.querySelector('[data-embed-toggle]'), fields = box.querySelector('.embed-fields');
       var get = function (k) { return box.querySelector('[data-ef="' + k + '"]'); };
-      var pv = { bar: box.querySelector('.ep-bar'), title: box.querySelector('.ep-title'), desc: box.querySelector('.ep-desc'), image: box.querySelector('.ep-image'), footer: box.querySelector('.ep-footer'), thumb: box.querySelector('.ep-thumb') };
+      var host = box.querySelector('[data-ee-preview]');
+      var textField = host && host.getAttribute('data-text-for') ? document.getElementById(host.getAttribute('data-text-for')) : null;
+      var pv = null;
+      var payload = function () {
+        var S = window.DCP.sample; var C = window.DCP.ctx;
+        var msg = { content: textField ? S(textField.value) : '', embeds: [] };
+        if (toggle.checked) {
+          var th = get('thumbnail').value; var img = get('image').value.trim();
+          msg.embeds.push({
+            title: S(get('title').value), description: S(get('description').value), color: get('color').value || '#8b7cf6',
+            image: img ? { url: img } : undefined,
+            thumbnail: th === 'avatar' ? { url: C.user.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png' } : th === 'icon' ? { url: C.bot.avatar || 'https://cdn.discordapp.com/embed/avatars/1.png' } : undefined,
+            footer: get('footer').value ? { text: S(get('footer').value) } : undefined,
+            timestamp: get('timestamp').checked ? new Date().toISOString() : undefined
+          });
+        }
+        return msg;
+      };
       var draw = function () {
         fields.hidden = !toggle.checked;
-        pv.bar.style.background = get('color').value || '#8b7cf6';
-        pv.title.textContent = get('title').value;
-        var d = get('description').value;
-        pv.desc.textContent = d || (get('title').value ? '' : 'Пустой эмбед не отправится — напишите заголовок или текст');
-        pv.desc.classList.toggle('ep-empty', !d && !get('title').value);
-        var foot = get('footer').value + (get('timestamp').checked ? (get('footer').value ? ' • ' : '') + 'сегодня в 12:00' : '');
-        pv.footer.textContent = foot; pv.footer.hidden = !foot;
-        var img = get('image').value.trim();
-        pv.image.hidden = !img;
-        if (/^https:\/\//i.test(img)) { pv.image.style.backgroundImage = 'url("' + img.replace(/["\\]/g, '') + '")'; pv.image.textContent = ''; } else { pv.image.style.backgroundImage = ''; pv.image.textContent = img ? 'картинка: ' + img : ''; }
-        var th = get('thumbnail').value;
-        pv.thumb.hidden = !th; pv.thumb.textContent = th === 'avatar' ? 'аватар' : th === 'icon' ? 'иконка' : '';
+        if (!host || !window.DCP) return;
+        host.hidden = !toggle.checked && !textField;
+        if (host.hidden) return;
+        if (!pv) pv = window.DCP.mount(host, function () { return { payload: payload(), opts: { tokens: true, empty: 'Пустое сообщение не отправится — напишите текст или включите эмбед.' } }; });
+        else pv.update();
       };
-      box.addEventListener('input', draw); box.addEventListener('change', draw); draw();
+      box.addEventListener('input', draw); box.addEventListener('change', draw);
+      if (textField) textField.addEventListener('input', draw);
+      draw();
     });
   }
 

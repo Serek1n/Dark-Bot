@@ -186,7 +186,7 @@ router.post('/:guildId/achievements/preview-text', ensureGuildAccess, require('e
   const guildObj = getClient()?.guilds?.cache?.get(req.params.guildId) || { id: req.params.guildId, name: 'Сервер' };
   const name = req.user?.global_name || req.user?.username || 'Участник';
   const vars = {
-    user: `@${name}`, name, achievement: 'Болтун', description: 'Написать 1 000 сообщений на сервере', emoji: '💬', rarity: 'Редкое', category: 'Сообщения',
+    user: req.user?.id ? `<@${req.user.id}>` : `@${name}`, name, achievement: 'Болтун', description: 'Написать 1 000 сообщений на сервере', emoji: '💬', rarity: 'Редкое', category: 'Сообщения',
     reward: '500 монет, 3 кристаллов', reward_line: 'Награда: 500 монет, 3 кристаллов', coins: 500, crystals: 3, role: '', count: 7, more: 1,
     others: '🗓️ **Старожил** — Провести на сервере 30 дней', server: guildObj.name || 'Сервер'
   };

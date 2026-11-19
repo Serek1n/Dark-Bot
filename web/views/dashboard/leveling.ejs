@@ -86,7 +86,7 @@
             <option value="off" <%= settings.levelUpDestination === 'off' ? 'selected' : '' %>>Не поздравлять</option>
           </select>
           <label style="margin-top:14px;">Свой текст поздравления (пусто — стандартный)</label>
-          <textarea name="levelUpMessage" id="levelUpMessage" maxlength="1500" rows="3" placeholder="{user} теперь {level} уровня! 🎉"><%= settings.levelUpMessage || '' %></textarea>
+          <textarea name="levelUpMessage" id="levelUpMessage" data-md maxlength="1500" rows="3" placeholder="{user} теперь {level} уровня! 🎉"><%= settings.levelUpMessage || '' %></textarea>
           <%- include('../partials/replacers-help', { target: 'levelUpMessage' }) %>
           <div class="hint">Можно использовать: <code>{user}</code> — упоминание, <code>{name}</code> — имя, <code>{level}</code> — новый уровень, <code>{oldLevel}</code> — прежний, <code>{role}</code> — роль за этот уровень, <code>{crystals}</code> — сколько выдано кристаллов, <code>{server}</code> — сервер.</div>
           <div class="rules">
@@ -96,7 +96,7 @@
             </label>
           </div>
           <div style="margin-top:14px">
-            <%- include('../partials/embed-editor', { prefix: 'levelUpEmbedData', data: settings.levelUpEmbedData, hint: 'Свой дизайн вместо стандартной рамки. Текст поздравления выше пойдёт над эмбедом; в полях работают те же {user}, {level}, {role}…' }) %>
+            <%- include('../partials/embed-editor', { prefix: 'levelUpEmbedData', data: settings.levelUpEmbedData, textFor: 'levelUpMessage', hint: 'Свой дизайн вместо стандартной рамки. Текст поздравления выше пойдёт над эмбедом; в полях работают те же {user}, {level}, {role}…' }) %>
           </div>
           <div class="rules">
             <label class="rule">

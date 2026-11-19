@@ -94,25 +94,8 @@ tr.muted-row td { color: var(--fog); }
   .ach-text-grid, .ach-opts, .ach-labels { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* the preview: a Discord message */
+/* the preview (web/public/js/dcp.js) */
 .ach-preview { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.dc-msg { display: flex; gap: 12px; padding: 14px 16px; border-radius: var(--r-10); background: #313338; color: #dbdee1; font-size: var(--fs-14); line-height: 1.4; }
-[data-theme="light"] .dc-msg { background: #ffffff; color: #313338; border: 1px solid var(--hairline); }
-.dc-ava { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #e3a857, #c2671f); color: #14161b; font-weight: 800; }
-.dc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.dc-name { font-weight: 600; color: inherit; }
-.dc-bot { margin-left: 4px; padding: 0 4px; border-radius: var(--r-4); background: var(--dc-blurple); color: #fff; font-size: var(--fs-11); font-weight: 700; vertical-align: 1px; }
-.dc-frame { display: flex; flex-direction: column; gap: 8px; max-width: 520px; padding: 10px 12px; border-left: 4px solid var(--dc-bar); border-radius: var(--r-4); background: rgba(0,0,0,.18); }
-[data-theme="light"] .dc-frame { background: #f2f3f5; }
-.dc-frame.plain { padding: 0; border: 0; background: none; }
-.dc-text { white-space: pre-wrap; overflow-wrap: anywhere; }
-.dc-text:empty { display: none; }
-.dc-card { display: block; width: 100%; height: auto; border-radius: var(--r-6); }
-.dc-btns { display: flex; flex-wrap: wrap; gap: 6px; }
-.dc-btns[hidden] { display: none; }
-.dc-btns span { padding: 5px 12px; border-radius: var(--r-4); background: var(--dc-blurple); color: #fff; font-size: var(--fs-13); }
-.dc-btns span + span { background: #4e5058; }
-.dc-btns b { font-weight: 500; }
 .ach-embed { margin-top: 16px; }
 
 /* Каталог on a phone: the filters in an even grid of two; a lonely last chip takes the whole row */

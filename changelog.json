@@ -1,6 +1,35 @@
 [
  {
   "bot": "3.16.0",
+  "panel": "3.27.0",
+  "date": "2026-11-19",
+  "botChanges": [],
+  "panelChanges": [
+   "Единый предпросмотр сообщений как в Discord: на «Сообщениях», в приветствии, уровнях и др.",
+   "Темы Discord Ash / Dark / Onyx / Light и ширина ПК / телефон прямо в предпросмотре",
+   "Вся разметка: заголовки, -#, списки, цитаты, код, ANSI, спойлеры, ссылки, упоминания",
+   "Эмбеды как в Discord: поля по три в ряд, миниатюра, подвал со временем, кнопки и меню",
+   "Components V2: контейнер, секция, галерея, файл, разделитель; проверка лимитов на лету",
+   "Панель над текстом: B/I/U/S, спойлер, код, H1–H3, списки, ссылки, время, ANSI, упоминания",
+   "Кнопка JSON: сообщение в формате Discord API, на «Сообщениях» — загрузка из JSON",
+   "Заменители в предпросмотре показаны примерами, упоминания — именами ролей и каналов"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "One Discord-like message preview: on «Messages», in welcome, levels and other editors",
+    "Discord themes Ash / Dark / Onyx / Light and PC / phone width right in the preview",
+    "All markdown: headings, -#, lists, quotes, code, ANSI, spoilers, links, mentions",
+    "Embeds like Discord's: fields three per row, thumbnail, timed footer, buttons and menus",
+    "Components V2: container, section, gallery, file, separator; limits checked as you type",
+    "A bar over the text: B/I/U/S, spoiler, code, H1–H3, lists, links, time, ANSI, mentions",
+    "A JSON button: the message as Discord API JSON; «Messages» can also load from JSON",
+    "Templates show as examples in the preview, mentions as real role and channel names"
+   ]
+  }
+ },
+ {
+  "bot": "3.16.0",
   "panel": "3.26.1",
   "date": "2026-11-19",
   "botChanges": [],

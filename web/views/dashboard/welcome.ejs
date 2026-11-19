@@ -25,10 +25,10 @@
         </div>
         <div>
           <label>Текст приветствия — доступны {user}, {name}, {server} и {count} (сколько людей на сервере), поддерживается **жирный** текст и заменители (ниже)</label>
-          <textarea name="welcomeMessage" id="welcomeMessage" maxlength="1800" placeholder="Можно оставить пустым, если включён эмбед"><%= settings.welcomeMessage %></textarea>
+          <textarea name="welcomeMessage" id="welcomeMessage" data-md maxlength="1800" placeholder="Можно оставить пустым, если включён эмбед"><%= settings.welcomeMessage %></textarea>
           <%- include('../partials/replacers-help', { target: 'welcomeMessage' }) %>
         </div>
-        <%- include('../partials/embed-editor', { prefix: 'welcomeEmbed', data: settings.welcomeEmbed, hint: 'Текст выше пойдёт над эмбедом, его можно оставить пустым. Карточка с аватаркой станет картинкой эмбеда.' }) %>
+        <%- include('../partials/embed-editor', { prefix: 'welcomeEmbed', data: settings.welcomeEmbed, textFor: 'welcomeMessage', hint: 'Текст выше пойдёт над эмбедом, его можно оставить пустым. Карточка с аватаркой станет картинкой эмбеда.' }) %>
         <div>
           <label>Как это увидят в Discord</label>
           <div class="preview">
@@ -65,10 +65,10 @@
         </div>
         <div>
           <label>Текст прощания — доступны {user} (имя без упоминания), {server} и {count}</label>
-          <textarea name="leaveMessage" id="leaveMessage" maxlength="1800"><%= settings.leaveMessage %></textarea>
+          <textarea name="leaveMessage" id="leaveMessage" data-md maxlength="1800"><%= settings.leaveMessage %></textarea>
           <%- include('../partials/replacers-help', { target: 'leaveMessage' }) %>
         </div>
-        <%- include('../partials/embed-editor', { prefix: 'leaveEmbed', data: settings.leaveEmbed, hint: 'Текст выше пойдёт над эмбедом, его можно оставить пустым.' }) %>
+        <%- include('../partials/embed-editor', { prefix: 'leaveEmbed', data: settings.leaveEmbed, textFor: 'leaveMessage', hint: 'Текст выше пойдёт над эмбедом, его можно оставить пустым.' }) %>
         </div>
         <div class="card g-c2">
         <h2>Возвращение участника</h2>

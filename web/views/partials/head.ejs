@@ -4,6 +4,7 @@
 <% if (locals.season) { %><meta name="dark-season" content="<%= season %>" />
 <% } %><script src="/js/theme.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>"></script>
 <title><%= typeof title !== 'undefined' ? title + ' — Dark' : 'Dark' %></title>
+<script src="/js/dcp.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
 <script src="/js/ui.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="preload" href="/fonts/manrope-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin />

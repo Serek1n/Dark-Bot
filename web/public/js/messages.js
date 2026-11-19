@@ -132,7 +132,7 @@
     opts = opts || {};
     var v = getPath(state, k);
     var id = 'f-' + k.replace(/\./g, '-');
-    var tag = opts.area ? '<textarea id="' + id + '" data-k="' + k + '" rows="' + (opts.rows || 3) + '"' + (opts.max ? ' maxlength="' + opts.max + '"' : '') + ' placeholder="' + esc(opts.ph || '') + '">' + esc(v) + '</textarea>'
+    var tag = opts.area ? '<textarea id="' + id + '" data-md data-k="' + k + '" rows="' + (opts.rows || 3) + '"' + (opts.max ? ' maxlength="' + opts.max + '"' : '') + ' placeholder="' + esc(opts.ph || '') + '">' + esc(v) + '</textarea>'
       : '<input type="' + (opts.type || 'text') + '" id="' + id + '" data-k="' + k + '" value="' + esc(opts.type === 'datetime-local' ? localInput(v) : v) + '"' + (opts.max ? ' maxlength="' + opts.max + '"' : '') + ' placeholder="' + esc(opts.ph || '') + '" />';
     return '<div class="' + (opts.cls || '') + '"><label for="' + id + '">' + esc(label) + (opts.max ? ' <span class="muted" data-counter="' + k + '"></span>' : '') + '</label>' + tag + '</div>';
   }
@@ -242,135 +242,22 @@
     preview();
   }
 
-  // ---------- preview: Discord's look ----------
-  var ANSI_FG = { 30: '#4f545c', 31: '#dc322f', 32: '#859900', 33: '#b58900', 34: '#268bd2', 35: '#d33682', 36: '#2aa198', 37: '#ffffff' };
-  var ANSI_BG = { 40: '#002b36', 41: '#cb4b16', 42: '#586e75', 43: '#657b83', 44: '#839496', 45: '#6c71c4', 46: '#93a1a1', 47: '#fdf6e3' };
-  function ansiHtml(text) {
-    var out = ''; var st = {}; var parts = String(text).split(/\u001b\[([\d;]*)m/);
-    for (var i = 0; i < parts.length; i++) {
-      if (i % 2) {
-        (parts[i] || '0').split(';').forEach(function (c) {
-          c = +c;
-          if (c === 0) st = {}; else if (c === 1) st.b = 1; else if (c === 4) st.u = 1; else if (ANSI_FG[c]) st.fg = ANSI_FG[c]; else if (ANSI_BG[c]) st.bg = ANSI_BG[c];
-        });
-      } else if (parts[i]) {
-        var css = (st.fg ? 'color:' + st.fg + ';' : '') + (st.bg ? 'background:' + st.bg + ';' : '') + (st.b ? 'font-weight:700;' : '') + (st.u ? 'text-decoration:underline;' : '');
-        out += css ? '<span style="' + css + '">' + esc(parts[i]) + '</span>' : esc(parts[i]);
-      }
-    }
-    return out;
-  }
+  // ---------- preview: Discord's look (web/public/js/dcp.js draws it; the themes, the phone width and the limits are its) ----------
   function channelName(id) { var c = D.channels.filter(function (x) { return x.id === id; })[0]; return c ? c.name : 'канал'; }
-  /** Discord markdown, safely: everything is escaped first, only known marks become tags. */
-  function md(src, opts) {
-    opts = opts || {};
-    var keep = [];
-    var hold = function (html) { keep.push(html); return '\u0000' + (keep.length - 1) + '\u0000'; };
-    var s = String(src || '');
-    s = s.replace(/\u0060{3}(?:([\w+-]{1,15})\n)?([\s\S]*?)\u0060{3}/g, function (_, lang, code) { return hold('<pre class="dm-code">' + (lang === 'ansi' ? ansiHtml(code.replace(/\n$/, '')) : esc(code.replace(/\n$/, ''))) + '</pre>'); });
-    s = s.replace(/\u0060([^\u0060\n]+)\u0060/g, function (_, code) { return hold('<code class="dm-inline">' + esc(code) + '</code>'); });
-    s = esc(s);
-    s = s.replace(/&lt;t:(-?\d{1,12})(?::([tTdDfFR]))?&gt;/g, function (_, t, f) { var d = new Date(t * 1000); return hold('<span class="dm-time">' + esc(f === 'R' ? d.toLocaleString() : f === 'd' || f === 'D' ? d.toLocaleDateString() : f === 't' || f === 'T' ? d.toLocaleTimeString() : d.toLocaleString()) + '</span>'); });
-    s = s.replace(/&lt;(a?):(\w{2,32}):(\d{15,25})&gt;/g, function (_, a, name, id) { return hold('<img class="dm-emoji" alt=":' + name + ':" src="https://cdn.discordapp.com/emojis/' + id + '.' + (a ? 'gif' : 'png') + '?size=48" />'); });
-    s = s.replace(/&lt;@!?(\d{15,25})&gt;/g, function () { return hold('<span class="dm-mention">@участник</span>'); });
-    s = s.replace(/&lt;@&amp;(\d{15,25})&gt;/g, function () { return hold('<span class="dm-mention">@роль</span>'); });
-    s = s.replace(/&lt;#(\d{15,25})&gt;/g, function (_, id) { return hold('<span class="dm-mention">#' + esc(channelName(id)) + '</span>'); });
-    s = s.replace(/@(everyone|here)/g, function (_, w) { return hold('<span class="dm-mention">@' + w + '</span>'); });
-    if (opts.links !== false) {
-      s = s.replace(/\[([^\]\n]{1,200})\]\((https?:\/\/[^\s)]+)\)/g, function (_, t, u) { return hold('<a href="' + u + '" target="_blank" rel="noopener noreferrer nofollow">' + t + '</a>'); });
-      s = s.replace(/(^|[\s(])(https?:\/\/[^\s<]+[^\s<.,:;\u0022\u0027)\]])/g, function (_, pre, u) { return pre + hold('<a href="' + u + '" target="_blank" rel="noopener noreferrer nofollow">' + u + '</a>'); });
-    }
-    s = s.replace(/\*\*\*([\s\S]+?)\*\*\*/g, '<b><i>$1</i></b>').replace(/\*\*([\s\S]+?)\*\*/g, '<b>$1</b>').replace(/__([\s\S]+?)__/g, '<u>$1</u>')
-      .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<i>$2</i>').replace(/(^|[^\w])_([^_\n]+)_(?!\w)/g, '$1<i>$2</i>').replace(/~~([\s\S]+?)~~/g, '<s>$1</s>')
-      .replace(/\|\|([\s\S]+?)\|\|/g, '<span class="dm-spoiler" tabindex="0">$1</span>');
-    var lines = s.split('\n'); var html = ''; var quote = [];
-    var flush = function () { if (quote.length) { html += '<blockquote class="dm-quote">' + quote.join('<br>') + '</blockquote>'; quote = []; } };
-    lines.forEach(function (line, i) {
-      var q = /^&gt; ?(.*)$/.exec(line);
-      if (q) { quote.push(q[1]); return; }
-      flush();
-      var h = opts.headings === false ? null : /^(#{1,3}) (.+)$/.exec(line);
-      var sub = /^-# (.+)$/.exec(line); var li = /^\s*[-*] (.+)$/.exec(line);
-      if (h) html += '<div class="dm-h' + h[1].length + '">' + h[2] + '</div>';
-      else if (sub) html += '<div class="dm-sub">' + sub[1] + '</div>';
-      else if (li) html += '<div class="dm-li">' + li[1] + '</div>';
-      else html += line + (i < lines.length - 1 ? '<br>' : '');
-    });
-    flush();
-    return html.replace(/\u0000(\d+)\u0000/g, function (_, n) { return keep[+n]; });
-  }
-  var safeImg = function (u) { return /^https:\/\/[^\s\u0022<>]+$/i.test(u || '') ? esc(u) : ''; };
-  var raf = 0;
-  function preview() { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; drawPreview(); }); }
-  var linkIcon = ' <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H16V9M16 4L9 11M14 12V16H4V6H8"/></svg>';
-  function v2Html(list) {
-    return list.map(function (b) {
-      if (b.t === 'text') return b.content ? '<div class="dv-text">' + md(b.content) + '</div>' : '';
-      if (b.t === 'sep') return '<div class="dv-sep' + (b.spacing === '2' ? ' big' : '') + (b.divider ? ' line' : '') + '"></div>';
-      if (b.t === 'gallery') {
-        var imgs = b.items.filter(function (i) { return safeImg(i.url); });
-        return imgs.length ? '<div class="dv-gallery n' + Math.min(imgs.length, 4) + '">' + imgs.map(function (i) { return '<img src="' + safeImg(i.url) + '" alt="' + esc(i.desc) + '" />'; }).join('') + '</div>' : '';
-      }
-      if (b.t === 'section') {
-        var acc = b.acc === 'button' ? '<span class="dm-button">' + esc(b.label || 'Кнопка') + linkIcon + '</span>' : (safeImg(b.url) ? '<img class="dv-thumb" src="' + safeImg(b.url) + '" alt="" />' : '');
-        return '<div class="dv-section"><div class="dv-text">' + md(b.text) + '</div>' + acc + '</div>';
-      }
-      if (b.t === 'buttons') {
-        var items = b.items.filter(function (i) { return i.label || i.url; });
-        return items.length ? '<div class="dm-buttons">' + items.map(function (i) { return '<span class="dm-button">' + esc(i.label || 'Кнопка') + linkIcon + '</span>'; }).join('') + '</div>' : '';
-      }
-      if (b.t === 'container') return '<div class="dv-container' + (b.spoiler ? ' spoiler' : '') + '" style="border-left-color:' + (hexOk(b.color) ? b.color : 'transparent') + '">' + v2Html(b.children) + '</div>';
-      return '';
-    }).join('');
-  }
-  function drawPreview() {
-    var hook = mode() === 'webhook';
-    var hookName = hook ? ($('#m-hook').selectedOptions[0] && $('#m-hook').value ? $('#m-hook').selectedOptions[0].textContent.split(' · ')[0] : 'Вебхук') : D.botName;
-    var name = hook && state.username ? state.username : hookName;
-    var avatar = hook && safeImg(state.avatar_url) ? safeImg(state.avatar_url) : '';
-    var now = new Date(); var hm = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
-    var html = '<div class="dm-msg"><div class="dm-avatar">' + (avatar ? '<img src="' + avatar + '" alt="" />' : '<span>' + esc(name.slice(0, 1).toUpperCase()) + '</span>') + '</div><div class="dm-body">' +
-      '<div class="dm-head"><b>' + esc(name) + '</b><span class="dm-tag">' + (hook ? 'ВЕБХУК' : 'БОТ') + '</span><span class="dm-when">Сегодня в ' + hm + '</span></div>';
-    if (state.kind === 'v2') {
-      html += v2Html(state.blocks) || '<div class="dm-empty">Добавьте блок — здесь появится сообщение.</div>';
-      html += '</div></div>';
-      $('#m-preview').innerHTML = html;
-      $$('#m-preview img').forEach(function (img) { img.addEventListener('error', function () { img.classList.add('dm-broken'); }); });
+  var pv = null;
+  function preview() {
+    if (!pv) {
+      pv = window.DCP.mount($('#m-preview'), function () {
+        var hook = mode() === 'webhook';
+        var hookName = hook ? ($('#m-hook').selectedOptions[0] && $('#m-hook').value ? $('#m-hook').selectedOptions[0].textContent.split(' · ')[0] : 'Вебхук') : '';
+        return {
+          payload: toMessage(),
+          opts: { author: hook ? { name: state.username || hookName, avatar: state.avatar_url, webhook: true } : {}, empty: state.kind === 'v2' ? 'Добавьте блок — здесь появится сообщение.' : 'Напишите текст или добавьте эмбед — здесь появится сообщение.' }
+        };
+      }, { onImport: function (data) { $('#m-json').value = JSON.stringify(data); importJson(); } });
       return;
     }
-    if (state.content) html += '<div class="dm-content">' + md(state.content) + '</div>';
-    state.embeds.forEach(function (e) {
-      var color = hexOk(e.color) ? (e.color[0] === '#' ? e.color : '#' + e.color) : '#202225';
-      var thumb = safeImg(e.thumbnail.url);
-      html += '<div class="dm-embed" style="border-left-color:' + color + '"><div class="dm-embed-grid' + (thumb ? ' has-thumb' : '') + '"><div class="dm-embed-main">';
-      if (e.author.name) html += '<div class="dm-author">' + (safeImg(e.author.icon_url) ? '<img src="' + safeImg(e.author.icon_url) + '" alt="" />' : '') + (/^https?:\/\//.test(e.author.url) ? '<a href="' + esc(e.author.url) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(e.author.name) + '</a>' : '<span>' + esc(e.author.name) + '</span>') + '</div>';
-      if (e.title) html += '<div class="dm-title">' + (/^https?:\/\//.test(e.url) ? '<a href="' + esc(e.url) + '" target="_blank" rel="noopener noreferrer nofollow">' + md(e.title, { links: false, headings: false }) + '</a>' : md(e.title, { links: false, headings: false })) + '</div>';
-      if (e.description) html += '<div class="dm-desc">' + md(e.description) + '</div>';
-      var fields = e.fields.filter(function (f) { return f.name || f.value; });
-      if (fields.length) {
-        html += '<div class="dm-fields">';
-        fields.forEach(function (f) {
-          html += '<div class="dm-field' + (f.inline ? ' inline' : '') + '"><div class="dm-fname">' + md(f.name, { links: false, headings: false }) + '</div><div class="dm-fvalue">' + md(f.value, { headings: false }) + '</div></div>';
-        });
-        html += '</div>';
-      }
-      if (safeImg(e.image.url)) html += '<img class="dm-image" src="' + safeImg(e.image.url) + '" alt="" />';
-      if (e.footer.text || e.timestamp) {
-        var ts = e.timestamp ? new Date(e.timestamp) : null;
-        html += '<div class="dm-footer">' + (safeImg(e.footer.icon_url) && e.footer.text ? '<img src="' + safeImg(e.footer.icon_url) + '" alt="" />' : '') + '<span>' + esc(e.footer.text) + (e.footer.text && ts && !isNaN(ts) ? ' • ' : '') + (ts && !isNaN(ts) ? esc(ts.toLocaleString([], { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })) : '') + '</span></div>';
-      }
-      html += '</div>' + (thumb ? '<img class="dm-thumb" src="' + thumb + '" alt="" />' : '') + '</div></div>';
-    });
-    var btns = state.buttons.filter(function (b) { return b.label || b.url; });
-    if (btns.length) {
-      html += '<div class="dm-buttons">';
-      btns.forEach(function (b, i) { if (i && i % 5 === 0) html += '<span class="dm-break"></span>'; html += '<span class="dm-button">' + esc(b.label || 'Кнопка') + ' <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H16V9M16 4L9 11M14 12V16H4V6H8"/></svg></span>'; });
-      html += '</div>';
-    }
-    if (!state.content && !state.embeds.length) html += '<div class="dm-empty">Напишите текст или добавьте эмбед — здесь появится сообщение.</div>';
-    html += '</div></div>';
-    $('#m-preview').innerHTML = html;
-    $$('#m-preview img').forEach(function (img) { img.addEventListener('error', function () { img.classList.add('dm-broken'); }); });
+    pv.update();
   }
 
   // ---------- draft kept in this browser ----------
@@ -612,7 +499,7 @@
     }).join('');
     var code = pieces.length ? ansiCode() : '';
     $('#a-code').value = code;
-    $('#a-preview').innerHTML = code ? md(code) : '<div class="dm-empty">Добавьте кусок текста — здесь появится результат.</div>';
+    $('#a-preview').innerHTML = code ? '<div class="dcp" data-dcp-theme="ash"><div class="dcp-md">' + window.DCP.md(code) + '</div></div>' : '<div class="dm-empty">Добавьте кусок текста — здесь появится результат.</div>';
   }
   function hookInfo() {
     var out = $('#w-out'); var url = $('#w-url').value.trim();

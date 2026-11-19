@@ -41,7 +41,7 @@
           <div class="ach-text-grid">
             <div>
               <label for="achievementsMessage">Свой текст</label>
-              <textarea id="achievementsMessage" name="achievementsMessage" maxlength="1500" rows="6" placeholder="{user} открывает достижение **{achievement}**!&#10;{reward_line}&#10;{others}"><%= settings.achievementsMessage || '' %></textarea>
+              <textarea id="achievementsMessage" data-md name="achievementsMessage" maxlength="1500" rows="6" placeholder="{user} открывает достижение **{achievement}**!&#10;{reward_line}&#10;{others}"><%= settings.achievementsMessage || '' %></textarea>
               <details class="tpl-help" data-tpl-for="achievementsMessage" open>
                 <summary>Что можно вставить</summary>
                 <div class="tpl-body">
@@ -57,22 +57,13 @@
             <div class="ach-preview">
               <div class="look-sub">Как это выглядит в Discord</div>
               <% const look = AP.read(settings); const sh = look.targets.achievement; %>
-              <div class="dc-msg" data-ach-preview data-url="<%= g %>/achievements/preview-text" data-text-on="<%= sh.text || !sh.card ? '1' : '' %>">
-                <span class="dc-ava" aria-hidden="true">D</span>
-                <div class="dc-body">
-                  <div class="dc-name">Dark <span class="dc-bot">БОТ</span></div>
-                  <div class="dc-frame<%= sh.frame ? '' : ' plain' %>" style="--dc-bar:<%= O.color === 'theme' ? AP.palette(look).ember : A.RARITY.rare.color %>">
-                    <div class="dc-text" data-ach-preview-text>Пример появится здесь.</div>
-                    <% if (sh.card) { %><img class="dc-card" src="<%= g %>/appearance/preview/achievement.png" alt="Карточка достижения" loading="lazy" /><% } %>
-                  </div>
-                  <div class="dc-btns" data-ach-preview-btns<%= O.buttons ? '' : ' hidden' %>><span>🏆 <b data-ach-preview-mine><%= O.mine %></b></span><span>📜 <b data-ach-preview-all><%= O.all %></b></span></div>
-                </div>
-              </div>
+              <div class="ach-dcp" data-ach-preview data-url="<%= g %>/achievements/preview-text" data-text-on="<%= sh.text || !sh.card ? '1' : '' %>" data-frame="<%= sh.frame ? '1' : '' %>"
+                data-card="<%= sh.card ? g + '/appearance/preview/achievement.png' : '' %>" data-color-rarity="<%= A.RARITY.rare.color %>" data-color-theme="<%= AP.palette(look).ember %>"></div>
               <p class="hint">Пример с достижением «Болтун» и наградой 500 монет. Картинка, рамка и формат — из Оформления.</p>
             </div>
           </div>
           <div class="ach-embed">
-            <%- include('../partials/embed-editor', { prefix: 'achievementsEmbedData', data: settings.achievementsEmbedData, hint: 'Свой дизайн вместо стандартной рамки: заголовок, цвет, подвал. Карточка достижения встанет картинкой внутри. В полях работают те же {achievement}, {reward}, {user}…' }) %>
+            <%- include('../partials/embed-editor', { prefix: 'achievementsEmbedData', data: settings.achievementsEmbedData, preview: false, hint: 'Свой дизайн вместо стандартной рамки: заголовок, цвет, подвал. Карточка достижения встанет картинкой внутри. В полях работают те же {achievement}, {reward}, {user}…' }) %>
           </div>
           <div class="ach-opts">
             <label class="rule">

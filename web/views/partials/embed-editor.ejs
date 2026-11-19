@@ -1,5 +1,6 @@
-<%# The embed part of a message: a switch, the fields and a live preview. Locals: prefix (field names), data (stored JSON or null),
-    hint (optional text under the switch). Every text field takes the same templates as the message. %>
+<%# The embed part of a message: a switch, the fields and a live preview (web/public/js/dcp.js). Locals: prefix (field names),
+    data (stored JSON or null), hint (optional text under the switch), textFor (id of the message's text field: the preview
+    shows the whole message), preview (false: the page draws its own preview). Every text field takes the same templates as the message. %>
 <% let E = null; try { E = typeof data === 'string' ? JSON.parse(data) : data; } catch (e) { E = null; } E = E && E.on ? E : { on: false }; %>
 <div class="embed-editor" data-embed-editor="<%= prefix %>">
   <label class="checkbox-row">
@@ -11,7 +12,7 @@
       <div><label>Заголовок</label><input type="text" name="<%= prefix %>_title" maxlength="256" value="<%= E.title || '' %>" data-ef="title" /></div>
       <div class="embed-color"><label>Цвет полосы</label><input type="color" name="<%= prefix %>_color" value="<%= E.color || '#8b7cf6' %>" data-ef="color" /></div>
     </div>
-    <div><label>Текст эмбеда</label><textarea name="<%= prefix %>_description" maxlength="4000" rows="3" data-ef="description"><%= E.description || '' %></textarea></div>
+    <div><label>Текст эмбеда</label><textarea name="<%= prefix %>_description" maxlength="4000" rows="3" data-ef="description" data-md><%= E.description || '' %></textarea></div>
     <div class="two-col">
       <div><label>Картинка (ссылка https://…)</label><input type="text" name="<%= prefix %>_image" maxlength="500" value="<%= E.image || '' %>" placeholder="необязательно" data-ef="image" /></div>
       <div><label>Маленькая картинка справа</label>
@@ -26,13 +27,9 @@
       <div><label>Подпись внизу</label><input type="text" name="<%= prefix %>_footer" maxlength="2048" value="<%= E.footer || '' %>" data-ef="footer" /></div>
       <label class="checkbox-row" style="align-self:end"><input type="checkbox" name="<%= prefix %>_timestamp" <%= E.timestamp ? 'checked' : '' %> data-ef="timestamp" /><span>Дата и время отправки</span></label>
     </div>
-    <div class="embed-preview" aria-label="Как будет выглядеть эмбед">
-      <div class="ep-bar"></div>
-      <div class="ep-body">
-        <div class="ep-title"></div><div class="ep-desc"></div><div class="ep-image" hidden></div><div class="ep-footer"></div>
-      </div>
-      <div class="ep-thumb" hidden></div>
-    </div>
-    <p class="hint">Заменители работают во всех полях эмбеда. В предпросмотре они показаны как есть.</p>
+    <p class="hint">Заменители работают во всех полях эмбеда.</p>
   </div>
+  <% if (locals.preview !== false) { %>
+    <div class="ee-preview" data-ee-preview data-text-for="<%= locals.textFor || '' %>" aria-label="Как будет выглядеть сообщение"></div>
+  <% } %>
 </div>
