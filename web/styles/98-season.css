@@ -120,7 +120,7 @@ html[data-season="vice"] .night-sky { display: none !important; }
 /* ---------------------------------------------------------------------------------------------------------------------
    Top bar, menus and popovers
    --------------------------------------------------------------------------------------------------------------------- */
-html[data-season="vice"] .topbar { border-bottom-color: transparent; background: color-mix(in srgb, var(--rail) 86%, transparent); }
+html[data-season="vice"] .topbar { border-bottom-color: transparent; background: color-mix(in srgb, var(--rail) 86%, transparent); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); } /* the page scrolling under it stays unreadable */
 html[data-season="vice"] .topbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--vice-line); opacity: 0.9; pointer-events: none; }
 html[data-season="vice"] .tb-group.is-on { background: var(--ember-tint); box-shadow: inset 0 -2px 0 var(--vice-pink); }
 html[data-season="vice"] .tb-guild .guild-initial { background: var(--vice-btn); color: var(--on-ember); }

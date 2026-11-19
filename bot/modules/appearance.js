@@ -32,7 +32,7 @@ const BY_KEY = new Map(TARGETS.map((t) => [t.key, t]));
 // right (1.9375 times more, room for the shadow): about 3.77 : 1 with the space and 4.29 : 1 for the plate itself.
 const FORMATS = {
   classic: { title: 'Классический', desc: 'карточка во всю картинку' },
-  wide: { title: 'Широкий', desc: 'плашка с тенью и полями, как в MEE6' }
+  wide: { title: 'Широкий', desc: 'плашка с тенью и прозрачными полями' }
 };
 const formatsOf = (key) => Object.keys(BY_KEY.get(key)?.formats || {});
 

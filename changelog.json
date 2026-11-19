@@ -1,6 +1,27 @@
 [
  {
   "bot": "3.16.0",
+  "panel": "3.26.1",
+  "date": "2026-11-19",
+  "botChanges": [],
+  "panelChanges": [
+   "Фильтры каталога достижений на телефоне — ровной сеткой в два столбца",
+   "Текст в фильтрах-чипах стоит по центру, а не прилипает к верху",
+   "Шапка панели в летней теме больше не просвечивает текстом страницы",
+   "Из описания формата «Широкий» убрано упоминание MEE6"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Achievement catalog filters on a phone — an even two-column grid",
+    "Text in filter chips is centred instead of sticking to the top",
+    "The panel header in the summer theme no longer shows the page text through it",
+    "The «Wide» format description no longer mentions MEE6"
+   ]
+  }
+ },
+ {
+  "bot": "3.16.0",
   "panel": "3.26.0",
   "date": "2026-11-18",
   "botChanges": [

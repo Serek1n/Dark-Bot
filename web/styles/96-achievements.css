@@ -114,3 +114,10 @@ tr.muted-row td { color: var(--fog); }
 .dc-btns span + span { background: #4e5058; }
 .dc-btns b { font-weight: 500; }
 .ach-embed { margin-top: 16px; }
+
+/* Каталог on a phone: the filters in an even grid of two; a lonely last chip takes the whole row */
+@media (max-width: 560px) {
+  .ach-filters .chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .ach-filters .chip { justify-content: center; text-align: center; padding-inline: 10px; }
+  .ach-filters .chip:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}

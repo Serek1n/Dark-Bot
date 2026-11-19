@@ -39,6 +39,7 @@ input:hover, select:hover, textarea:hover, .fs-btn:hover { border-color: var(--f
 .feature-link { min-height: 24px; line-height: 24px; }
 @media (pointer: coarse) {
   .tb-guild, .chip, .lang-fab, .theme-fab, .nd-nav a { min-height: 44px; }
+  .chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; } /* the text in the middle of the taller chip */
   .lang-fab, .theme-fab { min-width: 44px; }
   .tpl-chip { min-height: 40px; padding: 8px 12px; font-size: var(--fs-13); }
   .card-link, .content summary { min-height: 44px; }
