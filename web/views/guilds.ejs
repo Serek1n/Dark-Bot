@@ -7,6 +7,7 @@
   <div class="guild-picker" style="position: relative; z-index: 1;">
     <h1>Выберите сервер</h1>
     <p class="subtitle">Серверы, где у вас есть права администратора.</p>
+    <% if (locals.platformQueue) { %><p class="picker-platform"><%- include('partials/platform-link', { cls: 'btn btn-secondary' }) %></p><% } %>
     <% if (!guilds.length) { %>
       <p class="empty-state">У вас нет серверов с правами администратора.</p>
     <% } %>

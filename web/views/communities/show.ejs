@@ -13,6 +13,18 @@
        const pageUrl = (base || '') + '/communities/' + c.id; %>
     <% if (msg) { %><div class="card appeal-ok"><p style="margin:0"><%= MSG[msg] %></p></div><% } %>
     <% if (error) { %><div class="card mod-alert"><p style="margin:0"><%= error %></p></div><% } %>
+    <% if (locals.preview) { const ST = { pending: 'ждёт проверки модерацией платформы', hidden: 'скрыто из каталога', blocked: 'заблокировано модерацией' }; %>
+      <div class="card cm-preview-bar"><p style="margin:0"><b>Предпросмотр:</b> сообщество <%= ST[c.status] || c.status %> — в каталоге его не видно, страницу видите только вы. Голосовать и оставлять отзывы можно после публикации.</p>
+        <% if (locals.platformOwner) { %>
+          <form method="post" action="/platform/moderate" class="cm-mod">
+            <input type="hidden" name="id" value="<%= c.id %>" />
+            <input type="text" name="note" maxlength="300" placeholder="Комментарий владельцу" aria-label="Комментарий" />
+            <select name="status" aria-label="Решение"><option value="published">Опубликовать</option><option value="hidden">Скрыть</option><option value="blocked">Заблокировать</option></select>
+            <button class="btn" type="submit">Применить</button>
+          </form>
+        <% } %>
+      </div>
+    <% } %>
     <section class="cm-show <%= c.highlighted ? 'hl' : '' %>">
       <div class="cm-banner"<% const bannerCss = /^(https:\/\/[^'"()\\\s]+|\/communities\/media\/\d+\/[a-f0-9]{20}\.webp)$/.test(c.bannerUrl || '') ? c.bannerUrl : null; %><% if (bannerCss) { %> style="background-image:url('<%= bannerCss %>')"<% } %>></div>
       <div class="cm-show-head">

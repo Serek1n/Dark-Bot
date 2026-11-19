@@ -188,6 +188,7 @@ async function save(guildId, userId, body) {
   const created = await Community.create({ guildId: String(guildId), ownerId: userId, ...fields, ...live, status: premoderation ? 'pending' : 'published', publishedAt: premoderation ? null : new Date() });
   await coins().checkQuests(created).catch(() => {}); // «опубликовать сообщество» — a one-time DARK Coins quest
   await tidy();
+  if (created.status === 'pending') api.notifyPending(created).catch(() => {}); // the platform owners learn of it in Discord
   return created;
 }
 
@@ -222,8 +223,10 @@ async function moderate(actorId, communityId, status, note = '') {
   if (!['published', 'hidden', 'blocked'].includes(status)) throw new CommunityError('Неизвестное действие.');
   const row = await db().Community.findByPk(Number(communityId));
   if (!row) throw new CommunityError('Сообщество не найдено.');
+  const was = row.status;
   await row.update({ status, moderationNote: String(note || '').slice(0, 300) || null, publishedAt: status === 'published' && !row.publishedAt ? new Date() : row.publishedAt });
   await coins().checkQuests(row).catch(() => {});
+  if (was === 'pending' && status !== 'pending') api.notifyDecision(row).catch(() => {}); // the owner learns how the check went
   return row;
 }
 
@@ -600,6 +603,47 @@ async function notifyReview(c, review) {
   await ch.send({ embeds: [e], allowedMentions: { parse: [] } });
 }
 
+// ---- the moderation queue of the platform ----
+/** What waits for the platform owners: communities to check, open complaints, published reviews with complaints. */
+async function queue() {
+  const { Community, CommunityReport, CommunityReview } = db();
+  const [pending, reports, reviews] = await Promise.all([
+    Community.count({ where: { status: 'pending' } }),
+    CommunityReport.count({ where: { status: 'open' } }),
+    CommunityReview.count({ where: { status: 'published', reports: { [Op.gt]: 0 } } })
+  ]);
+  return { pending, reports, reviews, total: pending + reports + reviews };
+}
+/** A community sent for checking: a direct message to every platform owner (BOT_OWNER_IDS) with a link to the queue. */
+async function notifyPending(c) {
+  const ids = (process.env.BOT_OWNER_IDS || '').split(',').map((x) => x.trim()).filter((x) => /^\d{15,25}$/.test(x));
+  const cl = client();
+  if (!ids.length || !cl?.users?.fetch) return 0;
+  const { EmbedBuilder } = require('discord.js');
+  const base = (process.env.WEB_BASE_URL || '').replace(/\/+$/, '');
+  const e = new EmbedBuilder().setColor(0x5865f2).setTitle('Новое сообщество ждёт проверки')
+    .setDescription(`**${String(c.name || '').slice(0, 60)}**\n${String(c.shortDesc || '').slice(0, 160)}\n\nСервер \`${c.guildId}\`, отправил <@${c.ownerId}>.`);
+  if (base) e.setURL(`${base}/platform#moderation`).setFooter({ text: 'Решение — на странице «Платформа DARK» → «Модерация каталога»' });
+  let n = 0;
+  for (const id of ids) {
+    try { const u = await cl.users.fetch(id); await u.send({ embeds: [e], allowedMentions: { parse: [] } }); n++; } catch { /* closed DMs — the queue is still in the panel */ }
+  }
+  return n;
+}
+
+/** The decision on a community that waited for checking: a direct message to whoever sent it. */
+async function notifyDecision(c) {
+  const cl = client();
+  if (!cl?.users?.fetch || !/^\d{15,25}$/.test(String(c.ownerId || ''))) return false;
+  const { EmbedBuilder } = require('discord.js');
+  const base = (process.env.WEB_BASE_URL || '').replace(/\/+$/, '');
+  const T = { published: ['Сообщество опубликовано в каталоге', 0x23a55a], hidden: ['Сообщество проверено, но пока скрыто', 0xf0b132], blocked: ['Сообщество не прошло проверку', 0xda373c] };
+  const [title, color] = T[c.status] || T.hidden;
+  const e = new EmbedBuilder().setColor(color).setTitle(title).setDescription(`**${String(c.name || '').slice(0, 60)}**${c.moderationNote ? `\n\nКомментарий модерации: ${c.moderationNote}` : ''}`);
+  if (base) e.setURL(c.status === 'published' ? `${base}/communities/${c.id}` : `${base}/dashboard/${c.guildId}/community`);
+  try { const u = await cl.users.fetch(String(c.ownerId)); await u.send({ embeds: [e], allowedMentions: { parse: [] } }); return true; } catch { return false; }
+}
+
 // ---- voting from Discord (/vote) ----
 /** The published listing of a server, or null. */
 async function forGuild(guildId) {
@@ -678,5 +722,5 @@ const api = module.exports = {
   verifyInvite,
   CommunityError, CATEGORIES, CATEGORY, icon, hue, PROMOS, DAYS, SORTS, SIZES, PER_PAGE, BANNER_HOSTS, VOTE_EVERY, REVIEWS_PER_PAGE,
   rating, liveExtra, similar, favoriteIds, toggleFavorite, mayReview, saveReview, deleteReview, replyReview, reportReview, moderateReview, reviewsOf, notifyReview, forGuild, remindVote,
-  platform, setPlatform, cleanFields, cleanInvite, save, setVisible, remove, moderate, activePromos, buy, view, click, joinIntent, vote, report, catalog, one, statsOf, iconUrl, accountAge, listOf
+  queue, notifyPending, notifyDecision, platform, setPlatform, cleanFields, cleanInvite, save, setVisible, remove, moderate, activePromos, buy, view, click, joinIntent, vote, report, catalog, one, statsOf, iconUrl, accountAge, listOf
 };

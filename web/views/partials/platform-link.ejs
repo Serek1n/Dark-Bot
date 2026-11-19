@@ -1,0 +1,2 @@
+<%# «Платформа DARK» for its owners (BOT_OWNER_IDS), with the size of the moderation queue (web/middleware/platformQueue.js). %>
+<% if (locals.platformQueue) { const q = platformQueue.total || 0; %><% if (q) { %><a href="/platform#moderation" class="<%= locals.cls || '' %>" title="Ждут решения: <%= q %>">Платформа DARK <span class="pf-badge"><%= q %></span></a><% } else { %><a href="/platform" class="<%= locals.cls || '' %>">Платформа DARK</a><% } %><% } %>

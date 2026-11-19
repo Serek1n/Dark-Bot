@@ -57,6 +57,7 @@
             <li>Продвижение ниже покупается за DARK Coins и включается сразу.</li>
           </ol>
         <% } else { %>
+          <% if (c.status === 'pending') { %><p class="hint cm-pending-note">Карточка отправлена на проверку модерации платформы. Пока её не одобрят, в каталоге сервер не виден — его страницу видите только вы. Изменения можно сохранять и сейчас.</p><% } %>
           <% if (c.moderationNote) { %><p class="appeal-reason"><small>Комментарий модерации</small><span><%= c.moderationNote %></span></p><% } %>
           <% const sum = (k) => stats.series.reduce((n, s) => n + s[k], 0); const v30 = sum('views'); const c30 = sum('clicks'); %>
           <div class="cm-stats small">
@@ -66,7 +67,7 @@
           </div>
           <p class="hint" style="margin-top:0">За 30 дней: <b><%= fmt(v30) %></b> просмотров, <b><%= fmt(c30) %></b> переходов (<%= v30 ? Math.round(c30 / v30 * 100) : 0 %>% от просмотров), <b><%= fmt(sum('votes')) %></b> голосов, <b><%= fmt(stats.newReviews) %></b> новых отзывов.</p>
           <div class="btn-row">
-            <% if (c.status === 'published') { %><a class="btn btn-secondary" href="/communities/<%= c.id %>" target="_blank" rel="noopener">Открыть в каталоге</a><% } %>
+            <% if (c.status === 'published') { %><a class="btn btn-secondary" href="/communities/<%= c.id %>" target="_blank" rel="noopener">Открыть в каталоге</a><% } else { %><a class="btn btn-secondary" href="/communities/<%= c.id %>" target="_blank" rel="noopener">Предпросмотр страницы</a><% } %>
             <% if (c.status === 'published' || c.status === 'hidden') { %>
               <form method="post" action="<%= g %>/community/visible" data-no-guard><input type="hidden" name="visible" value="<%= c.status === 'hidden' ? '1' : '0' %>" /><button class="btn btn-secondary" type="submit"><%= c.status === 'hidden' ? 'Показать в каталоге' : 'Скрыть из каталога' %></button></form>
             <% } %>

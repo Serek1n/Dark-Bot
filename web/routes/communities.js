@@ -29,15 +29,27 @@ router.get('/media/:gid(\\d{15,25})/:file([a-f0-9]{20}\\.webp)', (req, res) => {
   res.sendFile(file, (err) => { if (err && !res.headersSent) res.status(404).end(); });
 });
 
+// A listing that is not published (waiting for checking, hidden) is still shown to those who decide on it or own it:
+// the platform owners — to moderate it — and the admins of its server, as a preview. Everyone else gets 404.
+function mayPreview(req, c) {
+  if (!req.user) return false;
+  if (require('../../bot/modules/darkCoins').isPlatformOwner(req.user.id)) return true;
+  if (c.status === 'blocked') return false;
+  if (c.ownerId === req.user.id) return true;
+  const { hasManageAccess } = require('../utils/common');
+  return (req.user.guilds || []).some((g) => g.id === c.guildId && hasManageAccess(g));
+}
+
 router.get('/:id(\\d+)', async (req, res) => {
   const c = await cm().one(req.params.id);
-  if (!c || c.status !== 'published') return res.status(404).render('error', { message: 'Сообщество не найдено или скрыто.' });
-  await cm().view(c.id, visitor(req)).catch(() => {});
+  const preview = Boolean(c && c.status !== 'published' && mayPreview(req, c));
+  if (!c || (c.status !== 'published' && !preview)) return res.status(404).render('error', { message: 'Сообщество не найдено или скрыто.' });
+  if (!preview) await cm().view(c.id, visitor(req)).catch(() => {});
   const [reviews, extra, similar, favs] = await Promise.all([cm().reviewsOf(c.id, { page: req.query.rpage, userId: req.user?.id }), cm().liveExtra(c), cm().similar(c), cm().favoriteIds(req.user?.id)]);
   const users = await require('../discordApi').getUsers([...new Set(reviews.items.map((r) => r.userId).concat(reviews.mine ? [reviews.mine.userId] : []))]).catch(() => ({}));
   const MSG = { voted: 'voted', reported: 'reported', reviewed: 'reviewed', unreviewed: 'unreviewed', rreported: 'rreported', faved: 'faved', unfaved: 'unfaved' };
   const msg = Object.keys(MSG).find((k) => req.query[k]) || null;
-  res.render('communities/show', { title: c.name, c, C: cm(), reviews, extra, similar, users, fav: favs.has(c.id), msg, error: req.query.err ? String(req.query.err).slice(0, 200) : null, base: (process.env.WEB_BASE_URL || '').replace(/\/+$/, '') });
+  res.render('communities/show', { title: c.name, c, C: cm(), preview, platformOwner: Boolean(res.locals.platformQueue), reviews, extra, similar, users, fav: favs.has(c.id), msg, error: req.query.err ? String(req.query.err).slice(0, 200) : null, base: (process.env.WEB_BASE_URL || '').replace(/\/+$/, '') });
 });
 
 // «Присоединиться»: counted, then to the server's invite

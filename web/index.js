@@ -122,6 +122,7 @@ app.use((req, res, next) => {
   res.locals.sysLine = buildLine(res.locals.sys);
   next();
 });
+app.use(require('./middleware/platformQueue')); // «Платформа DARK» with the moderation queue for its owners
 
 app.get('/', (req, res) => res.render('login'));
 app.use('/', legalRoutes); // public pages: /terms and /privacy (required by Discord for the app profile)

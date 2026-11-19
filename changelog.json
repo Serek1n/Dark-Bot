@@ -1,5 +1,32 @@
 [
  {
+  "bot": "3.17.2",
+  "panel": "3.28.2",
+  "date": "2026-11-19",
+  "botChanges": [
+   "Новое сообщество на проверке: бот пишет владельцам платформы в личку со ссылкой на очередь",
+   "Решение модерации бот присылает в личку тому, кто отправил сервер, с комментарием"
+  ],
+  "panelChanges": [
+   "Ссылка «Платформа DARK» со счётчиком очереди: меню профиля, каталог, выбор сервера",
+   "«Модерация каталога» — первым блоком страницы платформы: заявки, жалобы, сводка очереди",
+   "Неопубликованное сообщество — в предпросмотре для владельца и модерации, с решением",
+   "Владелец видит, что карточка ждёт проверки, и может открыть предпросмотр своей страницы"
+  ],
+  "en": {
+   "botChanges": [
+    "A new community on review: the bot DMs the platform owners with a link to the queue",
+    "The bot DMs the moderation decision, with its comment, to whoever sent the server"
+   ],
+   "panelChanges": [
+    "A «DARK Platform» link with the queue count: profile menu, catalog, server picker",
+    "«Catalog moderation» is the first block of the platform page, with a queue summary",
+    "An unpublished community opens as a preview for its owner and moderation",
+    "The owner sees that the card is waiting for review and can open a preview of the page"
+   ]
+  }
+ },
+ {
   "bot": "3.17.1",
   "panel": "3.28.1",
   "date": "2026-11-19",

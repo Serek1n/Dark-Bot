@@ -207,6 +207,7 @@ fs.rmSync(process.env.MEDIA_DIR, { recursive: true, force: true });
   app.use(express.urlencoded({ extended: true }));
   let who = U1;
   app.use((req, res, next) => { req.user = who ? { id: who, username: 'u' } : null; res.locals.user = req.user; req.isAuthenticated = () => Boolean(who); next(); });
+  app.use(require('../web/middleware/platformQueue'));
   app.use('/communities', require('../web/routes/communities'));
   app.use('/dashboard', require('../web/routes/dashboard'));
   app.use('/platform', require('../web/routes/platform'));
@@ -256,6 +257,47 @@ fs.rmSync(process.env.MEDIA_DIR, { recursive: true, force: true });
     assert(pf.includes('Отзывы с жалобами') && pf.includes('Подозрительный отзыв'), 'platform sees it');
     r = await post(`/platform/reviews/${rv.id}`, { action: 'hide' });
     assert(/done=review/.test(r.headers.get('location')) && (await rv.reload()).status === 'hidden', 'hidden by the platform');
+  });
+  await test('a community sent for checking: the owners of the platform are told and find it; its admins preview it', async () => {
+    const dms = [];
+    const users = { fetch: async (id) => ({ id, send: async (m) => { dms.push({ id, m }); } }) };
+    require('../web/botBridge').setClient({ guilds: { cache: guilds }, users, isReady: () => true });
+    await cm.setPlatform(OWNER, { premoderation: true });
+    const G4 = '800000000000000004'; guilds.set(G4, guild(G4, 5));
+    await cm.save(G4, ADMIN, form(4));
+    await new Promise((r) => setTimeout(r, 30));
+    const c4 = await db.Community.findOne({ where: { guildId: G4 } });
+    assert(c4.status === 'pending', c4.status);
+    const dm = dms.find((d) => d.id === OWNER);
+    assert(dm && /ждёт проверки/.test(dm.m.embeds[0].data.title) && /platform#moderation$/.test(dm.m.embeds[0].data.url), 'owner DM: ' + JSON.stringify(dms));
+    assert((await cm.queue()).pending === 1, 'queue');
+    // the platform owner: a link with the count in the menu, the queue at the top of /platform, the page opens
+    who = OWNER;
+    const list = await (await fetch(`${base}/communities`)).text();
+    assert(/href="\/platform#moderation"[^>]*>Платформа DARK <span class="pf-badge"/.test(list), 'link with the badge');
+    const pf = await (await fetch(`${base}/platform`)).text();
+    assert(pf.indexOf('id="moderation"') > 0 && pf.indexOf('id="moderation"') < pf.indexOf('DARK Coins</h2>') && pf.includes('Ждут проверки') && pf.includes(`/communities/${c4.id}`), 'queue on top');
+    let pg = await fetch(`${base}/communities/${c4.id}`);
+    let t = await pg.text();
+    assert(pg.status === 200 && t.includes('Предпросмотр:') && t.includes('action="/platform/moderate"'), 'owner sees the waiting page ' + pg.status);
+    // its admin sees a preview without the decision; a stranger gets 404
+    who = ADMIN;
+    t = await (await fetch(`${base}/communities/${c4.id}`)).text();
+    assert(t.includes('Предпросмотр:') && !t.includes('action="/platform/moderate"'), 'admin preview');
+    assert(!(await (await fetch(`${base}/communities`)).text()).includes('Платформа DARK'), 'no link for others');
+    const own = await (await fetch(`${base}/dashboard/${G4}/community`)).text();
+    assert(own.includes('отправлена на проверку') && own.includes('Предпросмотр страницы'), 'owner page explains');
+    who = U1;
+    assert((await fetch(`${base}/communities/${c4.id}`)).status === 404, 'stranger 404');
+    // the decision: published, the sender is told
+    who = OWNER;
+    const r = await post('/platform/moderate', { id: String(c4.id), status: 'published', note: 'Добро пожаловать' });
+    assert(/done=moderated/.test(r.headers.get('location')), r.headers.get('location'));
+    await new Promise((res) => setTimeout(res, 30));
+    const told = dms.find((d) => d.id === ADMIN);
+    assert(told && /опубликовано/.test(told.m.embeds[0].data.title) && /Добро пожаловать/.test(told.m.embeds[0].data.description), 'sender DM');
+    assert((await cm.queue()).pending === 0, 'queue empty');
+    await cm.setPlatform(OWNER, { premoderation: false });
   });
   server.close();
 

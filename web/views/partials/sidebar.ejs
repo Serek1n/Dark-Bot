@@ -41,11 +41,12 @@
       </button>
       <% if (typeof user !== 'undefined' && user) { %>
         <details class="tb-user">
-          <summary aria-label="Профиль"><img src="<%= user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : 'https://cdn.discordapp.com/embed/avatars/0.png' %>" alt="" data-fallback="https://cdn.discordapp.com/embed/avatars/0.png" /></summary>
+          <summary aria-label="Профиль"<%- locals.platformQueue && platformQueue.total ? ' class="has-queue"' : '' %>><img src="<%= user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : 'https://cdn.discordapp.com/embed/avatars/0.png' %>" alt="" data-fallback="https://cdn.discordapp.com/embed/avatars/0.png" /></summary>
           <div class="tb-user-menu">
             <div class="tb-user-name"><%= user.global_name || user.username %></div>
             <%- include('season-switch', { variant: 'row' }) %>
             <a href="/dashboard">Все серверы</a>
+            <%- include('platform-link') %>
             <% if (locals.sys) { %><a href="/dashboard/<%= gid %>/changelog">Бот v<%= sys.bot %> · панель v<%= sys.panel %></a><% } %>
             <form method="post" action="/auth/logout"><button type="submit">Выйти</button></form>
           </div>

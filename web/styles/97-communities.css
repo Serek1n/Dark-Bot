@@ -291,3 +291,13 @@
 .cm-shot-links summary { cursor: pointer; color: var(--fog); font-size: var(--fs-13); width: max-content; }
 .cm-bad { color: var(--danger) !important; }
 @media (pointer: coarse) { .cm-shot-x { width: 36px; height: 36px; } }
+
+/* «Платформа DARK» for its owners: the size of the moderation queue */
+.pf-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--ember); color: var(--on-ember); font-size: var(--fs-12); font-weight: 700; line-height: 1; }
+.tb-user > summary.has-queue { position: relative; }
+.tb-user > summary.has-queue::after { content: ""; position: absolute; top: 3px; right: 3px; width: 10px; height: 10px; border-radius: 50%; background: var(--ember); box-shadow: 0 0 0 2px var(--panel); }
+.tb-user-menu .pf-badge { margin-left: 6px; }
+.picker-platform { margin: 0 0 16px; }
+#moderation { margin-bottom: 16px; scroll-margin-top: 16px; }
+.cm-pending-note { margin: 0 0 12px; }
+.cm-preview-bar { display: grid; gap: 12px; border-color: var(--ember); }
