@@ -4923,5 +4923,14 @@
  " отзывов с жалобами.": " reviews with complaints.",
  "Очередь пуста: новых заявок и жалоб нет.": "The queue is empty: no new requests or complaints.",
  " Предмодерация выключена — новые сообщества публикуются сразу.": " Premoderation is off — new communities are published at once.",
- "Сервер ⟦0⟧ · отправлено": "Server ⟦0⟧ · sent"
+ "Сервер ⟦0⟧ · отправлено": "Server ⟦0⟧ · sent",
+ "Платформа DARK: очередь модерации каталога (для владельцев платформы)": "DARK Platform: the catalog moderation queue (for platform owners)",
+ "Эта команда — только для владельцев платформы DARK.": "This command is for the owners of the DARK platform only.",
+ "• {0} — сервер `{1}`": "• {0} — server `{1}`",
+ "Ждут решения: **{0}**": "Waiting for a decision: **{0}**",
+ "На проверке": "On review",
+ "Жалобы на сообщества": "Complaints about communities",
+ "Сообщества на проверке": "Communities on review",
+ "Открыть модерацию": "Open moderation",
+ "WEB_BASE_URL не задан — откройте /platform на сайте панели": "WEB_BASE_URL is not set — open /platform on the panel site"
 }

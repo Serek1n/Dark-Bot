@@ -299,6 +299,26 @@ fs.rmSync(process.env.MEDIA_DIR, { recursive: true, force: true });
     assert((await cm.queue()).pending === 0, 'queue empty');
     await cm.setPlatform(OWNER, { premoderation: false });
   });
+  await test('an empty BOT_OWNER_IDS: the owner of the application is the platform owner; /platform shows the queue', async () => {
+    const coins = require('../bot/modules/darkCoins');
+    const keep = process.env.BOT_OWNER_IDS;
+    process.env.BOT_OWNER_IDS = '';
+    assert(!coins.isPlatformOwner(OWNER), 'nobody before the app is read');
+    coins.setAppOwners([U2]);
+    assert(coins.isPlatformOwner(U2) && !coins.isPlatformOwner(OWNER), 'app owner stands in');
+    process.env.BOT_OWNER_IDS = keep;
+    assert(coins.isPlatformOwner(OWNER) && !coins.isPlatformOwner(U2), 'the env list wins when filled');
+    const cmd = require('../bot/commands/utility/platform');
+    let got = null;
+    const it = (id) => ({ user: { id }, reply: async (r) => { got = r; } });
+    await cmd.execute(it(U1));
+    assert(/только для владельцев/.test(got.embeds[0].data.description), 'refused');
+    await cm.save('800000000000000005', ADMIN, form(5));
+    await db.Community.update({ status: 'pending' }, { where: { guildId: '800000000000000005' } });
+    await cmd.execute(it(OWNER));
+    const e = got.embeds[0].data;
+    assert(/Ждут решения/.test(e.description) && e.fields.some((f) => f.name === 'Сообщества на проверке' && /Сервер 5/.test(f.value)) && /platform#moderation$/.test(got.components[0].components[0].data.url), JSON.stringify(e));
+  });
   server.close();
 
   results.forEach((r) => console.log(r.ok ? '✅' : '❌', r.l, r.ok ? '' : '\n   ' + r.e));

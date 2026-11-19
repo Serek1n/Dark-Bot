@@ -614,9 +614,9 @@ async function queue() {
   ]);
   return { pending, reports, reviews, total: pending + reports + reviews };
 }
-/** A community sent for checking: a direct message to every platform owner (BOT_OWNER_IDS) with a link to the queue. */
+/** A community sent for checking: a direct message to every platform owner with a link to the queue. */
 async function notifyPending(c) {
-  const ids = (process.env.BOT_OWNER_IDS || '').split(',').map((x) => x.trim()).filter((x) => /^\d{15,25}$/.test(x));
+  const ids = coins().owners().filter((x) => /^\d{15,25}$/.test(x));
   const cl = client();
   if (!ids.length || !cl?.users?.fetch) return 0;
   const { EmbedBuilder } = require('discord.js');

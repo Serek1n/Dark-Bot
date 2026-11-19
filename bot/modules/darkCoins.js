@@ -15,7 +15,13 @@ class CoinError extends Error {}
 const db = () => require('../../db');
 const MAX_GRANT = 10_000_000;
 const DAY = 86400000;
-const owners = () => (process.env.BOT_OWNER_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
+// The platform owners: BOT_OWNER_IDS, or — when it is not filled in — the owner of the bot's application in the Discord
+// Developer Portal (read at start, see bot/events/ready.js). Without that fallback an empty BOT_OWNER_IDS left /platform
+// closed to everybody and nobody could check the communities sent for review.
+let appOwners = [];
+const envOwners = () => (process.env.BOT_OWNER_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
+const owners = () => (envOwners().length ? envOwners() : appOwners);
+const setAppOwners = (ids) => { appOwners = (ids || []).map(String).filter((x) => /^\d{15,25}$/.test(x)); return appOwners; };
 const isPlatformOwner = (userId) => Boolean(userId) && owners().includes(String(userId));
 const isWallet = (v) => /^g?\d{15,25}$/.test(String(v || ''));
 const guildWallet = (guildId) => `g${guildId}`;
@@ -324,7 +330,7 @@ function startDarkCoinsScheduler() {
 const newKey = () => require('crypto').randomBytes(12).toString('hex');
 
 module.exports = {
-  CoinError, EARN_DEFAULTS, isPlatformOwner, isWallet, guildWallet, accountAge, earnSettings, setEarnSettings, walletOf, balanceOf, isFrozen, history, move,
+  CoinError, EARN_DEFAULTS, isPlatformOwner, owners, envOwners, setAppOwners, isWallet, guildWallet, accountAge, earnSettings, setEarnSettings, walletOf, balanceOf, isFrozen, history, move,
   grant, revoke, setFrozen, charge, reward, queueReward, settlePending, decidePending, emittedToday, onMemberJoined, onVote, claimDaily, dailyState,
   checkQuests, payWeeklyTop, isoWeek, startDarkCoinsScheduler, newKey, MAX_GRANT
 };

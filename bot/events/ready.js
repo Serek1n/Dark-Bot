@@ -43,6 +43,12 @@ module.exports = {
       const removed = await require('../../db').MemberProfile.destroy({ where: { userId: [...botIds] } });
       if (removed) logger.info(`Removed ${removed} profile(s) of bots from leaderboards`);
     })().catch((err) => logger.warn(`Bot profiles cleanup failed: ${err.message}`));
+    // the owner of the application stands in for an empty BOT_OWNER_IDS on /platform (DARK Coins, catalog moderation)
+    client.application?.fetch?.().then((app) => {
+      const o = app?.owner;
+      const ids = require('../modules/darkCoins').setAppOwners(o?.ownerId ? [o.ownerId] : o?.id ? [o.id] : []);
+      if (!require('../modules/darkCoins').envOwners().length) logger.info(`BOT_OWNER_IDS is empty: the platform owner is the owner of the application (${ids.join(', ') || 'unknown'})`);
+    }).catch((err) => logger.warn(`Application owner not read: ${err.message}`));
     require('../modules/communities').adoptOldPictures().catch(() => {}); // catalog pictures from Discord links → kept by the bot
     require('../modules/serverStats').startServerStats(client); // «Статистика сервера»: numbers by day, counters in channel names
     require('../modules/tempRoles').startTempRoleScheduler(client); // takes temporary roles away when their time is up
