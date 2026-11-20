@@ -1,6 +1,35 @@
 [
  {
   "bot": "3.19.3",
+  "panel": "3.30.3",
+  "date": "2026-11-20",
+  "botChanges": [],
+  "panelChanges": [
+   "Главная: число участников крупнее, остальные плашки компактнее",
+   "Цифры на плашках статистики — обычным цветом, акцент остался у живых счётчиков",
+   "Ровные отступы в карточках: текст и поля под заголовком стоят на одном расстоянии",
+   "Экономика: названия валют в заголовках и подписях с заглавной буквы",
+   "Подписи групп и статусы — обычным регистром вместо заглавных букв",
+   "Шрифт спокойнее: самые жирные начертания заменены на полужирное",
+   "«Бот не в сети» показывается один раз — в блоке «Требует внимания»",
+   "Сезон Vice Nights тише: без неонового свечения и градиентного текста"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Home: the member count is larger, the other tiles are compact",
+    "Figures on stat tiles use the text colour; the accent stays on live counters",
+    "Even spacing in cards: text and fields sit at one distance under the heading",
+    "Economy: currency names start with a capital in headings and labels",
+    "Group labels and statuses use sentence case instead of capitals",
+    "Calmer type: the boldest weights are replaced by semibold",
+    "«Bot offline» is shown once, in the «Needs attention» block",
+    "Vice Nights season is quieter: no neon glow or gradient text"
+   ]
+  }
+ },
+ {
+  "bot": "3.19.3",
   "panel": "3.30.2",
   "date": "2026-11-20",
   "botChanges": [
