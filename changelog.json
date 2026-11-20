@@ -1,6 +1,23 @@
 [
  {
   "bot": "3.19.3",
+  "panel": "3.30.5",
+  "date": "2026-11-20",
+  "botChanges": [],
+  "panelChanges": [
+   "Платформа DARK: кнопка «Сохранить настройки» едет за экраном, только когда есть изменения",
+   "Уход со страницы с несохранёнными настройками платформы спрашивает подтверждение"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "DARK Platform: the «Save settings» bar follows the screen only when there are changes",
+    "Leaving the page with unsaved platform settings asks first"
+   ]
+  }
+ },
+ {
+  "bot": "3.19.3",
   "panel": "3.30.4",
   "date": "2026-11-20",
   "botChanges": [],

@@ -757,3 +757,16 @@
   });
   if (changed) { var q = params.toString(); history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); }
 })();
+
+// --- «Платформа DARK» → Настройки: the save bar sits at the end of the form and only follows the screen once something
+// in the form was changed; leaving the page with unsaved changes asks first.
+(function () {
+  var f = document.querySelector('form.pf-config');
+  if (!f) return;
+  var saving = false;
+  function mark() { f.classList.add('is-dirty'); }
+  f.addEventListener('input', mark);
+  f.addEventListener('change', mark);
+  f.addEventListener('submit', function () { saving = true; });
+  window.addEventListener('beforeunload', function (e) { if (f.classList.contains('is-dirty') && !saving) { e.preventDefault(); e.returnValue = ''; } });
+})();

@@ -5160,5 +5160,6 @@
  "Монет в пакете": "Coins in the package",
  "Цена в звёздах": "Price in Stars",
  "Цены, пакеты и правила сохраняются вместе": "Prices, packages and rules are saved together",
- "Сохранить настройки": "Save settings"
+ "Сохранить настройки": "Save settings",
+ "Цены, пакеты и правила сохраняются вместе⟦0⟧⟦1⟧Есть несохранённые изменения": "Prices, packages and rules are saved together⟦0⟧⟦1⟧There are unsaved changes"
 }
