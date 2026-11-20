@@ -1,6 +1,29 @@
 [
  {
   "bot": "3.19.5",
+  "panel": "3.31.0",
+  "date": "2026-11-20",
+  "botChanges": [],
+  "panelChanges": [
+   "Приветствие: автороль и возвращение участника — на отдельной вкладке «Автороль и возврат»",
+   "Язык бота на сервере — на новой вкладке «Общие» рядом с «Модулями»",
+   "Логи сервера: «Сохранить» больше ничего не создаёт в Discord, форум подключается кнопкой",
+   "Логи сервера: статус подключения, кнопки «Пересоздать недостающие темы» и «Отключить логи»",
+   "Панели комнат и вебхуков: видно, где опубликовано сообщение, со ссылкой на него"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Welcome: autorole and returning members moved to their own «Autorole and return» tab",
+    "The bot's language on the server moved to a new «General» tab next to «Modules»",
+    "Server logs: «Save» no longer creates anything in Discord; a button connects the forum",
+    "Server logs: connection status, «Recreate missing topics» and «Switch logs off» buttons",
+    "Room and webhook panels show where the message is published, with a link to it"
+   ]
+  }
+ },
+ {
+  "bot": "3.19.5",
   "panel": "3.30.6",
   "date": "2026-11-20",
   "botChanges": [

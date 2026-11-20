@@ -27,6 +27,20 @@ router.get('/:guildId/logs', ensureGuildAccess, async (req, res) => {
   });
 });
 
+/** What is written and what is left out: the categories, channels, roles and bots (nothing in Discord changes). */
+async function saveConfig(settings, body, guildId) {
+  const enabled = new Set(LOG_KEYS.filter((k) => body['cat_' + k] === 'on'));
+  settings.logDisabled = JSON.stringify(LOG_KEYS.filter((k) => !enabled.has(k)));
+  // What is left out: only channels and roles of this server, at most 100 of each
+  const [allChannels, allRoles] = await Promise.all([getGuildChannels(guildId), getGuildRoles(guildId).catch(() => [])]);
+  const list = (v) => [].concat(v || []).map(snowflake).filter(Boolean);
+  const chIds = new Set(allChannels.map((c) => c.id)); const roleIds = new Set((allRoles || []).map((r) => r.id));
+  settings.logIgnoreChannels = JSON.stringify([...new Set(list(body.logIgnoreChannels))].filter((id) => chIds.has(id)).slice(0, 100));
+  settings.logIgnoreRoles = JSON.stringify([...new Set(list(body.logIgnoreRoles))].filter((id) => roleIds.has(id) && id !== guildId).slice(0, 100));
+  settings.logIgnoreBots = body.logIgnoreBots === 'on';
+  settingsChanged(guildId, 'logs');
+}
+
 router.post('/:guildId/logs', ensureGuildAccess, async (req, res) => {
   const guildId = req.params.guildId;
   const settings = await getSettings(guildId);
@@ -43,16 +57,11 @@ router.post('/:guildId/logs', ensureGuildAccess, async (req, res) => {
     return back('logoff');
   }
 
-  const enabled = new Set(LOG_KEYS.filter((k) => req.body['cat_' + k] === 'on'));
-  settings.logDisabled = JSON.stringify(LOG_KEYS.filter((k) => !enabled.has(k)));
-  // What is left out: only channels and roles of this server, at most 100 of each
-  const [allChannels, allRoles] = await Promise.all([getGuildChannels(guildId), getGuildRoles(guildId).catch(() => [])]);
-  const list = (v) => [].concat(v || []).map(snowflake).filter(Boolean);
-  const chIds = new Set(allChannels.map((c) => c.id)); const roleIds = new Set((allRoles || []).map((r) => r.id));
-  settings.logIgnoreChannels = JSON.stringify([...new Set(list(req.body.logIgnoreChannels))].filter((id) => chIds.has(id)).slice(0, 100));
-  settings.logIgnoreRoles = JSON.stringify([...new Set(list(req.body.logIgnoreRoles))].filter((id) => roleIds.has(id) && id !== guildId).slice(0, 100));
-  settings.logIgnoreBots = req.body.logIgnoreBots === 'on';
-  settingsChanged(guildId, 'logs');
+  // The page has two forms: «save» changes only what is written (nothing in Discord), «connect»/«setup» only the forum,
+  // its topics and the webhook. A form without an action (older pages) does both, as it used to.
+  const action = String(req.body.action || '');
+  if (action !== 'connect' && action !== 'setup') await saveConfig(settings, req.body, guildId);
+  if (action === 'save') { await settings.save(); return back('saved'); }
 
   const forumId = snowflake(req.body.logForumChannelId);
   if (!forumId) {
@@ -66,7 +75,7 @@ router.post('/:guildId/logs', ensureGuildAccess, async (req, res) => {
     return back(forumId === settings.logForumChannelId ? 'saved' : 'lognoforum');
   }
   const sameForum = forumId === settings.logForumChannelId;
-  if (sameForum && req.body.action !== 'setup' && settings.logWebhookId) {
+  if (sameForum && action !== 'setup' && settings.logWebhookId) {
     await settings.save();
     return back('saved');
   }

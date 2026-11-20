@@ -475,3 +475,22 @@ td form .btn, td > .btn { white-space: nowrap; }
 /* a form card already spaces its blocks with the form's 16 px gap: the heading's own margin on top of it left 30 px
    under the title, against 14 in the other cards */
 form.card > h2 { margin-bottom: 0; }
+
+/* ---------------------------------------------------------------------------------------------------------------------
+   What the bot has done in Discord, kept apart from the settings: the logs forum, the panels with buttons
+   --------------------------------------------------------------------------------------------------------------------- */
+.log-conn, .deploy-status { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 16px; border-radius: var(--r-12); background: var(--panel-raised); }
+.log-conn > div, .deploy-status > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.log-conn b, .deploy-status b { font-weight: 500; color: var(--paper); }
+.log-conn small, .deploy-status span:not(.ds-dot) { font-size: var(--fs-13); color: var(--fog); }
+.deploy-status a { font-size: var(--fs-13); }
+.ds-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--fog-dim); flex: 0 0 10px; }
+.log-conn.on .ls-dot, .deploy-status.on .ds-dot { background: var(--success); box-shadow: 0 0 0 4px var(--success-tint); }
+.log-conn.off .ls-dot { background: var(--fog-dim); box-shadow: none; }
+.content form.log-conn-form { display: flex; flex-direction: row; align-items: flex-end; gap: 12px; margin: 0 0 8px; }
+.log-conn-form > div { flex: 1; min-width: 0; }
+.log-conn-form select { margin: 0; }
+.log-conn-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--hairline-soft); }
+.content .log-conn-acts form { margin: 0; }
+.settings-tabs { margin: 12px 0 16px; }
+@media (max-width: 600px) { .content form.log-conn-form { flex-direction: column; align-items: stretch; } }

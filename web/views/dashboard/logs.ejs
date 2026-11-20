@@ -17,35 +17,49 @@
          const catOf = (c) => (cats[c.parent_id] || {}).name || 'Без категории';
          const logChannels = channels.filter(c => [0, 2, 5, 13, 15].includes(c.type)).sort((x, y) => ((cats[x.parent_id] || {}).position ?? -1) - ((cats[y.parent_id] || {}).position ?? -1) || (x.position || 0) - (y.position || 0)); %>
       <div class="log-status <%= forumNow ? 'on' : 'off' %>">
-        <div class="ls-item"><span class="ls-dot"></span><div><b><%= forumNow ? 'Логи пишутся' : 'Логи не подключены' %></b><small><%= forumNow ? 'в форум #' + forumNow.name : 'выберите форум ниже и сохраните' %></small></div></div>
+        <div class="ls-item"><span class="ls-dot"></span><div><b><%= forumNow ? 'Логи пишутся' : 'Логи не подключены' %></b><small><%= forumNow ? 'в форум #' + forumNow.name : 'подключите форум ниже' %></small></div></div>
         <div class="ls-item"><b><%= onCount %> из <%= categories.length %></b><small>видов событий записывается</small></div>
         <div class="ls-item"><b><%= ignoreChannels.length + ignoreRoles.length + (settings.logIgnoreBots ? 1 : 0) %></b><small>исключений в «Что не записывать»</small></div>
       </div>
 
-      <form method="post" class="card g-span logs-card">
-        <h2>Куда писать логи</h2>
-        <div>
-          <label>Форум для логов</label>
-          <select name="logForumChannelId">
-            <option value="">— не выбрано —</option>
-            <% forums.forEach(c => { %>
-              <option value="<%= c.id %>" <%= settings.logForumChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
-            <% }) %>
-            <% if (settings.logForumChannelId && !forums.some(c => c.id === settings.logForumChannelId)) { %>
-              <option value="<%= settings.logForumChannelId %>" selected>Форум удалён — выберите другой</option>
-            <% } %>
-          </select>
-          <% if (settings.logForumChannelId && !forums.some(c => c.id === settings.logForumChannelId)) { %>
-            <p class="hint">Сохранённый форум логов больше не существует: логи не пишутся. Выберите другой форум или отключите логи.</p>
-          <% } %>
-          <% if (!forums.length) { %>
-            <p class="hint">На сервере нет форумов. Создайте канал типа «Форум» (лучше закрытый для обычных участников) и обновите страницу.</p>
-          <% } else { %>
-            <p class="hint">Боту нужны права «Управлять каналами» и «Управлять вебхуками», а в самом форуме — доступ на просмотр и отправку сообщений. Теги и темы бот создаёт сам. Чтобы в записях было видно, <b>кто</b> сделал изменение, дайте боту право «Просмотр журнала аудита».</p>
-          <% } %>
+      <% const forumGone = settings.logForumChannelId && !forumNow; %>
+      <section class="card g-span logs-card" id="connect">
+        <h2>Подключение к Discord<span class="sub">Форум, его теги и темы и системный вебхук, через который пишутся записи</span></h2>
+        <div class="log-conn <%= forumNow ? 'on' : 'off' %>">
+          <span class="ls-dot" aria-hidden="true"></span>
+          <div><b><%= forumNow ? 'Подключено: #' + forumNow.name : forumGone ? 'Форум логов удалён' : 'Не подключено' %></b>
+            <small><%= forumNow ? 'Бот пишет записи в темы этого форума.' : forumGone ? 'Логи не пишутся. Подключите другой форум или отключите логи.' : 'Выберите форум и нажмите «Подключить форум»: бот создаст теги, темы и вебхук.' %></small></div>
         </div>
+        <form method="post" class="log-conn-form" data-no-guard>
+          <input type="hidden" name="action" value="connect" />
+          <div>
+            <label for="logForum">Форум для логов</label>
+            <select name="logForumChannelId" id="logForum" required>
+              <option value="">— не выбрано —</option>
+              <% forums.forEach(c => { %>
+                <option value="<%= c.id %>" <%= settings.logForumChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+              <% }) %>
+            </select>
+          </div>
+          <button class="btn<%= forumNow ? ' btn-secondary' : '' %>" type="submit"><%= forumNow ? 'Сменить форум' : 'Подключить форум' %></button>
+        </form>
+        <% if (!forums.length) { %>
+          <p class="hint">На сервере нет форумов. Создайте канал типа «Форум» (лучше закрытый для обычных участников) и обновите страницу.</p>
+        <% } else { %>
+          <p class="hint">Боту нужны права «Управлять каналами» и «Управлять вебхуками», а в самом форуме — доступ на просмотр и отправку сообщений. Чтобы в записях было видно, <b>кто</b> сделал изменение, дайте боту право «Просмотр журнала аудита».</p>
+        <% } %>
+        <% if (settings.logForumChannelId) { %>
+          <div class="log-conn-acts">
+            <form method="post" data-no-guard><input type="hidden" name="logForumChannelId" value="<%= settings.logForumChannelId %>" /><button class="btn btn-secondary" type="submit" name="action" value="setup">Пересоздать недостающие темы</button></form>
+            <form method="post" data-no-guard><button class="btn btn-danger" type="submit" name="action" value="off" data-confirm="Отключить логи? Темы в форуме останутся, но бот перестанет в них писать." data-confirm-ok="Отключить">Отключить логи</button></form>
+          </div>
+          <p class="hint">«Пересоздать недостающие темы» — если тему или вебхук удалили вручную в Discord.</p>
+        <% } %>
+      </section>
 
-        <h2 style="margin-top:22px;">Что записывать</h2>
+      <form method="post" class="card g-span logs-card">
+        <input type="hidden" name="action" value="save" />
+        <h2>Что записывать</h2>
         <div class="switch-list">
           <% categories.forEach(c => { %>
             <div class="checkbox-row feature-row">
@@ -78,14 +92,8 @@
         </div>
         <p class="hint">Например, модераторы. Входы, выходы и наказания всё равно записываются — они важны для безопасности.</p>
 
-        <div class="actions" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;">
-          <button class="btn" type="submit" name="action" value="save">Сохранить</button>
-          <% if (settings.logForumChannelId) { %>
-            <button class="btn btn-secondary" type="submit" name="action" value="setup">Пересоздать недостающие темы</button>
-            <button class="btn btn-danger" type="submit" name="action" value="off" data-confirm="Отключить логи? Темы в форуме останутся, но бот перестанет в них писать." data-confirm-ok="Отключить">Отключить</button>
-          <% } %>
-        </div>
-        <p class="hint">Первое сохранение с выбранным форумом создаёт теги, вебхук и темы. Если тему удалили вручную — нажмите «Пересоздать недостающие темы». Изменения доходят до бота в течение полуминуты.</p>
+        <button class="btn" type="submit">Сохранить</button>
+        <p class="hint">Сохранение меняет только эти настройки, в Discord ничего не создаётся. Изменения доходят до бота в течение полуминуты.</p>
       </form>
     </main>
   </div>

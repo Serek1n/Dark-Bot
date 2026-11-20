@@ -124,6 +124,19 @@ WebhookClient.prototype.send = capture;
     const r2 = await post({ logForumChannelId: FORUM, action: 'setup', ...allOn });
     assert(r2.headers.get('location').includes('logready') && state.threads.size === 8, 'repaired');
   });
+  await test('route: the settings form only saves (no Discord), the connection form only connects (keeps what is written)', async () => {
+    state.log.length = 0;
+    let r = await post({ action: 'save', logForumChannelId: '900000000000000009', cat_messages: 'on' });
+    let s = await settings();
+    assert(r.headers.get('location').includes('saved') && !state.log.length && s.logForumChannelId === FORUM, 'save: no Discord calls, forum kept ' + JSON.stringify(state.log));
+    assert(JSON.parse(s.logDisabled).length === 7, 'save stored the switches');
+    r = await post({ action: 'connect', logForumChannelId: FORUM });
+    s = await settings();
+    assert(JSON.parse(s.logDisabled).length === 7, 'connect did not touch the switches ' + s.logDisabled);
+    await post({ action: 'save', ...allOn });
+    const html = await (await fetch(base + '/logs')).text();
+    assert(html.includes('Подключено: #logs-forum') && html.includes('value="connect"') && html.includes('value="save"'), 'two forms');
+  });
   await test('route: not a forum / no rights / switching off are answered clearly', async () => {
     state.forumType = 0; let r = await post({ logForumChannelId: '900000000000000009', ...allOn }); // a different id -> a new setup attempt
     state.forumType = 15; assert(true);

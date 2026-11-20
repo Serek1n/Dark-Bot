@@ -111,7 +111,7 @@ const LAYOUT = [
   { key: 'tickets', group: 'moderation', pages: [],
     stats: async (g) => { const { Ticket } = db(); return [{ value: await Ticket.count(where(g, { status: 'open' })), label: 'открытых обращений' }]; } },
   { key: 'logs', group: 'moderation', pages: ['logs'] },
-  { key: 'welcome', group: 'server', pages: ['welcome'] },
+  { key: 'welcome', group: 'server', pages: ['welcome', 'welcome-rejoin'] },
   { key: 'serverStats', group: 'server', pages: ['server-stats', 'server-stats-channels'],
     stats: async (g) => {
       const ss = require('../bot/modules/serverStats');
@@ -178,9 +178,9 @@ const MODULES = LAYOUT.map((m) => {
 const BY_KEY = new Map(MODULES.map((m) => [m.key, m]));
 
 // Pages that are not a module's: what to show in their header instead.
-const PAGE_TITLES = { overview: 'Главная', features: 'Модули', changelog: 'Обновления' };
+const PAGE_TITLES = { overview: 'Главная', features: 'Модули', settings: 'Общие настройки', changelog: 'Обновления' };
 // The tabs of a module with several pages (its header shows them; the search finds each).
-const PAGE_LABELS = { leveling: 'Настройки', 'channel-boosts': 'Множители',
+const PAGE_LABELS = { leveling: 'Настройки', 'channel-boosts': 'Множители', welcome: 'Сообщения', 'welcome-rejoin': 'Автороль и возврат',
   moderation: 'Обзор', 'moderation-punishments': 'Наказания', 'moderation-warnings': 'Предупреждения', 'moderation-auto': 'Автонаказания',
   'moderation-reports': 'Жалобы', 'moderation-appeals': 'Апелляции', 'moderation-log': 'Журнал', 'moderation-settings': 'Настройки',
   'temp-voice': 'Обзор', 'temp-voice-rooms': 'Создание комнат', 'temp-voice-panel': 'Панель управления', 'temp-voice-access': 'Права доступа',

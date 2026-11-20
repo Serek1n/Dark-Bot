@@ -108,7 +108,7 @@ const F = PermissionsBitField.Flags;
   // ---- the panel ----
   const app = express(); app.set('view engine', 'ejs'); app.set('views', path.join(__dirname, '..', 'web', 'views')); app.use(express.urlencoded({ extended: true }));
   app.use('/dashboard', require('../web/routes/dashboard')); app.use((err, q, s, nx) => s.status(500).send(String(err.stack)));
-  const server = app.listen(0); const base = `http://127.0.0.1:${server.address().port}/dashboard/777000000000000001/welcome`;
+  const server = app.listen(0); const base = `http://127.0.0.1:${server.address().port}/dashboard/777000000000000001/welcome-rejoin`;
   const post = (b) => fetch(base, { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(b).toString() });
   await test('panel: the three settings are shown, saved, and the days are kept within limits', async () => {
     let html = await (await fetch(base)).text(); assert(/name="restoreOnRejoin"[^>]*checked/.test(html) && !/name="restoreStaffRoles"[^>]*checked/.test(html), 'defaults');

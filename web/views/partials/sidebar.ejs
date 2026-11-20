@@ -24,7 +24,7 @@
     </a>
     <nav class="tb-groups" aria-label="Разделы панели">
       <a href="/dashboard/<%= gid %>" class="tb-group<%= active === 'overview' ? ' is-on' : '' %>"<%- active === 'overview' ? ' aria-current="page"' : '' %>>Главная</a>
-      <button type="button" class="tb-group tb-mods<%= inModule || active === 'features' ? ' is-on' : '' %>" data-mods-open aria-expanded="false" aria-controls="modsMenu">Модули <span class="tb-count" data-mods-count><%= mods.on %></span><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg></button>
+      <button type="button" class="tb-group tb-mods<%= inModule || active === 'features' || active === 'settings' ? ' is-on' : '' %>" data-mods-open aria-expanded="false" aria-controls="modsMenu">Модули <span class="tb-count" data-mods-count><%= mods.on %></span><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg></button>
       <a href="/dashboard/<%= gid %>/changelog" class="tb-group<%= active === 'changelog' ? ' is-on' : '' %>"<%- active === 'changelog' ? ' aria-current="page"' : '' %>>Обновления</a>
       <a href="/communities" class="tb-group">Сообщества</a>
     </nav>
@@ -99,7 +99,7 @@
     <nav class="nd-nav" aria-label="Меню панели">
       <div class="nd-group">
         <a href="/dashboard/<%= gid %>" class="<%= active === 'overview' ? 'active' : '' %>" title="Главная — сводка по серверу"><%- M.icon('home', 17) %><span class="nl"><b>Главная</b><small>Сводка по серверу</small></span></a>
-        <a href="/dashboard/<%= gid %>/features" class="<%= active === 'features' ? 'active' : '' %>" title="Модули — что включено на сервере"><%- M.icon('modules', 17) %><span class="nl"><b>Модули</b><small>Что включено на сервере</small></span></a>
+        <a href="/dashboard/<%= gid %>/features" class="<%= active === 'features' || active === 'settings' ? 'active' : '' %>" title="Модули — что включено на сервере"><%- M.icon('modules', 17) %><span class="nl"><b>Модули</b><small>Что включено на сервере</small></span></a>
         <a href="/dashboard/<%= gid %>/changelog" class="<%= active === 'changelog' ? 'active' : '' %>" title="Обновления — что нового в боте и панели"><%- M.icon('changelog', 17) %><span class="nl"><b>Обновления</b><small>Что нового в боте и панели</small></span></a>
         <a href="/communities" title="Сообщества — публичный каталог серверов"><%- M.icon('listing', 17) %><span class="nl"><b>Сообщества</b><small>Публичный каталог серверов</small></span></a>
       </div>

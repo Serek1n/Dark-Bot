@@ -32,7 +32,7 @@
         <div class="card"><p>Не удалось загрузить список вебхуков: <%= error %></p></div>
       <% } %>
 
-      <form method="post" class="card">
+      <form method="post" class="card" data-no-guard>
         <h2>Новый вебхук</h2>
         <div class="two-col">
           <div>
@@ -58,6 +58,7 @@
 
       <form method="post" action="/dashboard/<%= guild.id %>/webhooks/panel" class="card" data-no-guard>
         <h2>Панель управления в Discord</h2>
+        <%- include('../partials/deploy-status', { channelId: settings && settings.webhookPanelChannelId, messageId: settings && settings.webhookPanelMessageId, channels }) %>
         <div class="hint">Сообщение с кнопками (создать, список, отправить, изменить, удалить), как у личных комнат. Нажимать их могут только те, у кого есть право «Управлять вебхуками».</div>
         <label>Канал</label>
         <select name="channelId" required>
@@ -65,8 +66,8 @@
             <option value="<%= c.id %>" <%= settings && settings.webhookPanelChannelId === c.id ? 'selected' : '' %>># <%= c.name %></option>
           <% }) %>
         </select>
-        <% if (settings && settings.webhookPanelMessageId) { %><div class="hint">Панель уже размещена. Если разместить заново, старое сообщение будет удалено.</div><% } %>
-        <button class="btn" type="submit"><%= settings && settings.webhookPanelMessageId ? 'Разместить заново' : 'Разместить панель' %></button>
+        <% if (settings && settings.webhookPanelMessageId) { %><div class="hint">Если опубликовать заново, старое сообщение будет удалено.</div><% } %>
+        <button class="btn" type="submit"><%= settings && settings.webhookPanelMessageId ? 'Опубликовать заново' : 'Опубликовать панель' %></button>
       </form>
 
       <div class="card">

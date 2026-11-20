@@ -1,0 +1,10 @@
+<%# Where a message with buttons that the bot posted lives now: «Опубликовано в #канал» with a link to it, or «Не опубликовано».
+    Params: channelId, messageId, channels (to name the channel). %>
+<% const dsCh = channelId ? (channels || []).find((c) => c.id === channelId) : null; const dsOn = Boolean(messageId && dsCh); %>
+<div class="deploy-status <%= dsOn ? 'on' : 'off' %>" role="status">
+  <span class="ds-dot" aria-hidden="true"></span>
+  <div>
+    <b><%= dsOn ? 'Опубликовано в #' + dsCh.name : messageId ? 'Канал панели удалён' : 'Не опубликовано' %></b>
+    <% if (dsOn) { %><a href="https://discord.com/channels/<%= guild.id %>/<%= channelId %>/<%= messageId %>" target="_blank" rel="noopener">Открыть сообщение в Discord</a><% } else { %><span><%= messageId ? 'Опубликуйте панель в другом канале.' : 'Выберите канал и опубликуйте панель.' %></span><% } %>
+  </div>
+</div>

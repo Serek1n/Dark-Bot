@@ -25,17 +25,29 @@ router.post('/:guildId/welcome', ensureGuildAccess, async (req, res) => {
   settings.welcomeCard = req.body.welcomeCard === 'on';
   const missing = await pickChannels(req.body, settings, req.params.guildId, { welcomeChannelId: settings.welcomeCard ? 'card' : 'post', leaveChannelId: 'post' });
   settings.leaveMessage = String(req.body.leaveMessage || '').trim().slice(0, 1800) || (settings.leaveEmbed ? '' : settings.leaveMessage);
+  await settings.save();
+  res.redirect(missing.length ? noPerm(req.params.guildId, 'welcome', missing) : saved(req.params.guildId, 'welcome'));
+});
+
+// ---- Autorole and a member who comes back (its own tab: these are about roles, not about messages) ----
+router.get('/:guildId/welcome-rejoin', ensureGuildAccess, async (req, res) => {
+  const [guild, settings, allRoles, guard] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildRoles(req.params.guildId), roleGuard(req.params.guildId, req.user?.id)]);
+  res.render('dashboard/welcome-rejoin', { guild, settings, roles: guard.annotate(allRoles), active: 'welcome-rejoin' });
+});
+
+router.post('/:guildId/welcome-rejoin', ensureGuildAccess, async (req, res) => {
+  const settings = await getSettings(req.params.guildId);
   // A new autorole must be one this user may hand out; an unchanged one stays as it is.
   const autoRoleId = snowflake(req.body.autoRoleId);
   if (autoRoleId && autoRoleId !== settings.autoRoleId && (await roleGuard(req.params.guildId, req.user?.id)).check(autoRoleId)) {
-    return res.redirect(saved(req.params.guildId, 'welcome', 'rolenotallowed'));
+    return res.redirect(saved(req.params.guildId, 'welcome-rejoin', 'rolenotallowed'));
   }
   settings.autoRoleId = autoRoleId;
   settings.restoreOnRejoin = req.body.restoreOnRejoin === 'on';
   settings.restoreDays = clampInt(req.body.restoreDays, 1, 365, 365); // a year at most: a member who left is not kept for longer
   settings.restoreStaffRoles = req.body.restoreStaffRoles === 'on';
   await settings.save();
-  res.redirect(missing.length ? noPerm(req.params.guildId, 'welcome', missing) : saved(req.params.guildId, 'welcome'));
+  res.redirect(saved(req.params.guildId, 'welcome-rejoin'));
 });
 
 module.exports = router;

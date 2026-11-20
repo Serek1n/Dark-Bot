@@ -13,6 +13,12 @@ router.get('/:guildId/features', ensureGuildAccess, async (req, res) => {
   res.render('dashboard/features', { guild, settings, features: FEATURES, active: 'features' });
 });
 
+// «Общие»: what belongs to the whole bot on this server, not to one module (its language)
+router.get('/:guildId/settings', ensureGuildAccess, async (req, res) => {
+  const [guild, settings] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId)]);
+  res.render('dashboard/settings', { guild, settings, active: 'settings' });
+});
+
 router.post('/:guildId/language', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
   const lang = ['ru', 'en', 'auto'].includes(req.body.language) ? req.body.language : 'auto';
@@ -22,7 +28,7 @@ router.post('/:guildId/language', ensureGuildAccess, async (req, res) => {
     settings.language = lang;
     await settings.save();
   }
-  res.redirect(saved(req.params.guildId, 'features'));
+  res.redirect(saved(req.params.guildId, 'settings'));
 });
 
 router.post('/:guildId/features', ensureGuildAccess, async (req, res) => {

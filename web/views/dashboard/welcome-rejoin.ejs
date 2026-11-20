@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Автороль и возврат' }) %></head>
+<body>
+  <div class="app-layout">
+    <%- include('../partials/sidebar') %>
+    <main class="content" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Автороль и возвращение участника</h1>
+        <p class="page-intro">Роль, которую новичок получает при входе, и что бот возвращает человеку, который вышел и зашёл снова.</p>
+      </div>
+      <form method="post" class="plain">
+        <div class="card g-c1">
+        <h2>Автороль</h2>
+        <div>
+          <label>Роль новичкам</label>
+          <select name="autoRoleId">
+            <option value="">Не выдавать</option>
+            <% roles.forEach(r => { %>
+              <option value="<%= r.id %>" <%= settings.autoRoleId === r.id ? 'selected' : (r.blocked ? 'disabled' : '') %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option>
+            <% }) %>
+          </select>
+          <div class="hint">Бот выдаёт её каждому, кто заходит на сервер.</div>
+        </div>
+        </div>
+        <div class="card g-c2">
+        <h2>Возвращение участника</h2>
+        <div class="hint">Если человек вышел с сервера и зашёл снова, он получит обратно роли и никнейм. Его уровень, опыт, монеты, кристаллы, покупки и предупреждения никогда не удаляются при выходе — они продолжаются сами.</div>
+        <label class="checkbox-row">
+          <input type="checkbox" name="restoreOnRejoin" <%= settings.restoreOnRejoin !== false ? 'checked' : '' %> />
+          <span>Возвращать роли и никнейм вернувшемуся участнику</span>
+        </label>
+        <div>
+          <label>Сколько дней помнить участника после выхода</label>
+          <input type="number" name="restoreDays" min="1" max="365" value="<%= Math.min(settings.restoreDays || 365, 365) %>" />
+          <small class="hint">Не больше года: дольше данные ушедшего участника не хранятся.</small>
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" name="restoreStaffRoles" <%= settings.restoreStaffRoles ? 'checked' : '' %> />
+          <span>Возвращать и роли с правами модератора или администратора (по умолчанию не возвращаются — их выдают заново вручную)</span>
+        </label>
+        <div class="hint">Не возвращаются роли выше роли бота, роли ботов и подписчиков-бустеров. Забаненный участник после разбана возвращается без ролей.</div>
+        </div>
+        <button class="btn" type="submit">Сохранить</button>
+      </form>
+    </main>
+  </div>
+
+</body>
+</html>
