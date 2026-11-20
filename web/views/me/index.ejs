@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: 'Мои данные' }) %></head>
+<body>
+  <div class="night-sky"></div>
+  <main class="cm-page me-page">
+    <%- include('../partials/page-tools') %>
+    <header class="cm-hero">
+      <div><h1>Мои данные</h1><p class="page-intro">Что бот Dark хранит о вас на всех серверах, файл со всеми этими данными и их удаление. Подробно — в <a href="/privacy">Политике конфиденциальности</a>.</p></div>
+    </header>
+    <% const DONE = { dmoff: 'Необязательные личные сообщения выключены.', dmon: 'Необязательные личные сообщения снова включены.', deleted: 'Ваши данные удалены.' }; %>
+    <% if (error) { %><%- include('../partials/flash', { text: error, error: true, param: 'err' }) %><% } %>
+    <% if (DONE[done]) { %><%- include('../partials/flash', { text: DONE[done], param: 'done' }) %><% } %>
+    <% const total = Object.values(counts).reduce((a, b) => a + b, 0); %>
+    <div class="cm-show-grid">
+      <div class="card">
+        <h2>Что хранится</h2>
+        <% if (!total) { %>
+          <p class="hint" style="margin:0">Бот ничего о вас не хранит.</p>
+        <% } else { %>
+          <ul class="me-list">
+            <% Object.entries(counts).forEach(([k, n]) => { %><li><span><%= NAMES[k] || k %></span><b><%= n %></b></li><% }) %>
+          </ul>
+        <% } %>
+        <a class="btn btn-secondary" href="/me/export" download>Скачать мои данные (JSON)</a>
+      </div>
+      <div class="card">
+        <h2>Личные сообщения</h2>
+        <p class="hint">Повышения уровня, достижения, конец временной роли, подсказки о голосовых комнатах — бот присылает их в личку, только если так настроил сервер. Их можно выключить на всех серверах сразу. Сообщения о ваших наказаниях и апелляциях придут всё равно.</p>
+        <form method="post" action="/me/dm" class="me-row">
+          <span class="me-state"><%= dmOn ? 'Сейчас: присылаются' : 'Сейчас: выключены' %></span>
+          <input type="hidden" name="dm" value="<%= dmOn ? 'off' : 'on' %>" />
+          <button class="btn btn-secondary" type="submit"><%= dmOn ? 'Выключить' : 'Включить' %></button>
+        </form>
+      </div>
+      <div class="card g-span me-danger">
+        <h2>Удалить мои данные</h2>
+        <p class="hint">Удалятся: уровни и монеты на всех серверах, достижения, напоминания, плейлисты, голоса, отзывы и избранное в каталоге, участие в розыгрышах, кошелёк DARK Coins с балансом. Вернуть их будет нельзя.</p>
+        <details class="me-kept"><summary>Что останется и почему</summary><ul><% KEPT.forEach((k) => { %><li><%= k %></li><% }) %></ul>
+          <p class="hint" style="margin:0">Если хотите удалить и это — напишите владельцу бота (контакты в <a href="/privacy">Политике конфиденциальности</a>), рассмотрим запрос.</p></details>
+        <form method="post" action="/me/delete" class="me-row">
+          <input type="text" name="confirm" placeholder="УДАЛИТЬ" aria-label="Подтверждение: впишите слово УДАЛИТЬ" autocomplete="off" required />
+          <button class="btn btn-danger" type="submit">Удалить навсегда</button>
+        </form>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

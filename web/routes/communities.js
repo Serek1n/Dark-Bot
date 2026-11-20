@@ -42,6 +42,7 @@ function mayPreview(req, c) {
 
 router.get('/:id(\\d+)', async (req, res) => {
   const c = await cm().one(req.params.id);
+  if (c && cm().adultServer(c.guildId) && !mayPreview(req, c)) return res.status(404).render('error', { message: 'Сообщество не найдено или скрыто.' }); // 18+: not for everybody
   const preview = Boolean(c && c.status !== 'published' && mayPreview(req, c));
   if (!c || (c.status !== 'published' && !preview)) return res.status(404).render('error', { message: 'Сообщество не найдено или скрыто.' });
   if (!preview) await cm().view(c.id, visitor(req)).catch(() => {});

@@ -15,7 +15,7 @@ const DEFAULT_DAYS = 365;
 const DAY = 24 * 60 * 60 * 1000;
 
 const isOn = (s) => !s || s.restoreOnRejoin !== false && s.restoreOnRejoin !== 0;
-const daysOf = (s) => Number(s?.restoreDays) > 0 ? Number(s.restoreDays) : DEFAULT_DAYS;
+const daysOf = (s) => Math.min(365, Number(s?.restoreDays) > 0 ? Number(s.restoreDays) : DEFAULT_DAYS); // a year at most, whatever was saved before
 const parseIds = (text) => { try { const v = JSON.parse(text || '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []; } catch { return []; } };
 const isStaffRole = (role) => Boolean(role.permissions?.any?.(STAFF_PERMISSIONS));
 
@@ -141,14 +141,24 @@ async function purgeOld(now = Date.now()) {
   const rows = await GuildSettings.findAll({ attributes: ['guildId', 'restoreDays'] });
   let removed = 0;
   for (const s of rows) removed += await MemberSnapshot.destroy({ where: { guildId: s.guildId, leftAt: { [Op.lt]: new Date(now - daysOf(s) * DAY) } } });
-  removed += await MemberSnapshot.destroy({ where: { leftAt: { [Op.lt]: new Date(now - 3650 * DAY) } } }); // servers without settings
+  removed += await MemberSnapshot.destroy({ where: { leftAt: { [Op.lt]: new Date(now - 365 * DAY) } } }); // servers without settings: a year at most
   return removed;
 }
 
+/**
+ * The copied text of a reported message is needed while the report is being decided; 90 days after the decision it is
+ * wiped (the report itself, with its reason and decision, stays in the server's journal).
+ */
+async function forgetReportTexts(now = Date.now()) {
+  const { Report } = require('../../db');
+  const [n] = await Report.update({ messageText: null }, { where: { status: { [Op.ne]: 'open' }, messageText: { [Op.ne]: null }, updatedAt: { [Op.lt]: new Date(now - 90 * DAY) } } });
+  return n;
+}
+
 function startRestoreCleanup() {
-  const run = () => purgeOld().catch((err) => logger.warn('Snapshot cleanup failed:', err.message));
+  const run = () => Promise.all([purgeOld(), forgetReportTexts()]).catch((err) => logger.warn('Snapshot cleanup failed:', err.message));
   run();
   setInterval(run, DAY).unref?.();
 }
 
-module.exports = { saveSnapshot, restoreMember, forgetMember, purgeOld, startRestoreCleanup, isStaffRole, DEFAULT_DAYS };
+module.exports = { saveSnapshot, restoreMember, forgetMember, purgeOld, forgetReportTexts, startRestoreCleanup, isStaffRole, DEFAULT_DAYS };

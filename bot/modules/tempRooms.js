@@ -62,7 +62,7 @@ async function createRoomFor(newState, settings, trigger) {
   busy.add(key);
   try {
     const room = require('./voiceRoom');
-    const notify = (text) => member.send?.({ content: `${text}\n— сервер **${guild.name}**` }).catch(() => {});
+    const notify = (text) => require('./userData').sendOptionalDm(member, { content: `${text}\n— сервер **${guild.name}**` });
     // his own room still exists: back into it, no second room
     const own = await TempVoiceChannel.findOne({ where: { guildId: guild.id, ownerId: member.id } });
     const ownChannel = own && (await guild.channels.fetch(own.channelId).catch(() => null));

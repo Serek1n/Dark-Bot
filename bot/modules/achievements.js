@@ -537,7 +537,7 @@ async function notify(guild, member, userId, fresh, settings, where) {
   const payload = await cardMessage(guild, member, userId, fresh, settings);
   if (mode === 'dm') {
     const user = member?.user || (await guild.client.users.fetch(userId).catch(() => null));
-    return Boolean(await user?.send(payload).catch(() => null));
+    return Boolean(await require('./userData').sendOptionalDm(user, payload)); // nothing if he turned such messages off
   }
   let channel = null;
   if (settings?.achievementsChannelId) channel = guild.channels.cache.get(settings.achievementsChannelId) || (await guild.channels.fetch(settings.achievementsChannelId).catch(() => null));

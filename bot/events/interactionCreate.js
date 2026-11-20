@@ -85,6 +85,10 @@ module.exports = {
       return;
     }
 
+    if (require('../modules/userData').isDmPrefButton(interaction)) { // «не присылать такие сообщения» under an optional DM
+      try { await require('../modules/userData').handleDmPrefButton(interaction); } catch (err) { logger.error('DM preference failed:', err); await tellFailed(interaction); }
+      return;
+    }
     if (require('../modules/communities').isCommunityButton(interaction)) {
       try { await require('../modules/communities').handleCommunityButton(interaction); } catch (err) { logger.error('Community button failed:', err); await tellFailed(interaction); }
       return;

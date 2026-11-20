@@ -57,7 +57,7 @@ async function termOf(guildId, userId, roleId) {
 /** A role bought for a while has ended: a short DM, so the buyer knows why it is gone and how to get it back. Never throws. */
 async function tellEnded(member, guild, roleId) {
   const name = guild.roles?.cache?.get(roleId)?.name || 'роль';
-  await member.send?.({ content: `⏳ Срок роли **${name}** на сервере **${guild.name}** закончился. Продлить можно командой \`/shop\` на сервере.`, allowedMentions: { parse: [] } }).catch(() => {});
+  await require('./userData').sendOptionalDm(member, { content: `⏳ Срок роли **${name}** на сервере **${guild.name}** закончился. Продлить можно командой \`/shop\` на сервере.`, allowedMentions: { parse: [] } });
 }
 
 const RETRY_MS = 10 * 60 * 1000;

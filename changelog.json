@@ -1,5 +1,38 @@
 [
  {
+  "bot": "3.19.0",
+  "panel": "3.30.0",
+  "date": "2026-11-20",
+  "botChanges": [
+   "Кнопка «Не присылать такие сообщения» под уровнями, достижениями и напоминаниями в личке",
+   "Серверы с отметкой 18+ не принимаются в каталог и скрываются из него",
+   "Через 14 дней после удаления бота стираются и карточка в каталоге, отзывы и картинки",
+   "Копия сообщения из жалобы стирается через 90 дней после решения",
+   "Роли ушедшего участника хранятся не дольше года"
+  ],
+  "panelChanges": [
+   "Страница «Мои данные»: что хранится, файл со всеми данными, удаление, отказ от личек",
+   "Политика конфиденциальности описывает всё, что бот хранит: каталог, DARK Coins, жалобы",
+   "Условия использования: каталог сообществ, DARK Coins, запрет азартных игр и накруток",
+   "Каналы, которые бот не видит («___hidden___» от Discord), не попадают в списки панели"
+  ],
+  "en": {
+   "botChanges": [
+    "A «Don't send such messages» button under level-up, achievement and reminder DMs",
+    "Servers marked 18+ are not accepted in the catalog and are hidden from it",
+    "14 days after the bot is removed, the catalog card, its reviews and pictures go too",
+    "The copy of a reported message is erased 90 days after the decision",
+    "Roles of a member who left are kept a year at most"
+   ],
+   "panelChanges": [
+    "A «My data» page: what is kept, a file with all of it, deletion, opting out of DMs",
+    "The Privacy Policy covers everything the bot keeps: catalog, DARK Coins, reports",
+    "Terms of Service: the community catalog, DARK Coins, no gambling or fake activity",
+    "Channels the bot can't see («___hidden___» from Discord) are left out of panel lists"
+   ]
+  }
+ },
+ {
   "bot": "3.18.0",
   "panel": "3.29.0",
   "date": "2026-11-19",

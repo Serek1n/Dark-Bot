@@ -47,6 +47,7 @@
             <%- include('season-switch', { variant: 'row' }) %>
             <a href="/dashboard">Все серверы</a>
             <%- include('platform-link') %>
+            <a href="/me">Мои данные</a>
             <% if (locals.sys) { %><a href="/dashboard/<%= gid %>/changelog">Бот v<%= sys.bot %> · панель v<%= sys.panel %></a><% } %>
             <form method="post" action="/auth/logout"><button type="submit">Выйти</button></form>
           </div>

@@ -53,9 +53,14 @@ async function getBotGuildIds() {
   return new Set((await getBotGuilds()).keys());
 }
 
+// Since 16.11.2026 Discord sends the channels the bot cannot see as «___hidden___» with the flag CHANNEL_OBFUSCATED (1 << 17):
+// no name, nothing the bot can do there — they are left out of every list (the HTTP answer omits them already).
+const OBFUSCATED = 1 << 17;
+const isHidden = (c) => Boolean((Number(c.flags?.bitfield ?? c.flags ?? 0) & OBFUSCATED) || c.name === '___hidden___');
+
 function getGuildChannels(guildId) {
   const g = cachedGuild(guildId);
-  if (g) return Promise.resolve([...g.channels.cache.values()].map((c) => ({ id: c.id, name: c.name, type: c.type, parent_id: c.parentId || null, position: c.rawPosition ?? 0 })));
+  if (g) return Promise.resolve([...g.channels.cache.values()].filter((c) => !isHidden(c)).map((c) => ({ id: c.id, name: c.name, type: c.type, parent_id: c.parentId || null, position: c.rawPosition ?? 0 })));
   return cached(`channels:${guildId}`, 30_000, async () => {
     const { data } = await botApi.get(`/guilds/${guildId}/channels`);
     return data;
@@ -131,4 +136,4 @@ async function getUsers(ids) {
   return out;
 }
 
-module.exports = { getBotGuilds, getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers, botApi };
+module.exports = { isHidden, getBotGuilds, getBotGuildIds, getGuildChannels, getGuildRoles, getGuild, getUsers, botApi };

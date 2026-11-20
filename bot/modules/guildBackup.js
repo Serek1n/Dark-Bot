@@ -70,6 +70,8 @@ async function purgeExpired(client, now = Date.now()) {
     // In portions of PORTION rows, each its own short transaction through the one queue (db/index.js): a big server's data
     // no longer holds that queue for a long time — experience, voice and the economy of all other servers keep going in between.
     // The server's settings row goes last, so a stop in the middle simply continues next time.
+    // the catalog card with what hangs on it by its id (reviews, votes, statistics) and its pictures on disk
+    await require('./communities').remove(guildId, { force: true }).catch((err) => logger.warn(`Server ${guildId}: catalog data not removed: ${err.message}`));
     const { Giveaway, GiveawayEntry } = sequelize.models;
     if (Giveaway && GiveawayEntry) {
       const ids = (await Giveaway.findAll({ where: { guildId }, attributes: ['id'], raw: true })).map((g) => g.id);

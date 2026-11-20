@@ -123,8 +123,8 @@ async function announceLevelUp({ guild, user, displayName, level, oldLevel, chan
   if (card && textOn) payload.files = [...(payload.files || []), { attachment: card, name: 'levelup.png' }];
 
   if (settings?.levelUpDestination === 'dm') {
-    const target = member || user;
-    await target.send?.(payload).catch(() => {}); // closed DMs: nothing to do
+    const to = { id: user.id, send: (p) => (member?.send ? member.send(p) : user.send(p)) };
+    await require('../modules/userData').sendOptionalDm(to, payload); // closed DMs or turned off: nothing to do
     return;
   }
   // Only the place chosen for it: if the bot can't write there, the congratulation is skipped, never sent somewhere else.

@@ -32,7 +32,7 @@ router.post('/:guildId/welcome', ensureGuildAccess, async (req, res) => {
   }
   settings.autoRoleId = autoRoleId;
   settings.restoreOnRejoin = req.body.restoreOnRejoin === 'on';
-  settings.restoreDays = clampInt(req.body.restoreDays, 1, 3650, 365);
+  settings.restoreDays = clampInt(req.body.restoreDays, 1, 365, 365); // a year at most: a member who left is not kept for longer
   settings.restoreStaffRoles = req.body.restoreStaffRoles === 'on';
   await settings.save();
   res.redirect(missing.length ? noPerm(req.params.guildId, 'welcome', missing) : saved(req.params.guildId, 'welcome'));

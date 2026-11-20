@@ -360,3 +360,14 @@ html.lb-lock { overflow: hidden; }
   table.rt td .muted { overflow-wrap: anywhere; }
 }
 .pf-cmname { display: inline-grid; gap: 2px; }
+
+/* «Мои данные» */
+.me-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 2px; }
+.me-list li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--hairline-soft); font-size: var(--fs-14); }
+.me-list li:last-child { border-bottom: 0; }
+.me-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.me-row input[type=text] { width: 100%; height: auto; min-height: 0; margin: 0; }
+.me-state { color: var(--fog); font-size: var(--fs-14); text-align: left; }
+.me-kept { margin: 0 0 14px; }
+.me-kept summary { cursor: pointer; color: var(--fog); font-size: var(--fs-14); }
+.me-kept ul { margin: 8px 0; padding-left: 20px; color: var(--fog); font-size: var(--fs-14); }

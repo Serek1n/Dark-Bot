@@ -137,6 +137,7 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/communities', require('./routes/communities')); // the public catalog of servers
 app.use('/platform', require('./routes/platform'));
 app.use('/wallet', require('./routes/wallet')); // DARK Coins of the signed-in person, buying for Telegram Stars // DARK Coins and catalog moderation: platform owners only
+app.use('/me', require('./routes/me')); // «Мои данные»: the file with them, deleting them, no optional DMs
 app.use('/appeals', require('./routes/appeals')); // appeals: any signed-in person, about his own punishments only
 app.use('/top', require('./routes/publicTop')); // public leaderboards (only where the admins switched them on)
 

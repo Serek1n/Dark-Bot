@@ -114,7 +114,7 @@ const F = PermissionsBitField.Flags;
     let html = await (await fetch(base)).text(); assert(/name="restoreOnRejoin"[^>]*checked/.test(html) && !/name="restoreStaffRoles"[^>]*checked/.test(html), 'defaults');
     await post({ restoreDays: '90', restoreStaffRoles: 'on' });
     const s = await GuildSettings.findByPk('777000000000000001'); assert(s.restoreOnRejoin === false && s.restoreDays === 90 && s.restoreStaffRoles === true, JSON.stringify([s.restoreOnRejoin, s.restoreDays, s.restoreStaffRoles]));
-    await post({ restoreOnRejoin: 'on', restoreDays: '999999' }); assert((await GuildSettings.findByPk('777000000000000001')).restoreDays === 3650, 'upper limit');
+    await post({ restoreOnRejoin: 'on', restoreDays: '999999' }); assert((await GuildSettings.findByPk('777000000000000001')).restoreDays === 365, 'upper limit: a year');
   });
   server.close();
 

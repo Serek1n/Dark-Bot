@@ -196,7 +196,7 @@ async function values(guild, templates = null) {
     joins_today: today?.joins ?? 0,
     leaves_today: today?.leaves ?? 0,
     messages_today: today?.messages ?? 0,
-    channels: guild.channels.cache.filter((c) => c.type !== ChannelType.GuildCategory).size,
+    channels: guild.channels.cache.filter((c) => c.type !== ChannelType.GuildCategory).size, // channels hidden from the bot are still channels of the server
     roles: Math.max(0, guild.roles.cache.size - 1),
     emojis: guild.emojis?.cache?.size || 0,
     date: fmtDate()

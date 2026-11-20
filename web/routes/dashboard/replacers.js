@@ -29,7 +29,7 @@ router.get('/:guildId/preview-context', ensureGuildAccess, async (req, res) => {
   let roles = []; let channels = [];
   if (guild) {
     roles = [...guild.roles.cache.values()].filter((r) => r.id !== guild.id).sort((a, b) => b.position - a.position).map((r) => ({ id: r.id, name: r.name, color: r.color || 0 }));
-    channels = [...guild.channels.cache.values()].sort((a, b) => (a.rawPosition || 0) - (b.rawPosition || 0)).map((c) => ({ id: c.id, name: c.name, type: c.type }));
+    channels = [...guild.channels.cache.values()].filter((c) => !require('../../discordApi').isHidden(c)).sort((a, b) => (a.rawPosition || 0) - (b.rawPosition || 0)).map((c) => ({ id: c.id, name: c.name, type: c.type }));
   } else {
     roles = (await api.getGuildRoles(req.params.guildId).catch(() => [])).filter((r) => r.id !== req.params.guildId).map((r) => ({ id: r.id, name: r.name, color: r.color || 0 }));
     channels = (await api.getGuildChannels(req.params.guildId).catch(() => [])).map((c) => ({ id: c.id, name: c.name, type: c.type }));

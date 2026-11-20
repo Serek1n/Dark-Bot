@@ -159,8 +159,15 @@ async function verifyInvite(inviteUrl, guildId) {
 }
 
 /** Adds or updates the server's listing. A blocked one stays blocked; with pre-moderation a new one waits. */
+/** A server marked 18+ in Discord (explicit or age-restricted): the catalog is open to everybody, minors included. */
+function adultServer(guildId) {
+  const g = client()?.guilds?.cache?.get(String(guildId));
+  return Boolean(g && (g.nsfwLevel === 1 || g.nsfwLevel === 3)); // GuildNSFWLevel: Explicit 1, AgeRestricted 3
+}
+
 async function save(guildId, userId, body) {
   const { Community } = db();
+  if (adultServer(guildId)) throw new CommunityError('Серверы с отметкой 18+ в каталог не принимаются: каталог открыт всем, в том числе подросткам. Discord требует, чтобы такие места были доступны только взрослым.');
   const fields = cleanFields(body);
   const real = await api.verifyInvite(fields.inviteUrl, guildId);
   if (real.name) fields.name = real.name.slice(0, 60); // the name comes from Discord, like the icon
@@ -202,11 +209,11 @@ async function setVisible(guildId, visible) {
 }
 
 /** Removes the listing with its votes and statistics (promotions and the coin journal stay in the history). */
-async function remove(guildId) {
+async function remove(guildId, { force = false } = {}) {
   const { Community, CommunityVote, CommunityStat, CommunityReport, CommunityReview, CommunityReviewReport, CommunityFavorite, inTransaction } = db();
   const row = await Community.findOne({ where: { guildId: String(guildId) } });
-  if (!row) return false;
-  if (row.status === 'blocked') throw new CommunityError('Заблокированное сообщество удалить нельзя — напишите модерации платформы.');
+  if (!row) { if (force) await require('./communityMedia').prune(String(guildId), []).catch(() => {}); return false; }
+  if (row.status === 'blocked' && !force) throw new CommunityError('Заблокированное сообщество удалить нельзя — напишите модерации платформы.');
   await inTransaction(async (t) => {
     const reviewIds = (await CommunityReview.findAll({ where: { communityId: row.id }, attributes: ['id'], raw: true, transaction: t })).map((r) => r.id);
     if (reviewIds.length) await CommunityReviewReport.destroy({ where: { reviewId: reviewIds }, transaction: t });
@@ -378,6 +385,7 @@ const trendOf = (w) => (w ? w.votes * 3 + w.clicks * 2 + w.views * 0.1 : 0);
 async function catalog({ q = '', category = '', sort = 'popular', page = 1, tag = '', size = '', minRating = 0, favIds = null } = {}) {
   const { Community, CommunityVote } = db();
   let rows = await Community.findAll({ where: { status: 'published' }, raw: true });
+  rows = rows.filter((r) => !adultServer(r.guildId)); // marked 18+ after it was published: not shown to everybody
   const all = rows;
   const query = String(q || '').trim().toLowerCase().slice(0, 60);
   const tg = String(tag || '').trim().toLowerCase().slice(0, 20);
@@ -448,7 +456,7 @@ async function liveExtra(c) {
 async function similar(c, n = 4) {
   const mine = new Set(listOf(c.categories));
   if (!mine.size) return [];
-  const rows = await db().Community.findAll({ where: { status: 'published', id: { [Op.ne]: c.id } }, raw: true });
+  const rows = (await db().Community.findAll({ where: { status: 'published', id: { [Op.ne]: c.id } }, raw: true })).filter((r) => !adultServer(r.guildId));
   return rows.map((r) => ({ r, common: listOf(r.categories).filter((k) => mine.has(k)).length }))
     .filter((x) => x.common > 0)
     .sort((a, b) => b.common - a.common || b.r.votes - a.r.votes)
@@ -722,5 +730,5 @@ const api = module.exports = {
   verifyInvite,
   CommunityError, CATEGORIES, CATEGORY, icon, hue, PROMOS, DAYS, SORTS, SIZES, PER_PAGE, BANNER_HOSTS, VOTE_EVERY, REVIEWS_PER_PAGE,
   rating, liveExtra, similar, favoriteIds, toggleFavorite, mayReview, saveReview, deleteReview, replyReview, reportReview, moderateReview, reviewsOf, notifyReview, forGuild, remindVote,
-  queue, notifyPending, notifyDecision, platform, setPlatform, cleanFields, cleanInvite, save, setVisible, remove, moderate, activePromos, buy, view, click, joinIntent, vote, report, catalog, one, statsOf, iconUrl, accountAge, listOf
+  adultServer, queue, notifyPending, notifyDecision, platform, setPlatform, cleanFields, cleanInvite, save, setVisible, remove, moderate, activePromos, buy, view, click, joinIntent, vote, report, catalog, one, statsOf, iconUrl, accountAge, listOf
 };
