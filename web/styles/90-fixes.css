@@ -121,8 +121,7 @@ input:hover, select:hover, textarea:hover, .fs-btn:hover { border-color: var(--f
 [data-theme="light"] .mh-pill:not(.off) { color: color-mix(in srgb, var(--success) 78%, #000); }
 
 /* 2026-11-20: a card is a flex column, so a paragraph's default 1em margins don't collapse into the heading's: the text
-   under a heading stood twice as far from it as a hint or a field did. One rhythm: 16 under the heading, 16 between blocks. */
-.card > h2 { margin-bottom: 16px; padding-bottom: 12px; }
+   under a heading stood twice as far from it as a hint or a field did. One rhythm: 16 between blocks. */
 .card > h2 + p, .card > h2 + .hint { margin-top: 0; }
 .card > p { margin-bottom: 16px; }
 .card > p:last-child { margin-bottom: 0; }

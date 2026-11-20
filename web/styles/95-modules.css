@@ -471,3 +471,7 @@ td form .btn, td > .btn { white-space: nowrap; }
 }
 /* a lengthened card that only holds an empty state keeps its message in the middle */
 .card[data-levelled] > .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0; }
+
+/* a form card already spaces its blocks with the form's 16 px gap: the heading's own margin on top of it left 30 px
+   under the title, against 14 in the other cards */
+form.card > h2 { margin-bottom: 0; }

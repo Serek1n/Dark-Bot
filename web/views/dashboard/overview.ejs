@@ -17,7 +17,7 @@
           <h1><%= guild.name %></h1>
           <div class="hh-chips">
             <% if (guild.approximate_member_count) { %><span class="hh-chip"><b><%= fmtN(guild.approximate_member_count) %></b> участников</span><% } %>
-            <% if (online !== null) { %><span class="hh-chip <%= online ? 'ok' : 'bad' %>"><i></i><%= online ? 'Бот в сети' : 'Бот не в сети' %><% if (online && sys.ping !== null) { %> · <%= sys.ping %> мс<% } %></span><% } %>
+            <% if (online) { %><span class="hh-chip ok"><i></i>Бот в сети<% if (online && sys.ping !== null) { %> · <%= sys.ping %> мс<% } %></span><% } %>
             <a class="hh-chip" href="/dashboard/<%= guild.id %>/features">Модулей включено: <b><%= mods.on %></b> из <%= mods.total %></a>
             <% if (locals.sys) { %><a class="hh-chip" href="/dashboard/<%= guild.id %>/changelog" title="Что нового">Бот <b>v<%= sys.bot %></b> · панель <b>v<%= sys.panel %></b></a><% } %>
           </div>
