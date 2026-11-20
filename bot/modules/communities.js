@@ -291,6 +291,29 @@ async function countStat(communityId, field) {
   await sequelize.query(`INSERT INTO community_stats (communityId, day, ${field}) VALUES (?, ?, 1) ON CONFLICT (communityId, day) DO UPDATE SET ${field} = ${field} + 1`, { replacements: [communityId, day()] });
   await sequelize.query(`UPDATE communities SET ${field} = ${field} + 1 WHERE id = ?`, { replacements: [communityId] });
 }
+// Views and «Присоединиться» are counted in memory and written together every 15 s, in one transaction: a flood of
+// visitors must not turn into two database writes per request (the bot waits for the same database).
+const pending = new Map(); // `${communityId}:${field}:${day}` → count
+let flushTimer = null;
+function countLater(communityId, field) {
+  const k = `${communityId}:${field}:${day()}`;
+  pending.set(k, (pending.get(k) || 0) + 1);
+  if (!flushTimer) { flushTimer = setTimeout(() => { flushTimer = null; flushStats().catch((err) => require('../utils/logger').warn(`Catalog counters not saved: ${err.message}`)); }, 15000); flushTimer.unref?.(); }
+}
+async function flushStats() {
+  if (!pending.size) return 0;
+  const batch = [...pending]; pending.clear();
+  const { sequelize, inTransaction } = db();
+  await inTransaction(async (t) => {
+    for (const [k, n] of batch) {
+      const [id, field, d] = k.split(':');
+      if (!['views', 'clicks'].includes(field)) continue;
+      await sequelize.query(`INSERT INTO community_stats (communityId, day, ${field}) VALUES (?, ?, ?) ON CONFLICT (communityId, day) DO UPDATE SET ${field} = ${field} + ?`, { replacements: [Number(id), d, n, n], transaction: t });
+      await sequelize.query(`UPDATE communities SET ${field} = ${field} + ? WHERE id = ?`, { replacements: [n, Number(id)], transaction: t });
+    }
+  });
+  return batch.length;
+}
 // a view is counted once per visitor per community per hour (kept in memory)
 const seenViews = new Map();
 async function view(communityId, visitorKey) {
@@ -299,10 +322,19 @@ async function view(communityId, visitorKey) {
   if (Date.now() - last < 3600000) return false;
   if (seenViews.size > 100000) seenViews.clear();
   seenViews.set(k, Date.now());
-  await countStat(communityId, 'views');
+  countLater(communityId, 'views');
   return true;
 }
-const click = (communityId) => countStat(communityId, 'clicks');
+// «Присоединиться» pressed: counted once an hour per visitor, like a view (a flood of the link must not write each time)
+const seenClicks = new Map();
+async function click(communityId, visitorKey = '') {
+  const k = `${communityId}:${visitorKey}`;
+  if (visitorKey && Date.now() - (seenClicks.get(k) || 0) < 3600000) return false;
+  if (seenClicks.size > 100000) seenClicks.clear();
+  if (visitorKey) seenClicks.set(k, Date.now());
+  countLater(communityId, 'clicks');
+  return true;
+}
 
 /** «Присоединиться» pressed by a signed-in person: if the bot then sees him join, the server is rewarded (darkCoins.onMemberJoined). */
 async function joinIntent(c, userId, ip) {
@@ -730,5 +762,5 @@ const api = module.exports = {
   verifyInvite,
   CommunityError, CATEGORIES, CATEGORY, icon, hue, PROMOS, DAYS, SORTS, SIZES, PER_PAGE, BANNER_HOSTS, VOTE_EVERY, REVIEWS_PER_PAGE,
   rating, liveExtra, similar, favoriteIds, toggleFavorite, mayReview, saveReview, deleteReview, replyReview, reportReview, moderateReview, reviewsOf, notifyReview, forGuild, remindVote,
-  adultServer, queue, notifyPending, notifyDecision, platform, setPlatform, cleanFields, cleanInvite, save, setVisible, remove, moderate, activePromos, buy, view, click, joinIntent, vote, report, catalog, one, statsOf, iconUrl, accountAge, listOf
+  flushStats, adultServer, queue, notifyPending, notifyDecision, platform, setPlatform, cleanFields, cleanInvite, save, setVisible, remove, moderate, activePromos, buy, view, click, joinIntent, vote, report, catalog, one, statsOf, iconUrl, accountAge, listOf
 };

@@ -87,6 +87,7 @@ async function shutdown(signal) {
   try { if (webServer?.close) webServer.close(); } catch { /* not started */ }
   try { await require('./modules/serverStats').stopServerStats(); } catch (err) { logger.warn(`server stats were not saved: ${err.message}`); }
   try { await require('./modules/voiceTime').flushAll(); } catch (err) { logger.warn(`voice time was not saved: ${err.message}`); }
+  try { await require('./modules/communities').flushStats(); } catch (err) { logger.warn(`catalog counters were not saved: ${err.message}`); }
   try { const db = require('../db'); await db.inTransaction(async () => {}); } catch { /* nothing was running */ }
   try { await client.destroy(); } catch { /* not logged in */ }
   try { await require('../db').sequelize.close(); } catch { /* already closed */ }

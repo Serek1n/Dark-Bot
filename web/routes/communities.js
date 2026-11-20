@@ -57,7 +57,7 @@ router.get('/:id(\\d+)', async (req, res) => {
 router.get('/:id(\\d+)/join', async (req, res) => {
   const c = await cm().one(req.params.id);
   if (!c || c.status !== 'published') return res.status(404).render('error', { message: 'Сообщество не найдено или скрыто.' });
-  await cm().click(c.id).catch(() => {});
+  await cm().click(c.id, visitor(req)).catch(() => {});
   if (req.user?.id) await cm().joinIntent(c, req.user.id, req.ip).catch(() => {});
   res.redirect(c.inviteUrl);
 });

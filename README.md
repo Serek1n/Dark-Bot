@@ -70,7 +70,7 @@ Discord-бот с веб-панелью. Команд мало, возможно
 3. В **Privileged Gateway Intents** включите **Server Members** и **Message Content**.
    Без них бот не запустится (`Used disallowed intents`).
 4. **OAuth2** → скопируйте **Client ID** и **Client Secret**.
-5. **OAuth2 → Redirects** → добавьте `https://ВАШ_ДОМЕН:8843/auth/callback`.
+5. **OAuth2 → Redirects** → добавьте `https://ВАШ_ДОМЕН/auth/callback`.
 6. Пригласите бота (scopes `bot` и `applications.commands`):
    ```
    https://discord.com/oauth2/authorize?client_id=ВАШ_CLIENT_ID&scope=bot%20applications.commands&permissions=1100336983254
@@ -135,7 +135,7 @@ DISCORD_CLIENT_SECRET=
 DEV_GUILD_ID=
 
 WEB_PORT=3000
-WEB_BASE_URL=https://ВАШ_ДОМЕН:8843
+WEB_BASE_URL=https://ВАШ_ДОМЕН
 SESSION_SECRET=      # ОБЯЗАТЕЛЬНО, от 24 символов: openssl rand -hex 32 (без него веб-панель не запустится)
 BOT_OWNER_IDS=       # ваш Discord ID
 
@@ -148,75 +148,48 @@ TWITCH_CLIENT_SECRET=
 ALERT_POLL_INTERVAL_MINUTES=5
 ```
 
-- `WEB_PORT` — внутренний порт панели. Не ставьте туда 8843 или 8880: их занимает nginx.
+- `WEB_PORT` — внутренний порт панели (3000). Не ставьте туда 80 или 443: их занимает nginx.
 - `WEB_BASE_URL` должен начинаться с `https://`, иначе вход через Discord не сохранит сессию.
 - После правки `.env`: `pm2 restart all --update-env`.
 
-### 4. HTTPS на нестандартных портах
-
-Порты 80 и 443 не нужны: **8843** отдаёт HTTPS, **8880** перенаправляет на него.
+### 4. HTTPS и nginx
 
 ```
-Браузер → https:8843 → nginx → панель (localhost:3000)
+Браузер → https://ВАШ_ДОМЕН → nginx → панель (127.0.0.1:3000)
 ```
 
-<details>
-<summary>Сертификат Let's Encrypt через DNS (DuckDNS или другой домен)</summary>
+Готовый конфиг — `deploy/nginx/darkbot-space.conf` (замените в нём `darkbot.space` на свой домен, если он другой):
+порт 80 для проверки Let's Encrypt, 443 — панель, а также защита от наплыва запросов.
 
 ```bash
-sudo certbot certonly --manual --preferred-challenges dns -d ВАШ_ДОМЕН
+sudo mkdir -p /var/www/letsencrypt
+sudo certbot certonly --webroot -w /var/www/letsencrypt -d ВАШ_ДОМЕН --deploy-hook "systemctl reload nginx"
+sudo cp deploy/nginx/darkbot-space.conf /etc/nginx/conf.d/
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Сертификат ляжет в `/etc/letsencrypt/live/ВАШ_ДОМЕН/`. Для DuckDNS TXT-запись ставится запросом
-`https://www.duckdns.org/update?domains=ИМЯ&token=ТОКЕН&txt=ЗНАЧЕНИЕ` — его можно вынести в
-`--manual-auth-hook` и `--manual-cleanup-hook`, тогда продление пройдёт без участия человека.
-Токен DuckDNS секретный: если он попал в чат или скриншот, перевыпустите его на сайте.
+Сертификат продлевается сам (`certbot renew --dry-run` — проверка).
+
+<details>
+<summary>Защита от наплыва запросов (DDoS)</summary>
+
+Панель работает в одном процессе с ботом, поэтому её защищают в два слоя.
+
+- **nginx**: с одного адреса — 10 страниц в секунду (всплеск до 40), 5 входов в минуту, 30 соединений; все анонимные
+  посетители вместе — 150 страниц в секунду; медленные клиенты обрываются через 10–20 секунд. Сверх лимита — ответ 429,
+  до бота такие запросы не доходят.
+- **Панель** (`web/middleware/shield.js`): лимит по адресу; если одновременно строится слишком много страниц или процесс
+  начал отставать, новый запрос сразу получает 503 «попробуйте через несколько секунд»; публичные страницы (каталог,
+  сообщество, документы, топы) для анонимных посетителей собираются раз в 5 секунд. Настройки: `WEB_RATE_PER_MIN`,
+  `WEB_RATE_HEAVY_PER_MIN`, `WEB_MAX_INFLIGHT`, `WEB_MAX_LAG_MS`, `WEB_MICROCACHE_MS` (0 — без кэша).
+- **Бот**: не больше 12 команд и нажатий кнопок за 10 секунд от одного человека (`BOT_INTERACTIONS_PER_10S`).
+
+От атаки, которая забивает сам канал сервера (сотни мегабит мусорного трафика), программы на сервере не спасают —
+это включается у хостинга (защита от DDoS у провайдера VPS).
 
 </details>
 
-<details>
-<summary>Конфиг nginx</summary>
-
-Файл `/etc/nginx/conf.d/dark-bot.conf`:
-
-```nginx
-server {
-    listen 8880;
-    server_name ВАШ_ДОМЕН;
-    return 301 https://$host:8843$request_uri;
-}
-
-server {
-    listen 8843 ssl;
-    server_name ВАШ_ДОМЕН;
-
-    ssl_certificate     /etc/letsencrypt/live/ВАШ_ДОМЕН/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/ВАШ_ДОМЕН/privkey.pem;
-
-    client_max_body_size 25m;   # для импорта уровней
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $http_host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-```bash
-sudo nginx -t && sudo systemctl restart nginx
-sudo ufw allow 8880/tcp    # если включён ufw
-sudo ufw allow 8843/tcp
-```
-
-</details>
-
-Панель: **https://ВАШ_ДОМЕН:8843**
+Панель: **https://ВАШ_ДОМЕН**
 
 ## Обновление через GitHub
 
@@ -275,7 +248,7 @@ git pull
 | `Cannot find module …` или `X.init is not a function` | `pm2 stop all && rm -rf node_modules && npm ci && pm2 restart all` (`package-lock.json` теперь лежит в git и фиксирует версии) |
 | Музыка: «Не удалось воспроизвести … возрастное ограничение / 403 / не бот» | Бот пишет причину в чат. Для YouTube: `sudo yt-dlp -U`, в `.env` добавить `YTDLP_EXTRA_ARGS=--js-runtimes node`; для возрастных видео и проверки «не бот» — файл cookies и `YTDLP_COOKIES=/путь/cookies.txt` (см. `.env.example`), затем `pm2 restart dark-bot --update-env` |
 | Музыка: «Не удалось воспроизвести» | Проверить `yt-dlp --version`, `ffmpeg -version`; в `package.json` должен быть `@discordjs/opus`; обновить `sudo yt-dlp -U`; смотреть `pm2 logs dark-bot --lines 60` |
-| Панель не открывается | `sudo nginx -t`; `WEB_PORT` должен быть 3000; порты: `sudo ss -tlnp \| grep -E '8843\|8880\|3000'` |
+| Панель не открывается | `sudo nginx -t`; `WEB_PORT` должен быть 3000; порты: `sudo ss -tlnp \| grep -E ':443\|:80 \|3000'` |
 | `redirect_uri` при входе | Redirect в Developer Portal должен точно совпадать с `WEB_BASE_URL` + `/auth/callback` |
 
 ## Ограничения

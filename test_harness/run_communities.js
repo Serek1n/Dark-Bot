@@ -143,6 +143,7 @@ fs.mkdirSync('./data', { recursive: true });
       assert(t.includes('Дружное сообщество номер 1') && t.includes('Голосовать'), 'page');
       const clicks = (await db.Community.findByPk(c1.id)).clicks;
       r = await fetch(`${base}/communities/${c1.id}/join`, { redirect: 'manual' });
+      await cm.flushStats(); // counters are written in batches
       assert(r.status === 302 && r.headers.get('location') === 'https://discord.gg/Abc-1' && (await db.Community.findByPk(c1.id)).clicks === clicks + 1, 'join');
       r = await post(`/communities/${c1.id}/vote`, {});
       assert(r.headers.get('location').startsWith('/auth/login'), 'sign-in first');

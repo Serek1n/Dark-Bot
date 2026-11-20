@@ -87,6 +87,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(panelI18n.panelLanguage); // English pages for English viewers
+app.use(require('./middleware/shield')); // a flood of requests must not take the bot down with the panel (limits, shedding, micro-cache)
 // For an outside monitor (UptimeRobot and the like): 200 while the panel answers, the database opens and the bot is on Discord.
 app.get('/healthz', async (req, res) => {
   const client = require('./botBridge').getClient?.();
@@ -184,6 +185,11 @@ async function start({ client = null, standalone = false } = {}) {
       logger.info(`Веб-панель запущена: http://localhost:${port}${client ? ' (в одном процессе с ботом)' : ''}`);
       resolve(server);
     });
+    // A slow client (or an attack that opens connections and sends nothing) must not hold the panel's sockets for minutes.
+    server.headersTimeout = 20000; // the request's headers: 20 s
+    server.requestTimeout = 120000; // the whole request (an upload of a picture over a slow line fits)
+    server.keepAliveTimeout = 10000;
+    server.maxConnections = Number(process.env.WEB_MAX_CONNECTIONS) || 1000;
     server.on('error', (err) => {
       logger.error(`Веб-панель не запустилась на порту ${port}: ${err.message}`);
       if (standalone) process.exit(1);

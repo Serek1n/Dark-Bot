@@ -25,6 +25,12 @@ const tellFailed = async (interaction) => { // the person sees why nothing happe
 module.exports = {
   name: 'interactionCreate',
   async execute(interaction) {
+    // too many presses from one person: told once, the rest ignored (autocomplete is typing, it is not counted)
+    if (!interaction.isAutocomplete?.()) {
+      const verdict = require('../utils/interactionGuard').check(interaction.user?.id || 'unknown');
+      if (verdict === 'tell') return interaction.reply({ embeds: [embeds.info('Слишком часто. Подождите несколько секунд и попробуйте снова.')], flags: MessageFlags.Ephemeral }).catch(() => {});
+      if (verdict === 'drop') return;
+    }
     if (interaction.isChatInputCommand() || interaction.isContextMenuCommand()) {
       const command = interaction.client.commands.get(interaction.commandName);
       if (!command) return;
