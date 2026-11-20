@@ -15,11 +15,14 @@ function ownerOnly(req, res, next) {
   res.status(404).render('error', { message: 'Страница не найдена.' });
 }
 const go = (q) => `/platform${q ? `?${q}` : ''}`;
+// the page is split into tabs (?tab=…); after an action the owner lands back on the tab it was made from
+const TABS = ['queue', 'catalog', 'coins', 'settings'];
+const tabOf = (v, def) => (TABS.includes(String(v)) ? String(v) : def);
 // an action of the owner that may fail with a readable reason: back to the page with it
-const act = (fn, done) => async (req, res) => {
-  try { await fn(req); res.redirect(go(`done=${done}`)); } catch (e) {
+const act = (fn, done, tab = 'queue') => async (req, res) => {
+  try { await fn(req); res.redirect(go(`tab=${tab}&done=${done}`)); } catch (e) {
     if (!(e instanceof coins().CoinError) && !(e instanceof cm().CommunityError) && !(e instanceof shop().ShopError)) throw e;
-    res.redirect(go(`err=${encodeURIComponent(e.message)}`));
+    res.redirect(go(`tab=${tab}&err=${encodeURIComponent(e.message)}`));
   }
 };
 
@@ -48,7 +51,9 @@ router.get('/', signedIn, ownerOnly, async (req, res) => {
     coins().emittedToday(), userId ? coins().isFrozen(userId) : false
   ]);
   const users = await getUsers([...new Set([...badReviews.map((r) => r.userId), ...top.map((w) => w.userId), ...log.flatMap((t) => [t.userId, t.actorId]), ...orders.map((o) => o.userId), ...held.map((p) => p.wallet), ...(userId ? [userId] : [])].filter((id) => /^\d{15,25}$/.test(String(id || ''))))]);
-  res.render('platform/index', { title: 'Платформа DARK', settings, pending, reports, listed, byId, badReviews, reviewReasons, top, log, users, userId, balance: userId ? await coins().balanceOf(userId) : null,
+  const tab = tabOf(req.query.tab, userId ? 'coins' : 'queue');
+  const state = ['published', 'pending', 'hidden', 'blocked'].includes(String(req.query.state)) ? String(req.query.state) : null;
+  res.render('platform/index', { title: 'Платформа DARK', tab, state, settings, pending, reports, listed, byId, badReviews, reviewReasons, top, log, users, userId, balance: userId ? await coins().balanceOf(userId) : null,
     key: coins().newKey(), C: cm(), earn, EARN: coins().EARN_DEFAULTS, packages, held, orders, emitted, frozen, tg: shop().enabled(), tgStatus: await shop().status(true), done: req.query.done || null, error: req.query.err ? String(req.query.err).slice(0, 200) : null });
 });
 
@@ -57,10 +62,10 @@ router.post('/coins', signedIn, ownerOnly, async (req, res) => {
   try {
     const op = req.body.op === 'revoke' ? coins().revoke : coins().grant;
     const { duplicate } = await op({ actorId: req.user.id, userId, amount: req.body.amount, note: String(req.body.note || '').trim(), opKey: String(req.body.key || '') });
-    res.redirect(go(`user=${encodeURIComponent(userId)}&done=${duplicate ? 'dup' : 'coins'}`));
+    res.redirect(go(`tab=coins&user=${encodeURIComponent(userId)}&done=${duplicate ? 'dup' : 'coins'}`));
   } catch (e) {
     if (!(e instanceof coins().CoinError)) throw e;
-    res.redirect(go(`user=${encodeURIComponent(userId)}&err=${encodeURIComponent(e.message)}`));
+    res.redirect(go(`tab=coins&user=${encodeURIComponent(userId)}&err=${encodeURIComponent(e.message)}`));
   }
 });
 
@@ -69,20 +74,21 @@ router.post('/settings', signedIn, ownerOnly, async (req, res) => {
     const prices = {};
     for (const k of Object.keys(cm().PROMOS)) prices[k] = req.body[`price_${k}`];
     await cm().setPlatform(req.user.id, { prices, premoderation: req.body.premoderation === 'on' });
-    res.redirect(go('done=settings'));
+    res.redirect(go('tab=settings&done=settings'));
   } catch (e) {
     if (!(e instanceof cm().CommunityError)) throw e;
-    res.redirect(go(`err=${encodeURIComponent(e.message)}`));
+    res.redirect(go(`tab=settings&err=${encodeURIComponent(e.message)}`));
   }
 });
 
 router.post('/moderate', signedIn, ownerOnly, async (req, res) => {
+  const back = tabOf(req.body.back, 'queue');
   try {
     await cm().moderate(req.user.id, req.body.id, String(req.body.status || ''), req.body.note);
-    res.redirect(go('done=moderated'));
+    res.redirect(go(`tab=${back}&done=moderated`));
   } catch (e) {
     if (!(e instanceof cm().CommunityError)) throw e;
-    res.redirect(go(`err=${encodeURIComponent(e.message)}`));
+    res.redirect(go(`tab=${back}&err=${encodeURIComponent(e.message)}`));
   }
 });
 
@@ -90,22 +96,33 @@ router.post('/reviews/:id(\\d+)', signedIn, ownerOnly, act((req) => cm().moderat
 
 router.post('/reports/:id(\\d+)/close', signedIn, ownerOnly, async (req, res) => {
   await db().CommunityReport.update({ status: 'closed' }, { where: { id: Number(req.params.id) } });
-  res.redirect(go('done=report'));
+  res.redirect(go('tab=queue&done=report'));
 });
 
-router.post('/earn', signedIn, ownerOnly, act((req) => coins().setEarnSettings(req.user.id, req.body), 'settings'));
-router.post('/pending/:id(\\d+)', signedIn, ownerOnly, act((req) => coins().decidePending(req.user.id, req.params.id, req.body.approve === '1'), 'pending'));
+router.post('/earn', signedIn, ownerOnly, act((req) => coins().setEarnSettings(req.user.id, req.body), 'settings', 'settings'));
+router.post('/pending/:id(\\d+)', signedIn, ownerOnly, act((req) => coins().decidePending(req.user.id, req.params.id, req.body.approve === '1'), 'pending', 'queue'));
 router.post('/freeze', signedIn, ownerOnly, async (req, res) => {
   const userId = String(req.body.userId || '');
-  try { await coins().setFrozen(req.user.id, userId, req.body.frozen === '1'); res.redirect(go(`user=${encodeURIComponent(userId)}&done=frozen`)); } catch (e) {
+  try { await coins().setFrozen(req.user.id, userId, req.body.frozen === '1'); res.redirect(go(`tab=coins&user=${encodeURIComponent(userId)}&done=frozen`)); } catch (e) {
     if (!(e instanceof coins().CoinError)) throw e;
-    res.redirect(go(`err=${encodeURIComponent(e.message)}`));
+    res.redirect(go(`tab=coins&user=${encodeURIComponent(userId)}&err=${encodeURIComponent(e.message)}`));
   }
 });
-router.post('/packages', signedIn, ownerOnly, act((req) => {
+const packagesOf = (body) => {
   const v = {};
-  for (const k of Object.keys(shop().PACKAGE_DEFAULTS)) v[k] = { coins: req.body[`coins_${k}`], stars: req.body[`stars_${k}`], on: req.body[`on_${k}`] === 'on' };
-  return shop().setPackages(req.user.id, v);
-}, 'settings'));
+  for (const k of Object.keys(shop().PACKAGE_DEFAULTS)) v[k] = { coins: body[`coins_${k}`], stars: body[`stars_${k}`], on: body[`on_${k}`] === 'on' };
+  return v;
+};
+router.post('/packages', signedIn, ownerOnly, act((req) => shop().setPackages(req.user.id, packagesOf(req.body)), 'settings', 'settings'));
+
+// The «Настройки» tab saves everything in one form: the earning rules first (they check all numbers before writing),
+// then the prices with pre-moderation, then the Telegram Stars packages.
+router.post('/config', signedIn, ownerOnly, act(async (req) => {
+  await coins().setEarnSettings(req.user.id, req.body);
+  const prices = {};
+  for (const k of Object.keys(cm().PROMOS)) prices[k] = req.body[`price_${k}`];
+  await cm().setPlatform(req.user.id, { prices, premoderation: req.body.premoderation === 'on' });
+  await shop().setPackages(req.user.id, packagesOf(req.body));
+}, 'settings', 'settings'));
 
 module.exports = router;

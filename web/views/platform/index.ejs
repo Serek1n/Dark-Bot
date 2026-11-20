@@ -3,150 +3,266 @@
 <head><%- include('../partials/head', { title: 'Платформа DARK' }) %></head>
 <body>
   <div class="night-sky"></div>
-  <main class="cm-page">
+  <main class="cm-page pf-page">
     <%- include('../partials/page-tools') %>
     <header class="cm-hero"><div><h1>Платформа DARK</h1><p class="page-intro">Только для владельцев платформы: DARK Coins, цены продвижения, модерация каталога.</p></div><a class="btn btn-secondary" href="/communities">Каталог</a></header>
     <% const fmt = (n) => Number(n || 0).toLocaleString('ru-RU'); const name = (id) => (id ? (users[id] || { name: id }).name : '—');
        const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
        const KIND = { grant: 'Начисление', revoke: 'Списание', promo: 'Продвижение', daily: 'Ежедневный бонус', vote: 'Голос', join: 'Вход из каталога', quest: 'Задание', top: 'Топ недели', purchase: 'Покупка', refund: 'Возврат' };
-       const DONE = { review: 'Решение по отзыву применено.', coins: 'Операция проведена.', dup: 'Эта операция уже была проведена — повтор ничего не изменил.', settings: 'Настройки сохранены.', pending: 'Решение по начислению принято.', frozen: 'Состояние кошелька изменено.', moderated: 'Решение сохранено.', report: 'Жалоба закрыта.' }; %>
+       const DONE = { review: 'Решение по отзыву применено.', coins: 'Операция проведена.', dup: 'Эта операция уже была проведена — повтор ничего не изменил.', settings: 'Настройки сохранены.', pending: 'Решение по начислению принято.', frozen: 'Состояние кошелька изменено.', moderated: 'Решение сохранено.', report: 'Жалоба закрыта.' };
+       const STATE = { published: 'Опубликовано', pending: 'Ждёт проверки', hidden: 'Скрыто', blocked: 'Заблокировано' };
+       const openReviews = badReviews.filter((r) => r.status !== 'hidden');
+       const hiddenReviews = badReviews.filter((r) => r.status === 'hidden');
+       const queueN = pending.length + reports.length + openReviews.length;
+       const inbox = queueN + held.length;
+       const limit = Number(earn.emissionPerDay) || 0;
+       const pct = limit ? Math.min(100, Math.round((Number(emitted) || 0) / limit * 100)) : 0;
+       const TABS = [['queue', 'Очередь', inbox], ['catalog', 'Каталог', listed.length], ['coins', 'DARK Coins', null], ['settings', 'Настройки', null]];
+       const cur = TABS.some((t) => t[0] === tab) ? tab : 'queue';
+       const tabUrl = (t) => '/platform?tab=' + t + (userId && t === 'coins' ? '&user=' + encodeURIComponent(userId) : ''); %>
     <% if (error) { %><%- include('../partials/flash', { head: 'Не получилось:', text: error, error: true, param: 'err' }) %><% } %>
     <% if (done && DONE[done]) { %><%- include('../partials/flash', { text: DONE[done], param: 'done' }) %><% } %>
-    <div class="card" id="moderation">
-      <h2>Модерация каталога</h2>
-      <% const queueN = pending.length + reports.length + badReviews.filter((r) => r.status !== 'hidden').length; %>
-      <p class="hint" style="margin-top:0"><%= queueN ? 'В очереди: ' + pending.length + ' на проверке, ' + reports.length + ' жалоб на сообщества, ' + badReviews.filter((r) => r.status !== 'hidden').length + ' отзывов с жалобами.' : 'Очередь пуста: новых заявок и жалоб нет.' %><%= settings.premoderation ? '' : ' Предмодерация выключена — новые сообщества публикуются сразу.' %></p>
-      <% const modForm = (c) => { %>
-        <form method="post" action="/platform/moderate" class="cm-mod">
-          <input type="hidden" name="id" value="<%= c.id %>" />
-          <input type="text" name="note" maxlength="300" placeholder="Комментарий владельцу" aria-label="Комментарий" />
-          <select name="status" aria-label="Решение"><option value="published">Опубликовать</option><option value="hidden">Скрыть</option><option value="blocked">Заблокировать</option></select>
-          <button class="btn btn-secondary" type="submit">Применить</button>
-        </form>
-      <% }; %>
+
+    <div class="pf-status" aria-label="Состояние платформы">
+      <a class="pf-stat<%= queueN ? ' has' : '' %>" href="<%= tabUrl('queue') %>"><b><%= fmt(queueN) %></b><span>В очереди</span></a>
+      <a class="pf-stat<%= held.length ? ' has' : '' %>" href="<%= tabUrl('queue') %>#held"><b><%= fmt(held.length) %></b><span>Начисления на проверке</span></a>
+      <a class="pf-stat pf-emit<%= pct >= 100 ? ' full' : '' %>" href="<%= tabUrl('settings') %>#earn">
+        <span class="pf-emit-head"><b><%= fmt(emitted) %></b><span>из <%= fmt(limit) %></span></span>
+        <span class="pf-meter" role="meter" aria-label="Выдано сегодня" aria-valuemin="0" aria-valuemax="<%= limit %>" aria-valuenow="<%= Number(emitted) || 0 %>"><i style="width:<%= pct %>%"></i></span>
+        <span>Выдано сегодня автоматически</span>
+      </a>
+      <a class="pf-stat pf-tgstat <%= tgStatus.ok ? 'ok' : 'bad' %>" href="<%= tabUrl('settings') %>#packs"><b><i aria-hidden="true"></i><%= tgStatus.ok ? 'Подключён' : 'Не работает' %></b><span>Telegram Stars</span></a>
+    </div>
+
+    <nav class="mh-tabs pf-tabs" aria-label="Разделы платформы">
+      <% TABS.forEach(([k, l, n]) => { %><a href="<%= tabUrl(k) %>"<%- k === cur ? ' class="on" aria-current="page"' : '' %>><%= l %><% if (n) { %> <span class="pf-tab-n"><%= fmt(n) %></span><% } %></a><% }) %>
+    </nav>
+
+    <%# ---------- Очередь ---------- %>
+    <section class="pf-panel" id="moderation"<%= cur === 'queue' ? '' : ' hidden' %>>
+      <% if (!inbox) { %>
+        <div class="pf-clear"><span class="pf-clear-ico"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 10.5L8.5 14.5L15.5 6"/></svg></span><div><b>Очередь пуста</b><span>Новых заявок, жалоб и начислений нет.<%= settings.premoderation ? '' : ' Предмодерация выключена — новые сообщества публикуются сразу.' %></span></div></div>
+      <% } else if (!settings.premoderation) { %>
+        <p class="hint pf-note">Предмодерация выключена — новые сообщества публикуются сразу.</p>
+      <% } %>
+
       <% if (pending.length) { %>
-        <h3 class="econ-sub">Ждут проверки</h3>
-        <div class="appeal-list"><% pending.forEach((c) => { %><div class="appeal-row"><div class="appeal-main"><b><a href="/communities/<%= c.id %>" target="_blank" rel="noopener"><%= c.name %></a></b><span class="muted"><%= c.shortDesc %></span><span class="muted">Сервер <%= c.guildId %> · отправлено <%= when(c.createdAt) %></span></div><div class="appeal-act"><% modForm(c) %></div></div><% }) %></div>
-      <% } %>
-      <% if (reports.length) { %>
-        <h3 class="econ-sub">Жалобы</h3>
-        <div class="appeal-list"><% reports.forEach((r) => { const c = byId.get(r.communityId); %>
-          <div class="appeal-row"><div class="appeal-main"><b><%= c ? c.name : '#' + r.communityId %></b><span class="muted"><%= r.reason %></span></div>
-            <div class="appeal-act"><form method="post" action="/platform/reports/<%= r.id %>/close"><button class="btn btn-secondary" type="submit">Закрыть жалобу</button></form></div></div>
-        <% }) %></div>
-      <% } %>
-      <% if (badReviews.length) { %>
-        <h3 class="econ-sub">Отзывы с жалобами</h3>
-        <div class="appeal-list"><% badReviews.forEach((r) => { const c = byId.get(r.communityId); const why = reviewReasons.filter((x) => x.reviewId === r.id).slice(0, 3); %>
-          <div class="appeal-row"><div class="appeal-main">
-            <b><%= '★'.repeat(r.rating) %> · <%= name(r.userId) %> → <%= c ? c.name : '#' + r.communityId %><%= r.status === 'hidden' ? ' · скрыт' : '' %></b>
-            <span><%= r.text || '(только оценка)' %></span>
-            <% if (why.length) { %><span class="muted">Жалобы (<%= r.reports %>): <%= why.map((x) => x.reason).join(' · ') %></span><% } %>
-          </div>
-            <div class="appeal-act">
-              <form method="post" action="/platform/reviews/<%= r.id %>" class="cm-mod">
-                <select name="action" aria-label="Решение по отзыву"><% if (r.status === 'hidden') { %><option value="restore">Вернуть</option><% } else { %><option value="hide">Скрыть</option><option value="dismiss">Жалобы необоснованны</option><% } %></select>
-                <button class="btn btn-secondary" type="submit">Применить</button>
+        <div class="card pf-sec">
+          <h2>Ждут проверки <span class="pf-count"><%= pending.length %></span></h2>
+          <div class="pf-rows"><% pending.forEach((c) => { %>
+            <div class="pf-row">
+              <div class="pf-row-main"><b><a href="/communities/<%= c.id %>" target="_blank" rel="noopener"><%= c.name %></a></b><span><%= c.shortDesc %></span><small class="muted">Сервер <%= c.guildId %> · отправлено <%= when(c.createdAt) %></small></div>
+              <form method="post" action="/platform/moderate" class="pf-decide">
+                <input type="hidden" name="id" value="<%= c.id %>" /><input type="hidden" name="back" value="queue" />
+                <input type="text" name="note" maxlength="300" placeholder="Комментарий владельцу" aria-label="Комментарий" />
+                <span class="pf-btns"><button class="btn" type="submit" name="status" value="published">Опубликовать</button><button class="btn btn-secondary" type="submit" name="status" value="hidden">Скрыть</button><button class="btn btn-secondary pf-danger" type="submit" name="status" value="blocked">Заблокировать</button></span>
               </form>
-            </div></div>
-        <% }) %></div>
-      <% } %>
-      <h3 class="econ-sub">Все сообщества</h3>
-      <% if (!listed.length) { %><p class="empty-state">Каталог пуст.</p><% } else { %>
-        <div class="table-scroll"><table>
-          <thead><tr><th>Сообщество</th><th>Состояние</th><th>Голоса</th><th>Решение</th></tr></thead>
-          <tbody><% listed.forEach((c) => { %><tr><td><span class="pf-cmname"><a href="/communities/<%= c.id %>"><%= c.name %></a><small class="muted"><%= c.guildId %></small></span></td><td class="nowrap"><%= ({ published: 'Опубликовано', pending: 'Ждёт проверки', hidden: 'Скрыто', blocked: 'Заблокировано' })[c.status] || c.status %></td><td><%= c.votes %></td><td><% modForm(c) %></td></tr><% }) %></tbody>
-        </table></div>
-      <% } %>
-    </div>
-    <div class="pf-grid">
-      <div class="card">
-        <h2>DARK Coins</h2>
-        <form method="get" action="/platform" class="ach-find"><input name="user" type="text" inputmode="numeric" value="<%= userId || '' %>" placeholder="ID пользователя или g + ID сервера" aria-label="ID пользователя" /><button class="btn btn-secondary" type="submit">Найти</button></form>
-        <% if (userId) { %>
-          <p class="cm-balance" style="margin:14px 0"><span><%= name(userId) %>:</span> <b><%= fmt(balance) %></b> <span>DARK Coins</span></p>
-          <form method="post" action="/platform/coins">
-            <input type="hidden" name="userId" value="<%= userId %>" /><input type="hidden" name="key" value="<%= key %>" />
-            <div class="two-col">
-              <div><label for="pfAmt">Сумма</label><input id="pfAmt" type="number" name="amount" min="1" max="10000000" required /></div>
-              <div><label for="pfOp">Операция</label><select id="pfOp" name="op"><option value="grant">Начислить</option><option value="revoke">Списать</option></select></div>
             </div>
-            <label for="pfNote">Причина (в журнал)</label>
-            <input id="pfNote" type="text" name="note" maxlength="200" required placeholder="Например: награда за ивент платформы" />
-            <button class="btn" type="submit">Провести</button>
-          </form>
-          <form method="post" action="/platform/freeze" class="pf-freeze">
-            <input type="hidden" name="userId" value="<%= userId %>" /><input type="hidden" name="frozen" value="<%= frozen ? '0' : '1' %>" />
-            <span class="muted"><%= frozen ? 'Кошелёк заморожен: награды отменяются, тратить нельзя.' : 'Заморозка: награды отменяются, тратить нельзя.' %></span>
-            <button class="btn <%= frozen ? 'btn-secondary' : 'btn-danger' %>" type="submit"><%= frozen ? 'Разморозить' : 'Заморозить' %></button>
-          </form>
-        <% } %>
-        <h3 class="econ-sub">Самые большие балансы</h3>
-        <% if (!top.length) { %><p class="empty-state">Пока ни у кого нет DARK Coins.</p><% } else { %>
-          <div class="mini-list"><% top.forEach((w) => { %><a class="mini-row" href="/platform?user=<%= w.userId %>"><span class="person"><span><%= name(w.userId) %></span></span><b><%= fmt(w.balance) %></b></a><% }) %></div>
-        <% } %>
-      </div>
-      <form method="post" action="/platform/settings" class="card">
-        <h2>Цены продвижения</h2>
-        <% Object.entries(C.PROMOS).forEach(([k, p]) => { %>
-          <label for="pr_<%= k %>"><%= p.label %>, <%= p.perDay ? 'DARK Coins в день' : 'DARK Coins' %></label>
-          <input id="pr_<%= k %>" type="number" name="price_<%= k %>" min="1" max="1000000" value="<%= settings.prices[k] %>" />
-        <% }) %>
-        <div class="rules"><label class="rule"><span class="rule-text"><b>Предмодерация</b><span>Новые сообщества появляются в каталоге только после одобрения.</span></span><input type="checkbox" name="premoderation" <%= settings.premoderation ? 'checked' : '' %> /></label></div>
-        <button class="btn" type="submit">Сохранить</button>
-      </form>
-    </div>
-    <form method="post" action="/platform/earn" class="card">
-        <h2>Правила заработка</h2>
-        <p class="hint" style="margin-top:0">Сегодня автоматически выдано: <b><%= fmt(emitted) %></b> из <b><%= fmt(earn.emissionPerDay) %></b>. Сверх предела награды ждут вашего решения.</p>
-        <div class="pf-earn">
-          <% const L = {"join": "Вход из каталога (серверу)", "joinDailyCap": "Предел входов в день на сервер, монет", "joinMinAgeDays": "Возраст аккаунта для входа, дней", "vote": "Голос (голосующему)", "votePaidPerDay": "Оплачиваемых голосов в день", "daily": "Ежедневный бонус", "dailyStreakMax": "Прибавка за серию, до", "dailyMinAgeDays": "Возраст аккаунта для бонуса, дней", "questPublish": "Задание: опубликовать", "questJoins10": "Задание: 10 входов", "questJoins100": "Задание: 100 входов", "questJoins1000": "Задание: 1000 входов", "questMonth": "Задание: 30 дней в каталоге", "top1": "Топ недели: 1 место", "top2": "Топ недели: 2 место", "top3": "Топ недели: 3 место", "holdHours": "Ожидание наград за входы и голоса, ч", "emissionPerDay": "Предел автоматических наград в день"}; Object.keys(EARN).forEach((k) => { %>
-            <label><span><%= L[k] || k %></span><input type="number" name="<%= k %>" min="0" max="10000000" value="<%= earn[k] %>" /></label>
-          <% }) %>
-        </div>
-        <button class="btn" type="submit">Сохранить правила</button>
-      </form>
-    <div class="card">
-        <h2>Начисления на проверке</h2>
-        <% if (!held.length) { %><p class="empty-state">Ждущих начислений нет.</p><% } else { %>
-          <div class="appeal-list"><% held.forEach((p) => { %>
-            <div class="appeal-row"><div class="appeal-main"><b>+<%= fmt(p.amount) %> · <%= KIND[p.kind] || p.kind %></b><span class="muted"><%= p.wallet.startsWith('g') ? 'сервер ' + p.wallet.slice(1) : name(p.wallet) %> · <%= p.status === 'held' ? 'на проверке: ' + (p.reason || '') : 'ожидает до ' + when(p.payAt) %></span></div>
-              <div class="appeal-act cm-mod"><form method="post" action="/platform/pending/<%= p.id %>"><input type="hidden" name="approve" value="1" /><button class="btn btn-secondary" type="submit">Выдать</button></form><form method="post" action="/platform/pending/<%= p.id %>"><input type="hidden" name="approve" value="0" /><button class="btn btn-danger" type="submit">Отменить</button></form></div></div>
           <% }) %></div>
-        <% } %>
-    </div>
-    <div class="pf-grid">
-      <form method="post" action="/platform/packages" class="card">
-        <h2>Пакеты Telegram Stars</h2>
-        <% if (tgStatus.ok) { %><p class="hint pf-tg ok" style="margin-top:0">Бот подключён: <b>@<%= tgStatus.username %></b>. Покупки работают.</p><% } else { %><p class="hint pf-tg bad" style="margin-top:0"><b>Покупки не работают.</b> <%= tgStatus.error %></p><% } %>
-        <div class="pf-packs">
-          <% Object.values(packages).forEach((p) => { %>
-            <div class="pf-pack"><label class="checkbox-row"><input type="checkbox" name="on_<%= p.key %>" <%= p.on ? 'checked' : '' %> /> <span>Продавать</span></label>
-              <label><span>Монет</span><input type="number" name="coins_<%= p.key %>" min="1" max="1000000" value="<%= p.coins %>" /></label>
-              <label><span>Звёзд ⭐</span><input type="number" name="stars_<%= p.key %>" min="1" max="100000" value="<%= p.stars %>" /></label></div>
-          <% }) %>
         </div>
-        <button class="btn" type="submit">Сохранить пакеты</button>
-      </form>
+      <% } %>
+
+      <% if (reports.length) { %>
+        <div class="card pf-sec">
+          <h2>Жалобы <span class="pf-count"><%= reports.length %></span></h2>
+          <div class="pf-rows"><% reports.forEach((r) => { const c = byId.get(r.communityId); %>
+            <div class="pf-row">
+              <div class="pf-row-main"><b><% if (c) { %><a href="/communities/<%= c.id %>" target="_blank" rel="noopener"><%= c.name %></a><% } else { %>#<%= r.communityId %><% } %></b><span><%= r.reason %></span></div>
+              <span class="pf-btns"><% if (c) { %><form method="post" action="/platform/moderate"><input type="hidden" name="id" value="<%= c.id %>" /><input type="hidden" name="back" value="queue" /><button class="btn btn-secondary" type="submit" name="status" value="hidden">Скрыть сообщество</button></form><% } %><form method="post" action="/platform/reports/<%= r.id %>/close"><button class="btn btn-secondary" type="submit">Закрыть жалобу</button></form></span>
+            </div>
+          <% }) %></div>
+        </div>
+      <% } %>
+
+      <% if (openReviews.length) { %>
+        <div class="card pf-sec">
+          <h2>Отзывы с жалобами <span class="pf-count"><%= openReviews.length %></span></h2>
+          <div class="pf-rows"><% openReviews.forEach((r) => { const c = byId.get(r.communityId); const why = reviewReasons.filter((x) => x.reviewId === r.id).slice(0, 3); %>
+            <div class="pf-row">
+              <div class="pf-row-main">
+                <b><span class="pf-stars" aria-label="Оценка <%= r.rating %> из 5"><%= '★'.repeat(r.rating) %></span> <%= name(r.userId) %> → <%= c ? c.name : '#' + r.communityId %></b>
+                <span><%= r.text || '(только оценка)' %></span>
+                <% if (why.length) { %><small class="muted">Жалобы (<%= r.reports %>): <%= why.map((x) => x.reason).join(' · ') %></small><% } %>
+              </div>
+              <form method="post" action="/platform/reviews/<%= r.id %>" class="pf-btns"><button class="btn btn-secondary" type="submit" name="action" value="hide">Скрыть</button><button class="btn btn-secondary" type="submit" name="action" value="dismiss">Жалобы необоснованны</button></form>
+            </div>
+          <% }) %></div>
+        </div>
+      <% } %>
+
+      <% if (held.length) { %>
+        <div class="card pf-sec" id="held">
+          <h2>Начисления на проверке <span class="pf-count"><%= held.length %></span></h2>
+          <div class="pf-rows"><% held.forEach((p) => { %>
+            <div class="pf-row">
+              <div class="pf-row-main"><b><span class="pf-plus">+<%= fmt(p.amount) %></span> · <%= KIND[p.kind] || p.kind %></b><small class="muted"><%= p.wallet.startsWith('g') ? 'сервер ' + p.wallet.slice(1) : name(p.wallet) %> · <%= p.status === 'held' ? 'на проверке: ' + (p.reason || '') : 'ожидает до ' + when(p.payAt) %></small></div>
+              <span class="pf-btns"><form method="post" action="/platform/pending/<%= p.id %>"><input type="hidden" name="approve" value="1" /><button class="btn" type="submit">Выдать</button></form><form method="post" action="/platform/pending/<%= p.id %>"><input type="hidden" name="approve" value="0" /><button class="btn btn-secondary pf-danger" type="submit">Отменить</button></form></span>
+            </div>
+          <% }) %></div>
+        </div>
+      <% } %>
+    </section>
+
+    <%# ---------- Каталог ---------- %>
+    <section class="pf-panel"<%= cur === 'catalog' ? '' : ' hidden' %>>
       <div class="card">
-        <h2>Покупки за звёзды</h2>
-        <% if (!orders.length) { %><p class="empty-state">Оплаченных заказов ещё не было.</p><% } else { %>
-          <div class="table-scroll"><table>
-            <thead><tr><th>№</th><th>Кто</th><th>Пакет</th><th>Оплачен</th></tr></thead>
-            <tbody><% orders.forEach((o) => { %><tr><td>#<%= o.id %></td><td class="nowrap"><%= name(o.userId) %></td><td class="nowrap"><%= fmt(o.coins) %> · <%= fmt(o.stars) %> ⭐</td><td class="nowrap"><%= o.paidAt ? when(o.paidAt) : '—' %></td></tr><% }) %></tbody>
+        <h2>Все сообщества</h2>
+        <% const counts = {}; listed.forEach((c) => { counts[c.status] = (counts[c.status] || 0) + 1; }); const shown = state ? listed.filter((c) => c.status === state) : listed; %>
+        <% if (listed.length) { %>
+          <nav class="pf-filter" aria-label="Фильтр по состоянию">
+            <a href="/platform?tab=catalog"<%- !state ? ' class="on" aria-current="true"' : '' %>>Все <span><%= listed.length %></span></a>
+            <% Object.keys(STATE).forEach((k) => { if (!counts[k]) return; %><a href="/platform?tab=catalog&amp;state=<%= k %>"<%- state === k ? ' class="on" aria-current="true"' : '' %>><%= STATE[k] %> <span><%= counts[k] %></span></a><% }) %>
+          </nav>
+        <% } %>
+        <% if (!shown.length) { %><p class="empty-state">Каталог пуст.</p><% } else { %>
+          <div class="table-scroll"><table class="pf-table">
+            <thead><tr><th>Сообщество</th><th>Состояние</th><th class="num">Голоса</th><th class="pf-act-col"><span class="sr-only">Решение</span></th></tr></thead>
+            <tbody><% shown.forEach((c) => { %><tr>
+              <td><span class="pf-cmname"><a href="/communities/<%= c.id %>"><%= c.name %></a><small class="muted"><%= c.guildId %></small></span></td>
+              <td class="nowrap"><span class="pf-state <%= c.status %>"><i aria-hidden="true"></i><%= STATE[c.status] || c.status %></span></td>
+              <td class="num"><%= fmt(c.votes) %></td>
+              <td class="pf-act-col">
+                <details class="pf-menu">
+                  <summary class="btn btn-secondary">Решение</summary>
+                  <form method="post" action="/platform/moderate" class="pf-menu-pop">
+                    <input type="hidden" name="id" value="<%= c.id %>" /><input type="hidden" name="back" value="catalog" />
+                    <input type="text" name="note" maxlength="300" placeholder="Комментарий владельцу" aria-label="Комментарий" />
+                    <% if (c.status !== 'published') { %><button class="btn" type="submit" name="status" value="published">Опубликовать</button><% } %>
+                    <% if (c.status !== 'hidden') { %><button class="btn btn-secondary" type="submit" name="status" value="hidden">Скрыть</button><% } %>
+                    <% if (c.status !== 'blocked') { %><button class="btn btn-secondary pf-danger" type="submit" name="status" value="blocked">Заблокировать</button><% } %>
+                  </form>
+                </details>
+              </td>
+            </tr><% }) %></tbody>
           </table></div>
         <% } %>
       </div>
-    </div>
-    <div class="card">
-      <h2>Журнал DARK Coins<%= userId ? ' · ' + name(userId) : '' %></h2>
-      <% if (!log.length) { %><p class="empty-state">Операций ещё не было.</p><% } else { %>
-        <div class="table-scroll"><table>
-          <thead><tr><th>№</th><th>Когда</th><th>Кому</th><th>Что</th><th>Сумма</th><th>Баланс после</th><th>Кто</th><th>Причина</th></tr></thead>
-          <tbody><% log.forEach((t) => { %><tr><td>#<%= t.id %></td><td class="nowrap"><%= when(t.createdAt) %></td><td class="nowrap"><%= name(t.userId) %></td><td class="nowrap"><%= KIND[t.kind] || t.kind %></td><td class="nowrap"><%= t.amount > 0 ? '+' : '' %><%= fmt(t.amount) %></td><td class="nowrap"><%= fmt(t.balanceAfter) %></td><td class="nowrap"><%= name(t.actorId) %></td><td class="muted"><%= t.note || '' %></td></tr><% }) %></tbody>
-        </table></div>
+      <% if (hiddenReviews.length) { %>
+        <div class="card pf-sec">
+          <h2>Скрытые отзывы <span class="pf-count"><%= hiddenReviews.length %></span></h2>
+          <div class="pf-rows"><% hiddenReviews.forEach((r) => { const c = byId.get(r.communityId); %>
+            <div class="pf-row">
+              <div class="pf-row-main"><b><span class="pf-stars"><%= '★'.repeat(r.rating) %></span> <%= name(r.userId) %> → <%= c ? c.name : '#' + r.communityId %></b><span><%= r.text || '(только оценка)' %></span></div>
+              <form method="post" action="/platform/reviews/<%= r.id %>" class="pf-btns"><button class="btn btn-secondary" type="submit" name="action" value="restore">Вернуть</button></form>
+            </div>
+          <% }) %></div>
+        </div>
       <% } %>
-    </div>
+    </section>
+
+    <%# ---------- DARK Coins ---------- %>
+    <section class="pf-panel"<%= cur === 'coins' ? '' : ' hidden' %>>
+      <div class="pf-grid">
+        <div class="card">
+          <h2>DARK Coins</h2>
+          <form method="get" action="/platform" class="ach-find"><input type="hidden" name="tab" value="coins" /><input name="user" type="text" inputmode="numeric" value="<%= userId || '' %>" placeholder="ID пользователя или g + ID сервера" aria-label="ID пользователя" /><button class="btn btn-secondary" type="submit">Найти</button></form>
+          <% if (userId) { %>
+            <div class="pf-wallet<%= frozen ? ' frozen' : '' %>">
+              <span class="pf-wallet-who"><%= userId.startsWith('g') ? 'Сервер ' + userId.slice(1) : name(userId) %><% if (frozen) { %> · <span class="pf-frozen">заморожен</span><% } %></span>
+              <b class="pf-wallet-sum"><%= fmt(balance) %></b>
+              <span class="muted">DARK Coins</span>
+            </div>
+            <form method="post" action="/platform/coins">
+              <input type="hidden" name="userId" value="<%= userId %>" /><input type="hidden" name="key" value="<%= key %>" />
+              <div class="two-col">
+                <div><label for="pfAmt">Сумма</label><input id="pfAmt" type="number" name="amount" min="1" max="10000000" required /></div>
+                <div><label for="pfOp">Операция</label><select id="pfOp" name="op"><option value="grant">Начислить</option><option value="revoke">Списать</option></select></div>
+              </div>
+              <label for="pfNote">Причина (в журнал)</label>
+              <input id="pfNote" type="text" name="note" maxlength="200" required placeholder="Например: награда за ивент платформы" />
+              <button class="btn" type="submit">Провести</button>
+            </form>
+            <form method="post" action="/platform/freeze" class="pf-freeze">
+              <input type="hidden" name="userId" value="<%= userId %>" /><input type="hidden" name="frozen" value="<%= frozen ? '0' : '1' %>" />
+              <span class="muted"><%= frozen ? 'Кошелёк заморожен: награды отменяются, тратить нельзя.' : 'Заморозка: награды отменяются, тратить нельзя.' %></span>
+              <button class="btn <%= frozen ? 'btn-secondary' : 'btn-danger' %>" type="submit"><%= frozen ? 'Разморозить' : 'Заморозить' %></button>
+            </form>
+          <% } else { %>
+            <p class="hint pf-note">Найдите кошелёк по ID, чтобы увидеть баланс, начислить, списать или заморозить.</p>
+          <% } %>
+        </div>
+        <div class="card">
+          <h2>Самые большие балансы</h2>
+          <% if (!top.length) { %><p class="empty-state">Пока ни у кого нет DARK Coins.</p><% } else { const max = Math.max(1, ...top.map((w) => Number(w.balance) || 0)); %>
+            <ol class="pf-top"><% top.forEach((w, i) => { %><li><a href="/platform?tab=coins&amp;user=<%= w.userId %>"><span class="pf-top-n"><%= i + 1 %></span><span class="pf-top-who"><%= String(w.userId).startsWith('g') ? 'Сервер ' + String(w.userId).slice(1) : name(w.userId) %></span><b><%= fmt(w.balance) %></b><span class="pf-top-bar" aria-hidden="true"><i style="width:<%= Math.max(2, Math.round((Number(w.balance) || 0) / max * 100)) %>%"></i></span></a></li><% }) %></ol>
+          <% } %>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Журнал DARK Coins<%= userId ? ' · ' + name(userId) : '' %></h2>
+        <% if (!log.length) { %><p class="empty-state">Операций ещё не было.</p><% } else { %>
+          <div class="table-scroll"><table class="pf-table">
+            <thead><tr><th>№</th><th>Когда</th><th>Кому</th><th>Что</th><th class="num">Сумма</th><th class="num">Баланс после</th><th>Кто</th><th>Причина</th></tr></thead>
+            <tbody><% log.forEach((t) => { %><tr><td class="muted">#<%= t.id %></td><td class="nowrap"><%= when(t.createdAt) %></td><td class="nowrap"><%= name(t.userId) %></td><td class="nowrap"><%= KIND[t.kind] || t.kind %></td><td class="num nowrap <%= t.amount > 0 ? 'pf-in' : 'pf-out' %>"><%= t.amount > 0 ? '+' : '' %><%= fmt(t.amount) %></td><td class="num nowrap"><%= fmt(t.balanceAfter) %></td><td class="nowrap"><%= name(t.actorId) %></td><td class="muted"><%= t.note || '' %></td></tr><% }) %></tbody>
+          </table></div>
+        <% } %>
+      </div>
+      <div class="card">
+        <h2>Покупки за звёзды</h2>
+        <% if (!orders.length) { %><p class="empty-state">Оплаченных заказов ещё не было.</p><% } else { %>
+          <div class="table-scroll"><table class="pf-table">
+            <thead><tr><th>№</th><th>Кто</th><th class="num">Монет</th><th class="num">Звёзд</th><th>Оплачен</th></tr></thead>
+            <tbody><% orders.forEach((o) => { %><tr><td class="muted">#<%= o.id %></td><td class="nowrap"><%= name(o.userId) %></td><td class="num"><%= fmt(o.coins) %></td><td class="num"><%= fmt(o.stars) %> ★</td><td class="nowrap"><%= o.paidAt ? when(o.paidAt) : '—' %></td></tr><% }) %></tbody>
+          </table></div>
+        <% } %>
+      </div>
+    </section>
+
+    <%# ---------- Настройки ---------- %>
+    <section class="pf-panel"<%= cur === 'settings' ? '' : ' hidden' %>>
+      <form method="post" action="/platform/config" class="pf-config">
+        <% const UNIT = { coins: 'монет', perDay: 'монет в день', days: 'дней', hours: 'ч', count: 'шт.' };
+           const GROUPS = [
+             ['Вход из каталога', 'Сервер получает монеты, когда к нему заходят из каталога', [['join', 'Награда серверу', 'coins'], ['joinDailyCap', 'Предел в день на сервер', 'coins'], ['joinMinAgeDays', 'Возраст аккаунта входящего', 'days']]],
+             ['Голоса', 'Награда тому, кто голосует за сообщество', [['vote', 'За голос', 'coins'], ['votePaidPerDay', 'Оплачиваемых голосов в день', 'count']]],
+             ['Ежедневный бонус', 'Раз в сутки, растёт при серии дней подряд', [['daily', 'Бонус', 'coins'], ['dailyStreakMax', 'Прибавка за серию, до', 'coins'], ['dailyMinAgeDays', 'Возраст аккаунта', 'days']]],
+             ['Задания', 'Один раз на сервер', [['questPublish', 'Опубликовать', 'coins'], ['questJoins10', '10 входов', 'coins'], ['questJoins100', '100 входов', 'coins'], ['questJoins1000', '1000 входов', 'coins'], ['questMonth', '30 дней в каталоге', 'coins']]],
+             ['Топ недели', 'Серверам с наибольшим ростом за неделю', [['top1', '1 место', 'coins'], ['top2', '2 место', 'coins'], ['top3', '3 место', 'coins']]],
+             ['Лимиты', 'Сверх предела награды ждут вашего решения в очереди', [['holdHours', 'Ожидание наград за входы и голоса', 'hours'], ['emissionPerDay', 'Предел автоматических наград в день', 'coins']]]
+           ];
+           const known = new Set(GROUPS.flatMap((g) => g[2].map((f) => f[0])));
+           const rest = Object.keys(EARN).filter((k) => !known.has(k));
+           if (rest.length) GROUPS.push(['Другое', '', rest.map((k) => [k, k, 'coins'])]);
+           const field = (k, label, unit) => { %>
+             <label class="pf-field"><span><%= label %></span><span class="pf-input"><input type="number" name="<%= k %>" min="0" max="10000000" value="<%= earn[k] %>" /><em><%= UNIT[unit] %></em></span></label>
+        <% }; %>
+        <div class="pf-cfg-grid">
+          <div class="card pf-sec">
+            <h2>Каталог</h2>
+            <div class="rules"><label class="rule"><span class="rule-text"><b>Предмодерация</b><span>Новые сообщества появляются в каталоге только после одобрения.</span></span><input type="checkbox" name="premoderation" <%= settings.premoderation ? 'checked' : '' %> /></label></div>
+            <h3 class="pf-sub">Цены продвижения</h3>
+            <% Object.entries(C.PROMOS).forEach(([k, p]) => { %>
+              <label class="pf-field" for="pr_<%= k %>"><span><%= p.label %></span><span class="pf-input"><input id="pr_<%= k %>" type="number" name="price_<%= k %>" min="1" max="1000000" value="<%= settings.prices[k] %>" /><em><%= p.perDay ? 'монет в день' : 'монет' %></em></span></label>
+            <% }) %>
+          </div>
+          <div class="card pf-sec" id="packs">
+            <h2>Пакеты Telegram Stars</h2>
+            <% if (tgStatus.ok) { %><p class="pf-tg ok">Бот подключён: <b>@<%= tgStatus.username %></b>. Покупки работают.</p><% } else { %><p class="pf-tg bad"><b>Покупки не работают.</b> <%= tgStatus.error %></p><% } %>
+            <div class="pf-packs">
+              <% Object.values(packages).forEach((p) => { %>
+                <div class="pf-pack<%= p.on ? '' : ' off' %>">
+                  <label class="checkbox-row pf-pack-sw"><span>Продавать</span><input type="checkbox" name="on_<%= p.key %>" <%= p.on ? 'checked' : '' %> /></label>
+                  <label class="pf-pack-row"><span class="pf-input"><input type="number" name="coins_<%= p.key %>" min="1" max="1000000" value="<%= p.coins %>" aria-label="Монет в пакете" /><em>монет</em></span></label>
+                  <label class="pf-pack-row"><span class="pf-input"><input type="number" name="stars_<%= p.key %>" min="1" max="100000" value="<%= p.stars %>" aria-label="Цена в звёздах" /><em>★</em></span></label>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+        <div class="card pf-sec" id="earn">
+          <h2>Правила заработка</h2>
+          <p class="hint pf-note">Сегодня автоматически выдано: <b><%= fmt(emitted) %></b> из <b><%= fmt(earn.emissionPerDay) %></b>. Сверх предела награды ждут вашего решения.</p>
+          <div class="pf-groups">
+            <% GROUPS.forEach(([title, sub, fields]) => { %>
+              <fieldset class="pf-group"><legend><%= title %></legend><% if (sub) { %><p class="pf-group-sub"><%= sub %></p><% } %>
+                <% fields.forEach(([k, label, unit]) => { field(k, label, unit); }) %>
+              </fieldset>
+            <% }) %>
+          </div>
+        </div>
+        <div class="pf-savebar"><span class="muted">Цены, пакеты и правила сохраняются вместе</span><button class="btn" type="submit">Сохранить настройки</button></div>
+      </form>
+    </section>
   </main>
 </body>
 </html>

@@ -1,6 +1,35 @@
 [
  {
   "bot": "3.19.3",
+  "panel": "3.30.4",
+  "date": "2026-11-20",
+  "botChanges": [],
+  "panelChanges": [
+   "Платформа DARK: сверху очередь, начисления, дневной лимит наград и статус Telegram",
+   "Платформа разбита на вкладки: Очередь, Каталог, DARK Coins, Настройки",
+   "Очередь: заявки, жалобы, отзывы и начисления в одном списке, решение одной кнопкой",
+   "Жалобу на сообщество можно сразу закрыть или скрыть само сообщество",
+   "Каталог платформы: фильтр по состоянию, строка в одну линию, решение в меню",
+   "Самые большие балансы — рейтингом с полосками, журнал показывает приход и расход цветом",
+   "Правила заработка разбиты на группы с единицами: монет, дней, часов",
+   "Цены, пакеты Telegram Stars и правила сохраняются одной кнопкой"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "DARK Platform: queue, payouts, daily reward limit and Telegram status at the top",
+    "The platform is split into tabs: Queue, Catalog, DARK Coins, Settings",
+    "Queue: requests, complaints, reviews and payouts in one list, decided with one button",
+    "A community complaint can be closed right away or the community hidden",
+    "Platform catalog: filter by state, one-line rows, the decision in a menu",
+    "Top balances as a ranking with bars; the journal colours income and spending",
+    "Earning rules are grouped and show units: coins, days, hours",
+    "Prices, Telegram Stars packages and rules are saved with one button"
+   ]
+  }
+ },
+ {
+  "bot": "3.19.3",
   "panel": "3.30.3",
   "date": "2026-11-20",
   "botChanges": [],
