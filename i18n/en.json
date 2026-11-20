@@ -5161,5 +5161,11 @@
  "Цена в звёздах": "Price in Stars",
  "Цены, пакеты и правила сохраняются вместе": "Prices, packages and rules are saved together",
  "Сохранить настройки": "Save settings",
- "Цены, пакеты и правила сохраняются вместе⟦0⟧⟦1⟧Есть несохранённые изменения": "Prices, packages and rules are saved together⟦0⟧⟦1⟧There are unsaved changes"
+ "Цены, пакеты и правила сохраняются вместе⟦0⟧⟦1⟧Есть несохранённые изменения": "Prices, packages and rules are saved together⟦0⟧⟦1⟧There are unsaved changes",
+ "Комментарий владельцу (необязательно)": "Comment to the owner (optional)",
+ "Чей кошелёк": "Whose wallet",
+ "ID из Discord, например 123456789012345678": "Discord ID, e.g. 123456789012345678",
+ "ID в Discord": "Discord ID",
+ "Такого ID не бывает: в Discord это число из 17–20 цифр.": "That is not an ID: in Discord it is a number of 17–20 digits.",
+ "В Discord включите режим разработчика, затем правый клик по участнику или серверу → «Копировать ID».": "In Discord, turn on Developer Mode, then right-click the member or server → «Copy ID»."
 }

@@ -116,24 +116,25 @@
         <% } %>
         <% if (!shown.length) { %><p class="empty-state">Каталог пуст.</p><% } else { %>
           <div class="table-scroll"><table class="pf-table">
-            <thead><tr><th>Сообщество</th><th>Состояние</th><th class="num">Голоса</th><th class="pf-act-col"><span class="sr-only">Решение</span></th></tr></thead>
-            <tbody><% shown.forEach((c) => { %><tr>
+            <thead><tr><th>Сообщество</th><th>Состояние</th><th class="num">Голоса</th><th class="pf-act-col"><span class="sr-only">Действие</span></th></tr></thead>
+            <tbody><% shown.forEach((c) => { const open = decide === c.id; const base = '/platform?tab=catalog' + (state ? '&state=' + state : ''); %><tr id="c-<%= c.id %>"<%- open ? ' class="pf-open"' : '' %>>
               <td><span class="pf-cmname"><a href="/communities/<%= c.id %>"><%= c.name %></a><small class="muted"><%= c.guildId %></small></span></td>
               <td class="nowrap"><span class="pf-state <%= c.status %>"><i aria-hidden="true"></i><%= STATE[c.status] || c.status %></span></td>
               <td class="num"><%= fmt(c.votes) %></td>
-              <td class="pf-act-col">
-                <details class="pf-menu">
-                  <summary class="btn btn-secondary">Решение</summary>
-                  <form method="post" action="/platform/moderate" class="pf-menu-pop">
-                    <input type="hidden" name="id" value="<%= c.id %>" /><input type="hidden" name="back" value="catalog" />
-                    <input type="text" name="note" maxlength="300" placeholder="Комментарий владельцу" aria-label="Комментарий" />
-                    <% if (c.status !== 'published') { %><button class="btn" type="submit" name="status" value="published">Опубликовать</button><% } %>
-                    <% if (c.status !== 'hidden') { %><button class="btn btn-secondary" type="submit" name="status" value="hidden">Скрыть</button><% } %>
-                    <% if (c.status !== 'blocked') { %><button class="btn btn-secondary pf-danger" type="submit" name="status" value="blocked">Заблокировать</button><% } %>
-                  </form>
-                </details>
-              </td>
-            </tr><% }) %></tbody>
+              <td class="pf-act-col"><% if (open) { %><a class="btn btn-secondary" href="<%= base %>#c-<%= c.id %>">Отмена</a><% } else { %><a class="btn btn-secondary" href="<%= base %>&amp;decide=<%= c.id %>#c-<%= c.id %>">Изменить</a><% } %></td>
+            </tr>
+            <% if (open) { %><tr class="pf-decide-row"><td colspan="4">
+              <form method="post" action="/platform/moderate" class="pf-decide-inline">
+                <input type="hidden" name="id" value="<%= c.id %>" /><input type="hidden" name="back" value="catalog" />
+                <input type="text" name="note" maxlength="300" placeholder="Комментарий владельцу (необязательно)" aria-label="Комментарий владельцу" autofocus />
+                <span class="pf-btns">
+                  <% if (c.status !== 'published') { %><button class="btn" type="submit" name="status" value="published">Опубликовать</button><% } %>
+                  <% if (c.status !== 'hidden') { %><button class="btn btn-secondary" type="submit" name="status" value="hidden">Скрыть</button><% } %>
+                  <% if (c.status !== 'blocked') { %><button class="btn btn-secondary pf-danger" type="submit" name="status" value="blocked">Заблокировать</button><% } %>
+                </span>
+              </form>
+            </td></tr><% } %>
+          <% }) %></tbody>
           </table></div>
         <% } %>
       </div>
@@ -155,7 +156,17 @@
       <div class="pf-grid">
         <div class="card">
           <h2>DARK Coins</h2>
-          <form method="get" action="/platform" class="ach-find"><input type="hidden" name="tab" value="coins" /><input name="user" type="text" inputmode="numeric" value="<%= userId || '' %>" placeholder="ID пользователя или g + ID сервера" aria-label="ID пользователя" /><button class="btn btn-secondary" type="submit">Найти</button></form>
+          <% const isSrv = Boolean(userId && userId.startsWith('g')); %>
+          <form method="get" action="/platform" class="pf-find">
+            <input type="hidden" name="tab" value="coins" />
+            <span class="pf-seg" role="radiogroup" aria-label="Чей кошелёк">
+              <label><input type="radio" name="kind" value="user" <%= isSrv ? '' : 'checked' %> /><span>Участник</span></label>
+              <label><input type="radio" name="kind" value="server" <%= isSrv ? 'checked' : '' %> /><span>Сервер</span></label>
+            </span>
+            <span class="pf-find-row"><input name="user" type="text" inputmode="numeric" value="<%= userId ? userId.replace(/^g/, '') : '' %>" placeholder="ID из Discord, например 123456789012345678" aria-label="ID в Discord" /><button class="btn btn-secondary" type="submit">Найти</button></span>
+            <% if (badId) { %><small class="pf-bad">Такого ID не бывает: в Discord это число из 17–20 цифр.</small><% } %>
+            <small class="muted">В Discord включите режим разработчика, затем правый клик по участнику или серверу → «Копировать ID».</small>
+          </form>
           <% if (userId) { %>
             <div class="pf-wallet<%= frozen ? ' frozen' : '' %>">
               <span class="pf-wallet-who"><%= userId.startsWith('g') ? 'Сервер ' + userId.slice(1) : name(userId) %><% if (frozen) { %> · <span class="pf-frozen">заморожен</span><% } %></span>

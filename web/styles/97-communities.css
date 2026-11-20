@@ -440,13 +440,25 @@ html.lb-lock { overflow: hidden; }
 .pf-state.published i { background: var(--success); }
 .pf-state.pending i { background: var(--ember); }
 .pf-state.blocked i { background: var(--danger); }
-.pf-menu { position: relative; display: inline-block; }
-.pf-menu > summary { list-style: none; cursor: pointer; }
-.pf-menu > summary::-webkit-details-marker { display: none; }
-.pf-menu[open] > summary { background: var(--panel-raised); }
-.pf-menu-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; display: flex; flex-direction: column; gap: 8px; width: 260px; padding: 12px; margin: 0; border-radius: var(--r-12); background: var(--panel); border: 1px solid var(--hairline); box-shadow: 0 16px 40px -16px var(--shadow-pop); }
-.pf-menu-pop input[type=text] { margin: 0; }
-.pf-menu-pop .btn { width: 100%; justify-content: center; }
+/* «Изменить» opens the decision as its own row under the community, across the whole table (a link, no pop-up: the
+   table scrolls sideways on narrow screens and would cut a floating menu) */
+.pf-table tr.pf-open > td { background: var(--soft); }
+.pf-table tr.pf-decide-row > td { padding: 4px 12px 16px; background: var(--soft); }
+.pf-decide-inline { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.pf-decide-inline input[type=text] { flex: 1 1 280px; min-width: 0; margin: 0; }
+.pf-decide-inline .pf-btns { flex: none; }
+/* DARK Coins: whose wallet, then the id */
+.cm-page form.pf-find { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+.pf-find-row { display: flex; gap: 8px; }
+.pf-find-row input { flex: 1; min-width: 0; margin: 0; }
+.pf-find small { font-size: var(--fs-12); }
+.pf-bad { color: var(--danger); font-size: var(--fs-13); }
+.pf-seg { display: inline-flex; align-self: flex-start; padding: 2px; border-radius: var(--r-10); background: var(--panel-raised); border: 1px solid var(--hairline); }
+.pf-seg label { position: relative; margin: 0; cursor: pointer; }
+.pf-seg input { position: absolute; opacity: 0; pointer-events: none; }
+.pf-seg span { display: block; padding: 4px 14px; border-radius: var(--r-8); font-size: var(--fs-13); color: var(--fog); transition: background-color .15s ease, color .15s ease; }
+.pf-seg input:checked + span { background: var(--panel); color: var(--paper); box-shadow: 0 1px 2px var(--shadow-pop); }
+.pf-seg input:focus-visible + span { outline: 2px solid var(--ember); outline-offset: 1px; }
 
 /* DARK Coins: the found wallet and the ranked balances */
 .pf-wallet { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; padding: 16px 20px; border-radius: var(--r-12); background: var(--panel-raised); }
@@ -512,7 +524,6 @@ html.lb-lock { overflow: hidden; }
   .pf-input input[type=number] { width: 96px; }
   .pf-input em { min-width: 0; }
   .pf-savebar { flex-direction: column; align-items: stretch; }
-  .pf-menu-pop { width: min(260px, calc(100vw - 48px)); }
 }
 .cm-page .pf-freeze { flex-direction: row; }
 @media (max-width: 600px) { .cm-page .pf-packs { grid-template-columns: 1fr; } }

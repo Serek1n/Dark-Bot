@@ -28,7 +28,10 @@ const act = (fn, done, tab = 'queue') => async (req, res) => {
 
 router.get('/', signedIn, ownerOnly, async (req, res) => {
   const { Community, CommunityReport, DarkWallet } = db();
-  const userId = /^g?\d{15,25}$/.test(String(req.query.user || '')) ? String(req.query.user) : null;
+  // a server's wallet is «g» + its id; the form asks «Участник / Сервер» instead of making the owner type the prefix
+  const raw = String(req.query.user || '').trim().replace(/\s+/g, '');
+  const wanted = req.query.kind === 'server' && /^\d+$/.test(raw) ? 'g' + raw : raw;
+  const userId = /^g?\d{15,25}$/.test(wanted) ? wanted : null;
   const [settings, pending, reports, listed, top, log] = await Promise.all([
     cm().platform(),
     Community.findAll({ where: { status: 'pending' }, order: [['id', 'ASC']], limit: 50 }),
@@ -53,7 +56,8 @@ router.get('/', signedIn, ownerOnly, async (req, res) => {
   const users = await getUsers([...new Set([...badReviews.map((r) => r.userId), ...top.map((w) => w.userId), ...log.flatMap((t) => [t.userId, t.actorId]), ...orders.map((o) => o.userId), ...held.map((p) => p.wallet), ...(userId ? [userId] : [])].filter((id) => /^\d{15,25}$/.test(String(id || ''))))]);
   const tab = tabOf(req.query.tab, userId ? 'coins' : 'queue');
   const state = ['published', 'pending', 'hidden', 'blocked'].includes(String(req.query.state)) ? String(req.query.state) : null;
-  res.render('platform/index', { title: 'Платформа DARK', tab, state, settings, pending, reports, listed, byId, badReviews, reviewReasons, top, log, users, userId, balance: userId ? await coins().balanceOf(userId) : null,
+  const decide = Number(req.query.decide) || null;
+  res.render('platform/index', { title: 'Платформа DARK', tab, state, decide, badId: Boolean(raw) && !userId, settings, pending, reports, listed, byId, badReviews, reviewReasons, top, log, users, userId, balance: userId ? await coins().balanceOf(userId) : null,
     key: coins().newKey(), C: cm(), earn, EARN: coins().EARN_DEFAULTS, packages, held, orders, emitted, frozen, tg: shop().enabled(), tgStatus: await shop().status(true), done: req.query.done || null, error: req.query.err ? String(req.query.err).slice(0, 200) : null });
 });
 

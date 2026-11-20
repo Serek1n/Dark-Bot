@@ -1,6 +1,23 @@
 [
  {
   "bot": "3.19.3",
+  "panel": "3.30.6",
+  "date": "2026-11-20",
+  "botChanges": [],
+  "panelChanges": [
+   "Каталог платформы: «Изменить» открывает решение строкой под сообществом",
+   "DARK Coins: кошелёк ищется переключателем «Участник / Сервер» и обычным ID, без «g»"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Platform catalog: «Edit» opens the decision as a row under the community",
+    "DARK Coins: find a wallet with a «Member / Server» switch and a plain ID, no «g»"
+   ]
+  }
+ },
+ {
+  "bot": "3.19.3",
   "panel": "3.30.5",
   "date": "2026-11-20",
   "botChanges": [],
