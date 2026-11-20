@@ -19,15 +19,16 @@ const assert = (c, m) => { if (!c) throw new Error(m); };
     process.env.YTDLP_COOKIES = '/no/such/file.txt'; assert(!P.ytDlpBaseArgs().includes('--cookies'), 'missing file ignored');
     delete process.env.YTDLP_COOKIES; delete process.env.YTDLP_EXTRA_ARGS;
   });
-  await test('the two real errors from the server are explained in words', async () => {
-    assert(P.ytDlpFailReason('ERROR: [youtube] 3UxEwmfZq04: Sign in to confirm your age. Use --cookies-from-browser').includes('возрастным'), 'age');
-    assert(P.ytDlpFailReason('ERROR: unable to download video data: HTTP Error 403: Forbidden').includes('403'), '403');
-    assert(P.ytDlpFailReason("Sign in to confirm you're not a bot").includes('не бот'), 'bot check');
-    assert(P.ytDlpFailReason('Video unavailable').includes('недоступно') && P.ytDlpFailReason('something odd') === null, 'others');
+  await test('the chat gets a plain reason with nothing about the server; the admin hint goes to the log', async () => {
+    const errs = ['ERROR: [youtube] 3UxEwmfZq04: Sign in to confirm your age. Use --cookies-from-browser', 'ERROR: unable to download video data: HTTP Error 403: Forbidden', "Sign in to confirm you're not a bot", 'n challenge solving failed', 'spawn yt-dlp ENOENT'];
+    for (const e of errs) { const r = P.ytDlpFailReason(e); assert(r && !/yt-dlp|cookies|sudo|403|IP|сервер/i.test(r), 'plain: ' + r); }
+    assert(P.ytDlpFailReason(errs[0]).includes('возрастное'), 'age');
+    assert(P.ytDlpAdminHint(errs[0]).includes('cookies') && P.ytDlpAdminHint(errs[1]).includes('403') && P.ytDlpAdminHint(errs[2]).includes('не бот'), 'admin hints');
+    assert(P.ytDlpFailReason('Video unavailable').includes('недоступно') && P.ytDlpFailReason('something odd') === null && P.ytDlpAdminHint('something odd') === null, 'others');
   });
   await test('a failing download reports the reason to the chat (only when no audio came out)', async () => {
     const got = await new Promise((resolve) => { P.spawnYtDlpAudio('https://youtu.be/x', (reason) => resolve(reason)); setTimeout(() => resolve('timeout'), 4000); });
-    assert(typeof got === 'string' && got.includes('возрастным'), 'reason: ' + got);
+    assert(typeof got === 'string' && got.includes('возрастное'), 'reason: ' + got);
   });
   await test('a new yt-dlp gets this very Node as its JS runtime and may fetch the challenge solver; an old one gets nothing', async () => {
     delete process.env.YTDLP_EXTRA_ARGS; delete process.env.YTDLP_JS_RUNTIME;
@@ -42,9 +43,9 @@ const assert = (c, m) => { if (!c) throw new Error(m); };
     assert(P.ytDlpBaseArgs().length === 0, 'switched off'); delete process.env.YTDLP_JS_RUNTIME;
     P._ytDlp.version = '2025.06.30';
     assert(P.ytDlpBaseArgs().length === 0, 'old yt-dlp does not know the options');
-    assert(P.ytDlpFailReason('ERROR: [youtube] x: n challenge solving failed').includes('2025.06.30'), 'old version named in the reason');
+    assert(P.ytDlpAdminHint('ERROR: [youtube] x: n challenge solving failed').includes('2025.06.30'), 'old version named in the log hint');
     P._ytDlp.version = '2025.12.08';
-    assert(P.ytDlpFailReason('WARNING: [youtube] x: n challenge solving failed. Requested format is not available').includes('yt-dlp -U'), 'new: update hint');
+    assert(P.ytDlpAdminHint('WARNING: [youtube] x: n challenge solving failed. Requested format is not available').includes('yt-dlp -U'), 'new: update hint');
     assert(P.versionAtLeast('2025.11.12', '2025.11.12') && P.versionAtLeast('2026.1.5', '2025.11.12') && !P.versionAtLeast(null, '2025.11.12'), 'compare');
     P._ytDlp.version = keep;
   });

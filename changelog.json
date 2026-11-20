@@ -1,18 +1,33 @@
 [
  {
+  "bot": "3.19.5",
+  "panel": "3.30.6",
+  "date": "2026-11-20",
+  "botChanges": [
+   "Пропущенный трек объясняется в чате простыми словами, без технических подробностей",
+   "Что сделать с yt-dlp или cookies, бот пишет только в свой лог для администратора"
+  ],
+  "panelChanges": [],
+  "en": {
+   "botChanges": [
+    "A skipped track is explained in the chat in plain words, no technical details",
+    "What to do about yt-dlp or cookies goes only to the bot's log for its admin"
+   ],
+   "panelChanges": []
+  }
+ },
+ {
   "bot": "3.19.4",
   "panel": "3.30.6",
   "date": "2026-11-20",
   "botChanges": [
    "YouTube снова играет на новом yt-dlp: бот сам передаёт ему Node для проверок YouTube",
-   "Если yt-dlp на сервере устарел, бот пишет в чат его версию и команду обновления",
    "scripts/update.sh заодно обновляет yt-dlp, если хватает прав, иначе подсказывает команду"
   ],
   "panelChanges": [],
   "en": {
    "botChanges": [
     "YouTube plays again on new yt-dlp: the bot gives it Node to solve YouTube's challenges",
-    "If yt-dlp on the server is outdated, the bot names its version and the update command",
     "scripts/update.sh also updates yt-dlp when it may, otherwise prints the command"
    ],
    "panelChanges": []

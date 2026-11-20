@@ -5169,5 +5169,14 @@
  "Такого ID не бывает: в Discord это число из 17–20 цифр.": "That is not an ID: in Discord it is a number of 17–20 digits.",
  "В Discord включите режим разработчика, затем правый клик по участнику или серверу → «Копировать ID».": "In Discord, turn on Developer Mode, then right-click the member or server → «Copy ID».",
  "yt-dlp на сервере устарел ({0}) и не справляется с защитой YouTube: администратору бота нужно выполнить `sudo yt-dlp -U`": "yt-dlp on the server is outdated ({0}) and can't get past YouTube's protection: the bot's admin needs to run `sudo yt-dlp -U`",
- "YouTube не отдал этот трек (защита YouTube изменилась): администратору бота нужно обновить yt-dlp — `sudo yt-dlp -U`": "YouTube refused this track (its protection changed): the bot's admin needs to update yt-dlp — `sudo yt-dlp -U`"
+ "YouTube не отдал этот трек (защита YouTube изменилась): администратору бота нужно обновить yt-dlp — `sudo yt-dlp -U`": "YouTube refused this track (its protection changed): the bot's admin needs to update yt-dlp — `sudo yt-dlp -U`",
+ "у видео возрастное ограничение": "the video is age-restricted",
+ "YouTube сейчас не отдаёт этот трек": "YouTube won't give out this track right now",
+ "музыка с YouTube сейчас недоступна": "music from YouTube is unavailable right now",
+ "видео с возрастным ограничением: нужен файл cookies аккаунта YouTube (YTDLP_COOKIES)": "age-restricted video: a cookies file of a YouTube account is needed (YTDLP_COOKIES)",
+ "YouTube просит подтвердить, что это не бот: нужен файл cookies (YTDLP_COOKIES) или другой IP сервера": "YouTube asks to confirm this is not a bot: a cookies file (YTDLP_COOKIES) or another server IP is needed",
+ "YouTube отклонил загрузку (403): обновите yt-dlp (sudo yt-dlp -U) или добавьте cookies": "YouTube refused the download (403): update yt-dlp (sudo yt-dlp -U) or add cookies",
+ "yt-dlp {0} устарел и не справляется с защитой YouTube: sudo yt-dlp -U": "yt-dlp {0} is outdated and can't get past YouTube's protection: sudo yt-dlp -U",
+ "yt-dlp не справился с защитой YouTube: обновите его (sudo yt-dlp -U)": "yt-dlp couldn't get past YouTube's protection: update it (sudo yt-dlp -U)",
+ "yt-dlp не найден на сервере (см. README, раздел про музыку)": "yt-dlp is not found on the server (see the README, music section)"
 }

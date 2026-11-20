@@ -93,18 +93,30 @@ probeYtDlp().then((v) => {
 }).catch(() => {});
 setInterval(() => { probeYtDlp().catch(() => {}); }, 6 * 3600 * 1000).unref();
 
-/** Why yt-dlp failed, in words for the chat (null when the reason is not recognised). */
+/**
+ * Why yt-dlp failed, for the people in the chat: short and plain, nothing about the server (null when not recognised).
+ * What the bot's admin should do about it goes to the log instead (ytDlpAdminHint).
+ */
 function ytDlpFailReason(stderr) {
   const t = String(stderr || '');
-  if (/confirm your age|age-restricted|inappropriate for some users/i.test(t)) return 'видео с возрастным ограничением: нужен вход в YouTube (файл cookies)';
-  if (/not a bot/i.test(t)) return 'YouTube просит подтвердить, что это не бот (нужен файл cookies или другой IP сервера)';
-  if (/HTTP Error 403|Forbidden/i.test(t)) return 'YouTube отклонил загрузку (ошибка 403): обновите yt-dlp или добавьте cookies';
+  if (/confirm your age|age-restricted|inappropriate for some users/i.test(t)) return 'у видео возрастное ограничение';
   if (/Private video|Video unavailable|removed|not available in your country|blocked/i.test(t)) return 'видео недоступно (приватное, удалено или закрыто для региона)';
+  if (/not a bot|HTTP Error 403|Forbidden|Requested format is not available|n challenge|JavaScript runtime|nsig|EJS|challenge solver/i.test(t)) return 'YouTube сейчас не отдаёт этот трек';
+  if (/ENOENT|not found/i.test(t)) return 'музыка с YouTube сейчас недоступна';
+  return null;
+}
+
+/** What the bot's admin can do about a failed download, for the log only (null when there is nothing to suggest). */
+function ytDlpAdminHint(stderr) {
+  const t = String(stderr || '');
+  if (/confirm your age|age-restricted|inappropriate for some users/i.test(t)) return 'видео с возрастным ограничением: нужен файл cookies аккаунта YouTube (YTDLP_COOKIES)';
+  if (/not a bot/i.test(t)) return 'YouTube просит подтвердить, что это не бот: нужен файл cookies (YTDLP_COOKIES) или другой IP сервера';
+  if (/HTTP Error 403|Forbidden/i.test(t)) return 'YouTube отклонил загрузку (403): обновите yt-dlp (sudo yt-dlp -U) или добавьте cookies';
   if (/Requested format is not available|n challenge|JavaScript runtime|nsig|EJS|challenge solver/i.test(t)) {
-    if (ytDlp.version && !versionAtLeast(ytDlp.version, EJS_SINCE)) return `yt-dlp на сервере устарел (${ytDlp.version}) и не справляется с защитой YouTube: администратору бота нужно выполнить \`sudo yt-dlp -U\``;
-    return 'YouTube не отдал этот трек (защита YouTube изменилась): администратору бота нужно обновить yt-dlp — `sudo yt-dlp -U`';
+    if (ytDlp.version && !versionAtLeast(ytDlp.version, EJS_SINCE)) return `yt-dlp ${ytDlp.version} устарел и не справляется с защитой YouTube: sudo yt-dlp -U`;
+    return 'yt-dlp не справился с защитой YouTube: обновите его (sudo yt-dlp -U)';
   }
-  if (/ENOENT|not found/i.test(t)) return 'не найден yt-dlp на сервере';
+  if (/ENOENT|not found/i.test(t)) return 'yt-dlp не найден на сервере (см. README, раздел про музыку)';
   return null;
 }
 
@@ -127,7 +139,8 @@ function spawnYtDlpAudio(url, onFail = null) {
   proc.on('error', (err) => logger.error('yt-dlp spawn error', err));
   proc.on('close', (code) => {
     if (code && code !== 0 && code !== null) {
-      logger.warn(`yt-dlp exited ${code}: ${stderr.trim()}`);
+      const hint = ytDlpAdminHint(stderr);
+      logger.warn(`yt-dlp exited ${code}${hint ? ' — ' + hint : ''}: ${stderr.trim()}`);
       if (Date.now() - ytDlp.checkedAt > 10 * 60 * 1000) probeYtDlp().catch(() => {}); // perhaps updated meanwhile
       if (!gotAudio && onFail) onFail(ytDlpFailReason(stderr)); // nothing was played: tell the chat why
     }
@@ -759,5 +772,5 @@ async function resolveQueryInner(query, requestedBy) {
   ];
 }
 
-module.exports = { ytDlpJson, spawnYtDlpAudio, ytDlpBaseArgs, ytDlpFailReason, ytDlpAudioArgs, probeYtDlp, jsRuntimeArgs, versionAtLeast, _ytDlp: ytDlp, getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue,
+module.exports = { ytDlpJson, spawnYtDlpAudio, ytDlpBaseArgs, ytDlpFailReason, ytDlpAdminHint, ytDlpAudioArgs, probeYtDlp, jsRuntimeArgs, versionAtLeast, _ytDlp: ytDlp, getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue,
   ytDlpSearchBest, lazyTrack, resolveLazy, parseDurationSec, formatSeconds, LOOP_MODES, MAX_PLAYLIST };
