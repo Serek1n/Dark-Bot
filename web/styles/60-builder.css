@@ -8,7 +8,7 @@
 .msg-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 .msg-form > .card + .card, .msg-form > .card + div, .msg-form > div + .card, .msg-form > div + div { margin-top: 14px; }
 .msg-preview-wrap { position: sticky; top: 16px; }
-.msg-preview-head { font-size: var(--fs-12); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--fog-dim); margin-bottom: 8px; }
+.msg-preview-head { font-size: var(--fs-12); font-weight: 600; color: var(--fog-dim); margin-bottom: 8px; }
 .msg-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
 .msg-radio { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--r-10); cursor: pointer; margin: 0; }
 .msg-radio:has(input:checked) { border-color: var(--ember); background: var(--ember-tint); }
@@ -43,7 +43,7 @@
 .me-embed > summary .muted { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .me-tools { display: inline-flex; gap: 2px; margin-left: auto; }
 .me-group { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hairline-soft); }
-.me-group h3 { font-size: var(--fs-12); text-transform: uppercase; letter-spacing: .05em; color: var(--fog-dim); margin: 0 0 8px; font-weight: 700; }
+.me-group h3 { font-size: var(--fs-12); color: var(--fog-dim); margin: 0 0 8px; font-weight: 600; }
 .me-group > div + div, .me-group > .two-col + div, .me-group > div + .two-col { margin-top: 10px; }
 .me-field { padding: 10px; border: 1px solid var(--hairline-soft); border-radius: var(--r-8); margin-bottom: 8px; background: var(--soft); }
 .me-color input[type="color"] { width: 42px; height: 36px; padding: 2px; border-radius: var(--r-8); flex: 0 0 auto; }
@@ -74,12 +74,12 @@
 /* The preview copies Discord's dark theme on purpose, in both panel themes */
 .msg-preview { min-width: 0; } /* the preview itself is web/public/js/dcp.js (styles: 62-dcp.css) */
 .dm-msg { display: flex; gap: 14px; }
-.dm-avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex: 0 0 40px; background: var(--dc-blurple); display: grid; place-items: center; color: #fff; font-weight: 700; }
+.dm-avatar { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; flex: 0 0 40px; background: var(--dc-blurple); display: grid; place-items: center; color: #fff; font-weight: 600; }
 .dm-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .dm-body { min-width: 0; flex: 1; }
 .dm-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .dm-head b { color: var(--dc-heading); font-weight: 600; }
-.dm-tag { background: var(--dc-blurple); color: #fff; font-size: var(--fs-11); font-weight: 700; padding: 1px 6px; border-radius: var(--r-4); letter-spacing: .02em; }
+.dm-tag { background: var(--dc-blurple); color: #fff; font-size: var(--fs-11); font-weight: 600; padding: 1px 6px; border-radius: var(--r-4); letter-spacing: .02em; }
 .dm-when { color: var(--dc-muted); font-size: var(--fs-12); }
 .dm-content { margin-top: 2px; }
 .dm-msg a { color: var(--dc-link); text-decoration: none; }
@@ -90,9 +90,9 @@
 .dm-spoiler { background: var(--dc-deep); color: transparent; border-radius: var(--r-4); cursor: pointer; }
 .dm-spoiler:hover, .dm-spoiler:focus { background: var(--dc-hover); color: inherit; }
 .dm-quote { border-left: 4px solid var(--dc-line); padding-left: 10px; margin: 2px 0; }
-.dm-h1 { font-size: 1.5em; font-weight: 700; margin: 6px 0 2px; color: var(--dc-heading); }
-.dm-h2 { font-size: 1.25em; font-weight: 700; margin: 6px 0 2px; color: var(--dc-heading); }
-.dm-h3 { font-size: 1.05em; font-weight: 700; margin: 6px 0 2px; color: var(--dc-heading); }
+.dm-h1 { font-size: 1.5em; font-weight: 600; margin: 6px 0 2px; color: var(--dc-heading); }
+.dm-h2 { font-size: 1.25em; font-weight: 600; margin: 6px 0 2px; color: var(--dc-heading); }
+.dm-h3 { font-size: 1.05em; font-weight: 600; margin: 6px 0 2px; color: var(--dc-heading); }
 .dm-sub { font-size: var(--fs-12); color: var(--dc-muted); }
 .dm-li::before { content: '•'; margin: 0 8px 0 4px; }
 .dm-emoji { width: 1.375em; height: 1.375em; vertical-align: bottom; }
@@ -102,7 +102,7 @@
 .dm-author { display: flex; align-items: center; gap: 8px; font-size: var(--fs-14); font-weight: 600; color: var(--dc-heading); margin-top: 4px; }
 .dm-author img { width: 24px; height: 24px; border-radius: 50%; }
 .dm-author a { color: var(--dc-heading); }
-.dm-title { font-weight: 700; color: var(--dc-heading); margin-top: 6px; font-size: var(--fs-15); }
+.dm-title { font-weight: 600; color: var(--dc-heading); margin-top: 6px; font-size: var(--fs-15); }
 .dm-desc { margin-top: 6px; }
 .dm-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; margin-top: 8px; }
 .dm-field { grid-column: 1 / -1; min-width: 0; }
@@ -143,7 +143,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .am-notes { margin: 8px 0 0; padding-left: 18px; color: var(--fog-dim); font-size: var(--fs-13); line-height: 1.5; }
 .am-notes li + li { margin-top: 2px; }
 .am-now { margin-top: 14px; padding: 10px 12px; border-radius: var(--r-10); background: var(--soft); border: 1px solid var(--hairline-soft); color: var(--fog); font-size: var(--fs-14); }
-.am-now::before { content: '→ '; color: var(--ember); font-weight: 700; }
+.am-now::before { content: '→ '; color: var(--ember); font-weight: 600; }
 .am-idle textarea { opacity: .55; }
 
 /* Multi-select for channels and roles (ui.js multiPick): chosen items, search, a list with ticks */
@@ -164,7 +164,7 @@ input.ms-search:focus { outline: none; box-shadow: none; }
 .ms-list label.ms-item input { position: static; opacity: 1; pointer-events: auto; width: 17px; height: 17px; margin: 0; flex: 0 0 auto; accent-color: var(--ember); }
 .ms-list label.ms-item span { padding: 0; border: 0; background: none; color: inherit; font-size: inherit; border-radius: 0; }
 .ms-list label.ms-item input:checked + span { background: none; color: var(--paper); font-weight: 600; }
-.ms-group { padding: 10px 10px 4px; font-size: var(--fs-12); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--fog-dim); }
+.ms-group { padding: 10px 10px 4px; font-size: var(--fs-12); font-weight: 600; color: var(--fog-dim); }
 .ms-group[hidden], .ms-none[hidden] { display: none; }
 .ms-none { padding: 10px; color: var(--fog-dim); font-size: var(--fs-14); }
 

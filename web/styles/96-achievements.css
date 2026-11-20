@@ -30,7 +30,7 @@
 .ach-rank-row:last-child { border-bottom: 0; }
 .ach-rank-name { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .ach-rank-name small { color: var(--fog); font-size: var(--fs-12); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ach-rank-val { display: flex; flex-direction: column; align-items: flex-end; font-weight: 800; }
+.ach-rank-val { display: flex; flex-direction: column; align-items: flex-end; font-weight: 600; }
 .ach-rank-val small { font-weight: 400; color: var(--fog); font-size: var(--fs-12); }
 .ach-find { display: flex; gap: 8px; }
 .ach-find input { flex: 1; min-width: 0; margin: 0; }

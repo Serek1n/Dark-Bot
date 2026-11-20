@@ -10,11 +10,11 @@
         <h1>Экономика</h1>
         <p class="page-intro">Две валюты с разными источниками. Сколько выдавать за чат и голос, настраивается на странице «Уровни».</p>
       </div>
-      <% const n = (v) => Number(v).toLocaleString('ru-RU');
+      <% const n = (v) => Number(v).toLocaleString('ru-RU'); const cap = (s) => { s = String(s || ''); return s.charAt(0).toLocaleUpperCase('ru-RU') + s.slice(1); };
          const ec = locals.econ || { FEATURES: [], PRESETS: [], mode: 'simple', preset: 'calm', flags: {}, on: [], params: {} }; %>
       <div class="stat-row">
-        <div class="stat-box"><div class="value"><%= n(stats.coinsTotal) %></div><div class="label"><%= settings.currencyName %> в обороте</div></div>
-        <div class="stat-box"><div class="value"><%= n(stats.crystalsTotal) %></div><div class="label"><%= settings.crystalName %> в обороте</div></div>
+        <div class="stat-box"><div class="value"><%= n(stats.coinsTotal) %></div><div class="label"><%= cap(settings.currencyName) %> в обороте</div></div>
+        <div class="stat-box"><div class="value"><%= n(stats.crystalsTotal) %></div><div class="label"><%= cap(settings.crystalName) %> в обороте</div></div>
         <div class="stat-box"><div class="value"><%= n(stats.holders) %></div><div class="label">Участников с деньгами</div></div>
       </div>
       <form method="post" data-econ-form>
@@ -64,7 +64,7 @@
         </div>
 
         <div class="card g-c1 g-r2">
-          <h2><%= settings.currencyName %></h2>
+          <h2><%= cap(settings.currencyName) %></h2>
           <p>Основная валюта. Приходит за сообщения и время в голосовом канале, а также за ежедневную награду. Участники могут переводить её друг другу: <code>/pay</code>.</p>
           <div class="two-col">
             <div>
@@ -89,7 +89,7 @@
           </div>
         </div>
         <div class="card g-c2">
-          <h2><%= settings.crystalName %></h2>
+          <h2><%= cap(settings.crystalName) %></h2>
           <p>Редкая валюта. Выдаётся только за новые уровни (сколько за каждый, задаётся на странице «Уровни»).</p>
           <div>
             <label>Название</label>

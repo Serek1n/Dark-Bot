@@ -11,7 +11,7 @@
 /* a chart */
 .sc { margin: 0; display: flex; flex-direction: column; gap: 8px; height: 100%; }
 .sc-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.sc-title { font-weight: 700; font-size: var(--fs-16); color: var(--paper); }
+.sc-title { font-weight: 600; font-size: var(--fs-16); color: var(--paper); }
 .sc-sub { font-size: var(--fs-13); color: var(--fog-dim); }
 .sc-legend { display: inline-flex; gap: 12px; margin-left: auto; font-size: var(--fs-13); color: var(--fog); }
 .sc-key { display: inline-flex; align-items: center; gap: 6px; }

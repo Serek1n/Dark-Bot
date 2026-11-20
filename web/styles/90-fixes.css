@@ -84,7 +84,7 @@ input:hover, select:hover, textarea:hover, .fs-btn:hover { border-color: var(--f
   table.rt td { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--hairline-soft); text-align: right; white-space: normal !important; }
   table.rt td:last-child { border-bottom: 0; }
   /* the number of a case is the card's title; empty cells ("—") are not repeated on every card */
-  table.rt td.rt-head { justify-content: flex-start; font-weight: 700; color: var(--fog); font-size: var(--fs-13); padding-top: 6px; }
+  table.rt td.rt-head { justify-content: flex-start; font-weight: 600; color: var(--fog); font-size: var(--fs-13); padding-top: 6px; }
   table.rt td.rt-head::before { display: none; }
   table.rt td.rt-empty { display: none; }
   table.rt td[data-label]::before { content: attr(data-label); flex: 0 0 auto; max-width: 45%; color: var(--fog-dim); font-size: var(--fs-13); text-align: left; }
@@ -101,7 +101,7 @@ input:hover, select:hover, textarea:hover, .fs-btn:hover { border-color: var(--f
 .table-scroll td :is(a, .btn, button, .badge), .table-scroll th { white-space: nowrap; }
 .table-scroll td { min-width: 0; }
 /* a person without an avatar picture: the first letter in the avatar's place */
-.av-letter { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--panel-raised); color: var(--fog); font-size: var(--fs-12); font-weight: 700; }
+.av-letter { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--panel-raised); color: var(--fog); font-size: var(--fs-12); font-weight: 600; }
 .ach-person .av-letter { width: 48px; height: 48px; border-radius: var(--r-12); font-size: var(--fs-18); }
 .lb-row .person .av-letter { width: 34px; height: 34px; }
 
@@ -119,3 +119,10 @@ input:hover, select:hover, textarea:hover, .fs-btn:hover { border-color: var(--f
 .content select:not([multiple]), select:not([multiple]) { padding-right: 36px; text-overflow: ellipsis; }
 /* light theme: the green «Включён» pill reads at 12 px on any tint */
 [data-theme="light"] .mh-pill:not(.off) { color: color-mix(in srgb, var(--success) 78%, #000); }
+
+/* 2026-11-20: a card is a flex column, so a paragraph's default 1em margins don't collapse into the heading's: the text
+   under a heading stood twice as far from it as a hint or a field did. One rhythm: 16 under the heading, 16 between blocks. */
+.card > h2 { margin-bottom: 16px; padding-bottom: 12px; }
+.card > h2 + p, .card > h2 + .hint { margin-top: 0; }
+.card > p { margin-bottom: 16px; }
+.card > p:last-child { margin-bottom: 0; }
