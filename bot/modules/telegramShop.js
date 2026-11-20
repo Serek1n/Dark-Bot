@@ -204,13 +204,23 @@ function startTelegramShop() {
   api('setMyCommands', { commands: [{ command: 'start', description: 'Магазин DARK Coins' }, { command: 'terms', description: 'Условия покупки' }, { command: 'paysupport', description: 'Помощь с оплатой' }] }).catch(() => {});
   (async function loop() {
     let lastError = '';
+    let failingSince = 0; // the first failure of the current streak
     while (running) {
-      try { await pollOnce(); lastError = ''; } catch (err) {
+      try {
+        await pollOnce();
+        if (failingSince && Date.now() - failingSince > 5 * 60 * 1000) logger.info('Telegram polling: связь с Telegram восстановлена');
+        lastError = ''; failingSince = 0;
+      } catch (err) {
         const unauthorized = /Unauthorized|401/i.test(err.message);
-        const text = unauthorized ? 'Telegram не принял TELEGRAM_BOT_TOKEN (Unauthorized) — проверьте токен в .env' : `Telegram polling: ${err.message}`;
-        if (text !== lastError) logger.warn(text); // the same error is written once, not every few seconds
-        lastError = text;
-        await new Promise((r) => setTimeout(r, unauthorized ? 5 * 60 * 1000 : 15000));
+        // «fetch failed», 502 Bad Gateway, 504 Gateway Timeout: Telegram or the line hiccups for a moment — routine, not worth
+        // a log line. Written only when it lasts over five minutes, and once per streak.
+        const transient = !unauthorized && /fetch failed|Bad Gateway|Gateway Timeout|Service Unavailable|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|aborted/i.test(err.message);
+        if (!failingSince) failingSince = Date.now();
+        const text = unauthorized ? 'Telegram не принял TELEGRAM_BOT_TOKEN (Unauthorized) — проверьте токен в .env'
+          : transient ? 'Telegram polling: нет связи с Telegram больше 5 минут (' + err.message + ')' : `Telegram polling: ${err.message}`;
+        const due = !transient || Date.now() - failingSince > 5 * 60 * 1000;
+        if (due && text !== lastError) { logger.warn(text); lastError = text; } // the same error once, not every few seconds
+        await new Promise((r) => setTimeout(r, unauthorized ? 5 * 60 * 1000 : transient ? Math.min(60000, 5000 + (Date.now() - failingSince) / 10) : 15000));
       }
     }
   })();

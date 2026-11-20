@@ -1,5 +1,22 @@
 [
  {
+  "bot": "3.19.3",
+  "panel": "3.30.2",
+  "date": "2026-11-20",
+  "botChanges": [
+   "Короткие сбои связи с Telegram больше не пишутся в лог — только если длятся дольше 5 минут",
+   "Предупреждение о DATA_KEY пишется в лог со временем и объясняет, что добавить в .env"
+  ],
+  "panelChanges": [],
+  "en": {
+   "botChanges": [
+    "Brief Telegram connection hiccups are no longer logged — only if they last over 5 minutes",
+    "The DATA_KEY warning is logged with the time and says what to add to .env"
+   ],
+   "panelChanges": []
+  }
+ },
+ {
   "bot": "3.19.2",
   "panel": "3.30.2",
   "date": "2026-11-20",

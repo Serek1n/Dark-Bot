@@ -10,13 +10,14 @@ const warned = new Set();
 function warnOnce(what, text) {
   if (warned.has(what)) return;
   warned.add(what);
-  console.warn('[crypto] ' + text);
+  let log = null; try { log = require('../bot/utils/logger'); } catch { /* used outside the bot */ }
+  if (log?.warn) log.warn('[crypto] ' + text); else console.warn('[crypto] ' + text); // with the time, like every other line
 }
 
 function key() {
   const secret = process.env.DATA_KEY || process.env.SESSION_SECRET;
   if (!secret || secret.length < 16) { warnOnce('nokey', 'DATA_KEY/SESSION_SECRET is missing or shorter than 16 characters: secrets are kept unencrypted.'); return null; }
-  if (!process.env.DATA_KEY) warnOnce('fallback', 'DATA_KEY is not set: SESSION_SECRET is used as the key. Changing SESSION_SECRET will make saved secrets unreadable; set DATA_KEY to the same value to keep them.');
+  if (!process.env.DATA_KEY) warnOnce('fallback', 'DATA_KEY is not set: SESSION_SECRET is used as the key. Add DATA_KEY with the same value as SESSION_SECRET to .env (then SESSION_SECRET can be changed without losing saved secrets).');
   return crypto.createHash('sha256').update('dark-bot:data:v1:' + secret).digest();
 }
 

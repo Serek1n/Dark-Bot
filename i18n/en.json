@@ -5118,5 +5118,6 @@
  "Слишком много запросов с вашего адреса. Подождите минуту. / Too many requests, wait a minute.": "Too many requests from your address. Wait a minute.",
  "Сайт сейчас перегружен. Обновите страницу через несколько секунд. / The site is busy, try again in a few seconds.": "The site is busy right now. Reload the page in a few seconds.",
  "Ссылка на картинку ведёт на другой сайт. Загрузите картинку файлом.": "The picture link leads to another site. Upload the picture as a file.",
- "Слишком много картинок рисуется сейчас — попробуйте через несколько секунд.": "Too many pictures are being drawn right now — try again in a few seconds."
+ "Слишком много картинок рисуется сейчас — попробуйте через несколько секунд.": "Too many pictures are being drawn right now — try again in a few seconds.",
+ "Telegram polling: нет связи с Telegram больше 5 минут (": "Telegram polling: no connection to Telegram for over 5 minutes ("
 }
