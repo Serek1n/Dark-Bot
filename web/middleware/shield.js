@@ -13,7 +13,7 @@ const CFG = {
   perMinute: num(process.env.WEB_RATE_PER_MIN, 240), // dynamic requests per address per minute
   heavyPerMinute: num(process.env.WEB_RATE_HEAVY_PER_MIN, 90), // public pages that are expensive to build
   maxInFlight: num(process.env.WEB_MAX_INFLIGHT, 16), // pages being built at once for anonymous visitors (×3 for the signed-in)
-  maxLagMs: num(process.env.WEB_MAX_LAG_MS, 300), // event loop lag after which new anonymous requests wait outside
+  maxLagMs: num(process.env.WEB_MAX_LAG_MS, 500), // event loop lag after which new anonymous requests wait outside
   cacheMs: process.env.WEB_MICROCACHE_MS === undefined ? 5000 : Number(process.env.WEB_MICROCACHE_MS) || 0
 };
 const HEAVY = /^\/(communities|top)(\/|$)/;

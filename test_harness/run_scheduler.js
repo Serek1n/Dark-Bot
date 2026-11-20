@@ -20,6 +20,19 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   for (let i = 0; i < 30 && fired.length < 2; i++) await sleep(50);
   assert.strictEqual(fired.length, 2, 'poke recalculated the sleep');
 
+  // 2b) a poke while an older arm() is still reading the next due time: the older answer must not win
+  {
+    let dueX = null; let firedX = 0; let slowFirst = true;
+    const sx = createScheduler({ name: 'tx', maxWaitMs: 60000,
+      nextDue: async () => { const v = dueX; if (slowFirst) { slowFirst = false; await sleep(150); } return v; }, // the old read: slow, «nothing pending»
+      run: async () => { if (dueX && Date.now() >= dueX) { firedX++; dueX = null; } } });
+    sx.start(); await sleep(20); // the first run is done, its arm() is reading slowly
+    dueX = Date.now() + 300; poke('tx'); // a new item arrives meanwhile, due after the old read has finished
+    await sleep(800);
+    assert.strictEqual(firedX, 1, 'the newer timer survived the older read');
+    sx.stop();
+  }
+
   // 3) never two runs at the same time; an item added during a run is handled right after it
   let active = 0, maxActive = 0, runs = 0, items = 1;
   const s2 = createScheduler({ name: 't2', nextDue: async () => (items > 0 ? Date.now() : null), run: async () => { active++; maxActive = Math.max(maxActive, active); runs++; const take = items; await sleep(120); items -= take; active--; } });

@@ -11,7 +11,7 @@
         <p class="page-intro">Кто сейчас в муте и в бане. Наказание можно снять отсюда — бот снимет его в Discord и запишет в журнал.</p>
       </div>
       <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-         const person = (id) => { const u = users[id] || { name: id, avatar: '' }; return `<span class="person"><img src="${u.avatar}" alt="" loading="lazy" /><span>${String(u.name).replace(/[<>&"]/g, '')}</span></span>`; }; %>
+         const person = (id) => { const u = users[id] || { name: id, avatar: '' }; const ea = (s) => String(s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); return `<span class="person"><img src="${ea(u.avatar)}" alt="" loading="lazy" /><span>${ea(u.name)}</span></span>`; }; %>
       <% if (locals.modfail) { %><div class="card g-span mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= modfail %></p></div><% } %>
       <div class="card g-span">
         <h2>Муты<span class="sub">Тайм-аут Discord, пока срок не вышел</span></h2>

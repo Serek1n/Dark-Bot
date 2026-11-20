@@ -96,7 +96,6 @@ fs.mkdirSync('./data', { recursive: true });
     const row = await db.Community.findByPk(c.id);
     const [st] = await db.sequelize.query('SELECT views, clicks FROM community_stats WHERE communityId = ?', { replacements: [c.id], type: 'SELECT' });
     assert(row.views === 25 && row.clicks === 1 && st.views === 25 && st.clicks === 1, JSON.stringify({ v: row.views, c: row.clicks, st }));
-    await db.sequelize.close();
   });
 
   await test('nginx config: limits per address and in total, short timeouts for slow clients, the real address passed on', () => {
@@ -107,6 +106,48 @@ fs.mkdirSync('./data', { recursive: true });
   await test('the panel sets timeouts on its http server', () => {
     const src = fs.readFileSync('web/index.js', 'utf8');
     ['server.headersTimeout', 'server.requestTimeout', 'server.maxConnections', "require('./middleware/shield')"].forEach((s) => assert(src.includes(s), s));
+  });
+
+  await test('drawing queue: at most RENDER_CONCURRENCY at once, the rest wait; a too long queue refuses at once', async () => {
+    const q = require('../bot/utils/renderQueue');
+    let now = 0; let peak = 0;
+    const job = q.limited(async (ms) => { now++; peak = Math.max(peak, now); await new Promise((r) => setTimeout(r, ms)); now--; return ms; });
+    const out = await Promise.all(Array.from({ length: 10 }, (_, i) => job(20 + i)));
+    assert(out.length === 10 && out[9] === 29 && peak === q.stats().max, 'peak ' + peak);
+    const many = Array.from({ length: 70 }, () => job(5).then(() => 'ok', (e) => e.constructor.name));
+    const res = await Promise.all(many);
+    assert(res.includes('RenderBusy') && res.includes('ok'), 'refused when overloaded');
+    assert(q.stats().active === 0 && q.stats().waiting === 0, 'drained');
+  });
+
+  await test('catalog pictures: a redirect to another site is refused (no fetching for an attacker)', async () => {
+    const media = require('../bot/modules/communityMedia');
+    const real = global.fetch;
+    global.fetch = async () => ({ ok: true, status: 200, url: 'https://169.254.169.254/latest/meta-data', headers: new Map(), arrayBuffer: async () => new ArrayBuffer(8), body: null });
+    let msg = '';
+    try { await media.importUrl('800000000000000301', 'https://cdn.discordapp.com/attachments/1/2/a.png'); } catch (e) { msg = e.message; } finally { global.fetch = real; }
+    assert(/другой сайт/.test(msg), msg);
+  });
+
+  await test('sessions: the expiry is written at most every 10 minutes per session, not on every click', async () => {
+    const db = require('../db'); await db.init().catch(() => {});
+    const { SequelizeStore } = require('../web/sessionStore');
+    const store = new SequelizeStore();
+    const p = (f) => new Promise((res, rej) => f((e, v) => (e ? rej(e) : res(v))));
+    const sess = { cookie: { expires: new Date(Date.now() + 3600e3) } };
+    await p((cb) => store.set('t1', sess, cb));
+    let writes = 0; const q = db.sequelize.query.bind(db.sequelize);
+    db.sequelize.query = (...a) => { if (/^UPDATE web_sessions/.test(a[0])) writes++; return q(...a); };
+    for (let i = 0; i < 20; i++) await p((cb) => store.touch('t1', sess, cb));
+    store.touched.set('t1', Date.now() - 11 * 60e3);
+    await p((cb) => store.touch('t1', sess, cb));
+    db.sequelize.query = q;
+    assert(writes === 1, 'writes ' + writes);
+  });
+
+  await test('after signing in, «Мои данные» is a place to come back to; other sites never are', () => {
+    const { safeNext } = require('../web/routes/auth');
+    assert(safeNext('/me') === '/me' && safeNext('/wallet') === '/wallet' && safeNext('//evil.example') === null && safeNext('https://evil.example') === null && safeNext('/me/../x') === null, 'safeNext');
   });
 
   results.forEach((r) => console.log(r.ok ? '✅' : '❌', r.l, r.ok ? '' : '\n   ' + r.e));

@@ -64,11 +64,14 @@ async function importUrl(guildId, url) {
   } catch {
     throw new MediaError('Не удалось скачать картинку по ссылке. Загрузите её файлом.');
   } finally { clearTimeout(timer); }
+  // a redirect may lead anywhere: the picture is taken only if it still comes from one of the allowed hosts
+  let final; try { final = new URL(res.url || u.href); } catch { final = null; }
+  if (!final || final.protocol !== 'https:' || !REMOTE_HOSTS.includes(final.hostname)) { res.body?.cancel?.().catch?.(() => {}); throw new MediaError('Ссылка на картинку ведёт на другой сайт. Загрузите картинку файлом.'); }
   if (!res.ok) throw new MediaError(res.status === 404 || res.status === 403 ? 'Ссылка на картинку устарела (Discord выдаёт такие ссылки на сутки). Загрузите картинку файлом.' : `Картинка по ссылке недоступна (${res.status}). Загрузите её файлом.`);
   const len = Number(res.headers.get('content-length') || 0);
   if (len > MAX_BYTES) throw new MediaError('Картинка больше 8 МБ — уменьшите её.');
   const buf = Buffer.from(await res.arrayBuffer());
-  return store(guildId, buf);
+  return api.store(guildId, buf); // through the drawing queue
 }
 
 /** A picture of a card: our own one stays (if the file is there), a link from Discord or Imgur is downloaded and kept. */
@@ -107,4 +110,4 @@ async function prune(guildId, used = [], was = null) {
   return n;
 }
 
-const api = module.exports = { DIR, LOCAL, REMOTE_HOSTS, MAX_BYTES, MediaError, isLocal, fileOf, kindOf, store, importUrl, keep, prune };
+const api = module.exports = { DIR, LOCAL, REMOTE_HOSTS, MAX_BYTES, MediaError, isLocal, fileOf, kindOf, store: require('../utils/renderQueue').limited(store), importUrl, keep, prune };

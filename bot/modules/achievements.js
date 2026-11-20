@@ -469,7 +469,8 @@ async function cardMessage(guild, member, userId, fresh, settings = null) {
   const name = member?.displayName || user?.globalName || user?.username || 'Участник';
   let file = null;
   if (shape.card) {
-    const png = await renderCard({ achievement: a, userName: name, avatarUrl: user?.displayAvatarURL?.({ extension: 'png', size: 128 }) || null, more: fresh.length - 1,
+    const png = await module.exports.renderCard({ // through the drawing queue
+      achievement: a, userName: name, avatarUrl: user?.displayAvatarURL?.({ extension: 'png', size: 128 }) || null, more: fresh.length - 1,
       colors: appearance.palette(look), headline: shape.headline, format: shape.format }).catch(() => null);
     if (png) file = new AttachmentBuilder(png, { name: 'achievement.png' });
   }
@@ -631,6 +632,6 @@ async function stats(guildId) {
 
 module.exports = {
   CATEGORIES, CATEGORY, RARITIES, RARITY, METRICS, COND_TYPES, BUILTIN, BUILTIN_BY_KEY,
-  catalog, fromRow, metricsOf, progress, grant, revoke, check, touch, touchVoice, renderCard, renderWideCard, cardMessage, msgOptions, fillText, TEXT_VARS, notify, memberView, memberEmbed, catalogEmbed, catalogMenu,
+  catalog, fromRow, metricsOf, progress, grant, revoke, check, touch, touchVoice, renderCard: require('../utils/renderQueue').limited(renderCard), renderWideCard: require('../utils/renderQueue').limited(renderWideCard), cardMessage, msgOptions, fillText, TEXT_VARS, notify, memberView, memberEmbed, catalogEmbed, catalogMenu,
   isAchievementComponent, handleComponent, stats, isEnabled, offList, balanceGoal, rewardText
 };

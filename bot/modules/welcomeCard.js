@@ -51,4 +51,5 @@ function roundRectFill(ctx, x, y, w, h, r) {
   ctx.fill();
 }
 
-module.exports = { renderWelcomeCard };
+const { limited } = require('../utils/renderQueue'); // at most a few pictures drawn at once
+module.exports = { renderWelcomeCard: limited(renderWelcomeCard) };

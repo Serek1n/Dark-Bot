@@ -17,10 +17,12 @@ function createScheduler({ name, nextDue, run, maxWaitMs = 5 * 60_000 }) {
   let running = false;
   let again = false;
   let stopped = true;
+  let generation = 0; // each arm() takes a number; only the latest one may set the timer
 
   async function arm(afterRun) {
     clearTimeout(timer);
     if (stopped) return;
+    const mine = ++generation;
     let wait = maxWaitMs;
     try {
       const due = await nextDue();
@@ -33,7 +35,9 @@ function createScheduler({ name, nextDue, run, maxWaitMs = 5 * 60_000 }) {
       logger.error(`Scheduler ${name}: could not read the next due time:`, err.message);
       wait = Math.min(maxWaitMs, RETRY_MS);
     }
-    if (stopped) return;
+    // A poke() while this one was reading the next due time started a newer arm(): this answer is older than the new item
+    // (it may say «nothing pending») and must not replace the newer timer — the new item would wait for maxWaitMs.
+    if (stopped || mine !== generation) return;
     clearTimeout(timer);
     timer = setTimeout(fire, wait);
     timer.unref?.();

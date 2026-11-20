@@ -198,4 +198,5 @@ async function renderGameCard(d) {
   return canvas.encode('png');
 }
 
-module.exports = { openCard, WIDE, renderLevelUpCard, renderGameCard };
+const { limited } = require('../utils/renderQueue'); // at most a few pictures drawn at once
+module.exports = { openCard, WIDE, renderLevelUpCard: limited(renderLevelUpCard), renderGameCard: limited(renderGameCard) };

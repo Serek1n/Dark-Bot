@@ -99,4 +99,4 @@ async function renderBalanceCard(data) {
   return canvas.encode('png');
 }
 
-module.exports = { renderBalanceCard, series };
+module.exports = { renderBalanceCard: require('../../utils/renderQueue').limited(renderBalanceCard), series };

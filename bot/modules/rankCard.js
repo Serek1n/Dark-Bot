@@ -426,4 +426,5 @@ async function renderLeaderboard(data) {
   return canvas.encode('png');
 }
 
-module.exports = { renderRankCard, renderLeaderboard, cardKit: { ensureFonts, makeCanvas, paintCard, paintTile, paintBar, drawSquareAvatar, truncateToWidth, roundRect, fmt, loadAvatar, COLORS } };
+const { limited } = require('../utils/renderQueue'); // at most a few pictures drawn at once
+module.exports = { renderRankCard: limited(renderRankCard), renderLeaderboard: limited(renderLeaderboard), cardKit: { ensureFonts, makeCanvas, paintCard, paintTile, paintBar, drawSquareAvatar, truncateToWidth, roundRect, fmt, loadAvatar, COLORS } };
