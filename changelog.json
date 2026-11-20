@@ -1,5 +1,32 @@
 [
  {
+  "bot": "3.19.1",
+  "panel": "3.30.1",
+  "date": "2026-11-20",
+  "botChanges": [
+   "Не больше 12 команд и нажатий кнопок за 10 секунд от одного человека",
+   "Просмотры и переходы в каталоге пишутся пачкой раз в 15 секунд, а не на каждый запрос"
+  ],
+  "panelChanges": [
+   "Защита от наплыва запросов: лимит по адресу и сброс лишней нагрузки, пока бот не отстал",
+   "Публичные страницы для анонимов собираются раз в 5 секунд, обойти кэш параметрами нельзя",
+   "Тайм-ауты для медленных соединений; поддельная cookie сессии не даёт обойти защиту",
+   "Конфиг nginx: лимиты на адрес и в сумме, короткие тайм-ауты, лимит загрузки 25 МБ"
+  ],
+  "en": {
+   "botChanges": [
+    "At most 12 commands and button presses in 10 seconds from one person",
+    "Catalog views and clicks are written in a batch every 15 seconds, not on every request"
+   ],
+   "panelChanges": [
+    "Flood protection: a limit per address, shedding extra load before the bot falls behind",
+    "Public pages for anonymous visitors are built once in 5 s; parameters can't dodge it",
+    "Timeouts for slow connections; a forged session cookie does not get past the protection",
+    "nginx config: limits per address and in total, short timeouts, a 25 MB upload limit"
+   ]
+  }
+ },
+ {
   "bot": "3.19.0",
   "panel": "3.30.0",
   "date": "2026-11-20",
