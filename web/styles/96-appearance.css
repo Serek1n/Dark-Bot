@@ -63,7 +63,7 @@
 .look-field { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 0; }
 .look-field input { margin: 0; }
 .look-controls .rule { margin: 0; }
-.look-sub { font-size: var(--fs-12); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--fog-dim); }
+.look-sub { font-size: var(--fs-12); font-weight: 600; color: var(--fog-dim); }
 .look-parts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .look-parts .msg-radio { height: 100%; }
 .look-both { margin: -4px 0 0; }
@@ -91,7 +91,7 @@
 /* The room panel mock (Discord's components v2 container) */
 .vp-mock { border-radius: var(--r-8); background: #2b2d31; color: #dbdee1; padding: 14px 16px 12px 18px; border-left: 4px solid var(--vp-ac); font-size: var(--fs-14); line-height: 1.4; }
 [data-theme="light"] .vp-mock { background: #f2f3f5; color: #313338; }
-.vp-title { display: flex; align-items: center; gap: 6px; font-size: var(--fs-18); font-weight: 700; }
+.vp-title { display: flex; align-items: center; gap: 6px; font-size: var(--fs-18); font-weight: 600; }
 .vp-intro { margin: 6px 0 4px; color: inherit; opacity: .85; white-space: pre-line; }
 .vp-sec { padding-top: 10px; margin-top: 10px; border-top: 1px solid rgba(128,128,128,.25); }
 .vp-line { margin: 2px 0 0; opacity: .85; }

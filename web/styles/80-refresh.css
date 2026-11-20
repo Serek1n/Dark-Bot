@@ -30,7 +30,7 @@ html, body { background: var(--ink); }
 .qj-ic { flex: 0 0 34px; width: 34px; height: 34px; border-radius: var(--r-10); display: grid; place-items: center; background: var(--panel-raised); color: var(--fog); }
 .qj-ic svg { width: 17px; height: 17px; }
 .qj-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.qj-item b mark { background: none; color: var(--ember); font-weight: 700; }
+.qj-item b mark { background: none; color: var(--ember); font-weight: 600; }
 .qj-item.sel, .qj-item:hover { background: var(--ember-tint); }
 .qj-item.sel .qj-ic { background: var(--ember); color: var(--on-ember); }
 .qj-enter { font: 12px var(--font-mono); padding: 2px 8px; border-radius: var(--r-6); border: 1px solid var(--hairline); color: var(--fog); }
@@ -85,7 +85,7 @@ select.fs-native { position: absolute !important; inset: 0; width: 100% !importa
 .fs-opt.sel::after { content: ''; position: absolute; right: 12px; top: 50%; width: 10px; height: 5px; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-70%) rotate(-45deg); }
 .fs-opt.off { color: var(--fog-dim); cursor: not-allowed; }
 .fs-opt[hidden], .fs-group[hidden], .fs-nothing[hidden] { display: none; }
-.fs-group { padding: 10px 12px 4px; font-size: var(--fs-11); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--fog-dim); }
+.fs-group { padding: 10px 12px 4px; font-size: var(--fs-11); font-weight: 600; color: var(--fog-dim); }
 .fs-nothing { padding: 12px; color: var(--fog-dim); font-size: var(--fs-14); text-align: center; }
 /* native lists that stay (phones, tablets): the same look when closed */
 @media (pointer: coarse) {
@@ -115,7 +115,7 @@ select.fs-native { position: absolute !important; inset: 0; width: 100% !importa
 .v2-add { display: flex; flex-wrap: wrap; gap: 6px; }
 .v2-add-in { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--hairline); }
 .v2-add-btn { font-size: var(--fs-13); padding: 8px 12px; }
-.v2-add-title { font-size: var(--fs-12); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--fog-dim); margin-bottom: 10px; }
+.v2-add-title { font-size: var(--fs-12); font-weight: 600; color: var(--fog-dim); margin-bottom: 10px; }
 .v2-empty { color: var(--fog-dim); font-size: var(--fs-14); border-style: dashed; }
 .v2-root-add { margin-top: 14px; }
 [data-kind-show][hidden] { display: none !important; }
@@ -123,7 +123,7 @@ select.fs-native { position: absolute !important; inset: 0; width: 100% !importa
 /* preview of components, Discord's look */
 .dv-container { margin-top: 6px; max-width: 520px; background: var(--dc-surface); border: 1px solid var(--dc-deep); border-left: 4px solid transparent; border-radius: var(--r-8); padding: 14px 16px; }
 .dv-container.spoiler { filter: blur(0); position: relative; }
-.dv-container.spoiler::after { content: 'СПОЙЛЕР'; position: absolute; top: 8px; right: 10px; font-size: var(--fs-11); font-weight: 700; color: var(--dc-muted); letter-spacing: .05em; }
+.dv-container.spoiler::after { content: 'СПОЙЛЕР'; position: absolute; top: 8px; right: 10px; font-size: var(--fs-11); font-weight: 600; color: var(--dc-muted); letter-spacing: .05em; }
 .dv-text + .dv-text, .dv-container > * + * { margin-top: 8px; }
 .dv-sep { height: 4px; }
 .dv-sep.big { height: 16px; }

@@ -123,7 +123,7 @@ html[data-theme="light"] .ic-sun, html[data-theme="light"] .t-to-light { display
   padding: 18px 24px;
   flex: 1;
 }
-.stat-box .value { font-family: var(--font-mono); font-size: var(--fs-28); font-weight: 500; color: var(--ember); }
+.stat-box .value { font-family: var(--font-mono); font-size: var(--fs-28); font-weight: 500; color: var(--paper); }
 .stat-box .label { color: var(--fog); font-size: var(--fs-13); margin-top: 4px; }
 
 /* ============================================================

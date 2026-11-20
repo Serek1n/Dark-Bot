@@ -26,7 +26,7 @@
 .cm-card-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .cm-icon { width: 56px; height: 56px; border-radius: var(--r-14); flex: none; object-fit: cover; }
 .cm-icon.big { width: 96px; height: 96px; border-radius: var(--r-20); }
-.cm-letter { display: inline-flex; align-items: center; justify-content: center; background: var(--ember-tint-strong); color: var(--ember); font-weight: 800; font-size: var(--fs-24); }
+.cm-letter { display: inline-flex; align-items: center; justify-content: center; background: var(--ember-tint-strong); color: var(--ember); font-weight: 600; font-size: var(--fs-24); }
 .cm-title { flex: 1; min-width: 0; }
 .cm-title h3 { margin: 0; font-size: var(--fs-16); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cm-title h3 a { color: var(--paper); }
@@ -189,7 +189,7 @@
 .cm-gallery img { width: 100%; height: 100%; object-fit: cover; transition: transform .2s; }
 .cm-gallery a:hover img { transform: scale(1.03); }
 .cm-rules { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; color: var(--fog); }
-.cm-rules li::marker { color: var(--ember); font-weight: 700; }
+.cm-rules li::marker { color: var(--ember); font-weight: 600; }
 .cm-links { display: flex; flex-wrap: wrap; gap: 8px; }
 .cm-links a { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--r-pill); border: 1px solid var(--hairline); background: var(--panel-raised); color: var(--paper); font-size: var(--fs-13); }
 .cm-links a:hover { border-color: var(--ember); }
@@ -226,7 +226,7 @@
 .cm-review { padding: 12px 14px; border-radius: var(--r-12); border: 1px solid var(--hairline); }
 .cm-rv-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .cm-rv-top img, .cm-rv-ava { width: 32px; height: 32px; border-radius: 50%; flex: none; }
-.cm-rv-ava { display: grid; place-items: center; background: var(--ember-tint-strong); color: var(--ember); font-weight: 700; }
+.cm-rv-ava { display: grid; place-items: center; background: var(--ember-tint-strong); color: var(--ember); font-weight: 600; }
 .cm-rv-when { margin-left: auto; font-size: var(--fs-12); }
 .cm-rv-text { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--fog); }
 .cm-rv-reply { margin-top: 10px; padding: 8px 12px; border-left: 3px solid var(--ember); border-radius: var(--r-4); background: var(--panel-raised); }
@@ -285,7 +285,7 @@
 .cm-shot { background: var(--panel-raised); border: 1px solid var(--hairline); }
 .cm-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cm-shot.broken { background: repeating-linear-gradient(45deg, var(--panel-raised), var(--panel-raised) 8px, var(--panel) 8px, var(--panel) 16px); border-color: var(--danger); }
-.cm-shot.broken::after { content: '!'; position: absolute; inset: 0; display: grid; place-items: center; color: var(--danger); font-weight: 800; font-size: var(--fs-20); }
+.cm-shot.broken::after { content: '!'; position: absolute; inset: 0; display: grid; place-items: center; color: var(--danger); font-weight: 600; font-size: var(--fs-20); }
 .cm-shot-x { position: absolute; top: 4px; right: 4px; z-index: 1; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .65); color: #fff; font-size: var(--fs-18); line-height: 1; cursor: pointer; }
 .cm-shot-x:hover, .cm-shot-x:focus-visible { background: var(--danger); }
 .cm-shot-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; margin: 0; border: 1px dashed var(--fog-dim); color: var(--fog); cursor: pointer; }
@@ -298,7 +298,7 @@
 @media (pointer: coarse) { .cm-shot-x { width: 36px; height: 36px; } }
 
 /* «Платформа DARK» for its owners: the size of the moderation queue */
-.pf-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--ember); color: var(--on-ember); font-size: var(--fs-12); font-weight: 700; line-height: 1; }
+.pf-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--ember); color: var(--on-ember); font-size: var(--fs-12); font-weight: 600; line-height: 1; }
 .tb-user > summary.has-queue { position: relative; }
 .tb-user > summary.has-queue::after { content: ""; position: absolute; top: 3px; right: 3px; width: 10px; height: 10px; border-radius: 50%; background: var(--ember); box-shadow: 0 0 0 2px var(--panel); }
 .tb-user-menu .pf-badge { margin-left: 6px; }

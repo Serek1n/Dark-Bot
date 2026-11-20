@@ -2,7 +2,7 @@
 /* ======================================================================================================================
    Layout 2026-11: top bar with groups, the group's pages as tabs, the full list in a drawer (variant C). Font: Manrope.
    ====================================================================================================================== */
-h1 { font-weight: 700; letter-spacing: -0.02em; }
+h1 { font-weight: 600; letter-spacing: -0.02em; }
 .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .app-layout { display: block; min-height: 100vh; }
 .app-layout > .content { max-width: 1040px; margin: 0 auto; padding: 32px 32px 72px; }
@@ -15,7 +15,7 @@ h1 { font-weight: 700; letter-spacing: -0.02em; }
 .tb-guild { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 10px 6px 6px; border-radius: var(--r-10); color: var(--paper); text-decoration: none; font-weight: 600; font-size: var(--fs-15); margin-right: 10px; }
 .tb-guild:hover { background: var(--panel-raised); }
 .tb-guild .guild-icon { width: 30px; height: 30px; border-radius: var(--r-10); flex: 0 0 30px; object-fit: cover; }
-.tb-guild .guild-initial { display: grid; place-items: center; background: var(--ember-tint-strong); color: var(--ember); font-weight: 700; font-size: var(--fs-14); }
+.tb-guild .guild-initial { display: grid; place-items: center; background: var(--ember-tint-strong); color: var(--ember); font-weight: 600; font-size: var(--fs-14); }
 .tb-guild-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .tb-groups { display: flex; gap: 2px; min-width: 0; }
@@ -59,7 +59,7 @@ html[data-theme="light"] .tb-theme .ic-moon { display: block; }
 .nd-head .tb-guild { margin: 0; }
 .nd-search { display: flex; align-items: center; gap: 10px; margin: 12px 14px 4px; padding: 12px 12px; border-radius: var(--r-12); border: 1px solid var(--hairline); background: var(--panel); color: var(--fog-dim); font: inherit; font-size: var(--fs-15); text-align: left; cursor: pointer; }
 .nd-nav { flex: 1; overflow-y: auto; padding: 4px 10px 16px; overscroll-behavior: contain; }
-.nd-group-label { font-size: var(--fs-12); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--fog-dim); padding: 16px 10px 6px; }
+.nd-group-label { font-size: var(--fs-12); font-weight: 600; color: var(--fog-dim); padding: 16px 10px 6px; }
 .nd-nav a { display: flex; align-items: center; gap: 12px; padding: 10px 10px; border-radius: var(--r-10); color: var(--fog); text-decoration: none; min-height: 48px; }
 .nd-nav a svg { flex: 0 0 auto; width: 34px; height: 34px; padding: 8px; border-radius: var(--r-10); background: var(--panel-raised); color: var(--fog); }
 .nd-nav a .nl { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
@@ -98,7 +98,7 @@ html.nd-open { overflow: hidden; }
   .tb-tab { min-height: 46px; }
   .content .btn, .content input:not([type=checkbox]):not([type=radio]):not([type=color]), .content select { min-height: 44px; }
 }
-.qj-head { padding: 10px 12px 4px; font-size: var(--fs-11); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--fog-dim); }
+.qj-head { padding: 10px 12px 4px; font-size: var(--fs-11); font-weight: 600; color: var(--fog-dim); }
 .qj-setting svg { opacity: .55; }
 .find-hit { animation: find-hit 2.2s ease; border-radius: var(--r-12); }
 @keyframes find-hit { 0%, 30% { box-shadow: 0 0 0 2px var(--ember), 0 0 0 8px var(--ember-tint); } 100% { box-shadow: 0 0 0 2px transparent, 0 0 0 8px transparent; } }
