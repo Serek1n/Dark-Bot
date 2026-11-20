@@ -73,7 +73,23 @@ install_deps() {
     [ "$ok" = 1 ] || echo "ffmpeg скачать не удалось — бот работает, музыка возьмёт системный ffmpeg, если он установлен (apt install ffmpeg)."
   fi
   keep_ffmpeg || true
+  update_ytdlp || true
   return 0
+}
+
+# YouTube changes its protection often, and an old yt-dlp then stops playing it. It is updated here when this user may
+# write the file; otherwise the command for the admin is printed. A failure never stops the update of the bot.
+update_ytdlp() {
+  local bin v
+  bin="${YTDLP_PATH:-$(command -v yt-dlp 2>/dev/null || true)}"
+  [ -n "$bin" ] && [ -x "$bin" ] || { echo "yt-dlp не найден — музыка с YouTube работать не будет (установка: см. README)."; return 0; }
+  say "yt-dlp"
+  if [ -w "$bin" ]; then
+    timeout 120 "$bin" -U >/dev/null 2>&1 || echo "Обновить yt-dlp не удалось — попробуйте вручную: $bin -U"
+  fi
+  v="$("$bin" --version 2>/dev/null || echo '?')"
+  echo "Версия: $v"
+  if [ ! -w "$bin" ]; then echo "Обновлять yt-dlp может только администратор сервера: sudo $bin -U"; fi
 }
 
 restart_bot() {

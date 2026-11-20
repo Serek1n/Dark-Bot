@@ -35,8 +35,63 @@ function ytDlpBaseArgs() {
   if (cookies && fs.existsSync(cookies)) args.push('--cookies', cookies);
   const extra = (process.env.YTDLP_EXTRA_ARGS || '').trim();
   if (extra) args.push(...extra.split(/\s+/));
+  args.push(...jsRuntimeArgs(extra));
   return args;
 }
+
+// Since 2025.11.12 yt-dlp needs a JavaScript runtime to solve YouTube's challenges (without it: "n challenge" / "Requested
+// format is not available"), and only Deno is on by default. The bot itself runs on Node, so yt-dlp is given this very
+// Node, plus permission to fetch the challenge solver (EJS) from GitHub if its build does not carry it. Older yt-dlp does
+// not know these options and would refuse to start, so they are added only once the installed version is known to be new
+// enough. YTDLP_JS_RUNTIME=off turns this off; a --js-runtimes of your own in YTDLP_EXTRA_ARGS wins.
+const EJS_SINCE = '2025.11.12';
+const ytDlp = { version: null, checkedAt: 0, probing: null };
+
+/** Asks the installed yt-dlp for its version (in the background; the answer is kept). */
+function probeYtDlp() {
+  if (ytDlp.probing) return ytDlp.probing;
+  ytDlp.probing = new Promise((resolve) => {
+    let out = '';
+    let proc;
+    try { proc = spawn(YTDLP_BIN, ['--version'], { stdio: ['ignore', 'pipe', 'ignore'] }); } catch { proc = null; }
+    if (!proc) { ytDlp.probing = null; resolve(null); return; }
+    const timer = setTimeout(() => proc.kill('SIGKILL'), 15000);
+    let done = false;
+    const finish = () => { // 'error' (no yt-dlp at all) and 'close' may both come: answer once
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      const m = out.trim().match(/^(\d{4}\.\d{1,2}\.\d{1,2})/);
+      ytDlp.version = m ? m[1] : null;
+      ytDlp.checkedAt = Date.now();
+      ytDlp.probing = null;
+      resolve(ytDlp.version);
+    };
+    proc.stdout.on('data', (d) => { out += d; });
+    proc.on('error', finish);
+    proc.on('close', finish);
+  });
+  return ytDlp.probing;
+}
+
+/** "2025.11.12" ≥ "2025.06.30"? (the versions are dates, so a plain comparison of the padded parts is enough) */
+const versionAtLeast = (v, min) => Boolean(v) && v.split('.').map((x) => x.padStart(4, '0')).join('.') >= min.split('.').map((x) => x.padStart(4, '0')).join('.');
+
+function jsRuntimeArgs(extra = '') {
+  if (String(process.env.YTDLP_JS_RUNTIME || '').trim().toLowerCase() === 'off') return [];
+  if (/--js-runtimes?\b/.test(extra)) return [];
+  if (!versionAtLeast(ytDlp.version, EJS_SINCE)) return [];
+  const args = ['--js-runtimes', `node:${process.execPath}`];
+  if (!/--remote-components\b/.test(extra)) args.push('--remote-components', 'ejs:github');
+  return args;
+}
+
+// The version is read at start and again every 6 hours (yt-dlp may be updated while the bot runs).
+probeYtDlp().then((v) => {
+  if (!v) return;
+  if (!versionAtLeast(v, EJS_SINCE)) logger.warn(`yt-dlp ${v} устарел: YouTube может не воспроизводиться. Обновите: sudo yt-dlp -U`);
+}).catch(() => {});
+setInterval(() => { probeYtDlp().catch(() => {}); }, 6 * 3600 * 1000).unref();
 
 /** Why yt-dlp failed, in words for the chat (null when the reason is not recognised). */
 function ytDlpFailReason(stderr) {
@@ -45,7 +100,10 @@ function ytDlpFailReason(stderr) {
   if (/not a bot/i.test(t)) return 'YouTube просит подтвердить, что это не бот (нужен файл cookies или другой IP сервера)';
   if (/HTTP Error 403|Forbidden/i.test(t)) return 'YouTube отклонил загрузку (ошибка 403): обновите yt-dlp или добавьте cookies';
   if (/Private video|Video unavailable|removed|not available in your country|blocked/i.test(t)) return 'видео недоступно (приватное, удалено или закрыто для региона)';
-  if (/Requested format is not available|n challenge|JavaScript runtime|nsig/i.test(t)) return 'yt-dlp не смог разобрать YouTube: обновите его и включите JS-рантайм (`--js-runtimes node`)';
+  if (/Requested format is not available|n challenge|JavaScript runtime|nsig|EJS|challenge solver/i.test(t)) {
+    if (ytDlp.version && !versionAtLeast(ytDlp.version, EJS_SINCE)) return `yt-dlp на сервере устарел (${ytDlp.version}) и не справляется с защитой YouTube: администратору бота нужно выполнить \`sudo yt-dlp -U\``;
+    return 'YouTube не отдал этот трек (защита YouTube изменилась): администратору бота нужно обновить yt-dlp — `sudo yt-dlp -U`';
+  }
   if (/ENOENT|not found/i.test(t)) return 'не найден yt-dlp на сервере';
   return null;
 }
@@ -70,6 +128,7 @@ function spawnYtDlpAudio(url, onFail = null) {
   proc.on('close', (code) => {
     if (code && code !== 0 && code !== null) {
       logger.warn(`yt-dlp exited ${code}: ${stderr.trim()}`);
+      if (Date.now() - ytDlp.checkedAt > 10 * 60 * 1000) probeYtDlp().catch(() => {}); // perhaps updated meanwhile
       if (!gotAudio && onFail) onFail(ytDlpFailReason(stderr)); // nothing was played: tell the chat why
     }
   });
@@ -700,5 +759,5 @@ async function resolveQueryInner(query, requestedBy) {
   ];
 }
 
-module.exports = { ytDlpJson, spawnYtDlpAudio, ytDlpBaseArgs, ytDlpFailReason, ytDlpAudioArgs, getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue,
+module.exports = { ytDlpJson, spawnYtDlpAudio, ytDlpBaseArgs, ytDlpFailReason, ytDlpAudioArgs, probeYtDlp, jsRuntimeArgs, versionAtLeast, _ytDlp: ytDlp, getQueue, getOrCreateQueue, destroyQueue, resolveQuery, GuildQueue,
   ytDlpSearchBest, lazyTrack, resolveLazy, parseDurationSec, formatSeconds, LOOP_MODES, MAX_PLAYLIST };

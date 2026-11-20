@@ -5167,5 +5167,7 @@
  "ID из Discord, например 123456789012345678": "Discord ID, e.g. 123456789012345678",
  "ID в Discord": "Discord ID",
  "Такого ID не бывает: в Discord это число из 17–20 цифр.": "That is not an ID: in Discord it is a number of 17–20 digits.",
- "В Discord включите режим разработчика, затем правый клик по участнику или серверу → «Копировать ID».": "In Discord, turn on Developer Mode, then right-click the member or server → «Copy ID»."
+ "В Discord включите режим разработчика, затем правый клик по участнику или серверу → «Копировать ID».": "In Discord, turn on Developer Mode, then right-click the member or server → «Copy ID».",
+ "yt-dlp на сервере устарел ({0}) и не справляется с защитой YouTube: администратору бота нужно выполнить `sudo yt-dlp -U`": "yt-dlp on the server is outdated ({0}) and can't get past YouTube's protection: the bot's admin needs to run `sudo yt-dlp -U`",
+ "YouTube не отдал этот трек (защита YouTube изменилась): администратору бота нужно обновить yt-dlp — `sudo yt-dlp -U`": "YouTube refused this track (its protection changed): the bot's admin needs to update yt-dlp — `sudo yt-dlp -U`"
 }
