@@ -24,7 +24,7 @@
   </select>
 </div>
 <div data-role-only><label>Срок действия роли</label>
-  <input type="text" name="duration" value="<%= it.durationSeconds ? termText(it.durationSeconds * 1000) : '' %>" maxlength="30" placeholder="Пусто — навсегда. Например: 10д, 12ч, 1мес" />
+  <input type="text" name="duration" value="<%= it.durationSeconds ? termText(it.durationSeconds * 1000) : '' %>" data-duration maxlength="30" placeholder="Пусто — навсегда. Например: 10д, 12ч, 1мес" />
   <p class="hint">По окончании бот сам снимет роль, повторная покупка продлевает срок. От 1 минуты до 366 дней.</p>
 </div>
 <div class="two-col">

@@ -86,6 +86,24 @@ const SECTIONS = {
     // Discord takes no less than 8 kbit/s; 0 means «as Discord decides»
     normalize(v) { if (v.tempVoiceBitrate && v.tempVoiceBitrate < 8) v.tempVoiceBitrate = 8; return v; }
   },
+  // «Временные голосовые» → «Автоматизация»
+  'tempVoice.auto': {
+    module: 'tempVoice',
+    fields: {
+      tempVoiceAutoTransfer: { type: 'boolean' },
+      tempVoiceCooldownSec: { type: 'integer', min: 0, max: 3600, default: 15 },
+      tempVoiceMaxRooms: { type: 'integer', min: 0, max: 500, default: 0 }
+    }
+  },
+  // «Модерация» → «Жалобы»
+  'moderation.reports': {
+    module: 'report',
+    fields: {
+      reportChannelId: { type: 'channel', channelTypes: [0, 5], need: 'post', nullable: true },
+      reportDailyLimit: { type: 'integer', min: 1, max: 50, default: 5 },
+      reportJoinAlert: { type: 'boolean' }
+    }
+  },
   // «Свои команды»: the prefix
   'customCommands.prefix': {
     module: 'customCommands',

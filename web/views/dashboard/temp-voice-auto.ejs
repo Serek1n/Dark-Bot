@@ -11,7 +11,7 @@
         <p class="page-intro">Что бот делает с комнатами сам: передаёт комнату, когда владелец ушёл, и не даёт создавать комнаты слишком часто.</p>
       </div>
       <% const g = '/dashboard/' + guild.id; %>
-      <form method="post" action="<%= g %>/temp-voice/auto" class="plain">
+      <form method="post" action="<%= g %>/temp-voice/auto" class="plain" data-api="tempVoice.auto">
         <div class="card g-c1">
           <h2>Передача комнаты</h2>
           <div class="rules">

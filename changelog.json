@@ -1,6 +1,35 @@
 [
  {
   "bot": "3.19.5",
+  "panel": "3.34.0",
+  "date": "2026-11-24",
+  "botChanges": [],
+  "panelChanges": [
+   "Все страницы настроек — строками: переключатели и поля без рамок вокруг каждого",
+   "Списки каналов сгруппированы по категориям Discord, у каналов значок вида",
+   "В списках ролей — цвет роли рядом с названием",
+   "Множители: сначала правило сложения, потом таблицы каналов и ролей, добавление справа",
+   "Голосовые: «Автоматизация» и «Жалобы» модерации сохраняются без перезагрузки",
+   "Поля текста показывают, сколько символов осталось до предела",
+   "Срок роли в магазине: под полем видно, как он понят — «= 2 часа 30 минут»",
+   "На телефоне в шапке видно, в каком разделе и вкладке вы находитесь"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Every settings page in rows: switches and fields without a box around each",
+    "Channel lists are grouped by Discord category, each channel shows its kind",
+    "Role lists show the role colour next to the name",
+    "Multipliers: the stacking rule first, then channel and role tables, adding on the right",
+    "Temp voice «Automation» and moderation «Reports» save without a reload",
+    "Text fields show how many characters are left",
+    "Shop role term: the field shows how it was read — «= 2 hours 30 minutes»",
+    "On a phone the header shows the section and tab you are in"
+   ]
+  }
+ },
+ {
+  "bot": "3.19.5",
   "panel": "3.33.0",
   "date": "2026-11-24",
   "botChanges": [],

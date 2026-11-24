@@ -13,7 +13,7 @@
       <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
          const name = (id) => (users[id] || { name: id }).name;
          const ST = { open: 'Новые', done: 'Рассмотрены', ignored: 'Отклонены', all: 'Все' }; %>
-      <form method="post" action="<%= g %>/moderation/reports" class="card g-c1">
+      <form method="post" action="<%= g %>/moderation/reports" class="card" data-api="moderation.reports">
         <h2>Куда приходят жалобы</h2>
         <label for="reportChannelId">Канал для жалоб</label>
         <select id="reportChannelId" name="reportChannelId">

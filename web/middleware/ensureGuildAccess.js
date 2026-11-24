@@ -11,6 +11,15 @@ async function withModules(req, res, next) {
       const { moduleState } = require('../modules');
       res.locals.mods = moduleState(await getSettings(req.params.guildId));
     } catch (_) { res.locals.mods = null; } // the page builds the list from its own settings; it still opens
+    // the server's channels and roles for the lists on the page (grouped by category, with icons and role colours; see
+    // js/ui.js). Both are cached by discordApi, so this costs nothing on a page that asks for them anyway.
+    if (req.method === 'GET') {
+      try {
+        const api = require('../discordApi');
+        const [ch, ro] = await Promise.all([api.getGuildChannels(req.params.guildId), api.getGuildRoles(req.params.guildId)]);
+        res.locals.entities = { channels: (ch || []).map((c) => ({ id: c.id, n: c.name, t: c.type, p: c.parent_id || null, o: c.position || 0 })), roles: (ro || []).map((r) => ({ id: r.id, c: r.color || 0 })) };
+      } catch (_) { res.locals.entities = null; }
+    }
   }
   next();
 }

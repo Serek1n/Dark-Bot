@@ -22,6 +22,8 @@
       <% } else { %><span class="guild-icon guild-initial" aria-hidden="true"><%= initial %></span><% } %>
       <span class="tb-guild-name"><%= guild.name %></span>
     </a>
+    <% const pageTitle = (curMods[0] && (M.PAGE_LABELS[active] ? curMods[0].title + ' · ' + M.PAGE_LABELS[active] : curMods[0].title)) || M.PAGE_TITLES[active] || ''; %>
+    <% if (pageTitle) { %><span class="tb-page" aria-hidden="true"><%= pageTitle %></span><% } %>
     <nav class="tb-groups" aria-label="Разделы панели">
       <a href="/dashboard/<%= gid %>" class="tb-group<%= active === 'overview' ? ' is-on' : '' %>"<%- active === 'overview' ? ' aria-current="page"' : '' %>>Главная</a>
       <button type="button" class="tb-group tb-mods<%= inModule || active === 'features' || active === 'settings' ? ' is-on' : '' %>" data-mods-open aria-expanded="false" aria-controls="modsMenu">Модули <span class="tb-count" data-mods-count><%= mods.on %></span><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg></button>
@@ -132,6 +134,9 @@
 
 <%# the modules for /js/modules.js: names, commands and what depends on what (for the "switch off?" window) %>
 <script type="application/json" id="mods-data"><%- JSON.stringify(mods.list.map((m) => ({ key: m.key, title: m.title, on: m.on, switchable: m.switchable, depends: m.depends, commands: m.commands }))).replace(/</g, '\\u003c') %></script>
+
+<%# the server's channels and roles, for grouping and colouring the lists on the page (js/ui.js) %>
+<% if (locals.entities) { %><script type="application/json" id="guild-entities"><%- JSON.stringify(entities).replace(/</g, '\\u003c') %></script><% } %>
 
 <%# texts of the errors a page may report, read by /js/panel.js (no inline scripts: the page's policy forbids them) %>
 <script type="application/json" id="page-errors"><%- JSON.stringify(locals.errorTexts || {}).replace(/</g, '\\u003c') %></script>

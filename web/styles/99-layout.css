@@ -214,15 +214,38 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
 @media (min-width: 1024px) { .app-layout:has(.nav-drawer.is-rail) .tb-burger { display: none; } }
 @media (min-width: 1024px) { html:not(.sb-mini) .nav-drawer.is-rail .tb-guild-name { display: block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
 
-/* ---------- the older settings pages: a label above a number or a list becomes a split row too (name on the left, the
-   control on the right), without changing their templates. Two fields side by side (.two-col) stay as they are. ---------- */
+/* ---------- the older settings pages, without changing their templates: their patterns become the same rows as the new
+   pages. A switch row (.rule, .checkbox-row) is a flat row with a divider instead of a box; two fields side by side
+   (.two-col) become two rows; «label + number or list» is a split row (name left, control right), «label + text» a
+   stacked row (the field under the name, full width). Forms in the drawer and the message builders keep their own grid. ---------- */
+.app-layout .content .card .checkbox-row { background: none; border: 0; border-top: 1px solid var(--hairline-soft); border-radius: 0; padding: 14px 0; margin: 0; }
+.app-layout .content .card .checkbox-row:hover { border-color: var(--hairline-soft); }
+.app-layout .content .card > h2 + .checkbox-row, .app-layout .content .card > .checkbox-row:first-child { border-top: 0; }
+.app-layout .content .card .checkbox-row > label, .app-layout .content .card label.checkbox-row > span { font-size: var(--fs-14); font-weight: 500; }
 @media (min-width: 761px) {
-  .app-layout .content .card > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.two-col):not(.set-row):not(.embed-editor) {
+  .app-layout .content .card > .two-col, .app-layout .content .card .rule-cfg > .two-col { display: block; }
+  .app-layout .content :is(.card, .card > .two-col, .card .g-split > div, .card .rule-cfg, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.set-row):not(.embed-editor):not(.pick) {
     display: grid; grid-template-columns: minmax(0, 60fr) minmax(0, 40fr); column-gap: 24px; align-items: center;
     padding: 12px 0; border-top: 1px solid var(--hairline-soft); margin: 0;
   }
-  .app-layout .content .card > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.two-col):not(.set-row) > label { grid-column: 1; margin: 0; font-size: var(--fs-14); font-weight: 500; color: var(--text-primary); }
-  .app-layout .content .card > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.two-col):not(.set-row) > :is(input, select, .fs) { grid-column: 2; grid-row: 1; margin: 0; }
-  .app-layout .content .card > div:has(> label:first-child + input[type=number]):not(.two-col):not(.set-row) > input { justify-self: end; width: 140px; text-align: right; }
-  .app-layout .content .card > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.two-col):not(.set-row) > :is(.hint, small, p) { grid-column: 1; margin: 4px 0 0; }
+  .app-layout .content :is(.card, .card > .two-col, .card .g-split > div, .card .rule-cfg, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.set-row) > label { grid-column: 1; margin: 0; font-size: var(--fs-14); font-weight: 500; color: var(--text-primary); }
+  .app-layout .content :is(.card, .card > .two-col, .card .g-split > div, .card .rule-cfg, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.set-row) > :is(input, select, .fs) { grid-column: 2; grid-row: 1; margin: 0; }
+  .app-layout .content :is(.card, .card > .two-col, .card .g-split > div, .card .rule-cfg, .card .rule-cfg > .two-col) > div:has(> label:first-child + input[type=number]):not(.set-row) > input { justify-self: end; width: 140px; text-align: right; }
+  .app-layout .content :is(.card, .card > .two-col, .card .g-split > div, .card .rule-cfg, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.set-row) > :is(.hint, small, p) { grid-column: 1; margin: 4px 0 0; }
+  .app-layout .content :is(.card, .card > .two-col, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=text], input:not([type]), textarea, .pick)):not(.set-row) { padding: 12px 0; border-top: 1px solid var(--hairline-soft); margin: 0; }
+  .app-layout .content :is(.card, .card > .two-col, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=text], input:not([type]), textarea, .pick)):not(.set-row) > label { font-size: var(--fs-14); font-weight: 500; color: var(--text-primary); margin: 0 0 8px; }
+  .app-layout .content .card > h2 + div:has(> label:first-child), .app-layout .content .card > h2 + .two-col > div:first-child, .app-layout .content .card > .card-lead + div, .app-layout .content .card > p + div:has(> label:first-child) { border-top: 0; }
+}
+
+/* ---------- small parts of the fields ---------- */
+.fs-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
+.char-count { margin-top: 4px; text-align: right; font-size: var(--fs-12); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.char-count.near { color: var(--warning); }
+.duration-hint { margin-top: 4px; }
+.duration-hint.bad { color: var(--danger); }
+/* the phone header names the page you are on; wider screens show it in the page itself */
+.tb-page { display: none; }
+@media (max-width: 760px) {
+  .tb-page { display: block; min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-14); font-weight: 500; color: var(--paper); }
+  .topbar .tb-guild-name { display: none !important; }
 }

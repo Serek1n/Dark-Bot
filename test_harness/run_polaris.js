@@ -160,7 +160,7 @@ const roleMember = (ids, positions = {}) => ({ roles: { cache: new Map(ids.map((
     await post('/channel-boosts/modes', { roleBoostMode: 'evil', boostStacking: 'x' });
     assert((await settingsNow()).roleBoostMode === 'add', 'unknown modes are ignored');
     const page = await (await fetch(base + '/channel-boosts')).text();
-    assert(page.includes('Бонусы ролей') && page.includes('@VIP') && page.includes('×1,5'), 'listed');
+    assert(page.includes('Множители ролей') && page.includes('@VIP') && page.includes('×1,5'), 'listed');
     assert((await post(`/channel-boosts/roles/delete/${R2}`, {})).includes('deleted'));
     assert(!JSON.parse((await settingsNow()).roleBoosts)[R2]);
   });

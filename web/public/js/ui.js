@@ -1,3 +1,48 @@
+// --- Lists of channels and roles, before they become searchable lists below: a channel list is grouped by its Discord
+// category with an icon of the kind (# text, 🔊 voice, 🗂 forum), a role gets its colour. The data comes from the page
+// (#guild-entities, web/middleware/ensureGuildAccess.js); a list that is not of channels or roles stays as it is.
+(function () {
+  var box = document.getElementById('guild-entities');
+  if (!box) return;
+  var data; try { data = JSON.parse(box.textContent); } catch (e) { return; }
+  var ch = {}; (data.channels || []).forEach(function (c) { ch[c.id] = c; });
+  var roles = {}; (data.roles || []).forEach(function (r) { roles[r.id] = r; });
+  var ICON = { 0: '#', 5: '#', 2: '🔊', 13: '🔊', 15: '🗂', 16: '🗂', 4: '📁' };
+  document.querySelectorAll('.content select:not([multiple])').forEach(function (sel) {
+    var opts = Array.prototype.slice.call(sel.options);
+    var known = opts.filter(function (o) { return ch[o.value]; });
+    if (known.length && known.length >= opts.filter(function (o) { return o.value; }).length / 2 && !sel.querySelector('optgroup')) {
+      var groups = {}; var order = [];
+      known.forEach(function (o) {
+        var c = ch[o.value];
+        var icon = ICON[c.t] || '#';
+        o.textContent = icon + ' ' + o.textContent.replace(/^\s*(#|🔊|🗂|📁)\s*/u, '').trim();
+        var cat = c.t === 4 ? null : (c.p && ch[c.p] ? ch[c.p] : null);
+        var key = cat ? cat.id : '';
+        if (!groups[key]) { groups[key] = []; order.push(key); }
+        groups[key].push(o);
+      });
+      if (order.length > 1) {
+        order.sort(function (a, b) { return (a ? ch[a].o : -1) - (b ? ch[b].o : -1); });
+        order.forEach(function (key) {
+          var g = document.createElement('optgroup');
+          g.label = key ? ch[key].n : 'Без категории';
+          groups[key].sort(function (x, y) { return ch[x.value].o - ch[y.value].o; }).forEach(function (o) { g.appendChild(o); });
+          sel.appendChild(g);
+        });
+        // what is not a channel («не выбрано», a deleted one) stays first
+        opts.filter(function (o) { return !ch[o.value]; }).forEach(function (o) { sel.insertBefore(o, sel.firstChild); });
+        var cur = opts.filter(function (o) { return o.defaultSelected; })[0]; if (cur) cur.selected = true;
+      }
+      return;
+    }
+    opts.forEach(function (o) {
+      var r = roles[o.value];
+      if (r && r.c) o.setAttribute('data-color', '#' + Number(r.c).toString(16).padStart(6, '0'));
+    });
+  });
+})();
+
 // Small touches for the panel: a letter instead of a broken server icon, and a quiet scroll indicator for the side menu.
 (function () {
   // 1) A server icon that fails to load (Discord CDN hiccup) becomes a tile with the first letter of the name.
@@ -546,6 +591,7 @@
         lastGroup = g;
         var it = document.createElement('div'); it.className = 'fs-opt'; it.setAttribute('role', 'option');
         it.textContent = o.textContent.trim();
+        if (o.getAttribute('data-color')) { var dot = document.createElement('i'); dot.className = 'fs-dot'; dot.style.background = o.getAttribute('data-color'); it.insertBefore(dot, it.firstChild); }
         if (o.disabled) { it.classList.add('off'); it.setAttribute('aria-disabled', 'true'); }
         if (o.selected) { it.classList.add('sel'); it.setAttribute('aria-selected', 'true'); }
         if (o.value === '') it.classList.add('none');
@@ -1045,4 +1091,37 @@
   }
   apply();
   if (mq.addEventListener) mq.addEventListener('change', apply); else if (mq.addListener) mq.addListener(apply);
+})();
+
+
+// --- A text with a limit (textarea or input with maxlength, of a message): how much is left, next to the field.
+(function () {
+  document.querySelectorAll('.content textarea[maxlength], .drawer textarea[maxlength]').forEach(function (t) {
+    var max = Number(t.getAttribute('maxlength')); if (!max) return;
+    var c = document.createElement('div'); c.className = 'char-count'; c.setAttribute('aria-live', 'polite');
+    function upd() { var n = t.value.length; c.textContent = n + ' / ' + max; c.classList.toggle('near', n > max * 0.9); }
+    t.insertAdjacentElement('afterend', c); t.addEventListener('input', upd); upd();
+  });
+})();
+
+// --- A term typed as text (30m, 2h, 7d, 1мес, 10д…): under the field, what it means in words.
+(function () {
+  var UNITS = [[/^(м|m|мин|min)/, 'минута', 'минуты', 'минут', 60], [/^(ч|h|час)/, 'час', 'часа', 'часов', 3600], [/^(д|d|дн|day)/, 'день', 'дня', 'дней', 86400], [/^(н|w|нед|week)/, 'неделя', 'недели', 'недель', 604800], [/^(мес|mo|month)/, 'месяц', 'месяца', 'месяцев', 2592000]];
+  function plural(n, a, b, c) { var m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; }
+  function words(s) {
+    var out = []; var re = /(\d+)\s*([a-zа-яё]+)/gi; var m; var any = false;
+    while ((m = re.exec(String(s).toLowerCase()))) {
+      var n = Number(m[1]); var u = m[2]; var hit = null;
+      UNITS.slice().reverse().forEach(function (x) { if (!hit && x[0].test(u) && !(x[1] === 'минута' && /^мес/.test(u))) hit = x; });
+      if (!hit) return null;
+      any = true; out.push(n + ' ' + plural(n, hit[1], hit[2], hit[3]));
+    }
+    return any ? out.join(' ') : null;
+  }
+  document.querySelectorAll('input[data-duration]').forEach(function (inp) {
+    var h = document.createElement('div'); h.className = 'hint duration-hint'; h.setAttribute('aria-live', 'polite');
+    inp.insertAdjacentElement('afterend', h);
+    function upd() { var w = inp.value.trim() ? words(inp.value) : ''; h.textContent = w === null ? 'Не понял срок: напишите, например, 30м, 2ч, 7д или 1мес' : (w ? '= ' + w : ''); h.classList.toggle('bad', w === null); }
+    inp.addEventListener('input', upd); upd();
+  });
 })();
