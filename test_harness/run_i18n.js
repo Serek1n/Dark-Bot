@@ -40,6 +40,13 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     assert.strictEqual(bad.length, 0, 'placeholders kept: ' + bad.slice(0, 3).map(([k]) => k).join(' | '));
   });
 
+  await test('no new orphaned keys in en.json (left from removed or renamed screens)', async () => {
+    const { orphans } = require('../i18n/check');
+    const base = require('../i18n/orphans-baseline.json').orphans;
+    const now = orphans();
+    assert(now.length <= base, `${now.length} orphaned keys, the baseline is ${base}: remove the keys of texts that are gone (node i18n/check.js --orphans)`);
+  });
+
   await test('texts built from parts are translated: templates, joined lines, glued phrases; names stay', async () => {
     const t = (s) => i18n.toEnglish(s, true);
     assert.strictEqual(t('Розыгрыш №5 начался в <#1> и закончится через 1 д.'), 'Giveaway #5 has started in <#1> and ends in 1 д.'.replace(' д', ' д'));

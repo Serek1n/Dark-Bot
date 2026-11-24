@@ -37,9 +37,11 @@ function codeStrings(file) {
   return out;
 }
 
+const sourceFiles = () => [...walk(path.join(ROOT, 'bot'), '.js'), ...walk(path.join(ROOT, 'web'), '.js').filter((f) => !f.includes(`${path.sep}public${path.sep}`)), ...walk(path.join(ROOT, 'db'), '.js'), ...walk(path.join(ROOT, 'shared'), '.js')].filter((f) => !IGNORE_FILES.test(f));
+
 function missing() {
   const res = [];
-  const files = [...walk(path.join(ROOT, 'bot'), '.js'), ...walk(path.join(ROOT, 'web'), '.js').filter((f) => !f.includes(`${path.sep}public${path.sep}`)), ...walk(path.join(ROOT, 'db'), '.js')].filter((f) => !IGNORE_FILES.test(f));
+  const files = sourceFiles();
   for (const f of files) for (const s of codeStrings(f)) if (!(s in EN) && !IGNORE.has(s)) res.push({ file: path.relative(ROOT, f), text: s });
   for (const f of walk(path.join(ROOT, 'web', 'views'), '.ejs')) for (const u of units(fs.readFileSync(f, 'utf8'))) {
     if (/<%|%>/.test(u.key) && u.type === 'js') continue;
@@ -50,9 +52,33 @@ function missing() {
   return res.filter((r) => (seen.has(r.text) ? false : seen.add(r.text)));
 }
 
+/**
+ * Keys of en.json that no text of the bot or the panel uses any more: left from removed or renamed screens. A key counts
+ * as used when it is a text found in the code or the templates, or when some text contains it (fragments and patterns:
+ * "{0}" and "⟦0⟧" stand for any part). The test keeps their number from growing (i18n/orphans-baseline.json).
+ */
+function orphans() {
+  const used = new Set(); const all = [];
+  const add = (s) => { if (typeof s === 'string' && s) { used.add(s); used.add(s.trim()); all.push(s); } };
+  for (const f of sourceFiles()) codeStrings(f).forEach(add);
+  for (const f of walk(path.join(ROOT, 'web', 'views'), '.ejs')) for (const u of units(fs.readFileSync(f, 'utf8'))) add(u.key);
+  for (const f of walk(path.join(ROOT, 'web', 'public', 'js'), '.js')) for (const l of jsLiterals(fs.readFileSync(f, 'utf8'))) add(l.text);
+  // texts kept in the i18n folder itself (the bot's Discord texts, defaults of settings)
+  for (const f of walk(path.join(ROOT, 'i18n'), '.js')) codeStrings(f).forEach(add);
+  const blob = all.join('\n');
+  const PH = /\{\w+\}|⟦\d+⟧/;
+  return Object.keys(EN).filter((k) => {
+    if (used.has(k) || used.has(k.trim())) return false;
+    const parts = k.split(/\{\w+\}|⟦\d+⟧/).map((p) => p.trim()).filter((p) => p.length > 2);
+    if (PH.test(k)) return !parts.every((p) => blob.includes(p));
+    return !blob.includes(k.trim());
+  });
+}
+
 if (require.main === module) {
+  if (process.argv.includes('--orphans')) { const o = orphans(); o.forEach((k) => console.log(JSON.stringify(k))); console.log(`orphans: ${o.length}`); process.exit(0); }
   const m = missing();
   m.forEach((r, i) => console.log(`${i}\t${r.file}\t${JSON.stringify(r.text)}`));
   console.log(`missing: ${m.length}`);
 }
-module.exports = { missing };
+module.exports = { missing, orphans };

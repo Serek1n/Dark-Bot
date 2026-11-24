@@ -20,6 +20,7 @@
             <% channels.filter(c => c.type === 0).forEach(c => { %>
               <option value="<%= c.id %>" <%= settings.welcomeChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
+            <% if (settings.welcomeChannelId && !channels.some((c) => c.id === settings.welcomeChannelId)) { %><option value="<%= settings.welcomeChannelId %>" selected data-gone>⚠️ Удалённый канал (ID: <%= settings.welcomeChannelId %>)</option><% } %>
           </select>
           <div class="hint">Сюда бот пишет, когда на сервер заходит новый человек. Не выбран — приветствия нет.</div>
         </div>
@@ -43,6 +44,7 @@
             <% channels.filter(c => c.type === 0).forEach(c => { %>
               <option value="<%= c.id %>" <%= settings.leaveChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
+            <% if (settings.leaveChannelId && !channels.some((c) => c.id === settings.leaveChannelId)) { %><option value="<%= settings.leaveChannelId %>" selected data-gone>⚠️ Удалённый канал (ID: <%= settings.leaveChannelId %>)</option><% } %>
           </select>
           <div class="hint">Сюда бот пишет, когда человек уходит с сервера. Не выбран — прощания нет.</div>
         </div>

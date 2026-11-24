@@ -22,6 +22,15 @@ router.get('/settings-index.json', (req, res) => {
 router.post('/:guildId/*', (req, res, next) => { require('../../modules').forgetStats(req.params.guildId); next(); });
 router.patch('/:guildId/*', (req, res, next) => { require('../../modules').forgetStats(req.params.guildId); next(); });
 
+// Addresses of the sections by their names in the plan of the panel (and old ones): they lead to the page that has it now.
+const ALIASES = { levels: 'leveling', 'channel-bonuses': 'channel-boosts', multipliers: 'channel-boosts', members: 'welcome', automation: 'temp-voice', 'server-settings': 'settings', modules: 'features', integrations: 'alerts' };
+router.get('/:guildId/:alias', (req, res, next) => {
+  const to = ALIASES[req.params.alias];
+  if (!to || !/^\d{15,25}$/.test(req.params.guildId)) return next();
+  const q = req.originalUrl.indexOf('?');
+  res.redirect(301, `/dashboard/${req.params.guildId}/${to}${q >= 0 ? req.originalUrl.slice(q) : ''}`);
+});
+
 for (const page of [
   'api', 'overview', 'leveling', 'features', 'economy', 'shop', 'moderation', 'logs', 'automod', 'channelBoosts', 'welcome',
   'levelRoles', 'reactionRoles', 'customCommands', 'tempVoice', 'alerts', 'webhooks', 'changelog', 'replacers', 'interactive', 'giveaways', 'messages', 'events', 'music', 'achievements', 'community', 'appearance', 'serverStats'

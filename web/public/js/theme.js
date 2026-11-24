@@ -22,6 +22,15 @@
   var theme = read('dark-theme');
   applyTheme(theme === 'light' ? 'light' : 'dark');
   if (read('dark-rail') === '1') root.classList.add('rail-pinned');
+  // the side menu on wide screens: full or folded to icons — only by a click on its button, remembered here
+  if (read('dark-sidebar-mini') === '1') root.classList.add('sb-mini');
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-sb-toggle]');
+    if (!b) return;
+    var mini = root.classList.toggle('sb-mini');
+    write('dark-sidebar-mini', mini ? '1' : '0');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-sb-toggle]'), function (x) { x.setAttribute('aria-pressed', mini ? 'true' : 'false'); x.setAttribute('aria-label', mini ? 'Развернуть меню' : 'Свернуть меню'); x.setAttribute('title', mini ? 'Развернуть меню' : 'Свернуть меню'); });
+  });
 
   document.addEventListener('DOMContentLoaded', function () {
     function syncPin() {

@@ -62,6 +62,12 @@ const schema = require('../shared/settingsSchema');
     r = await patch('leveling.notify', { levelUpChannelId: TEXT, levelUpEvery: '5' });
     const s = await S(); assert(r.status === 200 && s.levelUpChannelId === TEXT && s.levelUpEvery === 5, JSON.stringify(r));
   });
+  await test('PATCH: a channel deleted in Discord but left as it was does not block the rest', async () => {
+    await db.GuildSettings.update({ levelUpChannelId: '999999999999999999' }, { where: { guildId: G } });
+    const r = await patch('leveling.notify', { levelUpChannelId: '999999999999999999', levelUpEvery: '3' });
+    assert(r.status === 200 && (await S()).levelUpEvery === 3, JSON.stringify(r));
+    assert((await patch('leveling.notify', { levelUpChannelId: '888888888888888888' })).status === 400, 'a new unknown one is refused');
+  });
   await test('PATCH: an unknown section is 404, a broken body is a readable 400', async () => {
     assert((await patch('nope', {})).status === 404, 'unknown');
     const r = await fetch(`${base}/api/settings/leveling.accrual`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: '{bad' });

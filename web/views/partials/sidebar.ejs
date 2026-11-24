@@ -96,6 +96,9 @@
       <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.3"/><path d="M12.8 12.8L16.5 16.5"/></svg>
       Найти раздел или настройку
     </button>
+    <button type="button" class="sb-toggle" data-sb-toggle aria-pressed="false" aria-label="Свернуть меню" title="Свернуть меню">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="14" height="13" rx="2.5"/><path d="M8 3.5V16.5M13 8.5L11 10L13 11.5"/></svg><span>Свернуть меню</span>
+    </button>
     <nav class="nd-nav" aria-label="Меню панели">
       <div class="nd-group">
         <a href="/dashboard/<%= gid %>" class="<%= active === 'overview' ? 'active' : '' %>" title="Главная — сводка по серверу"><%- M.icon('home', 17) %><span class="nl"><b>Главная</b><small>Сводка по серверу</small></span></a>

@@ -11,68 +11,29 @@
         <p class="page-intro">Бот сам сообщит в ваш канал Discord, когда на YouTube выйдет новое видео или на Twitch начнётся стрим.</p>
       </div>
 
-      <div class="card g-c2">
-        <h2>Как это работает</h2>
-        <ol class="steps">
-          <li>Выберите платформу и укажите канал YouTube или логин на Twitch.</li>
-          <li>Выберите канал Discord, куда писать.</li>
-          <li>Бот проверяет новинки раз в несколько минут и публикует сообщение.</li>
-        </ol>
-        <p class="hint">Уже вышедшие видео бот не публикует — только те, что появятся после добавления подписки.</p>
-        <% if (!twitchReady) { %>
-          <p class="hint">Оповещения о стримах Twitch пока не работают: владелец бота должен подключить Twitch в настройках бота. YouTube работает без настройки.</p>
-        <% } %>
+      <div class="key-status" role="status" aria-label="Подключение платформ">
+        <div class="ks-item on"><span class="ds-dot" aria-hidden="true"></span><div><b>YouTube</b><span>Работает: ключ не нужен</span></div></div>
+        <div class="ks-item <%= twitchReady ? 'on' : 'off' %>"><span class="ds-dot" aria-hidden="true"></span><div><b>Twitch</b><span><%= twitchReady ? 'Подключён' : 'Не подключён: владелец бота должен задать TWITCH_CLIENT_ID и TWITCH_CLIENT_SECRET' %></span></div></div>
       </div>
 
-      <form method="post" class="card g-c1 g-r2">
-        <h2>Новая подписка</h2>
-        <div class="two-col">
-          <div>
-            <label>Платформа</label>
-            <select name="platform" required>
-              <option value="youtube">YouTube</option>
-              <option value="twitch">Twitch</option>
-            </select>
-          </div>
-          <div>
-            <label>Канал YouTube или логин Twitch</label>
-            <input type="text" name="targetId" required placeholder="UC… или логин" />
-            <div class="hint">YouTube: ID канала, он начинается с UC. Найти его: YouTube → ваш канал → «О канале» → «Поделиться» → «Копировать идентификатор канала». Twitch: логин из ссылки twitch.tv/<b>логин</b>.</div>
-          </div>
-        </div>
-        <div>
-          <label>Канал Discord для публикации</label>
-          <select name="channelId" required>
-            <% channels.filter(c => [0, 5].includes(c.type)).forEach(c => { %>
-              <option value="<%= c.id %>">#<%= c.name %></option>
-            <% }) %>
-          </select>
-        </div>
-        <div>
-          <label>Текст сообщения (можно не менять)</label>
-          <input type="text" name="message" id="alertMessage" placeholder="{name} только что опубликовал(а) новое видео! {url}" />
-          <%- include('../partials/replacers-help', { target: 'alertMessage' }) %>
-        </div>
-        <button class="btn" type="submit">Добавить</button>
-      </form>
-
-      <div class="card g-c2">
+      <section class="card" id="subs">
+        <h2>Подписки</h2>
+        <p class="set-help">Бот проверяет новинки раз в несколько минут. Уже вышедшие видео не публикуются — только те, что появятся после добавления подписки.</p>
         <% if (!alerts.length) { %>
-          <p class="empty-state"><svg width="26" height="26" viewBox="0 0 20 20" fill="currentColor"><path d="M13 3.5C10.5 4.8 8.8 7.3 8.8 10.2C8.8 13.1 10.5 15.6 13 16.9C11.6 17.8 9.9 18.3 8.1 18.3C3.6 18.3 0 14.5 0 10C0 5.5 3.6 1.7 8.1 1.7C9.9 1.7 11.6 2.2 13 3.5Z"/></svg>Подписок пока нет.</p>
+          <%- include('../partials/empty-state', { icon: 'alerts', text: 'Подписок пока нет. Добавьте канал YouTube или стримера Twitch.', action: { label: 'Добавить подписку', drawer: 'alertAdd' } }) %>
         <% } else { %>
-          <div class="table-scroll"><table>
-            <thead><tr><th>Платформа</th><th>Канал</th><th>Куда пишет</th><th></th></tr></thead>
+          <div class="table-toolbar"><button type="button" class="btn tt-add" data-drawer-open="alertAdd" hidden>+ Добавить подписку</button></div>
+          <div class="table-scroll"><table class="data-table">
+            <thead><tr><th>Платформа</th><th>Канал</th><th>Куда пишет</th><th><span class="sr-only">Действия</span></th></tr></thead>
             <tbody>
-              <% alerts.forEach(a => {
-                const channel = channels.find(c => c.id === a.channelId);
-              %>
+              <% alerts.forEach(a => { const channel = channels.find(c => c.id === a.channelId); %>
                 <tr>
-                  <td><%= a.platform === 'youtube' ? '📺 YouTube' : '🟣 Twitch' %></td>
+                  <td class="nowrap"><%= a.platform === 'youtube' ? 'YouTube' : 'Twitch' %><% if (a.platform === 'twitch' && !twitchReady) { %> <span class="gone-inline">· не работает</span><% } %></td>
                   <td><%= a.targetName || a.targetId %></td>
-                  <td>#<%= channel ? channel.name : a.channelId %></td>
-                  <td>
-                    <form method="post" action="/dashboard/<%= guild.id %>/alerts/delete/<%= a.id %>">
-                      <button class="btn btn-danger" type="submit">Удалить</button>
+                  <td class="nowrap"><% if (channel) { %>#<%= channel.name %><% } else { %><span class="gone-inline">⚠️ Удалённый канал (ID: <span class="mono"><%= a.channelId %></span>)</span><% } %></td>
+                  <td class="row-act">
+                    <form method="post" action="/dashboard/<%= guild.id %>/alerts/delete/<%= a.id %>" data-confirm="Удалить подписку на «<%= a.targetName || a.targetId %>»?" data-confirm-ok="Удалить">
+                      <button class="btn btn-danger btn-sm" type="submit">Удалить</button>
                     </form>
                   </td>
                 </tr>
@@ -80,7 +41,38 @@
             </tbody>
           </table></div>
         <% } %>
-      </div>
+      </section>
+
+      <form method="post" class="card" id="alertAdd" data-drawer="Новая подписка" data-no-guard>
+        <h2>Новая подписка</h2>
+        <div>
+          <label for="alPlatform">Платформа</label>
+          <select id="alPlatform" name="platform" required>
+            <option value="youtube">YouTube</option>
+            <option value="twitch"<%= twitchReady ? '' : ' disabled' %>>Twitch<%= twitchReady ? '' : ' — не подключён' %></option>
+          </select>
+        </div>
+        <div>
+          <label for="alTarget">Канал YouTube или логин Twitch</label>
+          <input type="text" id="alTarget" name="targetId" required placeholder="UC… или логин" />
+          <div class="hint">YouTube: ID канала, начинается с UC («О канале» → «Поделиться» → «Копировать идентификатор канала»). Twitch: логин из ссылки twitch.tv/<b>логин</b>.</div>
+        </div>
+        <div>
+          <label for="alChannel">Канал Discord для публикации</label>
+          <select id="alChannel" name="channelId" required>
+            <% channels.filter(c => [0, 5].includes(c.type)).forEach(c => { %>
+              <option value="<%= c.id %>">#<%= c.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label for="alertMessage">Текст сообщения</label>
+          <input type="text" name="message" id="alertMessage" maxlength="500" placeholder="{name} только что опубликовал(а) новое видео! {url}" />
+          <div class="hint">Пусто — стандартный текст.</div>
+          <%- include('../partials/replacers-help', { target: 'alertMessage' }) %>
+        </div>
+        <button class="btn" type="submit">Добавить</button>
+      </form>
     </main>
   </div>
 </body>

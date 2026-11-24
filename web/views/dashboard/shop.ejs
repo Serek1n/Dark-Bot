@@ -21,6 +21,7 @@
             <% channels.filter(c => c.type === 0).forEach(c => { %>
               <option value="<%= c.id %>" <%= settings.shopLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
             <% }) %>
+            <% if (settings.shopLogChannelId && !channels.some((c) => c.id === settings.shopLogChannelId)) { %><option value="<%= settings.shopLogChannelId %>" selected data-gone>⚠️ Удалённый канал (ID: <%= settings.shopLogChannelId %>)</option><% } %>
           </select>
           <div class="hint">Сюда бот пишет, кто и что купил. Не выбран — покупки видны только в таблице «Покупки» ниже.</div>
         </div>
@@ -29,7 +30,8 @@
 
       <div class="card g-c2">
         <h2>Товары <span class="muted">(<%= items.length %> из <%= maxItems %>)</span></h2>
-        <% if (!items.length) { %><p class="empty-state">Товаров пока нет. Добавьте первый ниже.</p><% } %>
+<div class="table-toolbar"><button type="button" class="btn tt-add" data-drawer-open="shopAdd" hidden>+ Новый товар</button></div>
+        <% if (!items.length) { %><p class="empty-state">Товаров пока нет.</p><% } %>
         <% items.forEach(it => { %>
           <details class="shop-item" style="margin-bottom:10px;">
             <summary>
@@ -50,7 +52,7 @@
       </div>
 
       <% if (items.length < maxItems) { %>
-      <form method="post" action="/dashboard/<%= guild.id %>/shop/items" class="card g-c1 g-r3" data-no-guard>
+      <form method="post" action="/dashboard/<%= guild.id %>/shop/items" class="card" id="shopAdd" data-drawer="Новый товар" data-no-guard>
         <h2>Новый товар</h2>
         <%- include('../partials/shop-fields', { it: { name: '', description: '', price: 100, currency: 'coins', type: 'item', roleId: null, durationSeconds: null, oncePerUser: false, stock: null, minLevel: 0, deliveryMessage: '', enabled: true }, roles, settings }) %>
         <button class="btn" type="submit">Добавить</button>

@@ -17,7 +17,8 @@
         <select name="updatesChannelId">
           <option value="">— не присылать —</option>
           <% channels.forEach(c => { %><option value="<%= c.id %>" <%= settings.updatesChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
-        </select>
+            <% if (settings.updatesChannelId && !channels.some((c) => c.id === settings.updatesChannelId)) { %><option value="<%= settings.updatesChannelId %>" selected data-gone>⚠️ Удалённый канал (ID: <%= settings.updatesChannelId %>)</option><% } %>
+          </select>
         <div class="hint">Боту нужны права «Просмотр канала», «Отправлять сообщения» и «Встраивать ссылки». Старые записи при выборе канала не отправляются — только новые.</div>
         <button class="btn" type="submit">Сохранить</button>
       </form>

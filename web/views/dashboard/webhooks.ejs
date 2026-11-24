@@ -32,7 +32,7 @@
         <div class="card"><p>Не удалось загрузить список вебхуков: <%= error %></p></div>
       <% } %>
 
-      <form method="post" class="card" data-no-guard>
+      <form method="post" class="card" id="whAdd" data-drawer="Новый вебхук" data-no-guard>
         <h2>Новый вебхук</h2>
         <div class="two-col">
           <div>
@@ -72,6 +72,7 @@
 
       <div class="card">
         <h2>Вебхуки, созданные этим ботом</h2>
+        <div class="table-toolbar"><button type="button" class="btn tt-add" data-drawer-open="whAdd" hidden>+ Новый вебхук</button></div>
         <% if (!hooks.length) { %>
           <p class="empty-state">Пока нет ни одного. Вебхук логов сервера здесь не показывается — им управляет страница «Логи».</p>
         <% } else { %>

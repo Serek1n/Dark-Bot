@@ -32,7 +32,7 @@ router.post('/:guildId/welcome', ensureGuildAccess, async (req, res) => {
 // ---- Autorole and a member who comes back (its own tab: these are about roles, not about messages) ----
 router.get('/:guildId/welcome-rejoin', ensureGuildAccess, async (req, res) => {
   const [guild, settings, allRoles, guard] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildRoles(req.params.guildId), roleGuard(req.params.guildId, req.user?.id)]);
-  res.render('dashboard/welcome-rejoin', { guild, settings, roles: guard.annotate(allRoles), active: 'welcome-rejoin' });
+  res.render('dashboard/welcome-rejoin', { A: require('../../../shared/settingsSchema').attrs, guild, settings, roles: guard.annotate(allRoles), active: 'welcome-rejoin' });
 });
 
 router.post('/:guildId/welcome-rejoin', ensureGuildAccess, async (req, res) => {

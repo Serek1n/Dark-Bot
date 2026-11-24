@@ -11,7 +11,10 @@
      const switchable = own.filter((m) => st(m.key).switchable);
      const groupTitle = (M.GROUPS.find((g) => g[0] === main.group) || [])[1];
      const tabs = main.pages.filter((p) => (M.PAGE_LABELS[p] || p === main.page) && M.pageVisible(p, locals.settings));
-     const off = switchable.filter((m) => !st(m.key).on); %>
+     // a tab that is another module of its own (Магазин inside Экономика): the warning is about that module when it is off
+     const tabOwn = own.filter((m) => m !== main && !m.parent && st(m.key).switchable);
+     const off = tabOwn.length ? [...tabOwn, main].filter((m) => st(m.key).switchable && !st(m.key).on) : switchable.filter((m) => !st(m.key).on);
+     const offAll = tabOwn.length ? off.length > 0 : off.length === own.length; %>
   <div class="mh-crumbs"><a href="/dashboard/<%= guild.id %>/features">Модули</a> › <span><%= groupTitle %></span></div>
   <span class="mh-icon<%= mainState.on ? ' is-on' : '' %>"><%- M.icon(main.key, 24) %></span>
   <div class="mh-side">
@@ -31,7 +34,7 @@
       <% tabs.forEach((p) => { %><a href="/dashboard/<%= guild.id %>/<%= p %>" class="<%= p === active ? 'on' : '' %>"<%- p === active ? ' aria-current="page"' : '' %>><%= M.PAGE_LABELS[p] || 'Настройки' %></a><% }) %>
     </nav>
   <% } %>
-  <% if (off.length === own.length && off.length) { const m = off[0]; const cmds = (st(m.key).commands || []).filter((c) => !/[A-Z]/.test(c)); %>
+  <% if (offAll && off.length) { const m = off[0]; const cmds = (st(m.key).commands || []).filter((c) => !/[A-Z]/.test(c)); %>
     <div class="mh-off" role="status">
       <span class="mh-off-ico"><%- M.icon(m.key, 20) %></span>
       <div><b>Модуль выключен</b><span>Бот его не выполняет, команды модуля не работают.</span> <span>Настройки и данные сохранены — их можно поменять заранее.</span></div>

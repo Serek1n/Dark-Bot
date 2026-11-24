@@ -74,7 +74,7 @@
       <% } %>
 
       <% if (goalsOn) { %>
-      <form method="post" action="/dashboard/<%= guild.id %>/economy-treasury/goal" class="card g-c1" data-no-guard>
+      <form method="post" action="/dashboard/<%= guild.id %>/economy-treasury/goal" class="card" id="goalAdd" data-drawer="Новая общая цель" data-no-guard>
         <h2>Новая общая цель</h2>
         <label for="goal_title">Название</label>
         <input id="goal_title" type="text" name="title" maxlength="80" placeholder="Например, неделя двойного опыта" required />
@@ -101,6 +101,7 @@
       </form>
       <div class="card g-c2">
         <h2>Цели</h2>
+        <div class="table-toolbar"><button type="button" class="btn tt-add" data-drawer-open="goalAdd" hidden>+ Новая цель</button></div>
         <% if (!goals.length) { %>
           <p class="empty-state">Целей пока не было. Первая появится в канале событий с кнопками «Вложить».</p>
         <% } else { goals.forEach((g) => { const pct = Math.min(100, (g.raised / Math.max(1, g.target)) * 100); const top = contribs.filter((c) => c.goalId === g.id).slice(0, 3); %>

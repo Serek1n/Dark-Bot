@@ -982,3 +982,67 @@
   });
   document.querySelectorAll('input.switch').forEach(function (s) { s.setAttribute('role', 'switch'); });
 })();
+
+// --- Presets: a button with data-preset='{"field": value, …}' fills its form with recommended values. Nothing is saved:
+// the person looks them over and presses «Сохранить». A list for a repeated field (rows of a table) fills it row by row.
+(function () {
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-preset]');
+    if (!b) return;
+    e.preventDefault();
+    var form = document.getElementById(b.getAttribute('data-preset-form')) || b.closest('form');
+    var data; try { data = JSON.parse(b.getAttribute('data-preset')); } catch (err) { return; }
+    if (!form) return;
+    var touched = null;
+    Object.keys(data).forEach(function (name) {
+      var els = form.querySelectorAll('[name="' + name + '"]');
+      var vals = Array.isArray(data[name]) ? data[name] : [data[name]];
+      els.forEach(function (el, i) {
+        var v = i < vals.length ? vals[i] : (Array.isArray(data[name]) ? '' : vals[0]);
+        if (el.type === 'checkbox') el.checked = v === true || v === 'on';
+        else el.value = v === null || v === undefined ? '' : String(v);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        touched = touched || el;
+      });
+    });
+    if (window.darkToast) window.darkToast('Пресет «' + (b.getAttribute('data-preset-name') || b.textContent.trim()) + '» подставлен — проверьте и сохраните', false);
+  });
+})();
+
+// --- A saved channel or role that was deleted in Discord: the list shows it as «⚠️ Удалённый …» (option[data-gone]),
+// and a note under the field asks to pick another, instead of an empty or silently changed field.
+(function () {
+  document.querySelectorAll('option[data-gone]').forEach(function (o) {
+    var sel = o.parentNode; if (!sel || !o.selected) return;
+    var note = document.createElement('div');
+    note.className = 'gone-note'; note.setAttribute('role', 'note');
+    note.textContent = 'Сохранённый канал удалён в Discord — эта настройка сейчас не работает. Выберите другой канал и сохраните.';
+    var box = sel.closest('.set-ctl, div') || sel.parentNode;
+    box.appendChild(note);
+    sel.addEventListener('change', function () { if (!o.selected) note.remove(); });
+  });
+})();
+
+// --- The side menu: on wide screens the list of pages stays on the left (not a dialog); on narrow ones it is the
+// drawer opened by «≡». The same markup serves both.
+(function () {
+  var drawer = document.getElementById('navDrawer');
+  if (!drawer || !window.matchMedia) return;
+  var panel = drawer.querySelector('.nd-panel');
+  var mq = window.matchMedia('(min-width: 1200px)');
+  function apply() {
+    if (mq.matches) {
+      drawer.hidden = false; drawer.classList.add('is-rail'); document.documentElement.classList.remove('nd-open');
+      if (panel) { panel.removeAttribute('role'); panel.removeAttribute('aria-modal'); panel.setAttribute('aria-label', 'Меню панели'); }
+      var mini = document.documentElement.classList.contains('sb-mini');
+      document.querySelectorAll('[data-sb-toggle]').forEach(function (x) { x.setAttribute('aria-pressed', mini ? 'true' : 'false'); });
+    } else {
+      drawer.classList.remove('is-rail');
+      if (!document.documentElement.classList.contains('nd-open')) drawer.hidden = true;
+      if (panel) { panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); }
+    }
+  }
+  apply();
+  if (mq.addEventListener) mq.addEventListener('change', apply); else if (mq.addListener) mq.addListener(apply);
+})();

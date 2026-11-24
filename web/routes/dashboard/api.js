@@ -29,12 +29,14 @@ router.patch('/:guildId/api/settings/:section', json, ensureGuildAccess, async (
   const { guildId } = req.params;
   const sec = schema.section(req.params.section);
   if (!sec) return res.status(404).json({ ok: false, error: 'Неизвестный раздел настроек' });
-  const input = req.body && typeof req.body.values === 'object' && req.body.values ? req.body.values : {};
+  const input = { ...(req.body && typeof req.body.values === 'object' && req.body.values ? req.body.values : {}) };
+  const settings = await getSettings(guildId);
+  // an unchanged channel or role is not checked again: one deleted in Discord must not block saving the rest of the form
+  for (const [k, f] of Object.entries(sec.fields)) if ((f.type === 'channel' || f.type === 'role') && k in input && String(input[k] || '') === String(settings[k] || '')) delete input[k];
   const ctx = await context(guildId, sec);
   const { values, fieldErrors } = schema.validate(req.params.section, input, ctx);
 
   // A role must be one this person may hand out and the bot can give (an unchanged one stays as it is).
-  const settings = await getSettings(guildId);
   const roleFields = Object.entries(sec.fields).filter(([k, f]) => f.type === 'role' && values[k] && values[k] !== settings[k]);
   if (roleFields.length) {
     const guard = await require('../../utils/roles').roleGuard(guildId, req.user?.id);

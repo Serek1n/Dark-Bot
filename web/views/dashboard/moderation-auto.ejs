@@ -14,6 +14,7 @@
       <form method="post" action="<%= g %>/moderation/auto" class="plain">
         <div class="card g-span" id="ladder">
           <h2>Что делать за предупреждения</h2>
+          <div class="preset-row"><span class="muted">Пресет:</span><button type="button" class="btn btn-secondary btn-sm" data-preset="{&quot;thrCount&quot;:[3,5,7],&quot;thrAction&quot;:[&quot;mute&quot;,&quot;mute&quot;,&quot;ban&quot;],&quot;thrMinutes&quot;:[60,1440,0]}" data-preset-name="Мягкий">Мягкий: 3 → мут, 5 → мут на сутки, 7 → бан</button><button type="button" class="btn btn-secondary btn-sm" data-preset="{&quot;thrCount&quot;:[2,3,4,5],&quot;thrAction&quot;:[&quot;mute&quot;,&quot;mute&quot;,&quot;kick&quot;,&quot;ban&quot;],&quot;thrMinutes&quot;:[60,1440,0,0]}" data-preset-name="Строгий">Строгий: 2 → мут, 3 → сутки, 4 → кик, 5 → бан</button></div>
           <% if (thresholds.length) { %>
             <div class="callout">Сейчас: <b><%= thresholds.map(t => t.count + ' → ' + (t.action === 'mute' ? 'мут на ' + formatDuration(Math.max(t.minutes, 1) * 60000) : t.action === 'kick' ? 'кик' : t.minutes ? 'бан на ' + formatDuration(t.minutes * 60000) : 'бан навсегда')).join(' · ') %></b></div>
           <% } else { %>

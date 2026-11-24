@@ -44,7 +44,7 @@
 .app-layout > .content .home-dash, .app-layout > .content .home-split { max-width: none; }
 
 /* ---------- type scale ---------- */
-.app-layout .page-header h1, .app-layout .content > h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; }
+.app-layout .page-header h1, .app-layout .content > h1 { font-size: var(--fs-22); font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; }
 .app-layout .card h2, .set-section > h2 { font-size: var(--fs-16); font-weight: 600; line-height: 1.35; }
 .app-layout .hint, .set-help { font-size: var(--fs-13); line-height: 1.45; max-width: 60ch; }
 .mono, code, .tabular, td.num { font-variant-numeric: tabular-nums; }
@@ -145,3 +145,68 @@ body.drawer-on { overflow: hidden; }
 .gone-inline { color: var(--warning); font-size: var(--fs-13); }
 input[type=search] { width: 100%; padding: 9px 12px; border-radius: var(--r-control); border: 1px solid var(--field-border); background: var(--bg-input); color: var(--paper); font: inherit; font-size: var(--fs-14); }
 input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow: var(--focus-ring); }
+.key-status { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 16px; max-width: var(--w-form); }
+.ks-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--r-container); background: var(--panel); border: 1px solid var(--hairline); }
+.ks-item > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ks-item b { font-weight: 500; }
+.ks-item span:not(.ds-dot) { font-size: var(--fs-13); color: var(--fog); }
+.ks-item.on .ds-dot { background: var(--success); box-shadow: 0 0 0 4px var(--success-tint); }
+.ks-item.off .ds-dot { background: var(--warning); box-shadow: 0 0 0 4px var(--warning-tint); }
+.preset-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+
+/* ---------- Form | Preview: the fields of a Discord message on the left, how it will look on the right, staying in view
+   while the fields are filled in. A plain message (embed off) gets the preview under the text, across the width. ---------- */
+@media (min-width: 1100px) {
+  .embed-editor:has(.embed-fields:not([hidden])) { display: grid; grid-template-columns: minmax(0, 55fr) minmax(0, 45fr); column-gap: 24px; align-items: start; }
+  .embed-editor:has(.embed-fields:not([hidden])) > .checkbox-row { grid-column: 1 / -1; }
+  .embed-editor:has(.embed-fields:not([hidden])) > .embed-fields { grid-column: 1; }
+  .embed-editor:has(.embed-fields:not([hidden])) > .ee-preview { grid-column: 2; position: sticky; top: 72px; }
+  .app-layout > .content > .card:has(.embed-editor .embed-fields:not([hidden])),
+  .app-layout > .content > form:not(.card) > .card:has(.embed-editor .embed-fields:not([hidden])),
+  .app-layout > .content > form.set-page > .card:has(.embed-editor .embed-fields:not([hidden])) { max-width: var(--w-table); }
+}
+
+/* ---------- App shell on wide screens: a fixed side menu (244 px; 64 px folded, only by its button) ---------- */
+.sb-toggle { display: none; }
+@media (min-width: 1200px) {
+  .nav-drawer.is-rail { display: block; position: fixed; inset: 0 auto 0 0; width: 244px; z-index: 45; }
+  .nav-drawer.is-rail .nd-backdrop { display: none; }
+  .nav-drawer.is-rail .nd-panel { position: absolute; inset: 0; width: 100%; animation: none; border-right: 1px solid var(--hairline); background: var(--rail); }
+  .nav-drawer.is-rail .nd-head { height: 60px; padding: 0 12px; }
+  .nav-drawer.is-rail .nd-head [data-menu-close] { display: none; }
+  .nav-drawer.is-rail .nd-search { margin: 12px 12px 4px; padding: 8px 10px; font-size: var(--fs-13); border-radius: var(--r-control); }
+  .nav-drawer.is-rail .sb-toggle { display: flex; align-items: center; gap: 10px; margin: 4px 12px 0; padding: 6px 10px; border: 0; border-radius: var(--r-control); background: none; color: var(--fog-dim); font: inherit; font-size: var(--fs-13); cursor: pointer; }
+  .nav-drawer.is-rail .sb-toggle:hover { background: var(--panel-raised); color: var(--paper); }
+  .nav-drawer.is-rail .nd-nav { padding: 4px 8px 12px; }
+  .nav-drawer.is-rail .nd-group-label { font-size: var(--fs-11); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--fog-dim); padding: 14px 8px 4px; }
+  .nav-drawer.is-rail .nd-nav a { min-height: 34px; padding: 6px 8px; gap: 10px; border-radius: var(--r-control); }
+  .nav-drawer.is-rail .nd-nav a svg { width: 18px; height: 18px; padding: 0; background: none; color: var(--fog); }
+  .nav-drawer.is-rail .nd-nav a.active svg { background: none; color: var(--ember); }
+  .nav-drawer.is-rail .nd-nav a b { font-size: var(--fs-14); font-weight: 500; }
+  .nav-drawer.is-rail .nd-nav a small { display: none !important; }
+  .nav-drawer.is-rail .nd-mod { display: flex; align-items: center; gap: 4px; }
+  .nav-drawer.is-rail .nd-mod > a { flex: 1; min-width: 0; }
+  .nav-drawer.is-rail .nd-mod .mod-sw { transform: scale(.85); }
+  .nav-drawer.is-rail .nd-sub { padding-left: 36px !important; min-height: 30px !important; }
+  .nav-drawer.is-rail .nd-sub b { font-size: var(--fs-13) !important; color: var(--fog) !important; }
+  .nav-drawer.is-rail .nd-sub.active b { color: var(--paper) !important; }
+  .nav-drawer.is-rail .nd-foot { padding: 8px 12px; }
+  .nav-drawer.is-rail .nd-foot-link { font-size: var(--fs-12); padding: 4px 6px; }
+  .nav-drawer.is-rail .nd-foot > :not(:last-child) { display: none; }
+  .app-layout:has(.nav-drawer.is-rail) { padding-left: 244px; }
+  .app-layout:has(.nav-drawer.is-rail) .tb-groups, .app-layout:has(.nav-drawer.is-rail) .topbar .tb-guild { display: none; }
+  .app-layout:has(.nav-drawer.is-rail) .tb-row { max-width: none; justify-content: flex-end; }
+
+  /* folded: icons only */
+  html.sb-mini .nav-drawer.is-rail { width: 64px; }
+  html.sb-mini .app-layout:has(.nav-drawer.is-rail) { padding-left: 64px; }
+  html.sb-mini .nav-drawer.is-rail :is(.nl, .nd-group-label, .mod-sw, .mod-core, .nd-sub, .nd-foot, .tb-guild-name) { display: none !important; }
+  html.sb-mini .nav-drawer.is-rail .nd-search { justify-content: center; font-size: 0; padding: 8px; margin: 12px 8px 4px; }
+  html.sb-mini .nav-drawer.is-rail .sb-toggle { justify-content: center; margin: 4px 8px 0; }
+  html.sb-mini .nav-drawer.is-rail .sb-toggle span { display: none; }
+  html.sb-mini .nav-drawer.is-rail .sb-toggle svg { transform: scaleX(-1); }
+  html.sb-mini .nav-drawer.is-rail .nd-nav a { justify-content: center; }
+  html.sb-mini .nav-drawer.is-rail .nd-head { justify-content: center; padding: 0; }
+  html.sb-mini .nav-drawer.is-rail .nd-group + .nd-group { border-top: 1px solid var(--hairline-soft); margin-top: 6px; padding-top: 6px; }
+}
+@media (min-width: 1200px) { .nav-drawer.is-rail .nd-search { display: none; } }

@@ -18,6 +18,7 @@
             <% channels.filter(c => c.type === 2).forEach(c => { %>
               <option value="<%= c.id %>" <%= settings.tempVoiceJoinChannelId === c.id ? 'selected' : '' %>>🔊 <%= c.name %></option>
             <% }) %>
+            <% if (settings.tempVoiceJoinChannelId && !channels.some((c) => c.id === settings.tempVoiceJoinChannelId)) { %><option value="<%= settings.tempVoiceJoinChannelId %>" selected data-gone>⚠️ Удалённый канал (ID: <%= settings.tempVoiceJoinChannelId %>)</option><% } %>
           </select>
           <div class="hint">Кто заходит в этот голосовой канал, получает свою комнату и сразу в неё переносится. Когда комната пустеет, бот её удаляет. Не выбран — комнаты не создаются.</div>
         </div>

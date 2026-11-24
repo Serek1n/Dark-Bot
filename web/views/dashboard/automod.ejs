@@ -11,13 +11,45 @@
         <p class="page-intro">Бот проверяет каждое сообщение. Если оно нарушает включённое правило, оно удаляется, а автору при желании выдаётся предупреждение или мут.</p>
       </div>
       <nav class="jump" aria-label="Разделы страницы">
-        <a href="#words">Фильтр слов</a><a href="#links">Фильтр ссылок</a><a href="#spam">Спам и флуд</a><a href="#action">Наказание</a><a href="#per-rule">Особые наказания</a><a href="#names">Ники</a><a href="#skip">Исключения</a>
+        <a href="#skip">Исключения</a><a href="#words">Фильтр слов</a><a href="#links">Фильтр ссылок</a><a href="#spam">Спам и флуд</a><a href="#action">Наказание</a><a href="#per-rule">Особые наказания</a><a href="#names">Ники</a>
       </nav>
 
       <% const cats = {}; channels.filter(c => c.type === 4).forEach(c => { cats[c.id] = c; });
          const catOf = (c) => (cats[c.parent_id] || {}).name || 'Без категории';
          const textCh2 = channels.filter(c => c.type === 0 || c.type === 5).sort((x, y) => ((cats[x.parent_id] || {}).position ?? -1) - ((cats[y.parent_id] || {}).position ?? -1) || (x.position || 0) - (y.position || 0)); %>
       <form method="post" class="plain">
+        <div class="card set-section" id="presets">
+          <h2>Быстрый старт</h2>
+          <div class="set-row">
+            <div class="set-text"><span class="set-title">Применить пресет</span><p class="set-help">Подставляет рекомендуемые правила в форму ниже. Ничего не сохраняется, пока вы не нажмёте «Сохранить»</p></div>
+            <div class="set-ctl"><button type="button" class="btn btn-secondary" data-preset="{&quot;automodProfanity&quot;:true,&quot;automodBlockInvites&quot;:true,&quot;automodBlockLinks&quot;:false,&quot;automodAntiSpam&quot;:true,&quot;automodSpamMessages&quot;:5,&quot;automodSpamSeconds&quot;:5,&quot;automodDuplicates&quot;:true,&quot;automodMentionLimit&quot;:5,&quot;automodCapsPercent&quot;:70,&quot;automodCapsMinLength&quot;:10,&quot;automodEmojiLimit&quot;:10,&quot;automodZalgo&quot;:true,&quot;automodAction&quot;:&quot;warn&quot;,&quot;automodMuteMinutes&quot;:10}" data-preset-name="Базовая защита">Базовая защита</button><button type="button" class="btn btn-secondary" data-preset="{&quot;automodProfanity&quot;:true,&quot;automodBlockInvites&quot;:true,&quot;automodBlockLinks&quot;:true,&quot;automodAntiSpam&quot;:true,&quot;automodSpamMessages&quot;:4,&quot;automodSpamSeconds&quot;:5,&quot;automodDuplicates&quot;:true,&quot;automodMentionLimit&quot;:3,&quot;automodCapsPercent&quot;:60,&quot;automodCapsMinLength&quot;:8,&quot;automodEmojiLimit&quot;:6,&quot;automodZalgo&quot;:true,&quot;automodAction&quot;:&quot;mute&quot;,&quot;automodMuteMinutes&quot;:30,&quot;automodNicknames&quot;:true,&quot;automodDehoist&quot;:true}" data-preset-name="Строгий режим">Строгий режим</button></div>
+          </div>
+        </div>
+
+        <div class="card" id="skip">
+          <h2>Исключения<span class="sub">Где и для кого автомодерация не работает совсем</span></h2>
+          <div>
+            <label>Каналы, где автомодерация не работает</label>
+            <div class="pick">
+    
+              <% if (!textCh2.length) { %><span class="pick-empty">Текстовых каналов не найдено</span><% } %>
+              <% textCh2.forEach(c => { %>
+                <label data-group="<%= catOf(c) %>"><input type="checkbox" name="ignoredChannels" value="<%= c.id %>" <%= ignoredChannels.includes(c.id) ? 'checked' : '' %> /><span>#<%= c.name %></span></label>
+              <% }) %>
+            </div>
+          </div>
+          <div>
+            <label>Роли, которых автомодерация не проверяет</label>
+            <div class="pick" data-kind="roles">
+              <% if (!roles.length) { %><span class="pick-empty">Ролей не найдено</span><% } %>
+              <% roles.forEach(r => { %>
+                <label><input type="checkbox" name="ignoredRoles" value="<%= r.id %>" <%= ignoredRoles.includes(r.id) ? 'checked' : '' %> /><span><%= r.name %></span></label>
+              <% }) %>
+            </div>
+            <div class="hint">Участников с правом «Управлять сообщениями» бот не проверяет никогда.</div>
+          </div>
+        </div>
+
         <div class="card" id="words">
           <h2>Фильтр слов<span class="sub">Сообщения с этими словами удаляются</span></h2>
           <div class="rules">
@@ -180,30 +212,6 @@
             <label>Чем заменить недопустимый ник</label>
             <input type="text" name="automodNickReplacement" maxlength="32" value="<%= settings.automodNickReplacement || 'Ник скрыт' %>" />
             <div class="hint">Ники модераторов (право «Управлять никнеймами»), ролей-исключений ниже и тех, кто выше роли бота, не меняются.</div>
-          </div>
-        </div>
-
-        <div class="card" id="skip">
-          <h2>Исключения<span class="sub">Где и для кого автомодерация не работает совсем</span></h2>
-          <div>
-            <label>Каналы, где автомодерация не работает</label>
-            <div class="pick">
-    
-              <% if (!textCh2.length) { %><span class="pick-empty">Текстовых каналов не найдено</span><% } %>
-              <% textCh2.forEach(c => { %>
-                <label data-group="<%= catOf(c) %>"><input type="checkbox" name="ignoredChannels" value="<%= c.id %>" <%= ignoredChannels.includes(c.id) ? 'checked' : '' %> /><span>#<%= c.name %></span></label>
-              <% }) %>
-            </div>
-          </div>
-          <div>
-            <label>Роли, которых автомодерация не проверяет</label>
-            <div class="pick" data-kind="roles">
-              <% if (!roles.length) { %><span class="pick-empty">Ролей не найдено</span><% } %>
-              <% roles.forEach(r => { %>
-                <label><input type="checkbox" name="ignoredRoles" value="<%= r.id %>" <%= ignoredRoles.includes(r.id) ? 'checked' : '' %> /><span><%= r.name %></span></label>
-              <% }) %>
-            </div>
-            <div class="hint">Участников с правом «Управлять сообщениями» бот не проверяет никогда.</div>
           </div>
         </div>
 

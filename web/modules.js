@@ -61,7 +61,7 @@ const n = (v) => Number(v || 0);
 // core: always on, no switch. depends: switching this one off is offered for these too (they lose their sense without it).
 // stats: the numbers on the home page — [{ value, label }], the first one also goes into the module list.
 // The tabs of the merged modules (old addresses keep working: see web/routes/dashboard/moderation.js and tempVoice.js).
-const MOD_PAGES = ['moderation', 'moderation-punishments', 'moderation-warnings', 'moderation-auto', 'moderation-reports', 'moderation-appeals', 'moderation-log', 'moderation-settings'];
+const MOD_PAGES = ['moderation', 'moderation-punishments', 'moderation-warnings', 'moderation-auto', 'automod', 'moderation-reports', 'moderation-appeals', 'moderation-log', 'moderation-settings'];
 const LOOK_PAGES = ['appearance', 'appearance-levels', 'appearance-achievements', 'appearance-fun', 'appearance-voice'];
 const VOICE_PAGES = ['temp-voice', 'temp-voice-rooms', 'temp-voice-panel', 'temp-voice-access', 'temp-voice-roles', 'temp-voice-auto', 'temp-voice-stats', 'temp-voice-settings'];
 const LAYOUT = [
@@ -77,7 +77,7 @@ const LAYOUT = [
       const [total, members] = await Promise.all([MemberAchievement.count(where(g)), MemberAchievement.count({ ...where(g), distinct: true, col: 'userId' })]);
       return [{ value: total, label: 'достижений открыто' }, { value: members, label: 'участников с достижениями' }];
     } },
-  { key: 'economy', group: 'community', pages: ['economy', 'economy-bank', 'economy-treasury', 'economy-deals', 'economy-journal'],
+  { key: 'economy', group: 'community', pages: ['economy', 'shop', 'economy-bank', 'economy-treasury', 'economy-deals', 'economy-journal'],
     stats: async (g) => {
       const { MemberProfile } = db();
       const [coins, crystals, holders] = await Promise.all([MemberProfile.sum('balance', where(g)), MemberProfile.sum('crystals', where(g)),
@@ -111,7 +111,7 @@ const LAYOUT = [
   { key: 'tickets', group: 'moderation', pages: [],
     stats: async (g) => { const { Ticket } = db(); return [{ value: await Ticket.count(where(g, { status: 'open' })), label: 'открытых обращений' }]; } },
   { key: 'logs', group: 'moderation', pages: ['logs'] },
-  { key: 'welcome', group: 'server', pages: ['welcome', 'welcome-rejoin'] },
+  { key: 'welcome', group: 'server', pages: ['welcome', 'welcome-rejoin', 'reaction-roles'] },
   { key: 'serverStats', group: 'server', pages: ['server-stats', 'server-stats-channels'],
     stats: async (g) => {
       const ss = require('../bot/modules/serverStats');
@@ -180,15 +180,15 @@ const BY_KEY = new Map(MODULES.map((m) => [m.key, m]));
 // Pages that are not a module's: what to show in their header instead.
 const PAGE_TITLES = { overview: 'Главная', features: 'Модули', settings: 'Общие настройки', changelog: 'Обновления' };
 // The tabs of a module with several pages (its header shows them; the search finds each).
-const PAGE_LABELS = { leveling: 'Начисление', 'leveling-rewards': 'Награды и роли', 'channel-boosts': 'Множители', 'leveling-notify': 'Уведомления и топ', 'leveling-data': 'Данные и участники', welcome: 'Сообщения', 'welcome-rejoin': 'Автороль и возврат',
-  moderation: 'Обзор', 'moderation-punishments': 'Наказания', 'moderation-warnings': 'Предупреждения', 'moderation-auto': 'Автонаказания',
+const PAGE_LABELS = { leveling: 'Начисление', 'leveling-rewards': 'Награды и роли', 'channel-boosts': 'Множители', 'leveling-notify': 'Уведомления и топ', 'leveling-data': 'Данные и участники', welcome: 'Сообщения', 'welcome-rejoin': 'Автороль и возврат', 'reaction-roles': 'Роли по реакциям',
+  moderation: 'Обзор', 'moderation-punishments': 'Наказания', 'moderation-warnings': 'Предупреждения', 'moderation-auto': 'Автонаказания', automod: 'Автомодерация',
   'moderation-reports': 'Жалобы', 'moderation-appeals': 'Апелляции', 'moderation-log': 'Журнал', 'moderation-settings': 'Настройки',
   'temp-voice': 'Обзор', 'temp-voice-rooms': 'Создание комнат', 'temp-voice-panel': 'Панель управления', 'temp-voice-access': 'Права доступа',
   'temp-voice-roles': 'Голосовые роли', 'temp-voice-auto': 'Автоматизация', 'temp-voice-stats': 'Статистика', 'temp-voice-settings': 'Настройки',
   achievements: 'Обзор', 'achievements-catalog': 'Каталог', 'achievements-edit': 'Создать', 'achievements-members': 'Участники', 'achievements-settings': 'Настройки',
   appearance: 'Тема', 'appearance-levels': 'Уровни', 'appearance-achievements': 'Достижения', 'appearance-fun': 'Мини-игры', 'appearance-voice': 'Голосовые комнаты',
   'server-stats': 'Обзор', 'server-stats-channels': 'Каналы-счётчики',
-  economy: 'Настройки', 'economy-bank': 'Центробанк', 'economy-treasury': 'Казна и цели', 'economy-deals': 'Сделки и коды', 'economy-journal': 'Журнал' };
+  economy: 'Валюты и награды', shop: 'Магазин', 'economy-bank': 'Центробанк', 'economy-treasury': 'Казна и цели', 'economy-deals': 'Сделки и коды', 'economy-journal': 'Журнал' };
 // A page shown only while one of these economy sections is on (bot/modules/econ/config.js).
 const PAGE_NEEDS = { 'economy-bank': ['bank', 'seasons'], 'economy-treasury': ['treasury', 'goals'], 'economy-deals': ['deals', 'gifts'] };
 // Tabs whose pages are not built yet in this version (they appear as soon as their stage ships).

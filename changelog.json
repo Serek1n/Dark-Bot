@@ -1,6 +1,45 @@
 [
  {
   "bot": "3.19.5",
+  "panel": "3.32.0",
+  "date": "2026-11-24",
+  "botChanges": [],
+  "panelChanges": [
+   "Меню слева на широком экране: все разделы и вкладки, сворачивается до иконок кнопкой",
+   "Страницы в одну колонку вместо плиток: настройки идут строками «название — поле»",
+   "Настройки сохраняются без перезагрузки, ошибка показывается прямо под полем",
+   "Поля, которые зависят от выключенного переключателя, приглушаются",
+   "Уровни: вкладки Начисление, Награды и роли, Множители, Уведомления и топ, Данные",
+   "Уровни → Данные и участники: список участников с поиском и изменение уровня",
+   "Магазин — вкладка Экономики, Автомодерация — Модерации, Роли по реакциям — Приветствия",
+   "Добавление товара, команды, роли, подписки, вебхука и цели — в панели справа",
+   "Автомодерация: пресеты «Базовая защита» и «Строгий режим», исключения наверху",
+   "Автонаказания: пресеты «Мягкий» и «Строгий»; кнопка «Сбросить к стандартным»",
+   "Удалённый в Discord канал или роль показываются с предупреждением, а не пустым полем",
+   "Оповещения: видно, подключены ли YouTube и Twitch",
+   "Тексты сообщений: предпросмотр Discord сбоку от полей эмбеда"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Side menu on wide screens: every section and tab, folds to icons with a button",
+    "Pages in one column instead of tiles: settings go in rows «name — field»",
+    "Settings save without a reload, and a mistake is shown right under the field",
+    "Fields that depend on a switched-off option are dimmed",
+    "Levels: tabs Earning, Rewards and roles, Multipliers, Notifications and top, Data",
+    "Levels → Data and members: a member list with search and the level editor",
+    "Shop is a tab of Economy, Automod of Moderation, Reaction roles of Welcome",
+    "Adding an item, command, role, subscription, webhook or goal opens a panel on the right",
+    "Automod: «Basic protection» and «Strict mode» presets, exceptions at the top",
+    "Auto-punishments: «Mild» and «Strict» presets; a «Reset to defaults» button",
+    "A channel or role deleted in Discord is shown with a warning, not as an empty field",
+    "Alerts: shows whether YouTube and Twitch are connected",
+    "Message texts: the Discord preview stands beside the embed fields"
+   ]
+  }
+ },
+ {
+  "bot": "3.19.5",
   "panel": "3.31.0",
   "date": "2026-11-20",
   "botChanges": [],

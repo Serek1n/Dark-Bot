@@ -39,7 +39,7 @@
               <% forums.forEach(c => { %>
                 <option value="<%= c.id %>" <%= settings.logForumChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
               <% }) %>
-            </select>
+          </select>
           </div>
           <button class="btn<%= forumNow ? ' btn-secondary' : '' %>" type="submit"><%= forumNow ? 'Сменить форум' : 'Подключить форум' %></button>
         </form>
