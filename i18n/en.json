@@ -1880,7 +1880,6 @@
  "Не удалось создать темы. Проверьте права бота в этом форуме": "Couldn't create the posts. Check the bot's permissions in this forum",
  "Есть несохранённые изменения": "There are unsaved changes",
  "Отменить": "Cancel",
- "В другом блоке на этой странице есть несохранённые изменения. Сохранить их тоже?": "Another block on this page has unsaved changes. Save them too?",
  "Рейтинг ": "Leaderboard ",
  "Рейтинг участников по опыту": "Member ranking by XP",
  " · с ": " · from ",
@@ -2459,8 +2458,6 @@
  "Снять роль": "Take the role away",
  "Очистить редактор? Несохранённое сообщение пропадёт.": "Clear the editor? The unsaved message will be lost.",
  "Заменить": "Replace",
- "Сохранить всё": "Save everything",
- "Только этот блок": "Only this block",
  "Готово: импортировано ": "Done: imported ",
  ", пропущено ": ", skipped ",
  "Ошибка: ": "Error: ",
@@ -5196,5 +5193,6 @@
  "месяц": "month",
  "месяца": "months",
  "месяцев": "months",
- "Не понял срок: напишите, например, 30м, 2ч, 7д или 1мес": "Could not read the term: write e.g. 30m, 2h, 7d or 1mo"
+ "Не понял срок: напишите, например, 30м, 2ч, 7д или 1мес": "Could not read the term: write e.g. 30m, 2h, 7d or 1mo",
+ "Не удалось сохранить: нет связи с панелью или ошибка сервера": "Could not save: no connection to the panel or a server error"
 }

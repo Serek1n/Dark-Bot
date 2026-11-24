@@ -98,6 +98,22 @@
     reset: ['Стандартные значения восстановлены', false],
     logfail: ['Не удалось создать темы. Проверьте права бота в этом форуме', true]
   };
+  // the same texts for a form saved in the background: its answer carries the same codes (?saved, ?invalid, ?noperm…).
+  // Returns { shown, bad }: whether a code was found and whether it was an error.
+  window.darkFlashParams = function (p) {
+    for (var k in kinds) {
+      if (!p.has(k)) continue;
+      var text = k === 'noperm' ? needText(p.get('need')) : k === 'whfail' ? (reasons[p.get('reason')] || kinds[k][0]) : kinds[k][0];
+      var x = document.createElement('div');
+      x.className = 'toast' + (kinds[k][1] ? ' error' : '');
+      x.setAttribute('role', 'status');
+      x.textContent = text;
+      document.body.appendChild(x);
+      setTimeout(function () { x.remove(); }, text.length > 90 ? 8000 : 3600);
+      return { shown: true, bad: kinds[k][1] };
+    }
+    return { shown: false, bad: false };
+  };
   for (var key in kinds) {
     if (!params.has(key)) continue;
     var t = document.createElement('div');
@@ -131,21 +147,72 @@ document.addEventListener('DOMContentLoaded', function () {
     var i = dirty.indexOf(f); if (i >= 0) dirty.splice(i, 1);
     if (!dirty.length) { bar.classList.remove('show'); bar.inert = true; bar.setAttribute('inert', ''); document.body.classList.remove('has-save-bar'); }
   }
-  // A form marked data-api is saved as JSON without reloading the page (web/routes/dashboard/api.js); the others post.
-  function post(f) {
-    if (f.hasAttribute('data-api') && window.darkApiSave) return window.darkApiSave(f).then(function (ok) { if (ok) unmark(f); return ok; });
-    return fetch(f.action || location.href, { method: 'POST', body: new URLSearchParams(new FormData(f)), credentials: 'same-origin' });
+  // Every settings form is saved without leaving the page. A form marked data-api goes as JSON to the settings API
+  // (web/routes/dashboard/api.js, errors under the fields). Any other one is sent in the background exactly as the
+  // browser would send it, to its usual address; the answer is the page the server leads to:
+  //  - the same page: the codes in its address give the message; the fields take the values the server kept (it may
+  //    have trimmed or corrected one). If the page now has more or fewer rows or cards (something was added or
+  //    removed), it is simply opened — it was already saved, nothing is sent twice;
+  //  - another page (a new item opens its own page): that page is opened.
+  // A form with a file goes the usual way.
+  var syncing = false;
+  // the form's address from its attribute: a field named «action» would hide form.action
+  function actionOf(f) { return new URL(f.getAttribute('action') || location.href, location.href).href; }
+  function shape(root) { return root ? root.querySelectorAll('tr, li, .card, .rule-cfg, .pf-row, .mini-row, .im-item').length : 0; }
+  function formSave(f) {
+    if (f.reportValidity && !f.reportValidity()) return Promise.resolve(false);
+    var btns = f.querySelectorAll('button[type=submit], button:not([type])');
+    btns.forEach(function (b) { b.disabled = true; }); f.classList.add('is-saving');
+    var before = shape(document.querySelector('main.content'));
+    var index = Array.prototype.filter.call(document.querySelectorAll('form'), function (x) { return actionOf(x) === actionOf(f); }).indexOf(f);
+    return fetch(actionOf(f), { method: 'POST', body: new URLSearchParams(new FormData(f)), credentials: 'same-origin', headers: { accept: 'text/html' } })
+      .then(function (r) {
+        var u = new URL(r.url);
+        if (!r.ok) throw new Error('status ' + r.status);
+        if (!r.redirected || u.pathname !== location.pathname) { submitting = true; location.href = r.redirected ? r.url : location.href; return 'away'; }
+        return r.text().then(function (html) { return { u: u, doc: new DOMParser().parseFromString(html, 'text/html') }; });
+      })
+      .then(function (x) {
+        if (x === 'away') return true;
+        var flag = window.darkFlashParams ? window.darkFlashParams(x.u.searchParams) : { shown: false, bad: false };
+        if (shape(x.doc.querySelector('main.content')) !== before) { submitting = true; location.href = x.u.href; return true; }
+        var twin = Array.prototype.filter.call(x.doc.querySelectorAll('form'), function (y) { return new URL(y.getAttribute('action') || x.u.pathname, x.u).href.split('?')[0] === actionOf(f).split('?')[0]; })[index];
+        if (twin) {
+          syncing = true;
+          var seen = {};
+          Array.prototype.forEach.call(twin.elements, function (src) {
+            if (!src.name) return;
+            var list = f.querySelectorAll('[name=' + JSON.stringify(src.name) + ']');
+            var i = seen[src.name] = (seen[src.name] || 0); seen[src.name]++;
+            var dst = src.type === 'checkbox' || src.type === 'radio' ? Array.prototype.filter.call(list, function (d) { return d.value === src.value; })[0] : list[i];
+            if (!dst || dst.type === 'file') return;
+            if (dst.type === 'checkbox' || dst.type === 'radio') dst.checked = src.hasAttribute('checked');
+            else if (dst.tagName === 'SELECT') { var sel = src.querySelector('option[selected]'); if (sel) dst.value = sel.value; }
+            else if (dst.tagName === 'TEXTAREA') dst.value = src.textContent;
+            else if (dst.type !== 'hidden') dst.value = src.getAttribute('value') || '';
+          });
+          syncing = false;
+        }
+        if (!flag.shown && window.darkToast) window.darkToast('Изменения сохранены', false);
+        return !flag.bad;
+      })
+      .catch(function () { if (window.darkToast) window.darkToast('Не удалось сохранить: нет связи с панелью или ошибка сервера', true); return false; })
+      .then(function (ok) { btns.forEach(function (b) { b.disabled = false; }); f.classList.remove('is-saving'); return ok; });
   }
-  // Saves the other edited forms in the background, then submits this one normally.
+  function post(f) {
+    var go = f.hasAttribute('data-api') && window.darkApiSave ? window.darkApiSave(f) : formSave(f);
+    return go.then(function (ok) { if (ok) unmark(f); return ok; });
+  }
+  var classic = function (f) { return f.hasAttribute('data-drawer') || f.querySelector('input[type=file]'); };
+  // Saves every edited form, the last one last.
   function submitAll(main) {
-    var others = dirty.filter(function (f) { return f !== main; });
-    submitting = true;
-    Promise.all(others.map(post)).catch(function () {}).then(function () {
-      if (!main.hasAttribute('data-api') || !window.darkApiSave) { main.requestSubmit ? main.requestSubmit() : main.submit(); return; }
-      // a block saved without a reload, next to blocks that were posted: the page is read again to show them
-      submitting = false;
-      post(main).then(function () { if (others.some(function (x) { return !x.hasAttribute('data-api'); })) { submitting = true; location.reload(); } });
-    });
+    var list = dirty.filter(function (f) { return f !== main; }).concat(main && dirty.indexOf(main) < 0 ? [] : [main]).filter(Boolean);
+    if (list.some(classic)) { // a form that must go the usual way: the others first, then it
+      var plain = list.filter(function (f) { return !classic(f); });
+      Promise.all(plain.map(post)).then(function () { var c = list.filter(classic)[0]; submitting = true; c.requestSubmit ? c.requestSubmit() : c.submit(); });
+      return;
+    }
+    list.reduce(function (p, f) { return p.then(function () { return post(f); }); }, Promise.resolve());
   }
   // The bar appears by itself on any change, wherever the page is scrolled, so a settings form needs no own "Save" button
   // at its very end. Buttons that do something else (add, publish, delete) stay.
@@ -155,28 +222,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
   forms.forEach(function (f) {
-    f.addEventListener('input', function () { mark(f); });
-    f.addEventListener('change', function () { mark(f); });
+    f.addEventListener('input', function () { if (!syncing) mark(f); });
+    f.addEventListener('change', function () { if (!syncing) mark(f); });
     f.addEventListener('submit', function (e) {
-      if (f.hasAttribute('data-api') && window.darkApiSave) {
-        e.preventDefault();
-        // the other edited blocks are saved along with this one, as on a reload
-        dirty.filter(function (x) { return x !== f; }).forEach(function (x) { if (x.hasAttribute('data-api')) post(x); });
-        if (dirty.some(function (x) { return x !== f && !x.hasAttribute('data-api'); })) { submitAll(f); return; }
-        post(f);
-        return;
-      }
-      if (submitting) return;
-      var others = dirty.filter(function (x) { return x !== f; });
-      if (others.length && !f.__allAsked) {
-        e.preventDefault();
-        window.darkConfirm('В другом блоке на этой странице есть несохранённые изменения. Сохранить их тоже?', { ok: 'Сохранить всё', cancel: 'Только этот блок', danger: false }).then(function (all) {
-          if (all) { submitAll(f); return; }
-          f.__allAsked = true; submitting = true; f.requestSubmit ? f.requestSubmit() : f.submit();
-        });
-        return;
-      }
-      submitting = true;
+      if (submitting || classic(f)) { submitting = true; return; }
+      e.preventDefault();
+      if (dirty.indexOf(f) < 0) dirty.push(f);
+      submitAll(f);
     });
   });
   // fields that belong to a form from another card (the form="…" attribute) mark that form as edited too
