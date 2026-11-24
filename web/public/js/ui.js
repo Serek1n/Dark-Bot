@@ -27,7 +27,7 @@
         order.forEach(function (key) {
           var g = document.createElement('optgroup');
           g.label = key ? ch[key].n : 'Без категории';
-          groups[key].sort(function (x, y) { return ch[x.value].o - ch[y.value].o; }).forEach(function (o) { g.appendChild(o); });
+          groups[key].sort(function (x, y) { var vx = ch[x.value].t === 2 || ch[x.value].t === 13 ? 1 : 0, vy = ch[y.value].t === 2 || ch[y.value].t === 13 ? 1 : 0; return vx - vy || ch[x.value].o - ch[y.value].o; }).forEach(function (o) { g.appendChild(o); });
           sel.appendChild(g);
         });
         // what is not a channel («не выбрано», a deleted one) stays first
@@ -551,7 +551,7 @@
     sel.dataset.fs = '1';
     var w = sel.offsetWidth, pw = sel.parentElement ? sel.parentElement.clientWidth : 0;
     var wrap = document.createElement('div'); wrap.className = 'fs';
-    if (w && pw && w < pw * 0.85) { wrap.classList.add('fs-inline'); wrap.style.minWidth = w + 'px'; }
+    if (w && pw && w < pw * 0.85) { wrap.classList.add('fs-inline'); wrap.style.minWidth = 'min(' + w + 'px, 100%)'; }
     sel.parentNode.insertBefore(wrap, sel); wrap.appendChild(sel); sel.classList.add('fs-native'); sel.tabIndex = -1;
     var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'fs-btn'; btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-expanded', 'false');
     if (sel.id) { var lab = document.querySelector('label[for="' + sel.id + '"]'); if (lab) { if (!lab.id) lab.id = sel.id + '-lbl'; btn.setAttribute('aria-labelledby', lab.id + ' ' + (sel.id + '-val')); } }

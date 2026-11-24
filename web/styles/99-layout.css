@@ -249,3 +249,16 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
   .tb-page { display: block; min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-14); font-weight: 500; color: var(--paper); }
   .topbar .tb-guild-name { display: none !important; }
 }
+
+/* ---------- blocks never touch: one 16 px gap between all of them, whatever older rules said about margins ---------- */
+@media (min-width: 1200px) {
+  .app-layout > .content > .card, .app-layout > .content > form.card, .app-layout > .content > section,
+  .app-layout > .content > form:not(.card) > .card, .app-layout > .content > form:not(.card) > section,
+  .app-layout > .content > .grid-2 > .card, .app-layout > .content > div:not(.page-header) { margin: 0 0 16px; }
+}
+.app-layout > .content > form:not(.card) > .card:last-child, .app-layout > .content > form:not(.card) > section:last-child { margin-bottom: 0; }
+.app-layout > .content > form:not(.card) { margin-bottom: 16px; }
+/* a row of buttons whose only button went to the save bar at the bottom: no empty strip with a line */
+.set-actions:not(:has(> :not(.sb-replaced))) { display: none; }
+/* a compact list never makes the page wider than the screen */
+.fs { max-width: 100%; }
