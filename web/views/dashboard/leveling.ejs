@@ -1,210 +1,234 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><%- include('../partials/head', { title: guild.name + ' — Уровни' }) %></head>
+<%# «Уровни»: one template for the tabs of the module (the tab is `active`). Each tab is built top to bottom in the same
+   order: how it works → where and on whom → messages → lists → tools (things done once, set apart at the very end). %>
+<% const tab = active; const A = locals.A || (() => ''); const cap = (s) => { s = String(s || ''); return s.charAt(0).toLocaleUpperCase('ru-RU') + s.slice(1); };
+   const TITLES = { leveling: 'Начисление опыта', 'leveling-rewards': 'Награды и роли', 'leveling-notify': 'Уведомления и топ', 'leveling-data': 'Данные и участники' };
+   const INTROS = { leveling: 'Один общий уровень растёт от сообщений и от времени в голосовых каналах. У каждого источника свои правила.',
+     'leveling-rewards': 'Что участник получает за новый уровень: кристаллы и роли.',
+     'leveling-notify': 'Как бот поздравляет с новым уровнем и где виден рейтинг сервера.',
+     'leveling-data': 'Уровни участников: найти, изменить вручную, выгрузить или перенести из другого бота.' }; %>
+<head><%- include('../partials/head', { title: guild.name + ' — Уровни: ' + TITLES[tab] }) %></head>
 <body>
   <div class="app-layout">
     <%- include('../partials/sidebar') %>
     <main class="content" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
-        <h1>Система уровней</h1>
-        <p class="page-intro">Один общий уровень растёт от сообщений и от времени в голосовых каналах. Для каждого источника свои настройки.</p>
+        <h1><%= TITLES[tab] %></h1>
+        <p class="page-intro"><%= INTROS[tab] %></p>
       </div>
-      <form method="post">
-        <div class="card">
-          <h2>Опыт за сообщения<span class="sub">Сколько дают за сообщение в текстовом чате</span></h2>
-          <div class="checkbox-row">
-            <input type="checkbox" id="chatEnabled" name="chatEnabled" <%= settings.chatEnabled ? 'checked' : '' %> />
-            <label for="chatEnabled" style="margin:0;">Начислять за сообщения</label>
-          </div>
-          <div class="two-col">
-            <div>
-              <label>Опыта за сообщение: от</label>
-              <input type="number" name="xpPerMessageMin" value="<%= settings.xpPerMessageMin %>" min="1" />
-            </div>
-            <div>
-              <label>до</label>
-              <input type="number" name="xpPerMessageMax" value="<%= settings.xpPerMessageMax %>" min="1" />
-            </div>
-          </div>
-          <div class="two-col">
-            <div>
-              <label>Пауза между начислениями, секунд</label>
-              <input type="number" name="xpCooldownSeconds" value="<%= settings.xpCooldownSeconds %>" min="0" max="3600" />
-            </div>
-            <div>
-              <label><%= settings.currencyName %> за сообщение</label>
-              <input type="number" name="chatCoinsPerMessage" value="<%= settings.chatCoinsPerMessage %>" min="0" max="10000" />
-            </div>
-          </div>
-          <div class="hint">Каждое сообщение даёт случайное число опыта в этих пределах, но не чаще одного раза за паузу. 60 секунд — защита от накрутки: десять сообщений подряд дадут опыт только за первое. 0 у монет — монеты за сообщения не выдаются.</div>
-        </div>
 
-        <div class="card">
-          <h2>Опыт за время в голосе<span class="sub">Начисляется каждую минуту, пока участник сидит в голосовом канале</span></h2>
-          <div class="checkbox-row">
-            <input type="checkbox" id="voiceEnabled" name="voiceEnabled" <%= settings.voiceEnabled ? 'checked' : '' %> />
-            <label for="voiceEnabled" style="margin:0;">Начислять за время в голосовых каналах</label>
+<% if (tab === 'leveling') { %>
+      <form method="post" action="/dashboard/<%= guild.id %>/leveling" class="set-page" data-api="leveling.accrual">
+        <input type="hidden" name="_section" value="accrual" />
+        <section class="card set-section">
+          <h2>Сообщения в чате</h2>
+          <div class="set-row">
+            <div class="set-text"><label for="chatEnabled">Начислять за сообщения</label></div>
+            <div class="set-ctl"><input type="checkbox" class="switch" id="chatEnabled" name="chatEnabled" <%= settings.chatEnabled ? 'checked' : '' %> /></div>
           </div>
-          <div class="two-col">
-            <div>
-              <label>Опыт за минуту</label>
-              <input type="number" name="voiceXpPerMinute" value="<%= settings.voiceXpPerMinute %>" min="0" max="500" />
-            </div>
-            <div>
-              <label><%= settings.currencyName %> за минуту</label>
-              <input type="number" name="voiceCoinsPerMinute" value="<%= settings.voiceCoinsPerMinute %>" min="0" max="10000" />
-            </div>
+          <div class="set-row" data-depends="chatEnabled">
+            <div class="set-text"><label for="xpPerMessageMin">Опыт за сообщение</label><p class="set-help">Каждое сообщение даёт случайное число в этих пределах</p></div>
+            <div class="set-ctl"><input type="number" id="xpPerMessageMin" name="xpPerMessageMin" value="<%= settings.xpPerMessageMin %>" <%- A('leveling.accrual', 'xpPerMessageMin') %> aria-label="Опыт за сообщение, от" /><span class="set-dash">—</span><input type="number" name="xpPerMessageMax" value="<%= settings.xpPerMessageMax %>" <%- A('leveling.accrual', 'xpPerMessageMax') %> aria-label="Опыт за сообщение, до" /><span class="set-unit">опыта</span></div>
           </div>
-          <div class="two-col">
-            <div>
-              <label>Минимум людей в канале</label>
-              <input type="number" name="voiceMinMembers" value="<%= settings.voiceMinMembers %>" min="1" max="10" />
-            </div>
-            <div></div>
+          <div class="set-row" data-depends="chatEnabled">
+            <div class="set-text"><label for="xpCooldownSeconds">Пауза между начислениями</label><p class="set-help">Десять сообщений подряд дадут опыт только за первое. 0 — без паузы</p></div>
+            <div class="set-ctl"><input type="number" id="xpCooldownSeconds" name="xpCooldownSeconds" value="<%= settings.xpCooldownSeconds %>" <%- A('leveling.accrual', 'xpCooldownSeconds') %> /><span class="set-unit">сек</span></div>
           </div>
-          <div class="checkbox-row">
-            <input type="checkbox" id="voiceSkipMuted" name="voiceSkipMuted" <%= settings.voiceSkipMuted !== false && settings.voiceSkipMuted !== 0 ? 'checked' : '' %> />
-            <label for="voiceSkipMuted">Не платить тем, у кого выключен микрофон или звук (и не считать их «компанией»)</label>
+          <div class="set-row" data-depends="chatEnabled">
+            <div class="set-text"><label for="chatCoinsPerMessage"><%= cap(settings.currencyName) %> за сообщение</label><p class="set-help">0 — за сообщения монеты не выдаются</p></div>
+            <div class="set-ctl"><input type="number" id="chatCoinsPerMessage" name="chatCoinsPerMessage" value="<%= settings.chatCoinsPerMessage %>" <%- A('leveling.accrual', 'chatCoinsPerMessage') %> /><span class="set-unit">за сообщение</span></div>
           </div>
-          <div class="hint">Не считаются: боты, канал AFK и те, кто заглушил звук. «1» разрешает копить и в одиночестве, «2» (по умолчанию) защищает от накрутки.</div>
-        </div>
+        </section>
 
-        <div class="card g-c2">
-          <h2>Награда за новый уровень</h2>
-          <label><%= settings.crystalName %> за каждый новый уровень</label>
-          <input type="number" name="crystalsPerLevel" value="<%= settings.crystalsPerLevel %>" min="0" max="10000" />
-          <div class="hint">0 — ничего не выдавать. Роли за уровни настраиваются в разделе «Роли за уровни».</div>
-        </div>
+        <section class="card set-section">
+          <h2>Время в голосовых каналах</h2>
+          <div class="set-row">
+            <div class="set-text"><label for="voiceEnabled">Начислять за время в голосе</label><p class="set-help">Каждую минуту, пока участник в голосовом канале. Не считаются боты и канал AFK</p></div>
+            <div class="set-ctl"><input type="checkbox" class="switch" id="voiceEnabled" name="voiceEnabled" <%= settings.voiceEnabled ? 'checked' : '' %> /></div>
+          </div>
+          <div class="set-row" data-depends="voiceEnabled">
+            <div class="set-text"><label for="voiceXpPerMinute">Опыт за минуту</label></div>
+            <div class="set-ctl"><input type="number" id="voiceXpPerMinute" name="voiceXpPerMinute" value="<%= settings.voiceXpPerMinute %>" <%- A('leveling.accrual', 'voiceXpPerMinute') %> /><span class="set-unit">в минуту</span></div>
+          </div>
+          <div class="set-row" data-depends="voiceEnabled">
+            <div class="set-text"><label for="voiceCoinsPerMinute"><%= cap(settings.currencyName) %> за минуту</label></div>
+            <div class="set-ctl"><input type="number" id="voiceCoinsPerMinute" name="voiceCoinsPerMinute" value="<%= settings.voiceCoinsPerMinute %>" <%- A('leveling.accrual', 'voiceCoinsPerMinute') %> /><span class="set-unit">в минуту</span></div>
+          </div>
+          <div class="set-row" data-depends="voiceEnabled">
+            <div class="set-text"><label for="voiceMinMembers">Минимум людей в канале</label><p class="set-help">1 — копить можно и в одиночестве. 2 защищает от накрутки</p></div>
+            <div class="set-ctl"><input type="number" id="voiceMinMembers" name="voiceMinMembers" value="<%= settings.voiceMinMembers %>" <%- A('leveling.accrual', 'voiceMinMembers') %> /><span class="set-unit">человек</span></div>
+          </div>
+          <div class="set-row" data-depends="voiceEnabled">
+            <div class="set-text"><label for="voiceSkipMuted">Не платить с выключенным микрофоном или звуком</label><p class="set-help">Такие участники не получают опыт и не считаются «компанией»</p></div>
+            <div class="set-ctl"><input type="checkbox" class="switch" id="voiceSkipMuted" name="voiceSkipMuted" <%= settings.voiceSkipMuted !== false && settings.voiceSkipMuted !== 0 ? 'checked' : '' %> /></div>
+          </div>
+          <div class="set-actions">
+            <button class="btn" type="submit">Сохранить</button>
+            <button class="btn btn-secondary set-reset" type="button" data-reset-section="leveling.accrual">Сбросить к стандартным</button>
+          </div>
+        </section>
+      </form>
+<% } %>
 
-        <div class="card g-c1 g-r3">
-          <h2>Поздравление с новым уровнем</h2>
-          <label>Куда отправлять поздравление</label>
-          <select name="levelUpDestination">
-            <option value="auto" <%= (settings.levelUpDestination || 'auto') === 'auto' ? 'selected' : '' %>>В чат: канал ниже или там, где набран уровень</option>
-            <option value="dm" <%= settings.levelUpDestination === 'dm' ? 'selected' : '' %>>В личные сообщения участнику</option>
-            <option value="off" <%= settings.levelUpDestination === 'off' ? 'selected' : '' %>>Не поздравлять</option>
-          </select>
-          <label style="margin-top:14px;">Свой текст поздравления (пусто — стандартный)</label>
-          <textarea name="levelUpMessage" id="levelUpMessage" data-md maxlength="1500" rows="3" placeholder="{user} теперь {level} уровня! 🎉"><%= settings.levelUpMessage || '' %></textarea>
-          <%- include('../partials/replacers-help', { target: 'levelUpMessage' }) %>
-          <div class="hint">Можно использовать: <code>{user}</code> — упоминание, <code>{name}</code> — имя, <code>{level}</code> — новый уровень, <code>{oldLevel}</code> — прежний, <code>{role}</code> — роль за этот уровень, <code>{crystals}</code> — сколько выдано кристаллов, <code>{server}</code> — сервер.</div>
-          <div class="rules">
-            <label class="rule">
-              <span class="rule-text"><b>Поздравление — в рамке</b><span>Выключите, чтобы бот писал обычным сообщением (тогда <code>{user}</code> упомянет участника). Картинка-карточка и цвета — в разделе <a href="/dashboard/<%= guild.id %>/appearance-levels">Оформление</a>.</span></span>
-              <input type="checkbox" name="levelUpEmbed" <%= settings.levelUpEmbed !== false ? 'checked' : '' %> />
-            </label>
-          </div>
-          <div style="margin-top:14px">
-            <%- include('../partials/embed-editor', { prefix: 'levelUpEmbedData', data: settings.levelUpEmbedData, textFor: 'levelUpMessage', hint: 'Свой дизайн вместо стандартной рамки. Текст поздравления выше пойдёт над эмбедом; в полях работают те же {user}, {level}, {role}…' }) %>
-          </div>
-          <div class="rules">
-            <label class="rule">
-              <span class="rule-text"><b>Только на уровнях с ролью</b><span>Поздравлять, только когда участник получает роль за уровень.</span></span>
-              <input type="checkbox" name="levelUpRewardOnly" <%= settings.levelUpRewardOnly ? 'checked' : '' %> />
-            </label>
-          </div>
-          <div class="two-col" style="margin-top:14px;">
-            <div>
-              <label>Поздравлять каждый N-й уровень</label>
-              <input type="number" name="levelUpEvery" value="<%= settings.levelUpEvery || 1 %>" min="1" max="100" />
-            </div>
-            <div>
-              <label>…до уровня (0 — всегда)</label>
-              <input type="number" name="levelUpEveryUntil" value="<%= settings.levelUpEveryUntil || 0 %>" min="0" max="1000" />
-            </div>
-          </div>
-          <div class="hint">Например, 5 и 30: до 30-го уровня бот поздравляет только с 5-м, 10-м, 15-м…, а с 30-го — с каждым. Первые уровни набираются быстро, так меньше спама.</div>
-          <div class="rules" style="margin-top:14px;">
-            <label class="rule">
-              <span class="rule-text"><b>Участнику в голосовом канале писать в чат этого канала</b><span>Если участник сидит в голосовом канале, поздравление придёт в чат этого канала, где бы он ни набрал уровень. Если писать туда нельзя, поздравление не отправляется — в другие каналы бот его не переносит.</span></span>
-              <input type="checkbox" name="levelUpInVoice" <%= settings.levelUpInVoice !== false ? 'checked' : '' %> />
-            </label>
-          </div>
-          <label style="margin-top:14px;">Канал для поздравлений</label>
-          <select name="levelUpChannelId">
-            <option value="">Тот же канал, где набран уровень</option>
-            <% channels.filter(c => c.type === 0).forEach(c => { %>
-              <option value="<%= c.id %>" <%= settings.levelUpChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
-            <% }) %>
-          </select>
-          <div class="hint">Не выбран — поздравление приходит туда, где участник набрал уровень.</div>
+<% if (tab === 'leveling-rewards') { %>
+      <form method="post" action="/dashboard/<%= guild.id %>/leveling" class="card set-section" data-api="leveling.rewards">
+        <input type="hidden" name="_section" value="rewards" />
+        <h2>Награды за новый уровень</h2>
+        <div class="set-row">
+          <div class="set-text"><label for="crystalsPerLevel"><%= cap(settings.crystalName) %> за новый уровень</label><p class="set-help">0 — не выдавать</p></div>
+          <div class="set-ctl"><input type="number" id="crystalsPerLevel" name="crystalsPerLevel" value="<%= settings.crystalsPerLevel %>" <%- A('leveling.rewards', 'crystalsPerLevel') %> /><span class="set-unit">за уровень</span></div>
         </div>
-
-        <button class="btn" type="submit">Сохранить</button>
+        <div class="set-row">
+          <div class="set-text"><label for="levelRolesReplace">Оставлять только самую высокую роль</label><p class="set-help">Предыдущие роли за уровни снимаются. Выключено — участник сохраняет все полученные</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="levelRolesReplace" name="levelRolesReplace" <%= settings.levelRolesReplace ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
       </form>
 
       <%- include('../partials/level-roles-cards') %>
+<% } %>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/leveling/adjust" class="card g-c1" id="adjust" data-no-guard data-confirm="Изменить уровень участника? Роли за уровни будут выданы или сняты сразу." data-confirm-ok="Изменить" data-confirm-soft>
+<% if (tab === 'leveling-notify') { %>
+      <form method="post" action="/dashboard/<%= guild.id %>/leveling" class="set-page">
+        <input type="hidden" name="_section" value="notify" />
+        <section class="card set-section">
+          <h2>Когда поздравлять</h2>
+          <div class="set-row">
+            <div class="set-text"><label for="levelUpDestination">Поздравление с новым уровнем</label></div>
+            <div class="set-ctl"><select id="levelUpDestination" name="levelUpDestination">
+              <option value="auto" <%= (settings.levelUpDestination || 'auto') === 'auto' ? 'selected' : '' %>>В чат сервера</option>
+              <option value="dm" <%= settings.levelUpDestination === 'dm' ? 'selected' : '' %>>В личные сообщения</option>
+              <option value="off" <%= settings.levelUpDestination === 'off' ? 'selected' : '' %>>Не поздравлять</option>
+            </select></div>
+          </div>
+          <div class="set-row" data-depends="levelUpDestination!=off">
+            <div class="set-text"><label for="levelUpEvery">Каждый N-й уровень</label><p class="set-help">Например, 5 и 30: до 30-го уровня — только 5-й, 10-й, 15-й…, дальше каждый</p></div>
+            <div class="set-ctl"><input type="number" id="levelUpEvery" name="levelUpEvery" value="<%= settings.levelUpEvery || 1 %>" <%- A('leveling.notify', 'levelUpEvery') %> aria-label="Каждый N-й уровень" /><span class="set-unit">до уровня</span><input type="number" name="levelUpEveryUntil" value="<%= settings.levelUpEveryUntil || 0 %>" <%- A('leveling.notify', 'levelUpEveryUntil') %> aria-label="До уровня, 0 — всегда" /></div>
+          </div>
+          <div class="set-row" data-depends="levelUpDestination!=off">
+            <div class="set-text"><label for="levelUpRewardOnly">Только на уровнях с ролью</label><p class="set-help">Поздравлять, только когда участник получает роль за уровень</p></div>
+            <div class="set-ctl"><input type="checkbox" class="switch" id="levelUpRewardOnly" name="levelUpRewardOnly" <%= settings.levelUpRewardOnly ? 'checked' : '' %> /></div>
+          </div>
+        </section>
+
+        <section class="card set-section" data-depends="levelUpDestination=auto">
+          <h2>Куда писать</h2>
+          <div class="set-row">
+            <div class="set-text"><label for="levelUpChannelId">Канал поздравлений</label><p class="set-help">Не выбран — поздравление уходит туда, где участник набрал уровень</p></div>
+            <div class="set-ctl"><select id="levelUpChannelId" name="levelUpChannelId">
+              <option value="">Где набран уровень</option>
+              <% channels.filter(c => c.type === 0 || c.type === 5).forEach(c => { %>
+                <option value="<%= c.id %>" <%= settings.levelUpChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
+              <% }) %>
+              <% if (settings.levelUpChannelId && !channels.some(c => c.id === settings.levelUpChannelId)) { %><option value="<%= settings.levelUpChannelId %>" selected data-gone>⚠️ Удалённый канал (ID: <%= settings.levelUpChannelId %>)</option><% } %>
+            </select></div>
+          </div>
+          <div class="set-row">
+            <div class="set-text"><label for="levelUpInVoice">Участнику в голосовом — в чат этого канала</label><p class="set-help">Если туда писать нельзя, поздравление не отправляется: в другие каналы бот его не переносит</p></div>
+            <div class="set-ctl"><input type="checkbox" class="switch" id="levelUpInVoice" name="levelUpInVoice" <%= settings.levelUpInVoice !== false ? 'checked' : '' %> /></div>
+          </div>
+        </section>
+
+        <section class="card set-section" data-depends="levelUpDestination!=off">
+          <h2>Текст поздравления</h2>
+          <div class="set-row stacked">
+            <div class="set-text"><label for="levelUpMessage">Свой текст</label><p class="set-help">Пусто — стандартный. <code>{user}</code> упоминание, <code>{name}</code> имя, <code>{level}</code> новый уровень, <code>{oldLevel}</code> прежний, <code>{role}</code> роль за уровень, <code>{crystals}</code> кристаллы, <code>{server}</code> сервер</p></div>
+            <div class="set-ctl"><textarea name="levelUpMessage" id="levelUpMessage" data-md maxlength="1500" rows="3" placeholder="{user} теперь {level} уровня! 🎉"><%= settings.levelUpMessage || '' %></textarea></div>
+            <%- include('../partials/replacers-help', { target: 'levelUpMessage' }) %>
+          </div>
+          <div class="set-row">
+            <div class="set-text"><label for="levelUpEmbed">Поздравление — в рамке</label><p class="set-help">Выключите, чтобы бот писал обычным сообщением. Картинка-карточка и цвета — в разделе <a href="/dashboard/<%= guild.id %>/appearance-levels">Оформление</a></p></div>
+            <div class="set-ctl"><input type="checkbox" class="switch" id="levelUpEmbed" name="levelUpEmbed" <%= settings.levelUpEmbed !== false ? 'checked' : '' %> /></div>
+          </div>
+          <div class="set-row stacked">
+            <%- include('../partials/embed-editor', { prefix: 'levelUpEmbedData', data: settings.levelUpEmbedData, textFor: 'levelUpMessage', hint: 'Свой дизайн вместо стандартной рамки. Текст поздравления пойдёт над эмбедом; в полях работают те же {user}, {level}, {role}…' }) %>
+          </div>
+          <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+        </section>
+      </form>
+
+      <form method="post" action="/dashboard/<%= guild.id %>/leveling/public" class="card set-section" id="public-top" data-api="leveling.public">
+        <h2>Публичный рейтинг</h2>
+        <div class="set-row">
+          <div class="set-text"><label for="leaderboardPublic">Опубликовать рейтинг</label><p class="set-help">Топ-100 по опыту по ссылке без входа в панель: имена, аватарки и уровни</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="leaderboardPublic" name="leaderboardPublic" <%= settings.leaderboardPublic ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-row" data-depends="leaderboardPublic">
+          <div class="set-text"><label for="leaderboardMinLevel">Показывать участников с уровня</label></div>
+          <div class="set-ctl"><input type="number" id="leaderboardMinLevel" name="leaderboardMinLevel" value="<%= settings.leaderboardMinLevel || 0 %>" <%- A('leveling.public', 'leaderboardMinLevel') %> /><span class="set-unit">уровня</span></div>
+        </div>
+        <div class="set-row stacked" data-depends="leaderboardPublic">
+          <div class="set-text"><span class="set-title">Ссылка</span><p class="set-help"><a href="<%= publicUrl %>" target="_blank" rel="noopener" class="mono"><%= publicUrl %></a></p></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+<% } %>
+
+<% if (tab === 'leveling-data') { %>
+      <section class="card" id="members">
+        <h2>Участники<span class="sub">Топ-100 по опыту</span></h2>
+        <% if (!members.length) { %>
+          <%- include('../partials/empty-state', { icon: 'leveling', text: 'Пока никто не заработал опыт. Он начисляется за сообщения и время в голосовых каналах.', action: null }) %>
+        <% } else { %>
+          <div class="table-toolbar"><input type="search" class="tt-search" data-filter-table="lvMembers" placeholder="Найти по имени или ID" aria-label="Найти участника" /></div>
+          <div class="table-scroll"><table class="data-table" id="lvMembers">
+            <thead><tr><th class="num">#</th><th>Участник</th><th class="num">Уровень</th><th class="num">Опыт</th><th class="num">Сообщений</th><th class="num">В голосе, ч</th><th><span class="sr-only">Действие</span></th></tr></thead>
+            <tbody><% members.forEach((m, i) => { %><tr data-filter-text="<%= (m.name + ' ' + m.userId).toLowerCase() %>">
+              <td class="num muted"><%= i + 1 %></td>
+              <td><span class="person"><% if (m.avatar) { %><img src="<%= m.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(m.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= m.name %><small class="muted mono"><%= m.userId %></small></span></span></td>
+              <td class="num"><%= m.level %></td><td class="num"><%= Number(m.xp).toLocaleString('ru-RU') %></td><td class="num"><%= Number(m.messageCount || 0).toLocaleString('ru-RU') %></td><td class="num"><%= Math.round((Number(m.voiceSeconds) || 0) / 360) / 10 %></td>
+              <td class="row-act"><a class="btn btn-secondary btn-sm" href="?user=<%= m.userId %>#adjust" data-drawer-open="adjust" data-fill-user="<%= m.userId %>" data-fill-name="<%= m.name %>">Изменить уровень</a></td>
+            </tr><% }) %></tbody>
+          </table></div>
+        <% } %>
+      </section>
+
+      <form method="post" action="/dashboard/<%= guild.id %>/leveling/adjust" class="card" id="adjust" data-drawer="Изменить уровень участника" data-no-guard data-confirm="Изменить уровень участника? Роли за уровни будут выданы или сняты сразу." data-confirm-ok="Изменить" data-confirm-soft>
         <h2>Изменить уровень участника</h2>
-        <p>Добавьте или уберите уровни, либо задайте точный. Участник окажется в начале нужного уровня, роли за уровни обновятся сразу. Кристаллы за такое изменение не выдаются.</p>
+        <p class="set-help">Участник окажется в начале нужного уровня, роли за уровни обновятся сразу. Кристаллы за такое изменение не выдаются.</p>
         <% if (locals.adjusted) { %>
-          <div class="hint" style="color:var(--ember);margin-bottom:6px;">
+          <div class="hint" role="status" style="color:var(--ember);margin-bottom:6px;">
             <%= adjusted.name %>: уровень <%= adjusted.from %> → <%= adjusted.to %>.
             <%= adjusted.roles === 'ok' ? 'Роли обновлены.' : adjusted.roles === 'fail' ? 'Роли обновить не удалось: проверьте, что роль бота стоит выше ролей за уровни.' : '' %>
           </div>
         <% } %>
         <div>
-          <label>ID участника</label>
-          <input type="text" name="userId" inputmode="numeric" placeholder="Например, 123456789012345678" required pattern="[0-9]{15,25}" value="<%= locals.prefillUser || '' %>" />
-          <div class="hint">Включите режим разработчика в Discord, правый клик по участнику → «Копировать ID».</div>
+          <label for="adjUser">ID участника</label>
+          <input type="text" id="adjUser" name="userId" inputmode="numeric" placeholder="Например, 123456789012345678" required pattern="[0-9]{15,25}" value="<%= locals.prefillUser || '' %>" />
+          <div class="hint" data-fill-name-out></div>
         </div>
         <div class="two-col">
           <div>
-            <label>Действие</label>
-            <select name="mode">
+            <label for="adjMode">Действие</label>
+            <select id="adjMode" name="mode">
               <option value="add">Добавить уровни</option>
               <option value="remove">Убавить уровни</option>
               <option value="set">Задать точный уровень</option>
             </select>
           </div>
           <div>
-            <label>Сколько (или какой уровень)</label>
-            <input type="number" name="amount" value="1" min="0" max="1000" required />
+            <label for="adjAmount">Сколько (или какой уровень)</label>
+            <input type="number" id="adjAmount" name="amount" value="1" min="0" max="1000" required />
           </div>
         </div>
         <button class="btn" type="submit">Применить</button>
       </form>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/leveling/public" class="card g-c2" id="public-top">
-        <h2>Публичная страница рейтинга<span class="sub">Открывается по ссылке без входа в панель</span></h2>
-        <div class="rules">
-          <label class="rule">
-            <span class="rule-text"><b>Опубликовать рейтинг</b><span>Топ-100 по опыту: имена, аватарки и уровни. Ссылку можно закрепить на сервере.</span></span>
-            <input type="checkbox" name="leaderboardPublic" <%= settings.leaderboardPublic ? 'checked' : '' %> />
-          </label>
+      <section class="card set-section set-tools">
+        <h2>Перенос данных</h2>
+        <div class="set-row">
+          <div class="set-text"><span class="set-title">Экспорт уровней</span><p class="set-help">Опыт, уровни, сообщения, время в голосе и обе валюты всех участников. JSON можно импортировать обратно, CSV открывается в Excel. Только ID и цифры, без имён</p></div>
+          <div class="set-ctl"><a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/leveling/export">JSON</a><a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/leveling/export?format=csv">CSV</a></div>
         </div>
-        <div style="margin-top:12px;">
-          <label>Показывать участников с уровня</label>
-          <input type="number" name="leaderboardMinLevel" value="<%= settings.leaderboardMinLevel || 0 %>" min="0" max="1000" />
+        <div class="set-row stacked">
+          <div class="set-text"><span class="set-title">Импорт уровней</span><p class="set-help">Из экспорта Lacuna или этого бота (файл <code>.json</code>). Чужой опыт считается чатовым. Существующие значения не уменьшаются</p></div>
+          <div class="set-ctl import-row"><input type="file" id="importFile" aria-label="Файл с уровнями" accept=".json,application/json" /><button class="btn" type="button" id="importBtn" data-url="/dashboard/<%= guild.id %>/leveling/import">Импортировать</button></div>
+          <div class="hint" id="importStatus"></div>
         </div>
-        <% if (settings.leaderboardPublic) { %>
-          <div class="hint">Ссылка: <a href="<%= publicUrl %>" target="_blank" rel="noopener" style="color:var(--ember);"><%= publicUrl %></a></div>
-        <% } %>
-        <button class="btn" type="submit">Сохранить</button>
-      </form>
-
-      <div class="card">
-        <h2>Экспорт уровней</h2>
-        <p>Скачайте опыт, уровни, сообщения, время в голосовых и обе валюты всех участников, например перед переходом на другого бота. JSON можно импортировать обратно сюда, CSV открывается в Excel и Google Таблицах. В файле только ID участников и цифры, без имён и почт.</p>
-        <div class="btn-row card-foot">
-          <a class="btn" href="/dashboard/<%= guild.id %>/leveling/export">Скачать JSON</a>
-          <a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/leveling/export?format=csv">Скачать CSV</a>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Импорт уровней</h2>
-        <p>Перенос из экспорта Lacuna или из экспорта этого бота (файл <code>.json</code>). Чужой опыт нельзя разделить на чат и голос, он считается чатовым. Экспорт Dark восстанавливает опыт чата и голоса отдельно и кристаллы. Существующие значения не уменьшаются.</p>
-        <div class="hint" id="importStatus"></div>
-        <div class="btn-row card-foot import-row">
-          <input type="file" id="importFile" aria-label="Файл с уровнями" accept=".json,application/json" />
-          <button class="btn" type="button" id="importBtn" data-url="/dashboard/<%= guild.id %>/leveling/import">Импортировать</button>
-        </div>
-      </div>
-
-
+      </section>
+<% } %>
     </main>
   </div>
 </body>

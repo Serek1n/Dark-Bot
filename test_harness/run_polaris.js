@@ -171,7 +171,7 @@ const roleMember = (ids, positions = {}) => ({ roles: { cache: new Map(ids.map((
     assert(s.levelUpDestination === 'dm' && s.levelUpMessage === '{user} — {level}!' && s.levelUpEvery === 100 && s.levelUpEveryUntil === 40 && s.levelUpRewardOnly === true && s.levelUpEmbed === false, JSON.stringify(s.toJSON()));
     await post('/leveling', { levelUpDestination: 'nowhere', levelUpMessage: '' });
     const t = await settingsNow(); assert(t.levelUpDestination === 'auto' && t.levelUpMessage === null);
-    const page = await (await fetch(base + '/leveling')).text(); assert(page.includes('Поздравлять каждый N-й уровень'));
+    const page = await (await fetch(base + '/leveling-notify')).text(); assert(page.includes('Каждый N-й уровень'));
   });
 
   await test('panel: "keep" is set when adding a level role and switched in the table', async () => {
@@ -192,7 +192,7 @@ const roleMember = (ids, positions = {}) => ({ roles: { cache: new Map(ids.map((
     assert.strictEqual(r.status, 200);
     assert(html.includes('Тёмный клуб') && html.includes('u03') && html.includes('u02') && !html.includes('u01') && !html.includes('u00'), 'levels 6 and 9 only');
     assert(!/<script>/.test(html), 'no inline script');
-    const panel = await (await fetch(base + '/leveling')).text(); assert(panel.includes(`/top/${G}`) && panel.includes('id="public-top"'), 'the link is shown on the levels page');
+    const panel = await (await fetch(base + '/leveling-notify')).text(); assert(panel.includes(`/top/${G}`) && panel.includes('id="public-top"'), 'the link is shown on the levels page');
   });
 
   server.close();

@@ -1,28 +1,28 @@
-<%# Roles for levels: a part of the "Уровни" page (they used to be a page of their own) %>
-  <div class="card g-c2" id="level-roles">
+<%# Roles for levels: the «Награды и роли» tab of «Уровни». A table of the roles, a drawer to add one, and the one-off
+    «Выдать роли сейчас» set apart at the end. %>
+  <section class="card" id="level-roles">
     <h2>Роли за уровни</h2>
-    <p class="hint" style="margin-top:0">Участник получает роль, когда достигает нужного уровня. Уровень один: он растёт и от сообщений, и от времени в голосовых.</p>
+    <p class="set-help">Участник получает роль, когда достигает нужного уровня. Уровень один: он растёт и от сообщений, и от времени в голосе.</p>
     <% if (!levelRoles.length) { %>
-      <p class="empty-state">Ролей за уровни пока нет — добавьте первую ниже.</p>
+      <%- include('empty-state', { icon: 'leveling', text: 'Ролей за уровни пока нет.', action: { label: 'Добавить роль', drawer: 'lrAdd' } }) %>
     <% } else { %>
-      <div class="table-scroll"><table>
-        <thead><tr><th>Уровень</th><th>Роль</th><th class="nowrap">Оставлять</th><th></th></tr></thead>
+      <div class="table-toolbar"><button type="button" class="btn tt-add" data-drawer-open="lrAdd" hidden>+ Добавить роль</button></div>
+      <div class="table-scroll"><table class="data-table">
+        <thead><tr><th class="num">Уровень</th><th>Роль</th><th>Оставлять</th><th><span class="sr-only">Действия</span></th></tr></thead>
         <tbody>
-          <% levelRoles.forEach(lr => {
-            const role = roles.find(r => r.id === lr.roleId);
-          %>
+          <% levelRoles.forEach(lr => { const role = roles.find(r => r.id === lr.roleId); %>
             <tr>
-              <td><%= lr.level %></td>
-              <td class="nowrap">@<%= role ? role.name : lr.roleId + ' (роль удалена)' %></td>
+              <td class="num"><%= lr.level %></td>
+              <td class="nowrap"><% if (role) { %><span class="role-chip"><i style="background:<%= role.color ? '#' + Number(role.color).toString(16).padStart(6, '0') : 'var(--fog-dim)' %>"></i>@<%= role.name %></span><% if (role.blocked) { %> <span class="hint" style="color:var(--warning)">⚠️ <%= role.blocked %></span><% } %><% } else { %><span class="gone-inline">⚠️ Удалённая роль (ID: <span class="mono"><%= lr.roleId %></span>)</span><% } %></td>
               <td class="nowrap">
                 <form method="post" action="/dashboard/<%= guild.id %>/level-roles/keep/<%= lr.id %>" data-no-guard style="display:inline;">
                   <input type="hidden" name="keep" value="<%= lr.keep ? '' : 'on' %>" />
-                  <button class="btn btn-secondary" type="submit" title="Роль остаётся у участника, даже когда он получает следующую (в режиме «только самая высокая»)"><%= lr.keep ? '✓ да' : 'нет' %></button>
+                  <button class="btn btn-secondary btn-sm" type="submit" title="Роль остаётся у участника, даже когда он получает следующую (в режиме «только самая высокая»)"><%= lr.keep ? '✓ да' : 'нет' %></button>
                 </form>
               </td>
-              <td>
-                <form method="post" action="/dashboard/<%= guild.id %>/level-roles/delete/<%= lr.id %>">
-                  <button class="btn btn-danger" type="submit">Удалить</button>
+              <td class="row-act">
+                <form method="post" action="/dashboard/<%= guild.id %>/level-roles/delete/<%= lr.id %>" data-confirm="Убрать роль за <%= lr.level %> уровень? У тех, кто её уже получил, она останется." data-confirm-ok="Убрать">
+                  <button class="btn btn-danger btn-sm" type="submit">Удалить</button>
                 </form>
               </td>
             </tr>
@@ -30,9 +30,9 @@
         </tbody>
       </table></div>
     <% } %>
-  </div>
+  </section>
 
-  <form method="post" action="/dashboard/<%= guild.id %>/level-roles" class="card g-c2">
+  <form method="post" action="/dashboard/<%= guild.id %>/level-roles" class="card" id="lrAdd" data-drawer="Новая роль за уровень">
     <h2>Новая роль за уровень</h2>
     <div>
       <label for="lrLevel">Уровень</label>
@@ -45,7 +45,7 @@
           <option value="<%= r.id %>" <%= r.blocked ? 'disabled' : '' %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option>
         <% }) %>
       </select>
-      <div class="hint">Роль бота должна стоять в списке ролей выше выдаваемой, иначе Discord не даст её выдать.</div>
+      <div class="hint">Роль бота должна стоять в списке ролей выше выдаваемой, иначе Discord не даст её выдать. Такие роли в списке недоступны.</div>
     </div>
     <div class="checkbox-row">
       <input type="checkbox" id="newKeep" name="keep" />
@@ -54,22 +54,14 @@
     <button class="btn" type="submit">Добавить</button>
   </form>
 
-  <form method="post" action="/dashboard/<%= guild.id %>/level-roles/mode" class="card">
-    <h2>Когда у участника несколько ролей за уровни</h2>
-    <div class="checkbox-row">
-      <input type="checkbox" id="levelRolesReplace" name="levelRolesReplace" <%= settings.levelRolesReplace ? 'checked' : '' %> />
-      <label for="levelRolesReplace">Оставлять только самую высокую роль (предыдущие снимаются)</label>
-    </div>
-    <div class="hint">Выключено: участник сохраняет все полученные роли.</div>
-    <button class="btn" type="submit">Сохранить</button>
-  </form>
-
-  <form method="post" action="/dashboard/<%= guild.id %>/level-roles/sync" class="card" data-no-guard>
+  <form method="post" action="/dashboard/<%= guild.id %>/level-roles/sync" class="card set-section set-tools" data-no-guard>
     <h2>Выдать роли сейчас</h2>
-    <p>Роли выдаются сами при росте уровня. Эта кнопка нужна, чтобы выдать роли всем, у кого уровень уже достигнут, например после импорта уровней. Занимает минуту-две на каждые 100 участников.</p>
-    <button class="btn" type="submit">Выдать роли всем</button>
+    <div class="set-row">
+      <div class="set-text"><span class="set-title">Выдать роли всем, кто уже достиг уровня</span><p class="set-help">Роли выдаются сами при росте уровня. Это нужно после импорта уровней. Минута-две на каждые 100 участников</p></div>
+      <div class="set-ctl"><button class="btn btn-secondary" type="submit">Выдать роли всем</button></div>
+    </div>
     <% if (sync) { %>
-      <div class="hint">
+      <div class="hint" role="status">
         <% if (sync.running) { %>Идёт выдача: <%= sync.done %> из <%= sync.total %> (обновите страницу).
         <% } else if (sync.error) { %>Ошибка: <%= sync.error %>
         <% } else { %>Готово: обработано <%= sync.done %><% if (sync.failed) { %>, не удалось: <%= sync.failed %> (проверьте, что роль бота выше выдаваемых)<% } %>.

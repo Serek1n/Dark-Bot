@@ -93,9 +93,9 @@ const express = require('express');
     assert(r.headers.get('location').includes('baduser') && (await db.MemberProfile.count()) === before, 'rejected');
   });
   await test('page shows the form, the result line and a prefilled id', async () => {
-    let html = await (await fetch(base + `/leveling?adjusted=1&u=${U}&from=3&to=6&roles=ok&user=${U}`)).text();
+    let html = await (await fetch(base + `/leveling-data?adjusted=1&u=${U}&from=3&to=6&roles=ok&user=${U}`)).text();
     assert(html.includes('Изменить уровень участника') && html.includes('Нова: уровень 3 → 6') && html.includes('Роли обновлены') && html.includes(`value="${U}"`), 'content');
-    html = await (await fetch(base + '/leveling')).text();
+    html = await (await fetch(base + '/leveling-data')).text();
     assert(!html.includes('уровень 3 → 6'), 'no stale result');
   });
   server.close();

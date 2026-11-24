@@ -1,0 +1,8 @@
+<%# An empty list: an icon, one line about what will be here, and the action that fills it. Params: icon (a module key for
+    M.icon), text, action: { label, href } or { label, drawer } or null. %>
+<% const ME = locals.M || global.__darkModules; %>
+<div class="empty-block">
+  <span class="eb-ico" aria-hidden="true"><%- ME.icon(icon || 'modules', 20) %></span>
+  <p><%= text %></p>
+  <% if (locals.action && action) { %><% if (action.drawer) { %><button type="button" class="btn" data-drawer-open="<%= action.drawer %>"><%= action.label %></button><% } else { %><a class="btn" href="<%= action.href %>"><%= action.label %></a><% } %><% } %>
+</div>

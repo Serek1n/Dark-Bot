@@ -7,14 +7,15 @@ const { settingsIndex, _clean } = require('../web/settingsIndex');
 const pages = settingsIndex();
 test('every panel page is indexed with its title and settings', () => {
   const views = fs.readdirSync(path.join(__dirname, '..', 'web', 'views', 'dashboard')).filter((f) => f.endsWith('.ejs'));
-  assert.strictEqual(pages.length, views.length);
+  assert(pages.length >= views.length, "a template with tabs gives a page per tab");
+  assert(["leveling", "leveling-rewards", "leveling-notify", "leveling-data"].every((p) => pages.some((x) => x.page === p)), "the tabs of Уровни");
   for (const p of pages) assert(p.title, 'title of ' + p.page);
   assert(pages.reduce((n, p) => n + p.entries.length, 0) > 150, 'enough settings');
 });
 test('known settings are findable by their words', () => {
   const all = pages.flatMap((p) => p.entries);
   const has = (page, text) => assert(all.some((e) => e.page === page && e.text === text), page + ': ' + text);
-  has('automod', 'Блокировать мат'); has('automod', 'Фильтр ссылок'); has('leveling', 'Пауза между начислениями, секунд'); has('shop', 'Магазин и журнал покупок');
+  has('automod', 'Блокировать мат'); has('automod', 'Фильтр ссылок'); has('leveling', 'Пауза между начислениями'); has('leveling-notify', 'Канал поздравлений'); has('leveling-rewards', 'Новая роль за уровень'); has('shop', 'Магазин и журнал покупок');
   assert(!all.some((e) => /<%|%>|<|>/.test(e.text)), 'no template code or tags in texts');
 });
 test('template code and tags are cleaned out of texts', () => {

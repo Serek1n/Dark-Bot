@@ -95,6 +95,7 @@
     msgpast: ['Все даты этой записи уже прошли — измените её', true],
     msgnoright: ['Для вебхука нужно право «Управлять вебхуками»', true],
     whfail: [reasons[params.get('reason')] || 'Не удалось выполнить действие', true],
+    reset: ['Стандартные значения восстановлены', false],
     logfail: ['Не удалось создать темы. Проверьте права бота в этом форуме', true]
   };
   for (var key in kinds) {
@@ -126,12 +127,25 @@ document.addEventListener('DOMContentLoaded', function () {
   // Every edited form is remembered: saving one block must not silently drop changes made in another.
   var dirty = [], submitting = false;
   function mark(f) { if (dirty.indexOf(f) < 0) dirty.push(f); bar.classList.add('show'); bar.inert = false; bar.removeAttribute('inert'); document.body.classList.add('has-save-bar'); }
-  function post(f) { return fetch(f.action || location.href, { method: 'POST', body: new URLSearchParams(new FormData(f)), credentials: 'same-origin' }); }
+  function unmark(f) {
+    var i = dirty.indexOf(f); if (i >= 0) dirty.splice(i, 1);
+    if (!dirty.length) { bar.classList.remove('show'); bar.inert = true; bar.setAttribute('inert', ''); document.body.classList.remove('has-save-bar'); }
+  }
+  // A form marked data-api is saved as JSON without reloading the page (web/routes/dashboard/api.js); the others post.
+  function post(f) {
+    if (f.hasAttribute('data-api') && window.darkApiSave) return window.darkApiSave(f).then(function (ok) { if (ok) unmark(f); return ok; });
+    return fetch(f.action || location.href, { method: 'POST', body: new URLSearchParams(new FormData(f)), credentials: 'same-origin' });
+  }
   // Saves the other edited forms in the background, then submits this one normally.
   function submitAll(main) {
     var others = dirty.filter(function (f) { return f !== main; });
     submitting = true;
-    Promise.all(others.map(post)).catch(function () {}).then(function () { main.requestSubmit ? main.requestSubmit() : main.submit(); });
+    Promise.all(others.map(post)).catch(function () {}).then(function () {
+      if (!main.hasAttribute('data-api') || !window.darkApiSave) { main.requestSubmit ? main.requestSubmit() : main.submit(); return; }
+      // a block saved without a reload, next to blocks that were posted: the page is read again to show them
+      submitting = false;
+      post(main).then(function () { if (others.some(function (x) { return !x.hasAttribute('data-api'); })) { submitting = true; location.reload(); } });
+    });
   }
   // The bar appears by itself on any change, wherever the page is scrolled, so a settings form needs no own "Save" button
   // at its very end. Buttons that do something else (add, publish, delete) stay.
@@ -144,6 +158,14 @@ document.addEventListener('DOMContentLoaded', function () {
     f.addEventListener('input', function () { mark(f); });
     f.addEventListener('change', function () { mark(f); });
     f.addEventListener('submit', function (e) {
+      if (f.hasAttribute('data-api') && window.darkApiSave) {
+        e.preventDefault();
+        // the other edited blocks are saved along with this one, as on a reload
+        dirty.filter(function (x) { return x !== f; }).forEach(function (x) { if (x.hasAttribute('data-api')) post(x); });
+        if (dirty.some(function (x) { return x !== f && !x.hasAttribute('data-api'); })) { submitAll(f); return; }
+        post(f);
+        return;
+      }
       if (submitting) return;
       var others = dirty.filter(function (x) { return x !== f; });
       if (others.length && !f.__allAsked) {

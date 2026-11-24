@@ -7,7 +7,7 @@ const { clampInt, snowflake, saved, getSettings } = require('../../utils/common'
 const { roleGuard } = require('../../utils/roles');
 
 const router = express.Router();
-const back = (guildId, flag) => saved(guildId, 'leveling', flag) + '#level-roles';
+const back = (guildId, flag) => saved(guildId, 'leveling-rewards', flag) + '#level-roles';
 
 // ---- Level roles ----
 const syncStatus = new Map(); // guildId -> { running, done, total, error }
@@ -15,7 +15,7 @@ const syncStatus = new Map(); // guildId -> { running, done, total, error }
 // Roles for levels are a part of the "Уровни" page now; the old address leads there.
 router.get('/:guildId/level-roles', (req, res) => {
   const id = snowflake(req.params.guildId);
-  res.redirect(301, id ? `/dashboard/${id}/leveling#level-roles` : '/dashboard');
+  res.redirect(301, id ? `/dashboard/${id}/leveling-rewards#level-roles` : '/dashboard');
 });
 
 /** What the "Роли за уровни" part of the "Уровни" page shows. */

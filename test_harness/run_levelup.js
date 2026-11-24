@@ -102,10 +102,10 @@ const { makeGuild, makeChannel, makeMember, makeUser, makeMessage } = require('.
   const base = `http://127.0.0.1:${server.address().port}/dashboard/777000000000000001`;
   const post = (body) => fetch(base + '/leveling', { method: 'POST', redirect: 'manual', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() });
   await test('panel: the switch is on by default, can be saved off and on again', async () => {
-    let html = await (await fetch(base + '/leveling')).text();
+    let html = await (await fetch(base + '/leveling-notify')).text();
     assert(/name="levelUpInVoice"[^>]*checked/.test(html), 'on by default');
     await post({ levelingEnabled: 'on' });
-    html = await (await fetch(base + '/leveling')).text(); assert(!/name="levelUpInVoice"[^>]*checked/.test(html), 'saved off');
+    html = await (await fetch(base + '/leveling-notify')).text(); assert(!/name="levelUpInVoice"[^>]*checked/.test(html), 'saved off');
     assert((await GuildSettings.findByPk('777000000000000001')).levelUpInVoice === false, 'db off');
     await post({ levelingEnabled: 'on', levelUpInVoice: 'on' });
     assert((await GuildSettings.findByPk('777000000000000001')).levelUpInVoice === true, 'db on');

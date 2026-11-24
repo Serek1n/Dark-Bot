@@ -79,7 +79,7 @@ const express = require('express');
   });
   await test('the leaderboard page is gone from the panel: old links land on the levels page', async () => {
     const r = await fetch(base + '/leaderboard?track=voice', { redirect: 'manual' });
-    assert(r.status === 301 && r.headers.get('location').endsWith('/leveling'), 'redirect ' + r.status);
+    assert(r.status === 301 && r.headers.get('location').endsWith('/leveling-data'), 'redirect ' + r.status); // «Данные и участники»: the list with search and the level editor
     const home = await (await fetch(base + '')).text();
     assert(!home.includes('/leaderboard"') && !home.includes('/leaderboard?'), 'no links left'); // (the news may still name the page)
   });

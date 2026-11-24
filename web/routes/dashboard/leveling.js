@@ -7,8 +7,10 @@ const { clampInt, snowflake, saved, getSettings } = require('../../utils/common'
 const { pickChannels, noPerm } = require('../../utils/channels');
 const router = express.Router();
 
-// ---- Leveling settings ----
-router.get('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
+// ---- Leveling: one module, its tabs (Начисление · Награды и роли · Множители · Уведомления и топ · Данные и участники) ----
+const TABS = ['leveling', 'leveling-rewards', 'leveling-notify', 'leveling-data'];
+router.get(TABS.map((t) => '/:guildId/' + t), ensureGuildAccess, async (req, res) => {
+  const tab = req.path.split('/').pop();
   const [guild, settings, channels] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId)]);
   // Result of the last manual level change (the redirect carries it in the query string).
   let adjusted = null;
@@ -17,24 +19,30 @@ router.get('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
     const users = await getUsers([q.u]);
     adjusted = { name: users[q.u]?.name || q.u, from: clampInt(q.from, 0, 1000, 0), to: clampInt(q.to, 0, 1000, 0), roles: ['ok', 'fail', 'none'].includes(q.roles) ? q.roles : 'none' };
   }
-  const rolesPart = await require('./levelRoles').levelRolesData(req.params.guildId, req.user?.id);
+  const rolesPart = tab === 'leveling-rewards' ? await require('./levelRoles').levelRolesData(req.params.guildId, req.user?.id) : { roles: [], levelRoles: [], sync: null };
   const publicUrl = `${(process.env.WEB_BASE_URL || '').replace(/\/+$/, '')}/top/${req.params.guildId}`;
-  res.render('dashboard/leveling', { guild, settings, channels, adjusted, publicUrl, prefillUser: snowflake(q.user) || '', ...rolesPart, active: 'leveling' });
+  let members = [];
+  if (tab === 'leveling-data') {
+    const rows = await MemberProfile.findAll({ where: { guildId: req.params.guildId }, order: [['xp', 'DESC']], limit: 100, raw: true });
+    const users = rows.length ? await getUsers(rows.map((r) => r.userId)) : {};
+    members = rows.map((r) => ({ ...r, name: users[r.userId]?.name || r.userId, avatar: users[r.userId]?.avatar || '' }));
+  }
+  res.render('dashboard/leveling', { A: require('../../../shared/settingsSchema').attrs, guild, settings, channels, adjusted, publicUrl, members, prefillUser: snowflake(q.user) || '', ...rolesPart, active: tab });
 });
 
 // Manual level change: add, take away or set an exact level. Roles for levels are updated right away.
 router.post('/:guildId/leveling/adjust', ensureGuildAccess, async (req, res) => {
   const { guildId } = req.params;
   const userId = snowflake(req.body.userId);
-  if (!userId) return res.redirect(saved(guildId, 'leveling', 'baduser'));
+  if (!userId) return res.redirect(saved(guildId, 'leveling-data', 'baduser') + '#adjust');
   const problem = await require('../../utils/members').memberProblem(guildId, userId);
-  if (problem) return res.redirect(saved(guildId, 'leveling', problem) + '#adjust');
+  if (problem) return res.redirect(saved(guildId, 'leveling-data', problem) + '#adjust');
   const mode = ['add', 'remove', 'set'].includes(req.body.mode) ? req.body.mode : 'add';
   const { MAX_LEVEL } = require('../../../bot/modules/leveling');
   const amount = clampInt(req.body.amount, mode === 'set' ? 0 : 1, MAX_LEVEL, mode === 'set' ? 0 : 1);
 
   const result = await require('../../../services/levels').adjustLevel(guildId, userId, mode, amount); // the same as /level
-  if (!result) return res.redirect(saved(guildId, 'leveling', 'invalid'));
+  if (!result) return res.redirect(saved(guildId, 'leveling-data', 'invalid') + '#adjust');
 
   // Level roles (best effort: the member may have left, or the bot may not be allowed to give a role).
   let roles = 'none';
@@ -57,11 +65,18 @@ router.post('/:guildId/leveling/adjust', ensureGuildAccess, async (req, res) => 
   } catch (err) {
     roles = 'fail';
   }
-  res.redirect(`/dashboard/${guildId}/leveling?adjusted=1&u=${userId}&from=${result.previousLevel}&to=${result.level}&roles=${roles}#adjust`);
+  res.redirect(`/dashboard/${guildId}/leveling-data?adjusted=1&u=${userId}&from=${result.previousLevel}&to=${result.level}&roles=${roles}#adjust`);
 });
 
+// A tab's form says which part it holds (_section): only those fields change, so a switch that is not on this tab is not
+// read as «off». A form without it (older pages, scripts) holds everything, as before.
 router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);
+  const part = String(req.body._section || '');
+  const has = (p) => !part || part === p;
+  const back = { accrual: 'leveling', rewards: 'leveling-rewards', notify: 'leveling-notify' }[part] || 'leveling';
+  let missing = [];
+  if (has('accrual')) {
   // Chat direction
   settings.chatEnabled = req.body.chatEnabled === 'on';
   const min = clampInt(req.body.xpPerMessageMin, 1, 1000, settings.xpPerMessageMin);
@@ -76,8 +91,13 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   settings.voiceCoinsPerMinute = clampInt(req.body.voiceCoinsPerMinute, 0, 10000, settings.voiceCoinsPerMinute);
   settings.voiceSkipMuted = req.body.voiceSkipMuted === 'on';
   settings.voiceMinMembers = clampInt(req.body.voiceMinMembers, 1, 10, settings.voiceMinMembers);
+  }
+  if (has('rewards')) {
   settings.crystalsPerLevel = clampInt(req.body.crystalsPerLevel, 0, 10000, settings.crystalsPerLevel);
-  const missing = await pickChannels(req.body, settings, req.params.guildId, { levelUpChannelId: 'post' });
+  if (part === 'rewards') settings.levelRolesReplace = req.body.levelRolesReplace === 'on';
+  }
+  if (has('notify')) {
+  missing = await pickChannels(req.body, settings, req.params.guildId, { levelUpChannelId: 'post' });
   settings.levelUpInVoice = req.body.levelUpInVoice === 'on';
   const { DESTINATIONS } = require('../../../bot/utils/levelUp');
   settings.levelUpDestination = DESTINATIONS.includes(req.body.levelUpDestination) ? req.body.levelUpDestination : 'auto';
@@ -87,8 +107,9 @@ router.post('/:guildId/leveling', ensureGuildAccess, async (req, res) => {
   settings.levelUpRewardOnly = req.body.levelUpRewardOnly === 'on';
   settings.levelUpEvery = clampInt(req.body.levelUpEvery, 1, 100, 1);
   settings.levelUpEveryUntil = clampInt(req.body.levelUpEveryUntil, 0, 1000, 0);
+  }
   await settings.save();
-  res.redirect(missing.length ? noPerm(req.params.guildId, 'leveling', missing) : saved(req.params.guildId, 'leveling'));
+  res.redirect(missing.length ? noPerm(req.params.guildId, back, missing) : saved(req.params.guildId, back));
 });
 
 // ---- Leaderboard (read-only) ----
@@ -153,7 +174,7 @@ router.get('/:guildId/leveling/export', ensureGuildAccess, async (req, res) => {
 });
 
 // The leaderboard page is gone from the panel (the top lives in Discord: /top); old links land on the levels page.
-router.get('/:guildId/leaderboard', ensureGuildAccess, (req, res) => res.redirect(301, `/dashboard/${req.params.guildId}/leveling`));
+router.get('/:guildId/leaderboard', ensureGuildAccess, (req, res) => res.redirect(301, `/dashboard/${req.params.guildId}/leveling-data`));
 
 // The public leaderboard page: on/off and the level from which members appear there (a card on the levels page).
 router.post('/:guildId/leveling/public', ensureGuildAccess, async (req, res) => {
@@ -161,7 +182,7 @@ router.post('/:guildId/leveling/public', ensureGuildAccess, async (req, res) => 
   settings.leaderboardPublic = req.body.leaderboardPublic === 'on';
   settings.leaderboardMinLevel = clampInt(req.body.leaderboardMinLevel, 0, 1000, 0);
   await settings.save();
-  res.redirect(`/dashboard/${req.params.guildId}/leveling?saved=1#public-top`);
+  res.redirect(`/dashboard/${req.params.guildId}/leveling-notify?saved=1#public-top`);
 });
 
 module.exports = router;

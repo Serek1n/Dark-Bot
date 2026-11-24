@@ -770,3 +770,215 @@
   f.addEventListener('submit', function () { saving = true; });
   window.addEventListener('beforeunload', function (e) { if (f.classList.contains('is-dirty') && !saving) { e.preventDefault(); e.returnValue = ''; } });
 })();
+
+// --- Settings saved without reloading the page (forms marked data-api, see web/routes/dashboard/api.js) ---
+// The form's own fields go as JSON; a mistake comes back as a text under that very field, the rest of what was typed stays.
+(function () {
+  var NEED = { view: 'Просмотр канала', send: 'Отправлять сообщения', embed: 'Встраивать ссылки', history: 'Читать историю сообщений', react: 'Добавлять реакции', connect: 'Подключаться', manage: 'Управлять каналами', move: 'Перемещать участников', webhooks: 'Управлять вебхуками', files: 'Прикреплять файлы' };
+  function toast(text, bad) {
+    var t = document.createElement('div');
+    t.className = 'toast' + (bad ? ' error' : '');
+    t.setAttribute('role', 'status');
+    t.textContent = text;
+    document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, text.length > 90 ? 8000 : 3600);
+  }
+  window.darkToast = toast;
+  function guildId() { var tb = document.getElementById('topbar'); return tb ? tb.getAttribute('data-guild') : ''; }
+  function values(f) {
+    var out = {};
+    Array.prototype.forEach.call(f.elements, function (el) {
+      if (!el.name || el.disabled || el.name.charAt(0) === '_' || /^(submit|button|file|reset)$/.test(el.type)) return;
+      if (el.type === 'checkbox') out[el.name] = el.checked;
+      else if (el.type === 'radio') { if (el.checked) out[el.name] = el.value; }
+      else if (el.tagName === 'SELECT' && el.multiple) out[el.name] = Array.prototype.filter.call(el.options, function (o) { return o.selected; }).map(function (o) { return o.value; });
+      else out[el.name] = el.value;
+    });
+    return out;
+  }
+  function holder(el) { return el.closest('.set-ctl, .set-row, .checkbox-row, .rule, div') || el.parentNode; }
+  function clearErrors(f) {
+    f.querySelectorAll('.field-error').forEach(function (n) { n.remove(); });
+    f.querySelectorAll('[aria-invalid="true"]').forEach(function (n) { n.removeAttribute('aria-invalid'); });
+  }
+  function showError(f, name, text) {
+    var el = f.elements[name];
+    if (!el) return null;
+    if (el.length && !el.tagName) el = el[0];
+    var id = 'err-' + name;
+    var box = holder(el);
+    var e = document.createElement('div');
+    e.className = 'field-error'; e.id = id; e.textContent = text;
+    box.appendChild(e);
+    el.setAttribute('aria-invalid', 'true');
+    el.setAttribute('aria-describedby', ((el.getAttribute('aria-describedby') || '').replace(id, '') + ' ' + id).trim());
+    return el;
+  }
+  window.darkApiSave = function (f) {
+    if (f.reportValidity && !f.reportValidity()) return Promise.resolve(false);
+    clearErrors(f);
+    var url = f.getAttribute('data-api-url') || '/dashboard/' + guildId() + '/api/settings/' + f.getAttribute('data-api');
+    var btns = f.querySelectorAll('button[type=submit], button:not([type])');
+    btns.forEach(function (b) { b.disabled = true; });
+    f.classList.add('is-saving');
+    return fetch(url, { method: 'PATCH', credentials: 'same-origin', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ values: values(f) }) })
+      .then(function (r) { return r.json().catch(function () { return { ok: false }; }).then(function (j) { return { status: r.status, body: j }; }); })
+      .then(function (res) {
+        var j = res.body || {};
+        if (res.status === 400 && j.fieldErrors) {
+          var first = null;
+          Object.keys(j.fieldErrors).forEach(function (k) { var el = showError(f, k, j.fieldErrors[k]); first = first || el; });
+          if (first) first.focus();
+          toast('Не сохранено: проверьте отмеченные поля', true);
+          return false;
+        }
+        if (!j.ok) { toast(j.error || 'Не удалось сохранить. Обновите страницу и попробуйте снова', true); return false; }
+        var warn = j.warnings || {};
+        Object.keys(warn).forEach(function (k) {
+          var miss = warn[k].indexOf('gone') >= 0 ? 'канал не найден' : 'не хватает прав ' + warn[k].map(function (x) { return '«' + (NEED[x] || x) + '»'; }).join(', ');
+          showError(f, k, 'Бот не сможет работать в этом канале: ' + miss + '. Осталось прежнее значение');
+        });
+        toast(Object.keys(warn).length ? 'Сохранено, но канал не изменён — см. подсказку у поля' : 'Изменения сохранены', Object.keys(warn).length > 0);
+        f.dispatchEvent(new CustomEvent('dark:saved', { detail: j }));
+        return true;
+      })
+      .catch(function () { toast('Нет связи с панелью — изменения не сохранены', true); return false; })
+      .then(function (ok) { btns.forEach(function (b) { b.disabled = false; }); f.classList.remove('is-saving'); return ok; });
+  };
+  // A form with data-api on a page without the save bar (or before panel.js has run) is saved the same way.
+  document.addEventListener('submit', function (e) {
+    var f = e.target;
+    if (!f.hasAttribute || !f.hasAttribute('data-api') || document.getElementById('saveBar')) return;
+    e.preventDefault();
+    window.darkApiSave(f);
+  });
+  // «Сбросить к стандартным»: asks first, then the page is read again with the defaults
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-reset-section]');
+    if (!b) return;
+    e.preventDefault();
+    var go = function () {
+      fetch('/dashboard/' + guildId() + '/api/settings/' + b.getAttribute('data-reset-section') + '/reset', { method: 'POST', credentials: 'same-origin', headers: { accept: 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (j.ok) { window.onbeforeunload = null; location.search = (location.search ? location.search + '&' : '?') + 'reset=1'; } else toast('Не удалось сбросить', true); })
+        .catch(function () { toast('Нет связи с панелью', true); });
+    };
+    var ask = b.getAttribute('data-confirm-text') || 'Вернуть стандартные значения этого раздела? Ваши значения будут заменены.';
+    if (window.darkConfirm) window.darkConfirm(ask, { ok: 'Сбросить', danger: true }).then(function (yes) { if (yes) go(); });
+    else if (window.confirm(ask)) go();
+  });
+})();
+
+// --- Slide-over drawer: a form marked data-drawer="Title" is shown in a panel from the right instead of sitting above its
+// table; buttons with data-drawer-open="<form id>" open it. Without scripts the form simply stays on the page.
+(function () {
+  var forms = document.querySelectorAll('form[data-drawer]');
+  if (!forms.length) return;
+  var back = document.createElement('div'); back.className = 'drawer-back'; back.hidden = true;
+  document.body.appendChild(back);
+  var opened = null, returnTo = null;
+  function close() {
+    if (!opened) return;
+    var d = opened; opened = null;
+    d.classList.remove('open'); back.classList.remove('open'); document.body.classList.remove('drawer-on');
+    setTimeout(function () { d.hidden = true; back.hidden = true; }, 200);
+    if (returnTo && returnTo.focus) returnTo.focus();
+  }
+  function open(d, from) {
+    if (opened) close();
+    returnTo = from || document.activeElement;
+    d.hidden = false; back.hidden = false;
+    requestAnimationFrame(function () { d.classList.add('open'); back.classList.add('open'); });
+    document.body.classList.add('drawer-on');
+    opened = d;
+    var first = d.querySelector('input:not([type=hidden]):not([disabled]), select, textarea');
+    setTimeout(function () { (first || d.querySelector('.drawer-close')).focus(); }, 60);
+  }
+  var byId = {};
+  forms.forEach(function (f) {
+    var d = document.createElement('aside');
+    d.className = 'drawer'; d.hidden = true;
+    d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true');
+    var hid = 'dr-' + (f.id || Math.random().toString(36).slice(2));
+    d.setAttribute('aria-labelledby', hid);
+    d.innerHTML = '<div class="drawer-head"><h2></h2><button type="button" class="drawer-close"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 5L15 15M15 5L5 15"/></svg></button></div><div class="drawer-body"></div>';
+    d.querySelector('h2').id = hid;
+    d.querySelector('h2').textContent = f.getAttribute('data-drawer');
+    d.querySelector('.drawer-close').setAttribute('aria-label', 'Закрыть');
+    d.querySelector('.drawer-close').addEventListener('click', close);
+    var keep = f.querySelector('.hint[role=status], [data-keep-open]');
+    f.parentNode.insertBefore(document.createComment('drawer: ' + (f.id || '')), f);
+    d.querySelector('.drawer-body').appendChild(f);
+    document.body.appendChild(d);
+    if (f.id) byId[f.id] = d;
+    // a result of the last action, or a link straight to the form (#id): open it right away
+    if (keep || (f.id && location.hash === '#' + f.id)) setTimeout(function () { open(d); }, 50);
+  });
+  document.querySelectorAll('[data-drawer-open]').forEach(function (b) { b.hidden = false; });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-drawer-open]');
+    if (!b) return;
+    var d = byId[b.getAttribute('data-drawer-open')];
+    if (!d) return;
+    e.preventDefault();
+    // a row's button fills the form with its member
+    var f = d.querySelector('form');
+    if (b.hasAttribute('data-fill-user') && f && f.elements.userId) {
+      f.elements.userId.value = b.getAttribute('data-fill-user');
+      var out = f.querySelector('[data-fill-name-out]'); if (out) out.textContent = b.getAttribute('data-fill-name') || '';
+    }
+    open(d, b);
+  });
+  back.addEventListener('click', close);
+  document.addEventListener('keydown', function (e) {
+    if (!opened) return;
+    if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.key !== 'Tab') return;
+    var items = opened.querySelectorAll('a[href], button:not([disabled]), input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled])');
+    if (!items.length) return;
+    var first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+})();
+
+// --- Fields that only matter when something above is on: data-depends="name" (a switch is on), "name=value" or
+// "name!=value" (a list has / has not that value). They are dimmed and taken out of the Tab order, not hidden: the
+// layout does not jump, and what they are is still readable.
+(function () {
+  var deps = document.querySelectorAll('[data-depends]');
+  if (!deps.length) return;
+  function test(rule, scope) {
+    var m = /^([\w-]+)\s*(!?=)?\s*(.*)$/.exec(rule); if (!m) return true;
+    var form = scope.closest('form') || document;
+    var el = form.querySelector('[name="' + m[1] + '"]:not([type=hidden])') || document.querySelector('[name="' + m[1] + '"]:not([type=hidden])');
+    if (!el) return true;
+    var val = el.type === 'checkbox' ? (el.checked ? 'on' : '') : el.value;
+    if (!m[2]) return Boolean(val);
+    return m[2] === '=' ? val === m[3] : val !== m[3];
+  }
+  function apply() {
+    deps.forEach(function (box) {
+      var on = box.getAttribute('data-depends').split('&').every(function (r) { return test(r.trim(), box); });
+      box.classList.toggle('is-dependent-off', !on);
+      box.setAttribute('aria-disabled', on ? 'false' : 'true');
+      box.querySelectorAll('input, select, textarea, button').forEach(function (c) { if (on) { if (c.hasAttribute('data-dep-ti')) { c.removeAttribute('tabindex'); c.removeAttribute('data-dep-ti'); } } else if (!c.hasAttribute('tabindex')) { c.setAttribute('tabindex', '-1'); c.setAttribute('data-dep-ti', ''); } });
+    });
+  }
+  document.addEventListener('change', apply);
+  document.addEventListener('input', apply);
+  apply();
+})();
+
+// --- A search box above a table: data-filter-table="<table id>" hides the rows whose data-filter-text does not match.
+(function () {
+  document.querySelectorAll('[data-filter-table]').forEach(function (inp) {
+    var table = document.getElementById(inp.getAttribute('data-filter-table'));
+    if (!table) return;
+    inp.addEventListener('input', function () {
+      var q = inp.value.trim().toLowerCase();
+      table.querySelectorAll('tbody tr').forEach(function (tr) { tr.hidden = Boolean(q) && (tr.getAttribute('data-filter-text') || tr.textContent.toLowerCase()).indexOf(q) < 0; });
+    });
+  });
+  document.querySelectorAll('input.switch').forEach(function (s) { s.setAttribute('role', 'switch'); });
+})();

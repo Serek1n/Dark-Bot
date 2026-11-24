@@ -12,12 +12,12 @@ const clean = (s) => String(s)
   .replace(/&nbsp;/g, ' ').replace(/&laquo;/g, '«').replace(/&raquo;/g, '»').replace(/&amp;/g, '&')
   .replace(/\s+/g, ' ').trim();
 
-function pageEntries(file) {
-  let src = fs.readFileSync(path.join(VIEWS, file), 'utf8');
+function pageEntries(file, own) {
+  let src = own !== undefined ? own.src : fs.readFileSync(path.join(VIEWS, file), 'utf8');
   // parts of a page that live in a partial (the message builder of "Вебхуки")
   for (const m of src.matchAll(/include\('\.\.\/partials\/(msg-builder|level-roles-cards)'/g)) src += fs.readFileSync(path.join(VIEWS, '..', 'partials', m[1] + '.ejs'), 'utf8');
-  const page = file.replace(/\.ejs$/, '');
-  const title = clean((/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(src) || [])[1] || '');
+  const page = own !== undefined ? own.page : file.replace(/\.ejs$/, '');
+  const title = own !== undefined ? own.title : clean((/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(src) || [])[1] || '');
   const seen = new Set(); const out = [];
   const add = (text, kind) => {
     const t = clean(text).replace(/[:：]\s*$/, '');
@@ -33,10 +33,28 @@ function pageEntries(file) {
   return { page, title: title || (page === 'overview' ? 'Обзор' : page), entries: out };
 }
 
+/**
+ * One template may hold several tabs of a module (`<% if (tab === 'leveling-notify') { %>`): each tab is a page of its own
+ * in the search, so a result opens the tab that has the setting.
+ */
+function tabPages(file) {
+  const src = fs.readFileSync(path.join(VIEWS, file), 'utf8');
+  const parts = src.split(/<% if \(tab === '([\w-]+)'\) \{ %>/);
+  if (parts.length < 3) return [pageEntries(file)];
+  const { PAGE_LABELS, moduleOfPage } = require('./modules');
+  const out = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    const page = parts[i];
+    const mod = moduleOfPage(page);
+    out.push(pageEntries(file, { src: parts[i + 1], page, title: (mod ? mod.title + ': ' : '') + (PAGE_LABELS[page] || page) }));
+  }
+  return out;
+}
+
 /** [{ page, title, entries: [{ page, text, kind }] }] for every panel page; built once. */
 function settingsIndex() {
   if (cache) return cache;
-  cache = fs.readdirSync(VIEWS).filter((f) => f.endsWith('.ejs')).sort().map(pageEntries);
+  cache = fs.readdirSync(VIEWS).filter((f) => f.endsWith('.ejs')).sort().flatMap(tabPages);
   return cache;
 }
 

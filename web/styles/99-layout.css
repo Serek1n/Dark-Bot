@@ -1,0 +1,147 @@
+/* Page layout of the panel (2026-11 refactor): one column instead of a grid of tiles, settings as rows, the type scale.
+   Last in the cascade on purpose: it replaces the two-column card grid of 95-modules.css. */
+
+/* ---------- names of the layers and roles, for new code (the old names stay: they are the same values) ---------- */
+:root {
+  --bg-canvas: var(--ink);
+  --bg-surface: var(--panel);
+  --bg-elevated: var(--panel-raised);
+  --bg-input: var(--ink);
+  --border-subtle: var(--hairline);
+  --accent: var(--ember);
+  --text-primary: var(--paper);
+  --text-secondary: var(--fog);
+  --text-muted: var(--fog-dim);
+  --warning: #e3a857;
+  --warning-tint: rgba(227, 168, 87, 0.14);
+  --r-control: 8px;
+  --r-container: 12px;
+  --w-form: 920px;
+  --w-table: 1200px;
+}
+[data-theme="light"] { --bg-input: #ffffff; --warning: #8a5a00; --warning-tint: #fbf0dc; }
+
+/* ---------- one column: cards follow each other in reading order, nothing is placed beside something else ---------- */
+@media (min-width: 1200px) {
+  .app-layout > .content { display: block; max-width: calc(var(--w-table) + 40px); }
+  .app-layout > .content > form:not(.card), .app-layout > .content > .grid-2 { display: block; }
+  .app-layout > .content > *, .app-layout > .content > form:not(.card) > * { margin-bottom: 16px; }
+  .app-layout > .content > .card, .app-layout > .content > form:not(.card) > .card, .app-layout > .content > .grid-2 > .card { display: block; }
+  .g-r2, .g-r3, .g-r4 { grid-row: auto; }
+  .g-o1, .g-o2, .g-o3, .g-o4, .g-o5 { order: 0; }
+  .app-layout > .content .card > :is(.btn, button, a.btn, input[type=file]), .app-layout > .content .card > .actions { align-self: auto; }
+  .app-layout > .content > .card.g-fields { display: block; }
+}
+/* forms are read best in a narrower column; tables and wide tools keep the full width */
+.app-layout > .content > .card:not(:has(table, .table-wrap, .table-scroll, .switch-list, .msg-tabs, .wide)),
+.app-layout > .content > form:not(.card) > .card:not(:has(table, .table-wrap, .table-scroll, .wide)),
+.app-layout > .content > form.card:not(:has(table, .table-wrap, .table-scroll, .switch-list)),
+.app-layout > .content > .grid-2 > .card,
+.app-layout > .content > .set-page { max-width: var(--w-form); }
+.app-layout > .content > .grid-2 { display: block; }
+.app-layout > .content > .grid-2 > .card + .card { margin-top: 16px; }
+.app-layout > .content:has(.msg-tabs) { max-width: 1440px; }
+.app-layout > .content .home-dash, .app-layout > .content .home-split { max-width: none; }
+
+/* ---------- type scale ---------- */
+.app-layout .page-header h1, .app-layout .content > h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; }
+.app-layout .card h2, .set-section > h2 { font-size: var(--fs-16); font-weight: 600; line-height: 1.35; }
+.app-layout .hint, .set-help { font-size: var(--fs-13); line-height: 1.45; max-width: 60ch; }
+.mono, code, .tabular, td.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- settings as rows: the name and a short help on the left, the control on the right ----------
+   <section class="card set-section"><h2>…</h2>
+     <div class="set-row"><div class="set-text"><label for="x">Название</label><p class="set-help">…</p></div>
+       <div class="set-ctl"><input id="x"> <span class="set-unit">сек</span></div></div>
+     <div class="set-row stacked">…the control under the name, across the whole width…</div></section> */
+.set-section { padding: 8px 24px 8px; }
+.set-section > h2 { margin: 16px 0 4px; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle); }
+.set-section > .set-lead { margin: 12px 0 4px; color: var(--text-secondary); font-size: var(--fs-13); max-width: 60ch; }
+.set-row { display: grid; grid-template-columns: minmax(0, 60fr) minmax(0, 40fr); align-items: center; column-gap: 24px; row-gap: 8px; padding: 16px 0; border-top: 1px solid var(--hairline-soft); }
+.set-section > h2 + .set-row, .set-section > .set-lead + .set-row { border-top: 0; }
+.set-row.stacked { grid-template-columns: minmax(0, 1fr); }
+.set-text { min-width: 0; }
+.set-text > label, .set-text > .set-title { display: block; margin: 0; font-size: var(--fs-14); font-weight: 500; color: var(--text-primary); }
+.set-text > label::first-letter { text-transform: none; }
+.set-help { margin: 4px 0 0; color: var(--text-secondary); }
+.set-ctl { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
+.set-row.stacked .set-ctl { justify-content: flex-start; flex-wrap: wrap; }
+.set-ctl > input[type=number] { width: 112px; margin: 0; text-align: right; }
+.set-ctl > input[type=text], .set-ctl > select, .set-ctl > .fs, .set-ctl > textarea { flex: 1; min-width: 0; margin: 0; }
+.set-row.stacked .set-ctl > :is(input[type=text], select, textarea, .fs, .embed-editor, div) { flex-basis: 100%; }
+.set-ctl > .set-dash { color: var(--text-muted); }
+.set-unit { color: var(--text-muted); font-size: var(--fs-13); min-width: 56px; }
+.set-ctl > .mod-sw, .set-ctl > input[type=checkbox] { margin: 0; }
+.set-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 16px 0 16px; border-top: 1px solid var(--hairline-soft); }
+.set-actions .set-reset { margin-left: auto; }
+/* a part that does something in Discord or with files: always last on the page and set apart */
+.set-tools { border-style: dashed; }
+.set-tools > h2::before { content: ""; }
+
+/* a field the server refused: the text right under it */
+.field-error { margin-top: 6px; color: var(--danger); font-size: var(--fs-13); line-height: 1.4; flex-basis: 100%; }
+.set-row .field-error { grid-column: 1 / -1; justify-self: end; text-align: right; }
+[aria-invalid="true"] { border-color: var(--danger) !important; }
+form.is-saving { opacity: 0.7; transition: opacity .15s ease; }
+
+/* fields that mean nothing until a switch above them is on (data-depends, js/ui.js) */
+.is-dependent-off { opacity: 0.45; }
+.is-dependent-off :is(input, select, textarea, button) { pointer-events: none; }
+
+/* a saved channel or role that no longer exists in Discord */
+.gone-note { display: flex; gap: 8px; align-items: flex-start; margin-top: 8px; padding: 8px 12px; border-radius: var(--r-control); background: var(--warning-tint); color: var(--text-primary); font-size: var(--fs-13); }
+
+@media (max-width: 760px) {
+  .set-section { padding: 4px 16px; }
+  .set-row { grid-template-columns: minmax(0, 1fr); }
+  .set-ctl { justify-content: flex-start; flex-wrap: wrap; }
+  .set-ctl > input[type=number] { width: 120px; text-align: left; }
+  .set-row .field-error { justify-self: start; text-align: left; }
+}
+
+/* ---------- the switch (role="switch"): one look for every on/off setting ---------- */
+input[type=checkbox].switch { appearance: none; -webkit-appearance: none; flex-shrink: 0; width: 40px; height: 24px; margin: 0; border-radius: var(--r-pill); background: var(--panel-raised); border: 1px solid var(--hairline); position: relative; cursor: pointer; transition: background-color .15s ease, border-color .15s ease; }
+input[type=checkbox].switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--fog); transition: transform .15s ease, background-color .15s ease; }
+input[type=checkbox].switch:checked { background: var(--ember-tint-strong); border-color: var(--ember); }
+input[type=checkbox].switch:checked::after { transform: translateX(16px); background: var(--ember); }
+input[type=checkbox].switch:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+input[type=checkbox].switch:disabled { opacity: .5; cursor: not-allowed; }
+html[data-season="vice"] input[type=checkbox].switch:checked { background: var(--vice-btn); border-color: transparent; }
+html[data-season="vice"] input[type=checkbox].switch:checked::after { background: #fff; }
+
+/* ---------- tables of things: a toolbar above (search on the left, «Добавить» on the right), one-line rows ---------- */
+.table-toolbar { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
+.table-toolbar .tt-search { flex: 0 1 320px; margin: 0; }
+.table-toolbar .tt-add { margin-left: auto; }
+.data-table td, .data-table th { vertical-align: middle; height: 48px; }
+.data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.data-table .row-act { width: 1%; white-space: nowrap; text-align: right; }
+.data-table .row-act form { display: inline; margin: 0; }
+.data-table .person small { display: block; font-size: var(--fs-12); }
+.btn.btn-sm { padding: 6px 12px; font-size: var(--fs-13); }
+tr[hidden] { display: none; }
+
+/* ---------- the empty list: an icon, one line, what to do ---------- */
+.empty-block { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px 16px; text-align: center; color: var(--text-secondary); }
+.empty-block .eb-ico { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-12); background: var(--ember-tint); color: var(--ember); }
+.empty-block p { margin: 0; max-width: 46ch; font-size: var(--fs-14); }
+
+/* ---------- the slide-over drawer for adding and editing one thing (js/ui.js: [data-drawer]) ---------- */
+.drawer-back { position: fixed; inset: 0; z-index: 80; background: var(--backdrop); opacity: 0; transition: opacity .18s ease; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 81; width: min(480px, 100vw); display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid var(--hairline); box-shadow: -16px 0 40px -24px var(--shadow-pop); transform: translateX(100%); transition: transform .2s cubic-bezier(.2, .8, .2, 1); }
+.drawer.open { transform: none; }
+.drawer-back.open { opacity: 1; }
+.drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--hairline); }
+.drawer-head h2 { margin: 0; font-size: var(--fs-16); font-weight: 600; }
+.drawer-body { flex: 1; overflow-y: auto; padding: 4px 20px 24px; }
+.drawer-body > form.card { border: 0; box-shadow: none; background: none; padding: 0; margin: 0; max-width: none; }
+.drawer-body > form.card > h2 { display: none; }
+.drawer-close { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--r-8); background: none; color: var(--fog); cursor: pointer; }
+.drawer-close:hover { background: var(--panel-raised); color: var(--paper); }
+body.drawer-on { overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { .drawer, .drawer-back { transition: none; } }
+.role-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 8px; border-radius: var(--r-pill); background: var(--panel-raised); font-size: var(--fs-13); }
+.role-chip i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.gone-inline { color: var(--warning); font-size: var(--fs-13); }
+input[type=search] { width: 100%; padding: 9px 12px; border-radius: var(--r-control); border: 1px solid var(--field-border); background: var(--bg-input); color: var(--paper); font: inherit; font-size: var(--fs-14); }
+input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow: var(--focus-ring); }

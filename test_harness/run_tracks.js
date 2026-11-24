@@ -232,8 +232,9 @@ async function main() {
   const render = (f, data) => ejs.renderFile(path.join(root, f + '.ejs'), { guild: guildObj, settings, channels, roles: [{ id: '1', name: 'r' }], levelRoles: [{ id: 1, level: 5, roleId: '1', track: 'total' }], sync: null, top: [], users: {}, stats: { coinsTotal: 0, crystalsTotal: 0, holders: 0 }, richest: [], track: 'voice', xpField: 'voiceXp', levelField: 'level', ...data });
   await test('web: leveling page has separate Chat and Voice sections', async () => {
     const h = await render('leveling', { active: 'leveling' });
-    for (const n of ['chatEnabled', 'xpPerMessageMin', 'chatCoinsPerMessage', 'crystalsPerLevel', 'voiceEnabled', 'voiceXpPerMinute', 'voiceCoinsPerMinute', 'voiceMinMembers']) assert(h.includes(`name="${n}"`), 'missing ' + n);
-    assert(h.includes('<h2>Опыт за сообщения') && h.includes('<h2>Опыт за время в голосе'), 'sections');
+    for (const n of ['chatEnabled', 'xpPerMessageMin', 'chatCoinsPerMessage', 'voiceEnabled', 'voiceXpPerMinute', 'voiceCoinsPerMinute', 'voiceMinMembers']) assert(h.includes(`name="${n}"`), 'missing ' + n);
+    assert(h.includes('<h2>Сообщения в чате') && h.includes('<h2>Время в голосовых каналах'), 'sections');
+    assert((await render('leveling', { active: 'leveling-rewards' })).includes('name="crystalsPerLevel"'), 'crystals on the rewards tab');
   });
   await test('web: economy page renders both currencies', async () => {
     const h = await render('economy', { active: 'economy' });
