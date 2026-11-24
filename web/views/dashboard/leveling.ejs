@@ -3,11 +3,11 @@
 <%# «Уровни»: one template for the tabs of the module (the tab is `active`). Each tab is built top to bottom in the same
    order: how it works → where and on whom → messages → lists → tools (things done once, set apart at the very end). %>
 <% const tab = active; const A = locals.A || (() => ''); const cap = (s) => { s = String(s || ''); return s.charAt(0).toLocaleUpperCase('ru-RU') + s.slice(1); };
-   const TITLES = { leveling: 'Начисление опыта', 'leveling-rewards': 'Награды и роли', 'leveling-notify': 'Уведомления и топ', 'leveling-data': 'Данные и участники' };
+   const TITLES = { leveling: 'Начисление опыта', 'leveling-rewards': 'Награды и роли', 'leveling-notify': 'Уведомления и топ', 'leveling-data': 'Данные и участники', leaderboard: 'Лидерборд' };
    const INTROS = { leveling: 'Один общий уровень растёт от сообщений и от времени в голосовых каналах. У каждого источника свои правила.',
      'leveling-rewards': 'Что участник получает за новый уровень: кристаллы и роли.',
      'leveling-notify': 'Как бот поздравляет с новым уровнем и где виден рейтинг сервера.',
-     'leveling-data': 'Уровни участников: найти, изменить вручную, выгрузить или перенести из другого бота.' }; %>
+     'leveling-data': 'Изменить уровень участника вручную, выгрузить уровни или перенести их из другого бота.', leaderboard: 'Участники с самым большим опытом. Отсюда же можно изменить уровень любого из них.' }; %>
 <head><%- include('../partials/head', { title: guild.name + ' — Уровни: ' + TITLES[tab] }) %></head>
 <body>
   <div class="app-layout">
@@ -166,55 +166,30 @@
       </form>
 <% } %>
 
-<% if (tab === 'leveling-data') { %>
+<% if (tab === 'leaderboard') { %>
       <section class="card" id="members">
-        <h2>Участники<span class="sub">Топ-100 по опыту</span></h2>
+        <h2>Рейтинг<span class="sub">Топ-100 · <%= track === 'voice' ? 'по времени в голосе' : 'по опыту' %></span></h2>
+        <nav class="pf-filter" aria-label="Какой рейтинг"><a href="?track=total"<%- track !== 'voice' ? ' class="on" aria-current="true"' : '' %>>Общий</a><a href="?track=voice"<%- track === 'voice' ? ' class="on" aria-current="true"' : '' %>>Голос</a></nav>
         <% if (!members.length) { %>
           <%- include('../partials/empty-state', { icon: 'leveling', text: 'Пока никто не заработал опыт. Он начисляется за сообщения и время в голосовых каналах.', action: null }) %>
         <% } else { %>
           <div class="table-toolbar"><input type="search" class="tt-search" data-filter-table="lvMembers" placeholder="Найти по имени или ID" aria-label="Найти участника" /></div>
           <div class="table-scroll"><table class="data-table" id="lvMembers">
-            <thead><tr><th class="num">#</th><th>Участник</th><th class="num">Уровень</th><th class="num">Опыт</th><th class="num">Сообщений</th><th class="num">В голосе, ч</th><th><span class="sr-only">Действие</span></th></tr></thead>
+            <thead><tr><th class="num">#</th><th>Участник</th><th class="num">Уровень</th><th class="num"><%= track === 'voice' ? 'Опыт в голосе' : 'Опыт' %></th><th class="num">Сообщений</th><th class="num">В голосе, ч</th><th><span class="sr-only">Действие</span></th></tr></thead>
             <tbody><% members.forEach((m, i) => { %><tr data-filter-text="<%= (m.name + ' ' + m.userId).toLowerCase() %>">
               <td class="num muted"><%= i + 1 %></td>
               <td><span class="person"><% if (m.avatar) { %><img src="<%= m.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(m.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= m.name %><small class="muted mono"><%= m.userId %></small></span></span></td>
-              <td class="num"><%= m.level %></td><td class="num"><%= Number(m.xp).toLocaleString('ru-RU') %></td><td class="num"><%= Number(m.messageCount || 0).toLocaleString('ru-RU') %></td><td class="num"><%= Math.round((Number(m.voiceSeconds) || 0) / 360) / 10 %></td>
-              <td class="row-act"><a class="btn btn-secondary btn-sm" href="?user=<%= m.userId %>#adjust" data-drawer-open="adjust" data-fill-user="<%= m.userId %>" data-fill-name="<%= m.name %>">Изменить уровень</a></td>
+              <td class="num"><%= m.level %></td><td class="num"><%= Number(track === 'voice' ? m.voiceXp || 0 : m.xp).toLocaleString('ru-RU') %></td><td class="num"><%= Number(m.messageCount || 0).toLocaleString('ru-RU') %></td><td class="num"><%= Math.round((Number(m.voiceSeconds) || 0) / 360) / 10 %></td>
+              <td class="row-act"><a class="btn btn-secondary btn-sm" href="/dashboard/<%= guild.id %>/leveling-data?user=<%= m.userId %>#adjust" data-drawer-open="adjust" data-fill-user="<%= m.userId %>" data-fill-name="<%= m.name %>">Изменить уровень</a></td>
             </tr><% }) %></tbody>
           </table></div>
         <% } %>
       </section>
+      <%- include('../partials/level-adjust', { drawer: true }) %>
+<% } %>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/leveling/adjust" class="card" id="adjust" data-drawer="Изменить уровень участника" data-no-guard data-confirm="Изменить уровень участника? Роли за уровни будут выданы или сняты сразу." data-confirm-ok="Изменить" data-confirm-soft>
-        <h2>Изменить уровень участника</h2>
-        <p class="set-help">Участник окажется в начале нужного уровня, роли за уровни обновятся сразу. Кристаллы за такое изменение не выдаются.</p>
-        <% if (locals.adjusted) { %>
-          <div class="hint" role="status" style="color:var(--ember);margin-bottom:6px;">
-            <%= adjusted.name %>: уровень <%= adjusted.from %> → <%= adjusted.to %>.
-            <%= adjusted.roles === 'ok' ? 'Роли обновлены.' : adjusted.roles === 'fail' ? 'Роли обновить не удалось: проверьте, что роль бота стоит выше ролей за уровни.' : '' %>
-          </div>
-        <% } %>
-        <div>
-          <label for="adjUser">ID участника</label>
-          <input type="text" id="adjUser" name="userId" inputmode="numeric" placeholder="Например, 123456789012345678" required pattern="[0-9]{15,25}" value="<%= locals.prefillUser || '' %>" />
-          <div class="hint" data-fill-name-out></div>
-        </div>
-        <div class="two-col">
-          <div>
-            <label for="adjMode">Действие</label>
-            <select id="adjMode" name="mode">
-              <option value="add">Добавить уровни</option>
-              <option value="remove">Убавить уровни</option>
-              <option value="set">Задать точный уровень</option>
-            </select>
-          </div>
-          <div>
-            <label for="adjAmount">Сколько (или какой уровень)</label>
-            <input type="number" id="adjAmount" name="amount" value="1" min="0" max="1000" required />
-          </div>
-        </div>
-        <button class="btn" type="submit">Применить</button>
-      </form>
+<% if (tab === 'leveling-data') { %>
+      <%- include('../partials/level-adjust', { drawer: false }) %>
 
       <section class="card set-section set-tools">
         <h2>Перенос данных</h2>

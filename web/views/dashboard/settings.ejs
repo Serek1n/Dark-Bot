@@ -10,19 +10,17 @@
         <%- include('../partials/settings-tabs') %>
         <p class="page-intro">То, что относится к боту на всём сервере, а не к одному модулю.</p>
       </div>
-      <form method="post" action="/dashboard/<%= guild.id %>/language" class="card lang-card" data-no-guard>
-        <h2>Язык бота на сервере</h2>
-        <div class="two-col">
-          <div>
-            <select name="language" aria-label="Язык бота на сервере">
-              <option value="auto" <%= (settings.language || 'auto') === 'auto' ? 'selected' : '' %>>Язык по умолчанию</option>
-              <option value="ru" <%= settings.language === 'ru' ? 'selected' : '' %>>Русский</option>
-              <option value="en" <%= settings.language === 'en' ? 'selected' : '' %>>English</option>
-            </select>
-          </div>
-          <div><button class="btn" type="submit">Сохранить язык</button></div>
+      <form method="post" action="/dashboard/<%= guild.id %>/language" class="card set-section lang-card">
+        <h2>Язык</h2>
+        <div class="set-row">
+          <div class="set-text"><label for="botLanguage">Язык бота на сервере</label><p class="set-help">На нём бот отвечает на команды и пишет сообщения. «По умолчанию» — язык из настроек сервера Discord. Ваши собственные тексты бот не переводит. Язык панели меняется кнопкой с глобусом</p></div>
+          <div class="set-ctl"><select id="botLanguage" name="language">
+            <option value="auto" <%= (settings.language || 'auto') === 'auto' ? 'selected' : '' %>>Язык по умолчанию</option>
+            <option value="ru" <%= settings.language === 'ru' ? 'selected' : '' %>>Русский</option>
+            <option value="en" <%= settings.language === 'en' ? 'selected' : '' %>>English</option>
+          </select></div>
         </div>
-        <p class="hint">На этом языке бот отвечает на команды и пишет сообщения. «Язык по умолчанию» — тот, что выбран в настройках сервера Discord. Тексты, которые вы написали сами, бот не переводит. Язык этой панели меняется кнопкой с глобусом вверху.</p>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить язык</button></div>
       </form>
     </main>
   </div>

@@ -80,7 +80,7 @@ router.get('/:guildId/temp-voice-stats', ensureGuildAccess, async (req, res) => 
 // ---- Настройки: remembered owner settings, default quality ----
 router.get('/:guildId/temp-voice-settings', ensureGuildAccess, async (req, res) => {
   const data = await pageData(req, 'temp-voice-settings');
-  res.render('dashboard/temp-voice-settings', { ...data, prefs: await VoiceRoomPref.count({ where: { guildId: req.params.guildId } }) });
+  res.render('dashboard/temp-voice-settings', { ...data, A: require('../../../shared/settingsSchema').attrs, prefs: await VoiceRoomPref.count({ where: { guildId: req.params.guildId } }) });
 });
 router.post('/:guildId/temp-voice/settings', ensureGuildAccess, async (req, res) => {
   const settings = await getSettings(req.params.guildId);

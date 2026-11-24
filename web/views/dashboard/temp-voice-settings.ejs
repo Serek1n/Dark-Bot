@@ -11,18 +11,21 @@
         <p class="page-intro">Что комната помнит о владельце и с каким качеством звука создаётся. Название и лимит новых комнат — во вкладке «Создание комнат».</p>
       </div>
       <% const g = '/dashboard/' + guild.id; %>
-      <form method="post" action="<%= g %>/temp-voice/settings" class="card g-span">
-        <h2>Запоминать настройки владельцев</h2>
-        <div class="g-split"><div>
-        <div class="rules">
-          <label class="rule"><span class="rule-text"><b>Восстанавливать комнату как в прошлый раз</b><span>Название, лимит, доступ, битрейт, регион, доверенные и забаненные — новая комната владельца создаётся с ними.</span></span><input type="checkbox" name="tempVoiceRemember" <%= settings.tempVoiceRemember !== false ? 'checked' : '' %> /></label>
+      <% const A = locals.A || (() => ''); %>
+      <form method="post" action="<%= g %>/temp-voice/settings" class="card set-section" data-api="tempVoice.settings">
+        <h2>Новые комнаты</h2>
+        <div class="set-row">
+          <div class="set-text"><label for="tempVoiceRemember">Восстанавливать комнату как в прошлый раз</label><p class="set-help">Название, лимит, доступ, битрейт, регион, доверенные и забаненные — новая комната владельца создаётся с ними</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="tempVoiceRemember" name="tempVoiceRemember" <%= settings.tempVoiceRemember !== false ? 'checked' : '' %> /></div>
         </div>
-        </div><div>
-        <label for="tvBit">Битрейт новых комнат, кбит/с</label>
-        <input id="tvBit" type="number" name="tempVoiceBitrate" min="0" max="384" value="<%= settings.tempVoiceBitrate || 0 %>" />
-        <div class="hint">0 — как решит Discord (обычно 64). Без бустов сервера — не больше 96.</div>
-        </div></div>
-        <button class="btn" type="submit">Сохранить</button>
+        <div class="set-row">
+          <div class="set-text"><label for="tvBit">Битрейт новых комнат</label><p class="set-help">0 — как решит Discord (обычно 64). Без бустов сервера — не больше 96</p></div>
+          <div class="set-ctl"><input id="tvBit" type="number" name="tempVoiceBitrate" value="<%= settings.tempVoiceBitrate || 0 %>" <%- A('tempVoice.settings', 'tempVoiceBitrate') %> /><span class="set-unit">кбит/с</span></div>
+        </div>
+        <div class="set-actions">
+          <button class="btn" type="submit">Сохранить</button>
+          <button class="btn btn-secondary set-reset" type="button" data-reset-section="tempVoice.settings">Сбросить к стандартным</button>
+        </div>
       </form>
       <div class="card g-span">
         <h2>Сохранённые настройки</h2>

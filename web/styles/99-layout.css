@@ -168,7 +168,7 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
 
 /* ---------- App shell on wide screens: a fixed side menu (244 px; 64 px folded, only by its button) ---------- */
 .sb-toggle { display: none; }
-@media (min-width: 1200px) {
+@media (min-width: 1024px) {
   .nav-drawer.is-rail { display: block; position: fixed; inset: 0 auto 0 0; width: 244px; z-index: 45; }
   .nav-drawer.is-rail .nd-backdrop { display: none; }
   .nav-drawer.is-rail .nd-panel { position: absolute; inset: 0; width: 100%; animation: none; border-right: 1px solid var(--hairline); background: var(--rail); }
@@ -209,4 +209,20 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
   html.sb-mini .nav-drawer.is-rail .nd-head { justify-content: center; padding: 0; }
   html.sb-mini .nav-drawer.is-rail .nd-group + .nd-group { border-top: 1px solid var(--hairline-soft); margin-top: 6px; padding-top: 6px; }
 }
-@media (min-width: 1200px) { .nav-drawer.is-rail .nd-search { display: none; } }
+@media (min-width: 1024px) { .nav-drawer.is-rail .nd-search { display: none; } }
+/* with the side menu the «≡» button and the top groups are not needed */
+@media (min-width: 1024px) { .app-layout:has(.nav-drawer.is-rail) .tb-burger { display: none; } }
+@media (min-width: 1024px) { html:not(.sb-mini) .nav-drawer.is-rail .tb-guild-name { display: block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+
+/* ---------- the older settings pages: a label above a number or a list becomes a split row too (name on the left, the
+   control on the right), without changing their templates. Two fields side by side (.two-col) stay as they are. ---------- */
+@media (min-width: 761px) {
+  .app-layout .content .card > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.two-col):not(.set-row):not(.embed-editor) {
+    display: grid; grid-template-columns: minmax(0, 60fr) minmax(0, 40fr); column-gap: 24px; align-items: center;
+    padding: 12px 0; border-top: 1px solid var(--hairline-soft); margin: 0;
+  }
+  .app-layout .content .card > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.two-col):not(.set-row) > label { grid-column: 1; margin: 0; font-size: var(--fs-14); font-weight: 500; color: var(--text-primary); }
+  .app-layout .content .card > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.two-col):not(.set-row) > :is(input, select, .fs) { grid-column: 2; grid-row: 1; margin: 0; }
+  .app-layout .content .card > div:has(> label:first-child + input[type=number]):not(.two-col):not(.set-row) > input { justify-self: end; width: 140px; text-align: right; }
+  .app-layout .content .card > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.two-col):not(.set-row) > :is(.hint, small, p) { grid-column: 1; margin: 4px 0 0; }
+}

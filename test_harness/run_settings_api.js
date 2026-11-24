@@ -73,6 +73,22 @@ const schema = require('../shared/settingsSchema');
     const r = await fetch(`${base}/api/settings/leveling.accrual`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: '{bad' });
     assert(r.status === 400 && (await r.json()).ok === false, 'bad json');
   });
+  await test('the other sections: names, prefix, bitrate, channels, moderation switches', async () => {
+    let r = await patch('economy.currency', { currencyName: '  ', dailyStreakMax: '0' });
+    assert(r.status === 400 && r.body.fieldErrors.currencyName === 'Заполните это поле' && r.body.fieldErrors.dailyStreakMax, JSON.stringify(r));
+    r = await patch('economy.currency', { currencyName: 'золото', dailyCoins: '250' });
+    let s = await S(); assert(r.status === 200 && s.currencyName === 'золото' && s.dailyCoins === 250, 'economy');
+    r = await patch('customCommands.prefix', { prefix: '! ' });
+    assert(r.status === 200 && (await S()).prefix === '!', 'trimmed prefix ' + JSON.stringify(r));
+    r = await patch('customCommands.prefix', { prefix: 'a b' });
+    assert(r.status === 400 && r.body.fieldErrors.prefix === 'Без пробелов', JSON.stringify(r));
+    r = await patch('tempVoice.settings', { tempVoiceBitrate: '5', tempVoiceRemember: false });
+    s = await S(); assert(r.status === 200 && s.tempVoiceBitrate === 8 && s.tempVoiceRemember === false, 'bitrate floor');
+    r = await patch('moderation.settings', { modDmEnabled: true, modRequireReason: true, modLogChannelId: TEXT });
+    s = await S(); assert(r.status === 200 && s.modRequireReason === true && s.modLogChannelId === TEXT, JSON.stringify(r));
+    r = await patch('shop.settings', { shopLogChannelId: '' });
+    assert(r.status === 200 && (await S()).shopLogChannelId === null, 'cleared');
+  });
   await test('reset: a section goes back to its defaults, other sections stay', async () => {
     await patch('leveling.notify', { levelUpEvery: '7' });
     const r = await fetch(`${base}/api/settings/leveling.accrual/reset`, { method: 'POST', headers: { accept: 'application/json' } }).then((x) => x.json());

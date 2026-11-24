@@ -56,6 +56,46 @@ const SECTIONS = {
       leaderboardMinLevel: { type: 'integer', min: 0, max: 1000, default: 0 }
     }
   },
+  // «Экономика» → «Валюты и награды»: names and the daily reward
+  'economy.currency': {
+    module: 'economy',
+    fields: {
+      currencyName: { type: 'string', maxLength: 24, required: true },
+      crystalName: { type: 'string', maxLength: 24, required: true },
+      dailyCoins: { type: 'integer', min: 0, max: 1000000 },
+      dailyStreakBonus: { type: 'integer', min: 0, max: 1000000 },
+      dailyStreakMax: { type: 'integer', min: 1, max: 365 }
+    }
+  },
+  // «Модерация» → «Настройки»
+  'moderation.settings': {
+    module: 'moderation',
+    fields: {
+      modDmEnabled: { type: 'boolean' },
+      modRequireReason: { type: 'boolean' },
+      modLogChannelId: { type: 'channel', channelTypes: [0, 5], need: 'post', nullable: true }
+    }
+  },
+  // «Временные голосовые» → «Настройки»
+  'tempVoice.settings': {
+    module: 'tempVoice',
+    fields: {
+      tempVoiceRemember: { type: 'boolean' },
+      tempVoiceBitrate: { type: 'integer', min: 0, max: 384, default: 0 }
+    },
+    // Discord takes no less than 8 kbit/s; 0 means «as Discord decides»
+    normalize(v) { if (v.tempVoiceBitrate && v.tempVoiceBitrate < 8) v.tempVoiceBitrate = 8; return v; }
+  },
+  // «Свои команды»: the prefix
+  'customCommands.prefix': {
+    module: 'customCommands',
+    fields: { prefix: { type: 'string', maxLength: 3, required: true, pattern: /^\S+$/, patternError: 'Без пробелов' } }
+  },
+  // «Экономика» → «Магазин»: where purchases are written
+  'shop.settings': {
+    module: 'shop',
+    fields: { shopLogChannelId: { type: 'channel', channelTypes: [0, 5], need: 'post', nullable: true } }
+  },
   // «Приветствие» → «Автороль и возврат»
   'welcome.rejoin': {
     module: 'welcome',
@@ -111,6 +151,7 @@ function validate(key, input, ctx = {}) {
         const str = String(raw ?? '').trim();
         if (!str) { if (f.nullable) values[name] = null; else if (f.required) err(ERR.required); else values[name] = ''; break; }
         if (f.maxLength && str.length > f.maxLength) { err(ERR.long(f)); break; }
+        if (f.pattern && !f.pattern.test(str)) { err(f.patternError || ERR.choice); break; }
         values[name] = str; break;
       }
       case 'enum': if (f.values.includes(String(raw))) values[name] = String(raw); else err(ERR.choice); break;
@@ -153,7 +194,7 @@ function attrs(key, name) {
   if (!f) return '';
   const a = [];
   if (f.type === 'integer') { a.push('step="1"'); if (f.min !== undefined) a.push(`min="${f.min}"`); if (f.max !== undefined) a.push(`max="${f.max}"`); if (!f.nullable) a.push('required'); }
-  if (f.type === 'string' && f.maxLength) a.push(`maxlength="${f.maxLength}"`);
+  if (f.type === 'string') { if (f.maxLength) a.push(`maxlength="${f.maxLength}"`); if (f.required) a.push('required'); }
   return a.join(' ');
 }
 

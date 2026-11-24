@@ -77,11 +77,12 @@ const express = require('express');
     const p = await db.MemberProfile.findOne({ where: { userId: '100000000000000009' } });
     assert(Number(p.chatXp) === 300 && Number(p.voiceXp) === 700 && Number(p.crystals) === 6 && Number(p.xp) === 1000, 'restored ' + [p.chatXp, p.voiceXp, p.crystals]);
   });
-  await test('the leaderboard page is gone from the panel: old links land on the levels page', async () => {
-    const r = await fetch(base + '/leaderboard?track=voice', { redirect: 'manual' });
-    assert(r.status === 301 && r.headers.get('location').endsWith('/leveling-data'), 'redirect ' + r.status); // «Данные и участники»: the list with search and the level editor
-    const home = await (await fetch(base + '')).text();
-    assert(!home.includes('/leaderboard"') && !home.includes('/leaderboard?'), 'no links left'); // (the news may still name the page)
+  await test('the leaderboard is a tab of «Уровни»: total and voice, search, the shared level editor', async () => {
+    const r = await fetch(base + '/leaderboard?track=voice');
+    const html = await r.text();
+    assert(r.status === 200 && html.includes('Лидерборд') && html.includes('по времени в голосе') && html.includes('data-filter-table="lvMembers"') && html.includes('id="adjust"') && html.includes('data-drawer="Изменить уровень участника"'), 'page');
+    const data = await (await fetch(base + '/leveling-data')).text();
+    assert(data.includes('id="adjust"') && !data.includes('data-drawer="Изменить уровень участника"'), 'the same editor, open on the data tab');
   });
 
   await test('overview shows the real commands and no stale ones; top and recent actions render', async () => {

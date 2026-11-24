@@ -12,20 +12,17 @@
       </div>
       <% const n = (v) => Number(v).toLocaleString('ru-RU'); const cn = (c) => c === 'crystals' ? settings.crystalName : settings.currencyName; %>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/shop/settings" class="card g-c2">
-        <h2>Магазин и журнал покупок</h2>
-        <div>
-          <label>Канал для журнала покупок</label>
-          <select name="shopLogChannelId">
+      <form method="post" action="/dashboard/<%= guild.id %>/shop/settings" class="card set-section" data-api="shop.settings">
+        <h2>Журнал покупок</h2>
+        <div class="set-row">
+          <div class="set-text"><label for="shopLogChannelId">Канал журнала покупок</label><p class="set-help">Бот пишет туда, кто и что купил. Не выбран — покупки видны только в таблице «Покупки» ниже</p></div>
+          <div class="set-ctl"><select id="shopLogChannelId" name="shopLogChannelId">
             <option value="">Не отправлять</option>
-            <% channels.filter(c => c.type === 0).forEach(c => { %>
-              <option value="<%= c.id %>" <%= settings.shopLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option>
-            <% }) %>
+            <% channels.filter(c => c.type === 0 || c.type === 5).forEach(c => { %><option value="<%= c.id %>" <%= settings.shopLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
             <% if (settings.shopLogChannelId && !channels.some((c) => c.id === settings.shopLogChannelId)) { %><option value="<%= settings.shopLogChannelId %>" selected data-gone>⚠️ Удалённый канал (ID: <%= settings.shopLogChannelId %>)</option><% } %>
-          </select>
-          <div class="hint">Сюда бот пишет, кто и что купил. Не выбран — покупки видны только в таблице «Покупки» ниже.</div>
+          </select></div>
         </div>
-        <button class="btn" type="submit">Сохранить</button>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
       </form>
 
       <div class="card g-c2">

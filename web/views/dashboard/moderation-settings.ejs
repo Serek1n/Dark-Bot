@@ -11,30 +11,33 @@
         <p class="page-intro">Куда бот пишет о наказаниях и как он их выдаёт.</p>
       </div>
       <% const g = '/dashboard/' + guild.id; %>
-      <form method="post" action="<%= g %>/moderation/settings" class="plain">
-        <div class="card g-c1" id="channels">
-          <h2>Канал журнала</h2>
-          <label for="modLogChannelId">Канал журнала наказаний</label>
-          <select id="modLogChannelId" name="modLogChannelId">
-            <option value="">— не выбрано —</option>
-            <% channels.forEach(c => { %><option value="<%= c.id %>" <%= settings.modLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
-          </select>
-          <div class="hint">Каждое наказание появится здесь отдельным сообщением с номером дела. Не выбран — наказания не публикуются в канале, но остаются в журнале панели. Отдельно все наказания попадают в тему «Выдача наказаний» форума логов.</div>
-        </div>
-        <div class="card g-c2" id="rules">
+      <form method="post" action="<%= g %>/moderation/settings" class="set-page" data-api="moderation.settings">
+        <section class="card set-section" id="rules">
           <h2>Как выдаются наказания</h2>
-          <div class="rules">
-            <label class="rule">
-              <span class="rule-text"><b>Сообщать участнику в личные сообщения</b><span>Участник узнает, за что и на какой срок его наказали. Если личные сообщения закрыты, бот просто продолжит.</span></span>
-              <input type="checkbox" name="modDmEnabled" <%= settings.modDmEnabled ? 'checked' : '' %> />
-            </label>
-            <label class="rule">
-              <span class="rule-text"><b>Причина обязательна</b><span>Предупреждение, мут, кик и бан без причины будут отклонены.</span></span>
-              <input type="checkbox" name="modRequireReason" <%= settings.modRequireReason ? 'checked' : '' %> />
-            </label>
+          <div class="set-row">
+            <div class="set-text"><label for="modDmEnabled">Сообщать участнику в личные сообщения</label><p class="set-help">За что и на какой срок. Если личные сообщения закрыты, бот просто продолжит</p></div>
+            <div class="set-ctl"><input type="checkbox" class="switch" id="modDmEnabled" name="modDmEnabled" <%= settings.modDmEnabled ? 'checked' : '' %> /></div>
           </div>
-        </div>
-        <button class="btn" type="submit">Сохранить</button>
+          <div class="set-row">
+            <div class="set-text"><label for="modRequireReason">Причина обязательна</label><p class="set-help">Предупреждение, мут, кик и бан без причины будут отклонены</p></div>
+            <div class="set-ctl"><input type="checkbox" class="switch" id="modRequireReason" name="modRequireReason" <%= settings.modRequireReason ? 'checked' : '' %> /></div>
+          </div>
+        </section>
+        <section class="card set-section" id="channels">
+          <h2>Канал журнала</h2>
+          <div class="set-row">
+            <div class="set-text"><label for="modLogChannelId">Журнал наказаний</label><p class="set-help">Не выбран — наказания остаются в журнале панели и в теме «Выдача наказаний» форума логов</p></div>
+            <div class="set-ctl"><select id="modLogChannelId" name="modLogChannelId">
+              <option value="">Не публиковать</option>
+              <% channels.forEach(c => { %><option value="<%= c.id %>" <%= settings.modLogChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+              <% if (settings.modLogChannelId && !channels.some((c) => c.id === settings.modLogChannelId)) { %><option value="<%= settings.modLogChannelId %>" selected data-gone>⚠️ Удалённый канал (ID: <%= settings.modLogChannelId %>)</option><% } %>
+            </select></div>
+          </div>
+          <div class="set-actions">
+            <button class="btn" type="submit">Сохранить</button>
+            <button class="btn btn-secondary set-reset" type="button" data-reset-section="moderation.settings">Сбросить к стандартным</button>
+          </div>
+        </section>
       </form>
       <div class="card g-span">
         <h2>Права бота</h2>

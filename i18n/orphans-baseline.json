@@ -1,4 +1,4 @@
 {
  "note": "How many keys of en.json no text uses any more (node i18n/check.js --orphans). The test fails if the number grows: remove a key together with the text it translated.",
- "orphans": 437
+ "orphans": 244
 }

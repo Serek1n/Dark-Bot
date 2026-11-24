@@ -15,7 +15,7 @@ test('every panel page is indexed with its title and settings', () => {
 test('known settings are findable by their words', () => {
   const all = pages.flatMap((p) => p.entries);
   const has = (page, text) => assert(all.some((e) => e.page === page && e.text === text), page + ': ' + text);
-  has('automod', 'Блокировать мат'); has('automod', 'Фильтр ссылок'); has('leveling', 'Пауза между начислениями'); has('leveling-notify', 'Канал поздравлений'); has('leveling-rewards', 'Новая роль за уровень'); has('shop', 'Магазин и журнал покупок');
+  has('automod', 'Блокировать мат'); has('automod', 'Фильтр ссылок'); has('leveling', 'Пауза между начислениями'); has('leveling-notify', 'Канал поздравлений'); has('leveling-rewards', 'Новая роль за уровень'); has('shop', 'Журнал покупок'); has('leaderboard', 'Рейтинг'); has('economy', 'Ежедневная награда');
   assert(!all.some((e) => /<%|%>|<|>/.test(e.text)), 'no template code or tags in texts');
 });
 test('template code and tags are cleaned out of texts', () => {

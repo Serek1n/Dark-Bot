@@ -11,14 +11,13 @@
         <p class="page-intro">Простые текстовые команды по префиксу — участник пишет триггер, бот отвечает заданным текстом.</p>
       </div>
 
-      <form method="post" action="/dashboard/<%= guild.id %>/custom-commands/prefix" class="card g-c2">
-        <h2>Префикс<span class="sub">Знак, с которого начинаются свои команды</span></h2>
-        <div>
-          <label>Символ перед командой (до 3 знаков)</label>
-          <input type="text" name="prefix" value="<%= settings.prefix %>" maxlength="3" required />
-          <div class="hint">С префиксом «!» команда «правила» вызывается сообщением <code>!правила</code>. Слеш-команды бота (/profile, /shop…) от префикса не зависят.</div>
+      <form method="post" action="/dashboard/<%= guild.id %>/custom-commands/prefix" class="card set-section" data-api="customCommands.prefix">
+        <h2>Префикс</h2>
+        <div class="set-row">
+          <div class="set-text"><label for="ccPrefix">Знак перед командой</label><p class="set-help">С префиксом «!» команда «правила» вызывается сообщением <code>!правила</code>. До 3 знаков, без пробелов. Слеш-команды бота (/profile, /shop…) от префикса не зависят</p></div>
+          <div class="set-ctl"><input type="text" id="ccPrefix" name="prefix" value="<%= settings.prefix %>" maxlength="3" required pattern="\S+" style="max-width:96px" /></div>
         </div>
-        <button class="btn" type="submit">Сохранить</button>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
       </form>
 
       <form method="post" class="card" id="ccAdd" data-drawer="Новая команда">

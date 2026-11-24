@@ -35,7 +35,7 @@ router.get('/:guildId/economy', ensureGuildAccess, async (req, res) => {
   const richest = await MemberProfile.findAll({ where, order: [['balance', 'DESC']], limit: 5 });
   const users = await getUsers(richest.map((p) => p.userId));
   const params = Object.fromEntries(config.KEYS.map((k) => [k, config.params(settings, k)]));
-  res.render('dashboard/economy', {
+  res.render('dashboard/economy', { A: require('../../../shared/settingsSchema').attrs,
     events: { enabled: require('../../../bot/modules/botEvents').read(settings).enabled, plan: require('../../../bot/modules/botEvents').activationPlan(settings) },
     guild, settings, channels, stats: { coinsTotal: coinsTotal || 0, crystalsTotal: crystalsTotal || 0, holders }, richest, users, active: 'economy',
     econ: { FEATURES: config.FEATURES, PRESETS: config.PRESETS, mode: config.MODES.includes(settings.economyMode) ? settings.economyMode : 'simple', preset: config.PRESET_BY_KEY[settings.economyPreset] ? settings.economyPreset : 'calm', flags: config.parse(settings.economyFeatures), on: config.enabledKeys(settings), params }

@@ -1,6 +1,35 @@
 [
  {
   "bot": "3.19.5",
+  "panel": "3.33.0",
+  "date": "2026-11-24",
+  "botChanges": [],
+  "panelChanges": [
+   "Уровни → Лидерборд: рейтинг общий и по голосу, поиск, изменение уровня из строки",
+   "Уровни → Данные и участники: редактор уровня прямо на странице, перенос данных",
+   "Экономика: названия валют и ежедневная награда — строками, сохранение без перезагрузки",
+   "Модерация → Настройки, магазин, префикс команд, временные голосовые — без перезагрузки",
+   "Приветствие и язык бота — строками «название — поле», лишние поля приглушаются",
+   "Меню слева появляется уже с ширины 1024 точки",
+   "«Сбросить к стандартным» есть у экономики, модерации и временных голосовых",
+   "Остальные страницы: число или список под подписью встают в строку рядом с ней"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Levels → Leaderboard: overall and voice ranking, search, edit a level from a row",
+    "Levels → Data and members: the level editor right on the page, moving data",
+    "Economy: currency names and the daily reward in rows, saved without a reload",
+    "Moderation → Settings, shop, command prefix, temp voice — saved without a reload",
+    "Welcome and the bot language in rows «name — field», unused fields are dimmed",
+    "The side menu now appears from 1024 px wide",
+    "«Reset to defaults» on economy, moderation and temporary voice",
+    "Other pages: a number or a list under its label moves into a row beside it"
+   ]
+  }
+ },
+ {
+  "bot": "3.19.5",
   "panel": "3.32.0",
   "date": "2026-11-24",
   "botChanges": [],

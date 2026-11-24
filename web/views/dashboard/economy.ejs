@@ -17,6 +17,40 @@
         <div class="stat-box"><div class="value"><%= n(stats.crystalsTotal) %></div><div class="label"><%= cap(settings.crystalName) %> в обороте</div></div>
         <div class="stat-box"><div class="value"><%= n(stats.holders) %></div><div class="label">Участников с деньгами</div></div>
       </div>
+      <% const A = locals.A || (() => ''); %>
+      <form method="post" class="set-page" data-api="economy.currency">
+        <section class="card set-section">
+          <h2>Валюты</h2>
+          <div class="set-row">
+            <div class="set-text"><label for="currencyName">Основная валюта</label><p class="set-help">За сообщения, время в голосе и ежедневную награду. Участники переводят её друг другу: <code>/pay</code></p></div>
+            <div class="set-ctl"><input type="text" id="currencyName" name="currencyName" value="<%= settings.currencyName %>" <%- A('economy.currency', 'currencyName') %> /></div>
+          </div>
+          <div class="set-row">
+            <div class="set-text"><label for="crystalName">Редкая валюта</label><p class="set-help">Только за новые уровни. Сколько за каждый — в «Уровни → Награды и роли»</p></div>
+            <div class="set-ctl"><input type="text" id="crystalName" name="crystalName" value="<%= settings.crystalName %>" <%- A('economy.currency', 'crystalName') %> /></div>
+          </div>
+        </section>
+        <section class="card set-section">
+          <h2>Ежедневная награда<span class="sub">Команда <code>/daily</code></span></h2>
+          <div class="set-row">
+            <div class="set-text"><label for="dailyCoins">Награда</label><p class="set-help">0 — команда ничего не даёт</p></div>
+            <div class="set-ctl"><input type="number" id="dailyCoins" name="dailyCoins" value="<%= settings.dailyCoins %>" <%- A('economy.currency', 'dailyCoins') %> /><span class="set-unit"><%= settings.currencyName %></span></div>
+          </div>
+          <div class="set-row">
+            <div class="set-text"><label for="dailyStreakBonus">Прибавка за каждый день серии</label><p class="set-help">Заходят за наградой каждый день подряд — награда растёт</p></div>
+            <div class="set-ctl"><input type="number" id="dailyStreakBonus" name="dailyStreakBonus" value="<%= settings.dailyStreakBonus %>" <%- A('economy.currency', 'dailyStreakBonus') %> /><span class="set-unit">за день</span></div>
+          </div>
+          <div class="set-row">
+            <div class="set-text"><label for="dailyStreakMax">Серия растёт до</label></div>
+            <div class="set-ctl"><input type="number" id="dailyStreakMax" name="dailyStreakMax" value="<%= settings.dailyStreakMax %>" <%- A('economy.currency', 'dailyStreakMax') %> /><span class="set-unit">дней</span></div>
+          </div>
+          <div class="set-actions">
+            <button class="btn" type="submit">Сохранить</button>
+            <button class="btn btn-secondary set-reset" type="button" data-reset-section="economy.currency">Сбросить к стандартным</button>
+          </div>
+        </section>
+      </form>
+
       <form method="post" data-econ-form>
         <div class="card g-span econ-setup">
           <h2>Как устроена экономика</h2>
@@ -63,39 +97,6 @@
           <p class="econ-simple" data-econ-pane="simple"<%= ec.mode === 'simple' ? '' : ' hidden' %>>Работает только основа. Журнал операций и карточка <code>/balance</code> с графиком есть всегда — они ничего не меняют в правилах.</p>
         </div>
 
-        <div class="card g-c1 g-r2">
-          <h2><%= cap(settings.currencyName) %></h2>
-          <p>Основная валюта. Приходит за сообщения и время в голосовом канале, а также за ежедневную награду. Участники могут переводить её друг другу: <code>/pay</code>.</p>
-          <div class="two-col">
-            <div>
-              <label>Название</label>
-              <input type="text" name="currencyName" value="<%= settings.currencyName %>" maxlength="24" />
-            </div>
-            <div>
-              <label>Ежедневная награда (<code>/daily</code>)</label>
-              <input type="number" name="dailyCoins" value="<%= settings.dailyCoins %>" min="0" max="1000000" />
-            </div>
-          </div>
-          <div class="two-col">
-            <div>
-              <label>Бонус за каждый день серии</label>
-              <input type="number" name="dailyStreakBonus" value="<%= settings.dailyStreakBonus %>" min="0" max="1000000" />
-              <div class="hint">Заходят за наградой каждый день подряд — награда растёт.</div>
-            </div>
-            <div>
-              <label>Серия растёт до (дней)</label>
-              <input type="number" name="dailyStreakMax" value="<%= settings.dailyStreakMax %>" min="1" max="365" />
-            </div>
-          </div>
-        </div>
-        <div class="card g-c2">
-          <h2><%= cap(settings.crystalName) %></h2>
-          <p>Редкая валюта. Выдаётся только за новые уровни (сколько за каждый, задаётся на странице «Уровни»).</p>
-          <div>
-            <label>Название</label>
-            <input type="text" name="crystalName" value="<%= settings.crystalName %>" maxlength="24" />
-          </div>
-        </div>
         <% const bev = locals.events || { enabled: true, plan: '' }; %>
         <div class="card g-c2 ev-link-card">
           <h2>События бота</h2>
@@ -114,40 +115,39 @@
         <button class="btn" type="submit">Сохранить</button>
       </form>
 
-      <div class="grid-2" style="margin-top:18px;">
-        <form method="post" action="/dashboard/<%= guild.id %>/economy/grant" class="card" data-no-guard data-confirm="Изменить баланс участника? Вернуть прежнее значение можно только обратной операцией." data-confirm-ok="Изменить" data-confirm-soft>
-          <h2>Начислить или списать вручную</h2>
-          <div>
-            <label>ID участника</label>
-            <input type="text" name="userId" inputmode="numeric" placeholder="Например, 123456789012345678" required pattern="[0-9]{15,25}" />
-            <div class="hint">Включите режим разработчика в Discord, правый клик по участнику → «Копировать ID».</div>
+      <div class="card">
+        <h2>Самые богатые</h2>
+        <% if (!richest.length || !Number(richest[0].balance)) { %>
+          <p class="empty-state">Пока ни у кого нет денег.</p>
+        <% } else { %>
+          <div class="mini-list">
+            <% richest.forEach((p, i) => { const u = users[p.userId] || { name: p.userId, avatar: '' }; %>
+              <div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(u.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= u.name %></span></span><span class="val"><%= n(p.balance) %> · <%= n(p.crystals) %> кр.</span></div>
+            <% }) %>
           </div>
-          <div class="two-col">
-            <div>
-              <label>Что</label>
-              <select name="currency"><option value="coins"><%= settings.currencyName %></option><option value="crystals"><%= settings.crystalName %></option></select>
-            </div>
-            <div>
-              <label>Сколько (минус — забрать)</label>
-              <input type="number" name="amount" value="100" required />
-            </div>
-          </div>
-          <button class="btn" type="submit">Применить</button>
-        </form>
-        <div class="card">
-          <h2>Самые богатые</h2>
-          <% if (!richest.length || !Number(richest[0].balance)) { %>
-            <p class="empty-state">Пока ни у кого нет денег.</p>
-          <% } else { %>
-            <div class="mini-list">
-              <% richest.forEach((p, i) => { const u = users[p.userId] || { name: p.userId, avatar: '' }; %>
-                <div class="mini-row"><span class="rk"><%= i + 1 %></span><span class="person"><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(u.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= u.name %></span></span><span class="val"><%= n(p.balance) %> · <%= n(p.crystals) %> кр.</span></div>
-              <% }) %>
-            </div>
-          <% } %>
-          <a class="card-link" href="/dashboard/<%= guild.id %>/economy-journal">Журнал всех операций →</a>
-        </div>
+        <% } %>
+        <a class="card-link" href="/dashboard/<%= guild.id %>/economy-journal">Журнал всех операций →</a>
       </div>
+
+      <form method="post" action="/dashboard/<%= guild.id %>/economy/grant" class="card set-tools" id="grant" data-no-guard data-confirm="Изменить баланс участника? Вернуть прежнее значение можно только обратной операцией." data-confirm-ok="Изменить" data-confirm-soft>
+        <h2>Начислить или списать вручную</h2>
+        <div>
+          <label>ID участника</label>
+          <input type="text" name="userId" inputmode="numeric" placeholder="Например, 123456789012345678" required pattern="[0-9]{15,25}" />
+          <div class="hint">Включите режим разработчика в Discord, правый клик по участнику → «Копировать ID».</div>
+        </div>
+        <div class="two-col">
+          <div>
+            <label>Что</label>
+            <select name="currency"><option value="coins"><%= settings.currencyName %></option><option value="crystals"><%= settings.crystalName %></option></select>
+          </div>
+          <div>
+            <label>Сколько (минус — забрать)</label>
+            <input type="number" name="amount" value="100" required />
+          </div>
+        </div>
+        <button class="btn" type="submit">Применить</button>
+      </form>
     </main>
   </div>
   <script src="/js/economy.js?v=<%= typeof assetV !== 'undefined' ? assetV : '' %>" defer></script>

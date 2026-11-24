@@ -28,7 +28,7 @@ const web = path.join(__dirname, '..', 'web');
     assert(/class="tb-group tb-mods is-on"/.test(html), 'on a module page "Модули" is lit');
   });
   await test('every page of the panel still has its entry in the menu', async () => {
-    const html = await render('x'); const routes = fs.readdirSync(path.join(web, 'routes/dashboard')).map((f) => fs.readFileSync(path.join(web, 'routes/dashboard', f), 'utf8')).join('\n');
+    const html = await render('x'); const routes = fs.readdirSync(path.join(web, 'routes/dashboard')).filter((f) => f.endsWith('.js')).map((f) => fs.readFileSync(path.join(web, 'routes/dashboard', f), 'utf8')).join('\n');
     const M = require('../web/modules');
     for (const p of ['features', 'leveling', 'economy', 'channel-boosts', 'shop', 'moderation', 'logs', 'automod', 'welcome', 'reaction-roles', 'custom-commands', 'temp-voice', 'alerts', 'webhooks']) {
       const main = M.moduleOfPage(p); // a tab is reached from its module's page

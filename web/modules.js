@@ -65,7 +65,7 @@ const MOD_PAGES = ['moderation', 'moderation-punishments', 'moderation-warnings'
 const LOOK_PAGES = ['appearance', 'appearance-levels', 'appearance-achievements', 'appearance-fun', 'appearance-voice'];
 const VOICE_PAGES = ['temp-voice', 'temp-voice-rooms', 'temp-voice-panel', 'temp-voice-access', 'temp-voice-roles', 'temp-voice-auto', 'temp-voice-stats', 'temp-voice-settings'];
 const LAYOUT = [
-  { key: 'leveling', group: 'community', pages: ['leveling', 'leveling-rewards', 'channel-boosts', 'leveling-notify', 'leveling-data'],
+  { key: 'leveling', group: 'community', pages: ['leveling', 'leveling-rewards', 'channel-boosts', 'leveling-notify', 'leaderboard', 'leveling-data'],
     stats: async (g) => {
       const { MemberProfile, LevelRole } = db();
       const [members, roles] = await Promise.all([MemberProfile.count(where(g)), LevelRole.count(where(g))]);
@@ -180,7 +180,7 @@ const BY_KEY = new Map(MODULES.map((m) => [m.key, m]));
 // Pages that are not a module's: what to show in their header instead.
 const PAGE_TITLES = { overview: 'Главная', features: 'Модули', settings: 'Общие настройки', changelog: 'Обновления' };
 // The tabs of a module with several pages (its header shows them; the search finds each).
-const PAGE_LABELS = { leveling: 'Начисление', 'leveling-rewards': 'Награды и роли', 'channel-boosts': 'Множители', 'leveling-notify': 'Уведомления и топ', 'leveling-data': 'Данные и участники', welcome: 'Сообщения', 'welcome-rejoin': 'Автороль и возврат', 'reaction-roles': 'Роли по реакциям',
+const PAGE_LABELS = { leveling: 'Начисление', 'leveling-rewards': 'Награды и роли', 'channel-boosts': 'Множители', 'leveling-notify': 'Уведомления и топ', leaderboard: 'Лидерборд', 'leveling-data': 'Данные и участники', welcome: 'Сообщения', 'welcome-rejoin': 'Автороль и возврат', 'reaction-roles': 'Роли по реакциям',
   moderation: 'Обзор', 'moderation-punishments': 'Наказания', 'moderation-warnings': 'Предупреждения', 'moderation-auto': 'Автонаказания', automod: 'Автомодерация',
   'moderation-reports': 'Жалобы', 'moderation-appeals': 'Апелляции', 'moderation-log': 'Журнал', 'moderation-settings': 'Настройки',
   'temp-voice': 'Обзор', 'temp-voice-rooms': 'Создание комнат', 'temp-voice-panel': 'Панель управления', 'temp-voice-access': 'Права доступа',

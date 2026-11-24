@@ -31,11 +31,11 @@ router.get('/:guildId/:alias', (req, res, next) => {
   res.redirect(301, `/dashboard/${req.params.guildId}/${to}${q >= 0 ? req.originalUrl.slice(q) : ''}`);
 });
 
-for (const page of [
-  'api', 'overview', 'leveling', 'features', 'economy', 'shop', 'moderation', 'logs', 'automod', 'channelBoosts', 'welcome',
-  'levelRoles', 'reactionRoles', 'customCommands', 'tempVoice', 'alerts', 'webhooks', 'changelog', 'replacers', 'interactive', 'giveaways', 'messages', 'events', 'music', 'achievements', 'community', 'appearance', 'serverStats'
-]) {
-  router.use(require('./' + page));
+// The JSON API for settings first, then the sections of the panel (web/routes/dashboard/domains/*.js: each groups the files
+// of its pages; a page file defines its own full paths, so the order between sections does not matter).
+router.use(require('./api'));
+for (const domain of ['settings', 'levels', 'economy', 'members', 'moderation', 'automation', 'integrations', 'community']) {
+  router.use(require('./domains/' + domain));
 }
 
 module.exports = router;

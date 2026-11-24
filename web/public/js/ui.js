@@ -1030,7 +1030,7 @@
   var drawer = document.getElementById('navDrawer');
   if (!drawer || !window.matchMedia) return;
   var panel = drawer.querySelector('.nd-panel');
-  var mq = window.matchMedia('(min-width: 1200px)');
+  var mq = window.matchMedia('(min-width: 1024px)');
   function apply() {
     if (mq.matches) {
       drawer.hidden = false; drawer.classList.add('is-rail'); document.documentElement.classList.remove('nd-open');

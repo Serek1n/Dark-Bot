@@ -1,0 +1,32 @@
+<%# The one editor of a member's level: open on «Данные и участники», in a drawer on «Лидерборд» (drawer: true). %>
+<form method="post" action="/dashboard/<%= guild.id %>/leveling/adjust" class="card" id="adjust"<%- locals.drawer ? ' data-drawer="Изменить уровень участника"' : '' %> data-no-guard data-confirm="Изменить уровень участника? Роли за уровни будут выданы или сняты сразу." data-confirm-ok="Изменить" data-confirm-soft>
+  <input type="hidden" name="back" value="<%= locals.drawer ? 'leaderboard' : 'leveling-data' %>" />
+  <h2>Изменить уровень участника</h2>
+  <p class="set-help">Участник окажется в начале нужного уровня, роли за уровни обновятся сразу. Кристаллы за такое изменение не выдаются.</p>
+  <% if (locals.adjusted) { %>
+    <div class="hint" role="status" style="color:var(--ember);margin-bottom:6px;">
+      <%= adjusted.name %>: уровень <%= adjusted.from %> → <%= adjusted.to %>.
+      <%= adjusted.roles === 'ok' ? 'Роли обновлены.' : adjusted.roles === 'fail' ? 'Роли обновить не удалось: проверьте, что роль бота стоит выше ролей за уровни.' : '' %>
+    </div>
+  <% } %>
+  <div>
+    <label for="adjUser">ID участника</label>
+    <input type="text" id="adjUser" name="userId" inputmode="numeric" placeholder="Например, 123456789012345678" required pattern="[0-9]{15,25}" value="<%= locals.prefillUser || '' %>" />
+    <div class="hint" data-fill-name-out></div>
+  </div>
+  <div class="two-col">
+    <div>
+      <label for="adjMode">Действие</label>
+      <select id="adjMode" name="mode">
+        <option value="add">Добавить уровни</option>
+        <option value="remove">Убавить уровни</option>
+        <option value="set">Задать точный уровень</option>
+      </select>
+    </div>
+    <div>
+      <label for="adjAmount">Сколько (или какой уровень)</label>
+      <input type="number" id="adjAmount" name="amount" value="1" min="0" max="1000" required />
+    </div>
+  </div>
+  <button class="btn" type="submit">Применить</button>
+</form>
