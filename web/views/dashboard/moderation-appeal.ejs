@@ -43,8 +43,10 @@
             <form method="post" action="<%= g %>/moderation-appeals/<%= appeal.id %>/decide" data-no-guard><input type="hidden" name="decision" value="review" /><button class="btn btn-secondary" type="submit"<%= mayDecide ? ' disabled' : '' %>>Взять на рассмотрение</button></form>
           <% } %>
           <form method="post" action="<%= g %>/moderation-appeals/<%= appeal.id %>/decide" class="ap-decide" data-no-guard>
-            <label for="apReason">Причина решения (её увидит участник)</label>
-            <textarea id="apReason" name="reason" rows="3" maxlength="500" required></textarea>
+            <div class="fld">
+              <label for="apReason">Причина решения (её увидит участник)</label>
+              <textarea id="apReason" name="reason" rows="3" maxlength="500" required></textarea>
+            </div>
             <div class="btn-row">
               <button class="btn" type="submit" name="decision" value="approved"<%= mayDecide ? ' disabled' : '' %>>Одобрить и снять наказание</button>
               <button class="btn btn-danger" type="submit" name="decision" value="rejected"<%= mayDecide ? ' disabled' : '' %>>Отклонить</button>
@@ -67,8 +69,10 @@
           <% }) %>
         </div>
         <form method="post" action="<%= g %>/moderation-appeals/<%= appeal.id %>/comment" data-no-guard>
-          <label for="apNote">Комментарий</label>
-          <textarea id="apNote" name="text" rows="2" maxlength="1000" required></textarea>
+          <div class="fld">
+            <label for="apNote">Комментарий</label>
+            <textarea id="apNote" name="text" rows="2" maxlength="1000" required></textarea>
+          </div>
           <label class="checkbox-row"><input type="checkbox" name="visible" /> <span>Показать участнику (и прислать ему)</span></label>
           <button class="btn btn-secondary" type="submit">Добавить</button>
         </form>

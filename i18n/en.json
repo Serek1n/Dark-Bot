@@ -5241,5 +5241,7 @@
  "Удалённая роль": "Deleted role",
  "Удалённый канал": "Deleted channel",
  "Сохранённая роль удалена в Discord — эта настройка сейчас не работает. Выберите другую роль и сохраните.": "The saved role was deleted in Discord — this setting does not work now. Pick another role and save.",
- "В канал жалоб, когда на сервер заходит тот, на кого уже жаловались": "To the reports channel, when someone who was already reported joins the server"
+ "В канал жалоб, когда на сервер заходит тот, на кого уже жаловались": "To the reports channel, when someone who was already reported joins the server",
+ "Часовой пояс сервера": "Server time zone",
+ "С него начинается расписание новых сообщений в конструкторе": "New scheduled messages in the builder start in it"
 }

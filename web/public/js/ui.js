@@ -1084,7 +1084,7 @@
       if (dock) {
         dock.setAttribute('aria-hidden', 'false'); dock.querySelectorAll('.grp-tab').forEach(function (t) { t.removeAttribute('tabindex'); });
         // a narrow top bar scrolls its strip so that the current group is in view
-        var cur = dock.querySelector('.grp-tab.is-cur'); if (cur && dock.scrollWidth > dock.clientWidth) dock.scrollLeft = Math.max(0, cur.offsetLeft - 8);
+        var cur = dock.querySelector('.grp-tab.is-cur'); if (cur && dock.scrollWidth > dock.clientWidth) dock.scrollLeft = Math.max(0, cur.getBoundingClientRect().left - dock.getBoundingClientRect().left + dock.scrollLeft - 8);
       }
     } else {
       if (dock) { dock.setAttribute('aria-hidden', 'true'); dock.querySelectorAll('.grp-tab').forEach(function (t) { t.setAttribute('tabindex', '-1'); }); }

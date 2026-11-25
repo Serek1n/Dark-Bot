@@ -18,29 +18,39 @@
         <% if (id) { %><input type="hidden" name="id" value="<%= id %>" /><% } %>
         <div class="card g-c1">
           <h2>Как выглядит</h2>
-          <label for="achName">Название</label>
-          <input id="achName" type="text" name="name" maxlength="80" required value="<%= it.name %>" placeholder="Например: Ночной дозор" />
-          <label for="achDesc">Описание</label>
-          <textarea id="achDesc" name="description" maxlength="200" rows="2" placeholder="За что дают — участник увидит это на карточке"><%= it.description %></textarea>
+          <div class="fld">
+            <label for="achName">Название</label>
+            <input id="achName" type="text" name="name" maxlength="80" required value="<%= it.name %>" placeholder="Например: Ночной дозор" />
+          </div>
+          <div class="fld">
+            <label for="achDesc">Описание</label>
+            <textarea id="achDesc" name="description" maxlength="200" rows="2" placeholder="За что дают — участник увидит это на карточке"><%= it.description %></textarea>
+          </div>
           <div class="fld-pair">
             <div class="fld"><label for="achEmoji">Эмодзи</label><input id="achEmoji" type="text" name="emoji" maxlength="64" value="<%= it.emoji %>" /></div>
             <div class="fld fld-inline"><label for="achCat">Категория</label><select id="achCat" name="category"><% A.CATEGORIES.forEach(([k, label]) => { %><option value="<%= k %>" <%= it.category === k ? 'selected' : '' %>><%= label %></option><% }) %></select></div>
           </div>
-          <label for="achImg">Картинка (необязательно)</label>
-          <input id="achImg" name="imageUrl" type="text" inputmode="url" maxlength="400" value="<%= it.imageUrl || '' %>" placeholder="https://…/picture.png" />
-          <div class="hint">PNG, JPG, GIF или WebP по ссылке https. Без картинки на карточке будет значок категории.</div>
-          <label for="achRar">Редкость</label>
-          <select id="achRar" name="rarity"><% A.RARITIES.forEach(([k, label]) => { %><option value="<%= k %>" <%= it.rarity === k ? 'selected' : '' %>><%= label %></option><% }) %></select>
-          <div class="hint">Задаёт цвет карточки и порядок: если открылось сразу несколько, на карточке — самое редкое.</div>
+          <div class="fld">
+            <label for="achImg">Картинка (необязательно)</label>
+            <input id="achImg" name="imageUrl" type="text" inputmode="url" maxlength="400" value="<%= it.imageUrl || '' %>" placeholder="https://…/picture.png" />
+            <div class="hint">PNG, JPG, GIF или WebP по ссылке https. Без картинки на карточке будет значок категории.</div>
+          </div>
+          <div class="fld fld-inline">
+            <label for="achRar">Редкость</label>
+            <select id="achRar" name="rarity"><% A.RARITIES.forEach(([k, label]) => { %><option value="<%= k %>" <%= it.rarity === k ? 'selected' : '' %>><%= label %></option><% }) %></select>
+            <div class="hint">Задаёт цвет карточки и порядок: если открылось сразу несколько, на карточке — самое редкое.</div>
+          </div>
         </div>
         <div class="card g-c2">
           <h2>Как получить</h2>
-          <label for="achCond">Условие</label>
-          <select id="achCond" name="condType" data-ach-cond>
-            <option value="manual" <%= it.condType === 'manual' ? 'selected' : '' %>>Только вручную (панель или /achievements grant)</option>
-            <% ['messages', 'voice_hours', 'level', 'balance', 'crystals', 'purchases', 'tenure_days', 'events', 'unlocked'].forEach((k) => { %><option value="<%= k %>" <%= it.condType === k ? 'selected' : '' %>><%= A.METRICS[k].label %> — не меньше</option><% }) %>
-            <option value="role" <%= it.condType === 'role' ? 'selected' : '' %>>Есть роль</option>
-          </select>
+          <div class="fld fld-inline">
+            <label for="achCond">Условие</label>
+            <select id="achCond" name="condType" data-ach-cond>
+              <option value="manual" <%= it.condType === 'manual' ? 'selected' : '' %>>Только вручную (панель или /achievements grant)</option>
+              <% ['messages', 'voice_hours', 'level', 'balance', 'crystals', 'purchases', 'tenure_days', 'events', 'unlocked'].forEach((k) => { %><option value="<%= k %>" <%= it.condType === k ? 'selected' : '' %>><%= A.METRICS[k].label %> — не меньше</option><% }) %>
+              <option value="role" <%= it.condType === 'role' ? 'selected' : '' %>>Есть роль</option>
+            </select>
+          </div>
           <div class="fld fld-inline" data-ach-show="value">
             <label for="achVal">Сколько нужно</label>
             <input id="achVal" type="number" name="condValue" min="1" max="1000000000" value="<%= it.value || 1 %>" />
@@ -55,8 +65,10 @@
             <div class="fld fld-inline"><label for="achCoins">Монет</label><input id="achCoins" type="number" name="rewardCoins" min="0" max="10000000" value="<%= it.reward.coins %>" /></div>
             <div class="fld fld-inline"><label for="achCrys">Кристаллов</label><input id="achCrys" type="number" name="rewardCrystals" min="0" max="1000000" value="<%= it.reward.crystals %>" /></div>
           </div>
-          <label for="achRRole">Роль в награду</label>
-          <select id="achRRole" name="rewardRoleId"><option value="">— без роли —</option><% roles.forEach((r) => { %><option value="<%= r.id %>" <%= it.reward.roleId === r.id ? 'selected' : (r.blocked ? 'disabled' : '') %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option><% }) %></select>
+          <div class="fld fld-inline">
+            <label for="achRRole">Роль в награду</label>
+            <select id="achRRole" name="rewardRoleId"><option value="">— без роли —</option><% roles.forEach((r) => { %><option value="<%= r.id %>" <%= it.reward.roleId === r.id ? 'selected' : (r.blocked ? 'disabled' : '') %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option><% }) %></select>
+          </div>
           <div class="rules">
             <label class="rule"><span class="rule-text"><b>Включено</b><span>Выключенное не выдаётся и не видно участникам.</span></span><input type="checkbox" name="enabled" <%= it.enabled ? 'checked' : '' %> /></label>
             <label class="rule"><span class="rule-text"><b>Скрытое</b><span>Не показывается в списке, пока его не откроют, — сюрприз.</span></span><input type="checkbox" name="hidden" <%= it.hidden ? 'checked' : '' %> /></label>

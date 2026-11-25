@@ -28,12 +28,14 @@
       <form method="post" data-events-form>
         <div class="card g-c1">
           <h2>Куда присылать</h2>
-          <label for="channelId">Общий канал событий</label>
-          <select id="channelId" name="channelId">
-            <option value="">Не выбран</option>
-            <% channels.forEach((c) => { %><option value="<%= c.id %>" <%= cfg.channelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
-          </select>
-          <p class="hint">Сюда идут все события, у которых ниже не выбран свой канал. Боту нужны права «Отправлять сообщения», «Встраивать ссылки» и «Добавлять реакции».</p>
+          <div class="fld fld-inline">
+            <label for="channelId">Общий канал событий</label>
+            <select id="channelId" name="channelId">
+              <option value="">Не выбран</option>
+              <% channels.forEach((c) => { %><option value="<%= c.id %>" <%= cfg.channelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+            </select>
+            <p class="hint">Сюда идут все события, у которых ниже не выбран свой канал. Боту нужны права «Отправлять сообщения», «Встраивать ссылки» и «Добавлять реакции».</p>
+          </div>
           <% const routes = {}; TYPES.filter((t) => cfg.types[t.key].on).forEach((t) => { const id = cfg.types[t.key].channelId || cfg.channelId || ''; (routes[id] = routes[id] || []).push(t.title); }); %>
           <h3 class="econ-sub">Куда что идёт</h3>
           <div class="ev-routes">
@@ -106,14 +108,18 @@
             <form method="post" action="<%= base %>/economy-treasury/goal" class="ev-quick" data-no-guard>
               <h3 class="econ-sub" style="margin-top:0">Общая цель</h3>
               <input type="hidden" name="back" value="events" /><input type="hidden" name="boostMult" value="2" /><input type="hidden" name="boostHours" value="24" />
-              <label for="q_goal_title">Название</label>
-              <input id="q_goal_title" type="text" name="title" maxlength="80" placeholder="Например, сутки двойного опыта" required />
+              <div class="fld">
+                <label for="q_goal_title">Название</label>
+                <input id="q_goal_title" type="text" name="title" maxlength="80" placeholder="Например, сутки двойного опыта" required />
+              </div>
               <div class="fld-pair">
                 <div class="fld fld-inline"><label for="q_goal_target">Собрать</label><input id="q_goal_target" type="number" name="target" min="10" value="5000" /></div>
                 <div class="fld fld-inline"><label for="q_goal_days">Срок, дней</label><input id="q_goal_days" type="number" name="days" min="1" max="60" value="7" /></div>
               </div>
-              <label for="q_goal_action">Награда</label>
-              <select id="q_goal_action" name="action"><option value="boost">Опыт ×2 для всех на сутки</option><option value="announce">Просто объявление</option></select>
+              <div class="fld fld-inline">
+                <label for="q_goal_action">Награда</label>
+                <select id="q_goal_action" name="action"><option value="boost">Опыт ×2 для всех на сутки</option><option value="announce">Просто объявление</option></select>
+              </div>
               <div class="btn-row"><button class="btn" type="submit"<%= cfg.enabled ? '' : ' disabled' %>>Открыть сбор</button><a class="btn btn-secondary" href="<%= base %>/economy-treasury">Больше настроек</a></div>
             </form>
           <% } %>
@@ -126,8 +132,10 @@
                 <div class="fld fld-inline"><label for="q_v_split">Раздать всего</label><input id="q_v_split" type="number" name="v_split_amount" min="1" value="<%= Math.max(1, Math.floor(econ.treasury / 2)) %>" /></div>
                 <div class="fld fld-inline"><label for="q_v_give">Или приз в розыгрыше</label><input id="q_v_give" type="number" name="v_give_amount" min="1" value="<%= Math.max(1, Math.floor(econ.treasury / 2)) %>" /></div>
               </div>
-              <label for="q_v_hours">Голосование длится, ч</label>
-              <input id="q_v_hours" type="number" name="hours" min="1" max="168" value="24" />
+              <div class="fld fld-inline">
+                <label for="q_v_hours">Голосование длится, ч</label>
+                <input id="q_v_hours" type="number" name="hours" min="1" max="168" value="24" />
+              </div>
               <div class="btn-row"><button class="btn" type="submit"<%= cfg.enabled ? '' : ' disabled' %>>Начать голосование</button><a class="btn btn-secondary" href="<%= base %>/economy-treasury">Свои варианты</a></div>
             </form>
             <form method="post" action="<%= base %>/economy-treasury/giveaway" class="ev-quick" data-no-guard>

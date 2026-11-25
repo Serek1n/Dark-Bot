@@ -141,9 +141,11 @@
                   </label>
                 <% } %>
                 <% if (key === 'voicePanel') { %>
-                  <label for="voicePanel_intro">Текст под заголовком</label>
-                  <textarea id="voicePanel_intro" name="voicePanel_intro" maxlength="300" rows="2" placeholder="Зайдите в свою комнату и нажмите кнопку. Настройки запоминаются для следующего раза."><%= s.intro || '' %></textarea>
-                  <p class="hint">Цвет полосы панели — из темы. После сохранения уже размещённая панель обновится сама.</p>
+                  <div class="fld">
+                    <label for="voicePanel_intro">Текст под заголовком</label>
+                    <textarea id="voicePanel_intro" name="voicePanel_intro" maxlength="300" rows="2" placeholder="Зайдите в свою комнату и нажмите кнопку. Настройки запоминаются для следующего раза."><%= s.intro || '' %></textarea>
+                    <p class="hint">Цвет полосы панели — из темы. После сохранения уже размещённая панель обновится сама.</p>
+                  </div>
                 <% } %>
                 <% if (key === 'achievement') { %>
                   <p class="hint">Свой текст сообщения, кнопки и упоминание — в <a href="<%= base %>/achievements-settings#ach-text">Достижения → Настройки</a>.</p>

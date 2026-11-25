@@ -35,13 +35,15 @@
           </div>
           <form method="post" action="<%= g %>/music/control" class="mus-loop" data-no-guard>
             <input type="hidden" name="action" value="loop" />
-            <label for="mus_loop">Повтор</label>
-            <select id="mus_loop" name="mode">
-              <option value="off" <%= now.loop === 'off' ? 'selected' : '' %>>Выключен</option>
-              <option value="track" <%= now.loop === 'track' ? 'selected' : '' %>>Текущий трек</option>
-              <option value="queue" <%= now.loop === 'queue' ? 'selected' : '' %>>Вся очередь</option>
-              <% if (now.playlist) { %><option value="playlist" <%= now.loop === 'playlist' ? 'selected' : '' %>>Плейлист</option><% } %>
-            </select>
+            <div class="fld fld-inline">
+              <label for="mus_loop">Повтор</label>
+              <select id="mus_loop" name="mode">
+                <option value="off" <%= now.loop === 'off' ? 'selected' : '' %>>Выключен</option>
+                <option value="track" <%= now.loop === 'track' ? 'selected' : '' %>>Текущий трек</option>
+                <option value="queue" <%= now.loop === 'queue' ? 'selected' : '' %>>Вся очередь</option>
+                <% if (now.playlist) { %><option value="playlist" <%= now.loop === 'playlist' ? 'selected' : '' %>>Плейлист</option><% } %>
+              </select>
+            </div>
             <button class="btn btn-secondary" type="submit">Применить</button>
           </form>
           <% if (now.next.length) { %>

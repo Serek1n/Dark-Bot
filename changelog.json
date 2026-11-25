@@ -1,6 +1,25 @@
 [
  {
   "bot": "3.19.5",
+  "panel": "3.36.1",
+  "date": "2026-11-25",
+  "botChanges": [],
+  "panelChanges": [
+   "Часовой пояс сервера в «Базовых настройках»: с него начинается расписание сообщений",
+   "Остальные формы панели тоже приведены к строкам «название — поле»",
+   "В шапке телефона текущая группа видна целиком"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Server time zone in «Basic settings»: the message schedule starts in it",
+    "The other forms of the panel are rows «name — field» too",
+    "On a phone the current group in the top bar is shown in full"
+   ]
+  }
+ },
+ {
+  "bot": "3.19.5",
   "panel": "3.36.0",
   "date": "2026-11-25",
   "botChanges": [],

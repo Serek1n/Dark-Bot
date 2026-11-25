@@ -35,6 +35,7 @@ module.exports = (sequelize) => {
 
       // Welcome / autorole
       welcomeChannelId: { type: DataTypes.STRING, allowNull: true },
+      timezone: { type: DataTypes.STRING, allowNull: true }, // the server's time zone (shared/zones.js); null: Moscow
       language: { type: DataTypes.STRING, defaultValue: 'auto' }, // the bot's language here: ru | en | auto (by the server's Discord language)
       welcomeMessage: { type: DataTypes.STRING, defaultValue: 'Добро пожаловать, {user}, на сервере **{server}**!' },
       autoRoleId: { type: DataTypes.STRING, allowNull: true },

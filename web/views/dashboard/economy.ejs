@@ -104,11 +104,13 @@
           <% if (!bev.enabled) { %>
             <p class="ev-state off">Модуль «События бота» выключен — цели, голосования и розыгрыши казны не публикуются.</p>
           <% } %>
-          <label for="eventsChannelId">Общий канал событий</label>
-          <select id="eventsChannelId" name="eventsChannelId">
-            <option value="">Не выбран</option>
-            <% (locals.channels || []).forEach((c) => { %><option value="<%= c.id %>" <%= settings.economyEventsChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
-          </select>
+          <div class="fld fld-inline">
+            <label for="eventsChannelId">Общий канал событий</label>
+            <select id="eventsChannelId" name="eventsChannelId">
+              <option value="">Не выбран</option>
+              <% (locals.channels || []).forEach((c) => { %><option value="<%= c.id %>" <%= settings.economyEventsChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+            </select>
+          </div>
           <% if (bev.plan) { %><p class="hint">Новые разделы: <%= bev.plan %>.</p><% } %>
           <a class="card-link" href="/dashboard/<%= guild.id %>/events">Что присылать, куда и в каком порядке — в модуле «События бота» →</a>
         </div>

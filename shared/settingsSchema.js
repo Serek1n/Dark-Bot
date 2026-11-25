@@ -114,6 +114,11 @@ const SECTIONS = {
     module: 'shop',
     fields: { shopLogChannelId: { type: 'channel', channelTypes: [0, 5], need: 'post', nullable: true } }
   },
+  // «Настройки панели» → «Базовые настройки»: the server's time zone
+  'core.basics': {
+    module: 'core',
+    fields: { timezone: { type: 'enum', values: require('./zones').ZONES, default: require('./zones').DEFAULT_ZONE } }
+  },
   // «Приветствие» → «Автороль и возврат»
   'welcome.rejoin': {
     module: 'welcome',

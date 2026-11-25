@@ -28,13 +28,15 @@
             </select>
           </div>
         </div>
-        <label for="vrScope">Для «любого канала»</label>
-        <select id="vrScope" name="scope">
-          <option value="any">Любые голосовые каналы</option>
-          <option value="temp">Только временные комнаты</option>
-          <option value="regular">Только обычные каналы</option>
-        </select>
-        <div class="hint">Например, роль «В голосе» открывает текстовый канал для тех, кто сейчас разговаривает. В AFK-канале роль не выдаётся.</div>
+        <div class="fld fld-inline">
+          <label for="vrScope">Для «любого канала»</label>
+          <select id="vrScope" name="scope">
+            <option value="any">Любые голосовые каналы</option>
+            <option value="temp">Только временные комнаты</option>
+            <option value="regular">Только обычные каналы</option>
+          </select>
+          <div class="hint">Например, роль «В голосе» открывает текстовый канал для тех, кто сейчас разговаривает. В AFK-канале роль не выдаётся.</div>
+        </div>
         <button class="btn" type="submit">Добавить</button>
         <% if (voiceRoles.length) { %>
           <div class="table-scroll" style="margin-top:14px;"><table>

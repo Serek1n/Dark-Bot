@@ -13,10 +13,10 @@ router.get('/:guildId/features', ensureGuildAccess, async (req, res) => {
   res.render('dashboard/features', { guild, settings, features: FEATURES, active: 'features' });
 });
 
-// «Общие»: what belongs to the whole bot on this server, not to one module (its language)
+// «Базовые настройки»: what belongs to the whole bot on this server, not to one module (its language, its time zone)
 router.get('/:guildId/settings', ensureGuildAccess, async (req, res) => {
   const [guild, settings] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId)]);
-  res.render('dashboard/settings', { guild, settings, active: 'settings' });
+  res.render('dashboard/settings', { guild, settings, Z: require('../../../shared/zones'), active: 'settings' });
 });
 
 router.post('/:guildId/language', ensureGuildAccess, async (req, res) => {

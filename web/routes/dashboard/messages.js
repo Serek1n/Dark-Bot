@@ -16,7 +16,7 @@ const sendLimit = rateLimit({ windowMs: 60_000, max: 20, message: 'Слишко�
 const toolLimit = rateLimit({ windowMs: 60_000, max: 30, message: 'Слишком много запросов. Подождите минуту.' });
 const MAX_SAVED = 50;
 const CHANNEL_TYPES = [0, 2, 5, 13, 15, 16];
-const ZONES = ['Europe/Kaliningrad', 'Europe/Moscow', 'Europe/Samara', 'Asia/Yekaterinburg', 'Asia/Omsk', 'Asia/Novosibirsk', 'Asia/Krasnoyarsk', 'Asia/Irkutsk', 'Asia/Yakutsk', 'Asia/Vladivostok', 'Asia/Magadan', 'Asia/Kamchatka', 'Europe/Minsk', 'Europe/Kyiv', 'Asia/Almaty', 'Asia/Tashkent', 'Asia/Tbilisi', 'Asia/Yerevan', 'Asia/Baku', 'Europe/London', 'Europe/Berlin', 'America/New_York', 'America/Los_Angeles', 'UTC'];
+const { ZONES, zoneOf } = require('../../../shared/zones');
 
 const rights = require('../../utils/rights').panelRights;
 
@@ -61,14 +61,15 @@ function previewImages(req, res, next) {
 async function builderData(req) {
   const { guildId } = req.params;
   const r = rights(req);
-  const [channels, savedList, scheduled, hooks] = await Promise.all([
+  const [channels, savedList, scheduled, hooks, settings] = await Promise.all([
     getGuildChannels(guildId),
     SavedMessage.findAll({ where: { guildId }, order: [['updatedAt', 'DESC']], attributes: ['id', 'name', 'updatedAt'] }),
     ScheduledMessage.findAll({ where: { guildId }, order: [['enabled', 'DESC'], ['nextRunAt', 'ASC']] }),
-    r.webhooks ? ownHooks(guildId) : []
+    r.webhooks ? ownHooks(guildId) : [],
+    require('../../../db').GuildSettings.findByPk(guildId)
   ]);
   return {
-    rights: r, msgHooks: hooks, zones: ZONES, defaultZone: sched.DEFAULT_TZ,
+    rights: r, msgHooks: hooks, zones: ZONES, defaultZone: zoneOf(settings), // a new schedule starts in the server's zone
     msgChannels: channels.filter((c) => CHANNEL_TYPES.includes(c.type)).map((c) => ({ id: c.id, name: c.name, type: c.type })),
     savedList, maxSaved: MAX_SAVED, maxScheduled: sched.MAX_PER_GUILD,
     scheduled: scheduled.map((s) => ({ s, rule: sched.describeRule(parse(s.rule, null)), target: parse(s.target, {}) }))

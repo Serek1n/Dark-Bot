@@ -58,12 +58,14 @@
           <div class="fld fld-inline"><label for="code_count">Сколько кодов</label><input id="code_count" type="number" name="count" min="1" max="100" value="10" /></div>
           <div class="fld fld-inline"><label for="code_amount">Сумма каждого</label><input id="code_amount" type="number" name="amount" min="1" value="100" /></div>
         </div>
-        <label for="code_source">Откуда деньги</label>
-        <select id="code_source" name="source">
-          <option value="treasury"<%= on.includes('treasury') ? '' : ' disabled' %>>Из казны (вся сумма списывается сразу)</option>
-          <option value="mint"<%= on.includes('treasury') ? '' : ' selected' %>>Новые монеты</option>
-        </select>
-        <p class="hint">Участники тоже делают коды из своих денег: до <%= giftParams.maxPerDay %> в день, от <%= giftParams.minAmount %> <%= cur %>.</p>
+        <div class="fld fld-inline">
+          <label for="code_source">Откуда деньги</label>
+          <select id="code_source" name="source">
+            <option value="treasury"<%= on.includes('treasury') ? '' : ' disabled' %>>Из казны (вся сумма списывается сразу)</option>
+            <option value="mint"<%= on.includes('treasury') ? '' : ' selected' %>>Новые монеты</option>
+          </select>
+          <p class="hint">Участники тоже делают коды из своих денег: до <%= giftParams.maxPerDay %> в день, от <%= giftParams.minAmount %> <%= cur %>.</p>
+        </div>
         <button class="btn" type="submit">Выпустить</button>
       </form>
       <div class="card g-c2">

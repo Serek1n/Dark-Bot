@@ -95,6 +95,13 @@ const schema = require('../shared/settingsSchema');
     const s = await S();
     assert(r.ok && s.xpPerMessageMin === 10 && s.voiceEnabled === true && s.levelUpEvery === 7, JSON.stringify([s.xpPerMessageMin, s.voiceEnabled, s.levelUpEvery]));
   });
+  await test('«Базовые настройки»: the time zone of the server is one of the list; a new schedule starts in it', async () => {
+    let r = await patch('core.basics', { timezone: 'Mars/Olympus' });
+    assert(r.status === 400 && r.body.fieldErrors.timezone, JSON.stringify(r));
+    r = await patch('core.basics', { timezone: 'Asia/Omsk' });
+    assert(r.status === 200 && (await S()).timezone === 'Asia/Omsk', JSON.stringify(r));
+    assert(require('../shared/zones').zoneOf(await S()) === 'Asia/Omsk' && require('../shared/zones').zoneOf({}) === 'Europe/Moscow', 'zoneOf');
+  });
   await test('a saved channel or role deleted in Discord is named for the page; nothing is named when the lists did not come', async () => {
     const goneRefs = require('../web/utils/goneRefs');
     const settings = { dataValues: { welcomeChannelId: '111111111111111111', leaveChannelId: '222222222222222222', autoRoleId: '333333333333333333', prefix: '!', levelUpChannelId: null } };

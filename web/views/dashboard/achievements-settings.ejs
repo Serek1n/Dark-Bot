@@ -14,25 +14,31 @@
       <form method="post" action="<%= g %>/achievements/settings" class="plain">
         <div class="card g-c1">
           <h2>Карточка достижения</h2>
-          <label for="achMode">Куда присылать</label>
-          <select id="achMode" name="achievementsNotify">
-            <option value="auto" <%= mode === 'auto' ? 'selected' : '' %>>В канал ниже, а если он не выбран — туда, где это случилось</option>
-            <option value="channel" <%= mode === 'channel' ? 'selected' : '' %>>Только в канал ниже</option>
-            <option value="dm" <%= mode === 'dm' ? 'selected' : '' %>>В личные сообщения участнику</option>
-            <option value="off" <%= mode === 'off' ? 'selected' : '' %>>Не присылать (достижения всё равно открываются)</option>
-          </select>
-          <label for="achCh">Канал для карточек</label>
-          <select id="achCh" name="achievementsChannelId">
-            <option value="">— не выбран —</option>
-            <% channels.filter((c) => c.type === 0 || c.type === 5).forEach((c) => { %><option value="<%= c.id %>" <%= settings.achievementsChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
-          </select>
-          <div class="hint">«Где это случилось» — канал, где участник написал сообщение, или чат голосового канала. За минуты в голосе и деньги без канала карточка придёт только в выбранный канал. Если сразу открылось несколько достижений, приходит одна карточка с самым редким и списком остальных.</div>
+          <div class="fld fld-inline">
+            <label for="achMode">Куда присылать</label>
+            <select id="achMode" name="achievementsNotify">
+              <option value="auto" <%= mode === 'auto' ? 'selected' : '' %>>В канал ниже, а если он не выбран — туда, где это случилось</option>
+              <option value="channel" <%= mode === 'channel' ? 'selected' : '' %>>Только в канал ниже</option>
+              <option value="dm" <%= mode === 'dm' ? 'selected' : '' %>>В личные сообщения участнику</option>
+              <option value="off" <%= mode === 'off' ? 'selected' : '' %>>Не присылать (достижения всё равно открываются)</option>
+            </select>
+          </div>
+          <div class="fld fld-inline">
+            <label for="achCh">Канал для карточек</label>
+            <select id="achCh" name="achievementsChannelId">
+              <option value="">— не выбран —</option>
+              <% channels.filter((c) => c.type === 0 || c.type === 5).forEach((c) => { %><option value="<%= c.id %>" <%= settings.achievementsChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+            </select>
+            <div class="hint">«Где это случилось» — канал, где участник написал сообщение, или чат голосового канала. За минуты в голосе и деньги без канала карточка придёт только в выбранный канал. Если сразу открылось несколько достижений, приходит одна карточка с самым редким и списком остальных.</div>
+          </div>
         </div>
         <div class="card g-c2">
           <h2>Условия встроенных</h2>
-          <label for="achGoal">«Капитал»: монет на балансе</label>
-          <input id="achGoal" type="number" name="achievementsBalanceGoal" min="1" max="1000000000" value="<%= settings.achievementsBalanceGoal || 10000 %>" />
-          <div class="hint">Остальные пороги постоянные: 1, 100, 1 000 и 10 000 сообщений; 1, 10, 100 и 1 000 часов в голосе; уровни 5, 10, 25, 50 и 100; 30, 180 и 365 дней на сервере; 1 и 10 событий. Ненужные можно выключить в каталоге или создать свои с другими порогами.</div>
+          <div class="fld fld-inline">
+            <label for="achGoal">«Капитал»: монет на балансе</label>
+            <input id="achGoal" type="number" name="achievementsBalanceGoal" min="1" max="1000000000" value="<%= settings.achievementsBalanceGoal || 10000 %>" />
+            <div class="hint">Остальные пороги постоянные: 1, 100, 1 000 и 10 000 сообщений; 1, 10, 100 и 1 000 часов в голосе; уровни 5, 10, 25, 50 и 100; 30, 180 и 365 дней на сервере; 1 и 10 событий. Ненужные можно выключить в каталоге или создать свои с другими порогами.</div>
+          </div>
         </div>
         <% const O = ach.msgOptions(settings); %>
         <div class="card g-span" id="ach-text">

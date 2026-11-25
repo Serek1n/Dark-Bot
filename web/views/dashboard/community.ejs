@@ -20,20 +20,30 @@
       <% if (done === 'replied') { %><%- include('../partials/flash', { text: 'Ответ сохранён.', param: 'done' }) %><% } %>
       <form method="post" action="<%= g %>/community" class="card g-c1 g-r2" id="cmForm">
         <h2>Карточка</h2>
-        <label for="cmName">Название</label>
-        <input id="cmName" type="text" name="name" maxlength="60" required readonly value="<%= c ? c.name : guild.name %>" />
-        <p class="hint">Название и значок берутся из Discord, а приглашение проверяется: оно должно вести именно на этот сервер.</p>
-        <label for="cmShort">Коротко о сервере</label>
-        <input id="cmShort" type="text" name="shortDesc" maxlength="160" required value="<%= c ? c.shortDesc : '' %>" placeholder="Одна-две фразы для карточки в каталоге" />
-        <label for="cmDesc">Подробное описание</label>
-        <textarea id="cmDesc" name="description" rows="6" maxlength="4000" placeholder="Чем живёт сервер, правила, события, кого вы ждёте"><%= c ? c.description || '' : '' %></textarea>
+        <div class="fld">
+          <label for="cmName">Название</label>
+          <input id="cmName" type="text" name="name" maxlength="60" required readonly value="<%= c ? c.name : guild.name %>" />
+          <p class="hint">Название и значок берутся из Discord, а приглашение проверяется: оно должно вести именно на этот сервер.</p>
+        </div>
+        <div class="fld">
+          <label for="cmShort">Коротко о сервере</label>
+          <input id="cmShort" type="text" name="shortDesc" maxlength="160" required value="<%= c ? c.shortDesc : '' %>" placeholder="Одна-две фразы для карточки в каталоге" />
+        </div>
+        <div class="fld">
+          <label for="cmDesc">Подробное описание</label>
+          <textarea id="cmDesc" name="description" rows="6" maxlength="4000" placeholder="Чем живёт сервер, правила, события, кого вы ждёте"><%= c ? c.description || '' : '' %></textarea>
+        </div>
         <label>Категории (до трёх)</label>
         <div class="cm-pick"><% C.CATEGORIES.forEach(([k, l]) => { %><label class="cm-pick-item" style="--ic:<%= C.hue(k) %>"><input type="checkbox" name="categories" value="<%= k %>" <%= cats.includes(k) ? 'checked' : '' %> /><%- C.icon(k, 16) %><span><%= l %></span></label><% }) %></div>
-        <label for="cmTags">Теги через запятую</label>
-        <input id="cmTags" type="text" name="tags" maxlength="200" value="<%= c ? c.tags : '' %>" placeholder="minecraft, общение, ивенты" />
-        <label for="cmInv">Ссылка-приглашение</label>
-        <input id="cmInv" type="text" inputmode="url" name="inviteUrl" maxlength="120" required value="<%= c ? c.inviteUrl : '' %>" placeholder="https://discord.gg/код" />
-        <div class="hint">Приглашение — бессрочное, иначе ссылка в каталоге перестанет работать. Аватар и число участников бот берёт с сервера сам.</div>
+        <div class="fld">
+          <label for="cmTags">Теги через запятую</label>
+          <input id="cmTags" type="text" name="tags" maxlength="200" value="<%= c ? c.tags : '' %>" placeholder="minecraft, общение, ивенты" />
+        </div>
+        <div class="fld">
+          <label for="cmInv">Ссылка-приглашение</label>
+          <input id="cmInv" type="text" inputmode="url" name="inviteUrl" maxlength="120" required value="<%= c ? c.inviteUrl : '' %>" placeholder="https://discord.gg/код" />
+          <div class="hint">Приглашение — бессрочное, иначе ссылка в каталоге перестанет работать. Аватар и число участников бот берёт с сервера сам.</div>
+        </div>
         <label for="cmBan">Баннер (необязательно)</label>
         <div class="cm-banner-edit" data-cm-banner>
           <div class="cm-banner-pv" data-cm-banner-pv></div>
@@ -81,8 +91,10 @@
       <div class="card g-c2 cm-page-card">
         <h2>Страница сообщества</h2>
         <p class="hint" style="margin-top:0">Что увидят на странице сервера в каталоге, кроме описания. Сохраняется вместе с карточкой.</p>
-        <label for="cmRules">Правила (каждое с новой строки)</label>
-        <textarea form="cmForm" id="cmRules" name="rules" rows="4" maxlength="4000" placeholder="Уважайте друг друга&#10;Без рекламы и спама"><%= c ? c.rules || '' : '' %></textarea>
+        <div class="fld">
+          <label for="cmRules">Правила (каждое с новой строки)</label>
+          <textarea form="cmForm" id="cmRules" name="rules" rows="4" maxlength="4000" placeholder="Уважайте друг друга&#10;Без рекламы и спама"><%= c ? c.rules || '' : '' %></textarea>
+        </div>
         <label>Ссылки (до четырёх): сайт, YouTube, Telegram…</label>
         <div class="cm-links-edit">
           <% const L = c ? c.linkList : []; [0, 1, 2, 3].forEach((i) => { const l = L[i] || {}; %>
@@ -97,15 +109,19 @@
         <p class="hint" data-cm-shots-msg>До шести картинок: PNG, JPEG, WebP или GIF, до 8 МБ. Бот хранит их сам — ссылки не устаревают.</p>
         <details class="cm-shot-links">
           <summary>Добавить по ссылке</summary>
-          <label for="cmGal">Ссылки на картинки, каждая с новой строки</label>
-          <textarea form="cmForm" id="cmGal" name="gallery" rows="3" maxlength="9000" placeholder="https://cdn.discordapp.com/attachments/…" data-cm-gallery><%= c ? c.galleryList.join('\n') : '' %></textarea>
-          <p class="hint">Ссылки с <%= C.BANNER_HOSTS.join(', ') %>: при сохранении бот скачает картинки и сохранит у себя.</p>
+          <div class="fld">
+            <label for="cmGal">Ссылки на картинки, каждая с новой строки</label>
+            <textarea form="cmForm" id="cmGal" name="gallery" rows="3" maxlength="9000" placeholder="https://cdn.discordapp.com/attachments/…" data-cm-gallery><%= c ? c.galleryList.join('\n') : '' %></textarea>
+            <p class="hint">Ссылки с <%= C.BANNER_HOSTS.join(', ') %>: при сохранении бот скачает картинки и сохранит у себя.</p>
+          </div>
         </details>
-        <label for="cmNotify">Куда присылать новые отзывы</label>
-        <select form="cmForm" id="cmNotify" name="notifyChannelId">
-          <option value="">Никуда — смотреть здесь</option>
-          <% channels.forEach((ch) => { %><option value="<%= ch.id %>" <%= c && c.notifyChannelId === ch.id ? 'selected' : '' %>>#<%= ch.name %></option><% }) %>
-        </select>
+        <div class="fld fld-inline">
+          <label for="cmNotify">Куда присылать новые отзывы</label>
+          <select form="cmForm" id="cmNotify" name="notifyChannelId">
+            <option value="">Никуда — смотреть здесь</option>
+            <% channels.forEach((ch) => { %><option value="<%= ch.id %>" <%= c && c.notifyChannelId === ch.id ? 'selected' : '' %>>#<%= ch.name %></option><% }) %>
+          </select>
+        </div>
       </div>
       <div class="card g-span cm-promo-card">
         <h2>Продвижение</h2>

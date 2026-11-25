@@ -22,6 +22,18 @@
         </div>
         <div class="set-actions"><button class="btn" type="submit">Сохранить язык</button></div>
       </form>
+      <% const zone = Z.zoneOf(settings);
+         const zoneName = (z) => { try { const off = new Intl.DateTimeFormat('en-US', { timeZone: z, timeZoneName: 'shortOffset' }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName').value; return z.replace(/_/g, ' ') + ' (' + off.replace('GMT', 'UTC') + ')'; } catch (e) { return z; } }; %>
+      <form method="post" class="card set-section" data-api="core.basics">
+        <h2>Время</h2>
+        <div class="set-row">
+          <div class="set-text"><label for="timezone">Часовой пояс сервера</label><p class="set-help">С него начинается расписание новых сообщений в конструкторе</p></div>
+          <div class="set-ctl"><select id="timezone" name="timezone">
+            <% Z.ZONES.forEach((z) => { %><option value="<%= z %>" <%= z === zone ? 'selected' : '' %>><%= zoneName(z) %></option><% }) %>
+          </select></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
     </main>
   </div>
 </body>
