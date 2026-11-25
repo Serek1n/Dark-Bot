@@ -9,13 +9,16 @@
      const main = own[0];
      const mainState = st(main.key);
      const switchable = own.filter((m) => st(m.key).switchable);
-     const groupTitle = (M.GROUPS.find((g) => g[0] === main.group) || [])[1];
+     const groupTitle = main.group === M.SYSTEM_GROUP[0] ? M.SYSTEM_GROUP[1] : (M.GROUPS.find((g) => g[0] === main.group) || [])[1];
      const tabs = main.pages.filter((p) => (M.PAGE_LABELS[p] || p === main.page) && M.pageVisible(p, locals.settings));
-     // a tab that is another module of its own (Магазин inside Экономика): the warning is about that module when it is off
-     const tabOwn = own.filter((m) => m !== main && !m.parent && st(m.key).switchable);
-     const off = tabOwn.length ? [...tabOwn, main].filter((m) => st(m.key).switchable && !st(m.key).on) : switchable.filter((m) => !st(m.key).on);
-     const offAll = tabOwn.length ? off.length > 0 : off.length === own.length; %>
-  <div class="mh-crumbs"><a href="/dashboard/<%= guild.id %>/features">Модули</a> › <span><%= groupTitle %></span></div>
+     // on a tab that is a part with its own switch (Магазин inside Экономика) the warning is about that part, and about
+     // the module itself only when the part needs it
+     const parts = own.slice(1).filter((m) => st(m.key).switchable);
+     const off = parts.length
+       ? [...parts.filter((m) => !st(m.key).on), ...(st(main.key).switchable && !mainState.on && parts.some((m) => (m.depends || []).includes(main.key)) ? [main] : [])]
+       : switchable.filter((m) => !st(m.key).on);
+     const offAll = off.length > 0; %>
+  <div class="mh-crumbs"><% if (main.system) { %><span><%= groupTitle %></span><% } else { %><a href="/dashboard/<%= guild.id %>/features">Модули</a> › <span><%= groupTitle %></span><% } %></div>
   <span class="mh-icon<%= mainState.on ? ' is-on' : '' %>"><%- M.icon(main.key, 24) %></span>
   <div class="mh-side">
     <% if (switchable.length === 1) { const m = switchable[0], s = st(m.key); %>
@@ -25,7 +28,7 @@
       <% switchable.forEach((m) => { const s = st(m.key); %>
         <label class="mh-sw-named"><span><%= m.title %></span><span class="mod-sw sm"><input type="checkbox" data-mod-switch="<%= m.key %>" data-mod-title="<%= m.title %>" data-mod-reload<%= s.on ? ' checked' : '' %> aria-label="<%= m.title %>"></span></label>
       <% }) %>
-    <% } else { %>
+    <% } else if (!main.system) { %>
       <span class="mh-pill">Всегда включён</span>
     <% } %>
   </div>

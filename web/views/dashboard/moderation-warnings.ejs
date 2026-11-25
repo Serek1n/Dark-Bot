@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Предупреждения' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Предупреждения</h1>
@@ -18,9 +18,9 @@
       <div class="card g-span">
         <h2>Предупреждения <span class="muted">· <%= Number(total).toLocaleString('ru-RU') %></span><span class="sub"><% if (expireDays) { %>Сгорают через <%= expireDays %> дн.<% } else { %>Не сгорают<% } %></span></h2>
         <form method="get" class="econ-filters mod-wfilter" data-no-guard>
-          <div><label for="w_state">Какие</label><select id="w_state" name="state"><option value="active" <%= f.state === 'active' ? 'selected' : '' %>>Действующие</option><option value="revoked" <%= f.state === 'revoked' ? 'selected' : '' %>>Снятые</option><option value="all" <%= f.state === 'all' ? 'selected' : '' %>>Все</option></select></div>
-          <div><label for="w_user">ID участника</label><input id="w_user" type="text" name="user" inputmode="numeric" pattern="[0-9]{15,25}" value="<%= f.user %>" placeholder="Все" /></div>
-          <div><label for="w_auto">Автонаказание</label><select id="w_auto" name="auto"><option value="">Любое</option><option value="failed" <%= f.auto ? 'selected' : '' %>>Не сработало</option></select></div>
+          <div class="fld fld-inline"><label for="w_state">Какие</label><select id="w_state" name="state"><option value="active" <%= f.state === 'active' ? 'selected' : '' %>>Действующие</option><option value="revoked" <%= f.state === 'revoked' ? 'selected' : '' %>>Снятые</option><option value="all" <%= f.state === 'all' ? 'selected' : '' %>>Все</option></select></div>
+          <div class="fld"><label for="w_user">ID участника</label><input id="w_user" type="text" name="user" inputmode="numeric" pattern="[0-9]{15,25}" value="<%= f.user %>" placeholder="Все" /></div>
+          <div class="fld fld-inline"><label for="w_auto">Автонаказание</label><select id="w_auto" name="auto"><option value="">Любое</option><option value="failed" <%= f.auto ? 'selected' : '' %>>Не сработало</option></select></div>
           <button class="btn" type="submit">Показать</button>
         </form>
         <% if (!rows.length) { %>

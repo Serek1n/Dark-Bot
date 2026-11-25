@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Настройки достижений' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Настройки</h1>
@@ -39,7 +39,7 @@
           <h2>Текст сообщения</h2>
           <p class="hint" style="margin-top:0">Всё, что пишет бот, когда открывается достижение. Пусто — стандартный текст. Из чего состоит сообщение (карточка, текст или оба), рамка и формат картинки — в <a href="<%= g %>/appearance-achievements">Оформлении</a>.</p>
           <div class="ach-text-grid">
-            <div>
+            <div class="fld">
               <label for="achievementsMessage">Свой текст</label>
               <textarea id="achievementsMessage" data-md name="achievementsMessage" maxlength="1500" rows="6" placeholder="{user} открывает достижение **{achievement}**!&#10;{reward_line}&#10;{others}"><%= settings.achievementsMessage || '' %></textarea>
               <details class="tpl-help" data-tpl-for="achievementsMessage" open>
@@ -76,9 +76,9 @@
             </label>
           </div>
           <div class="ach-labels">
-            <div class="ach-btn-label"><label for="achMine">Надпись первой кнопки</label><input id="achMine" type="text" name="achMine" maxlength="40" value="<%= O.mine %>" placeholder="Мои достижения" /></div>
-            <div class="ach-btn-label"><label for="achAll">Надпись второй кнопки</label><input id="achAll" type="text" name="achAll" maxlength="40" value="<%= O.all %>" placeholder="Все достижения" /></div>
-            <div><label for="achColor">Цвет рамки</label>
+            <div class="fld ach-btn-label"><label for="achMine">Надпись первой кнопки</label><input id="achMine" type="text" name="achMine" maxlength="40" value="<%= O.mine %>" placeholder="Мои достижения" /></div>
+            <div class="fld ach-btn-label"><label for="achAll">Надпись второй кнопки</label><input id="achAll" type="text" name="achAll" maxlength="40" value="<%= O.all %>" placeholder="Все достижения" /></div>
+            <div class="fld fld-inline"><label for="achColor">Цвет рамки</label>
               <select id="achColor" name="achColor">
                 <option value="rarity" <%= O.color === 'rarity' ? 'selected' : '' %>>Цвет редкости достижения</option>
                 <option value="theme" <%= O.color === 'theme' ? 'selected' : '' %>>Цвет темы сервера</option>

@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Автороль и возврат' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Автороль и возвращение участника</h1>
@@ -21,7 +21,7 @@
               <% roles.forEach(r => { %>
                 <option value="<%= r.id %>" <%= settings.autoRoleId === r.id ? 'selected' : (r.blocked ? 'disabled' : '') %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option>
               <% }) %>
-              <% if (settings.autoRoleId && !autoRole) { %><option value="<%= settings.autoRoleId %>" selected data-gone>⚠️ Удалённая роль (ID: <%= settings.autoRoleId %>)</option><% } %>
+              <% if (settings.autoRoleId && !autoRole) { %><option value="<%= settings.autoRoleId %>" selected data-gone="role">⚠️ Удалённая роль (ID: <%= settings.autoRoleId %>)</option><% } %>
             </select></div>
             <% if (autoRole && autoRole.blocked) { %><div class="gone-note" role="note">⚠️ Эту роль бот выдать не сможет: <%= autoRole.blocked %>. Поднимите роль бота выше в настройках сервера.</div><% } %>
           </div>

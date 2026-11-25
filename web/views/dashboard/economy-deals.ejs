@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Сделки и коды' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Сделки и коды</h1>
@@ -54,9 +54,9 @@
       <form method="post" action="/dashboard/<%= guild.id %>/economy-deals/codes" class="card g-c1" data-no-guard>
         <h2>Выпустить коды</h2>
         <p class="hint" style="margin-top:0">Для конкурсов, партнёров и стримов. Каждый код можно забрать один раз командой <code>/gift redeem</code>.</p>
-        <div class="two-col">
-          <div><label for="code_count">Сколько кодов</label><input id="code_count" type="number" name="count" min="1" max="100" value="10" /></div>
-          <div><label for="code_amount">Сумма каждого</label><input id="code_amount" type="number" name="amount" min="1" value="100" /></div>
+        <div class="fld-pair">
+          <div class="fld fld-inline"><label for="code_count">Сколько кодов</label><input id="code_count" type="number" name="count" min="1" max="100" value="10" /></div>
+          <div class="fld fld-inline"><label for="code_amount">Сумма каждого</label><input id="code_amount" type="number" name="amount" min="1" value="100" /></div>
         </div>
         <label for="code_source">Откуда деньги</label>
         <select id="code_source" name="source">

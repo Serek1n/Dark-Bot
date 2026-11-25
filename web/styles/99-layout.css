@@ -21,27 +21,35 @@
 }
 [data-theme="light"] { --bg-input: #ffffff; --warning: #8a5a00; --warning-tint: #fbf0dc; }
 
-/* ---------- one column: cards follow each other in reading order, nothing is placed beside something else ---------- */
+/* ---------- the page grids: every page names its own on <main> (web/modules.js layoutOf) ----------
+   .layout-form          settings as rows in a reading-width column; the default
+   .layout-wide          tables, journals, lists, catalogs and charts across the width (settings sections in it keep the
+                         reading width)
+   .layout-split-custom  a builder with its preview beside it (the messages builder)
+   Everything in a page follows in one column with one gap; nothing is placed beside something else by the page grid. */
+.app-layout > .content { box-sizing: border-box; }
+.app-layout > .content.layout-form { max-width: calc(var(--w-form) + 64px); }
+.app-layout > .content.layout-wide { max-width: calc(var(--w-table) + 64px); }
+.app-layout > .content.layout-split-custom { max-width: 1440px; }
+.app-layout > .content:is(.layout-form, .layout-wide, .layout-split-custom) { display: block; }
+.app-layout > .content > form:not(.card) { display: block; }
+.layout-wide .set-section, .layout-wide .set-page { max-width: var(--w-form); }
 @media (min-width: 1200px) {
-  .app-layout > .content { display: block; max-width: calc(var(--w-table) + 40px); }
-  .app-layout > .content > form:not(.card), .app-layout > .content > .grid-2 { display: block; }
-  .app-layout > .content > *, .app-layout > .content > form:not(.card) > * { margin-bottom: 16px; }
-  .app-layout > .content > .card, .app-layout > .content > form:not(.card) > .card, .app-layout > .content > .grid-2 > .card { display: block; }
-  .g-r2, .g-r3, .g-r4 { grid-row: auto; }
-  .g-o1, .g-o2, .g-o3, .g-o4, .g-o5 { order: 0; }
+  .app-layout > .content:is(.layout-form, .layout-wide, .layout-split-custom) { padding-left: 32px; padding-right: 32px; }
+  .app-layout > .content > .card, .app-layout > .content > form:not(.card) > .card { display: block; }
   .app-layout > .content .card > :is(.btn, button, a.btn, input[type=file]), .app-layout > .content .card > .actions { align-self: auto; }
-  .app-layout > .content > .card.g-fields { display: block; }
 }
-/* forms are read best in a narrower column; tables and wide tools keep the full width */
-.app-layout > .content > .card:not(:has(table, .table-wrap, .table-scroll, .switch-list, .msg-tabs, .wide)),
-.app-layout > .content > form:not(.card) > .card:not(:has(table, .table-wrap, .table-scroll, .wide)),
-.app-layout > .content > form.card:not(:has(table, .table-wrap, .table-scroll, .switch-list)),
-.app-layout > .content > .grid-2 > .card,
-.app-layout > .content > .set-page { max-width: var(--w-form); }
-.app-layout > .content > .grid-2 { display: block; }
-.app-layout > .content > .grid-2 > .card + .card { margin-top: 16px; }
-.app-layout > .content:has(.msg-tabs) { max-width: 1440px; }
-.app-layout > .content .home-dash, .app-layout > .content .home-split { max-width: none; }
+@media (max-width: 1023px) { .app-layout > .content:is(.layout-form, .layout-wide, .layout-split-custom) { padding-left: 24px; padding-right: 24px; } }
+@media (max-width: 760px) { .app-layout > .content:is(.layout-form, .layout-wide, .layout-split-custom) { padding: 16px 16px 64px; } }
+
+/* ---------- one rhythm: 8 px steps; blocks never touch — one 16 px gap between all of them ---------- */
+:root { --sp-1: 8px; --sp-2: 16px; --sp-3: 24px; --sp-4: 32px; --h-control: 40px; --h-control-sm: 32px; }
+.app-layout > .content > .page-header { margin-bottom: var(--sp-3); }
+/* the controls of a card are one height */
+.app-layout .content .card :is(input[type=text], input[type=number], input[type=url], input[type=search], input:not([type]), select, .fs-btn),
+.drawer :is(input[type=text], input[type=number], input[type=url], input:not([type]), select, .fs-btn) { min-height: var(--h-control); box-sizing: border-box; }
+.app-layout .content .card .btn:not(.btn-sm), .drawer .btn:not(.btn-sm) { min-height: var(--h-control); }
+.btn.btn-sm { min-height: var(--h-control-sm); }
 
 /* ---------- type scale ---------- */
 .app-layout .page-header h1, .app-layout .content > h1 { font-size: var(--fs-22); font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; }
@@ -155,86 +163,85 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
 .preset-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
 
 /* ---------- Form | Preview: the fields of a Discord message on the left, how it will look on the right, staying in view
-   while the fields are filled in. A plain message (embed off) gets the preview under the text, across the width. ---------- */
+   while the fields are filled in. js/ui.js sets .ee-split while the embed is on; a plain message gets the preview under
+   the text, across the width. A card holding one asks for the wide width (.wide-card). ---------- */
 @media (min-width: 1100px) {
-  .embed-editor:has(.embed-fields:not([hidden])) { display: grid; grid-template-columns: minmax(0, 55fr) minmax(0, 45fr); column-gap: 24px; align-items: start; }
-  .embed-editor:has(.embed-fields:not([hidden])) > .checkbox-row { grid-column: 1 / -1; }
-  .embed-editor:has(.embed-fields:not([hidden])) > .embed-fields { grid-column: 1; }
-  .embed-editor:has(.embed-fields:not([hidden])) > .ee-preview { grid-column: 2; position: sticky; top: 72px; }
-  .app-layout > .content > .card:has(.embed-editor .embed-fields:not([hidden])),
-  .app-layout > .content > form:not(.card) > .card:has(.embed-editor .embed-fields:not([hidden])),
-  .app-layout > .content > form.set-page > .card:has(.embed-editor .embed-fields:not([hidden])) { max-width: var(--w-table); }
+  .embed-editor.ee-split { display: grid; grid-template-columns: minmax(0, 55fr) minmax(0, 45fr); column-gap: 24px; align-items: start; }
+  .embed-editor.ee-split > .checkbox-row { grid-column: 1 / -1; }
+  .embed-editor.ee-split > .embed-fields { grid-column: 1; }
+  .embed-editor.ee-split > .ee-preview { grid-column: 2; position: sticky; top: 72px; }
+  .app-layout > .content .card.wide-card { max-width: var(--w-table); }
+  .app-layout > .content.layout-form.has-wide-card { max-width: calc(var(--w-table) + 64px); }
 }
 
 /* ---------- App shell on wide screens: a fixed side menu (244 px; 64 px folded, only by its button) ---------- */
 .sb-toggle { display: none; }
 @media (min-width: 1024px) {
-  .nav-drawer.is-rail { display: block; position: fixed; inset: 0 auto 0 0; width: 244px; z-index: 45; }
-  .nav-drawer.is-rail .nd-backdrop { display: none; }
-  .nav-drawer.is-rail .nd-panel { position: absolute; inset: 0; width: 100%; animation: none; border-right: 1px solid var(--hairline); background: var(--rail); }
-  .nav-drawer.is-rail .nd-head { height: 60px; padding: 0 12px; }
-  .nav-drawer.is-rail .nd-head [data-menu-close] { display: none; }
-  .nav-drawer.is-rail .nd-search { margin: 12px 12px 4px; padding: 8px 10px; font-size: var(--fs-13); border-radius: var(--r-control); }
-  .nav-drawer.is-rail .sb-toggle { display: flex; align-items: center; gap: 10px; margin: 4px 12px 0; padding: 6px 10px; border: 0; border-radius: var(--r-control); background: none; color: var(--fog-dim); font: inherit; font-size: var(--fs-13); cursor: pointer; }
-  .nav-drawer.is-rail .sb-toggle:hover { background: var(--panel-raised); color: var(--paper); }
-  .nav-drawer.is-rail .nd-nav { padding: 4px 8px 12px; }
-  .nav-drawer.is-rail .nd-group-label { font-size: var(--fs-11); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--fog-dim); padding: 14px 8px 4px; }
-  .nav-drawer.is-rail .nd-nav a { min-height: 34px; padding: 6px 8px; gap: 10px; border-radius: var(--r-control); }
-  .nav-drawer.is-rail .nd-nav a svg { width: 18px; height: 18px; padding: 0; background: none; color: var(--fog); }
-  .nav-drawer.is-rail .nd-nav a.active svg { background: none; color: var(--ember); }
-  .nav-drawer.is-rail .nd-nav a b { font-size: var(--fs-14); font-weight: 500; }
-  .nav-drawer.is-rail .nd-nav a small { display: none !important; }
-  .nav-drawer.is-rail .nd-mod { display: flex; align-items: center; gap: 4px; }
-  .nav-drawer.is-rail .nd-mod > a { flex: 1; min-width: 0; }
-  .nav-drawer.is-rail .nd-mod .mod-sw { transform: scale(.85); }
-  .nav-drawer.is-rail .nd-sub { padding-left: 36px !important; min-height: 30px !important; }
-  .nav-drawer.is-rail .nd-sub b { font-size: var(--fs-13) !important; color: var(--fog) !important; }
-  .nav-drawer.is-rail .nd-sub.active b { color: var(--paper) !important; }
-  .nav-drawer.is-rail .nd-foot { padding: 8px 12px; }
-  .nav-drawer.is-rail .nd-foot-link { font-size: var(--fs-12); padding: 4px 6px; }
-  .nav-drawer.is-rail .nd-foot > :not(:last-child) { display: none; }
-  .app-layout:has(.nav-drawer.is-rail) { padding-left: 244px; }
-  .app-layout:has(.nav-drawer.is-rail) .tb-groups, .app-layout:has(.nav-drawer.is-rail) .topbar .tb-guild { display: none; }
-  .app-layout:has(.nav-drawer.is-rail) .tb-row { max-width: none; justify-content: flex-end; }
+  .with-nav > .nav-drawer { display: block; position: fixed; inset: 0 auto 0 0; width: 244px; z-index: 45; }
+  .with-nav > .nav-drawer .nd-backdrop { display: none; }
+  .with-nav > .nav-drawer .nd-panel { position: absolute; inset: 0; width: 100%; animation: none; border-right: 1px solid var(--hairline); background: var(--rail); }
+  .with-nav > .nav-drawer .nd-head { height: 60px; padding: 0 12px; }
+  .with-nav > .nav-drawer .nd-head [data-menu-close] { display: none; }
+  .with-nav > .nav-drawer .nd-search { margin: 12px 12px 4px; padding: 8px 10px; font-size: var(--fs-13); border-radius: var(--r-control); }
+  .with-nav > .nav-drawer .sb-toggle { display: flex; align-items: center; gap: 10px; margin: 4px 12px 0; padding: 6px 10px; border: 0; border-radius: var(--r-control); background: none; color: var(--fog-dim); font: inherit; font-size: var(--fs-13); cursor: pointer; }
+  .with-nav > .nav-drawer .sb-toggle:hover { background: var(--panel-raised); color: var(--paper); }
+  .with-nav > .nav-drawer .nd-nav { padding: 4px 8px 12px; }
+  .with-nav > .nav-drawer .nd-group-label { font-size: var(--fs-11); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--fog-dim); padding: 14px 8px 4px; }
+  .with-nav > .nav-drawer .nd-nav a { min-height: 34px; padding: 6px 8px; gap: 10px; border-radius: var(--r-control); }
+  .with-nav > .nav-drawer .nd-nav a svg { width: 18px; height: 18px; padding: 0; background: none; color: var(--fog); }
+  .with-nav > .nav-drawer .nd-nav a.active svg { background: none; color: var(--ember); }
+  .with-nav > .nav-drawer .nd-nav a b { font-size: var(--fs-14); font-weight: 500; }
+  .with-nav > .nav-drawer .nd-nav a small { display: none !important; }
+  .with-nav > .nav-drawer .nd-mod { display: flex; align-items: center; gap: 4px; }
+  .with-nav > .nav-drawer .nd-mod > a { flex: 1; min-width: 0; }
+  .with-nav > .nav-drawer .nd-mod .mod-sw { transform: scale(.85); }
+  .with-nav > .nav-drawer .nd-sub { padding-left: 36px !important; min-height: 30px !important; }
+  .with-nav > .nav-drawer .nd-sub b { font-size: var(--fs-13) !important; color: var(--fog) !important; }
+  .with-nav > .nav-drawer .nd-sub.active b { color: var(--paper) !important; }
+  .with-nav > .nav-drawer .nd-foot { padding: 8px 12px; }
+  .with-nav > .nav-drawer .nd-foot-link { font-size: var(--fs-12); padding: 4px 6px; }
+  .with-nav > .nav-drawer .nd-foot > :not(:last-child) { display: none; }
+  .app-layout.with-nav { padding-left: 244px; }
+  .app-layout.with-nav .tb-groups, .app-layout.with-nav .topbar .tb-guild { display: none; }
+  .app-layout.with-nav .tb-row { max-width: none; justify-content: flex-end; }
 
   /* folded: icons only */
-  html.sb-mini .nav-drawer.is-rail { width: 64px; }
-  html.sb-mini .app-layout:has(.nav-drawer.is-rail) { padding-left: 64px; }
-  html.sb-mini .nav-drawer.is-rail :is(.nl, .nd-group-label, .mod-sw, .mod-core, .nd-sub, .nd-foot, .tb-guild-name) { display: none !important; }
-  html.sb-mini .nav-drawer.is-rail .nd-search { justify-content: center; font-size: 0; padding: 8px; margin: 12px 8px 4px; }
-  html.sb-mini .nav-drawer.is-rail .sb-toggle { justify-content: center; margin: 4px 8px 0; }
-  html.sb-mini .nav-drawer.is-rail .sb-toggle span { display: none; }
-  html.sb-mini .nav-drawer.is-rail .sb-toggle svg { transform: scaleX(-1); }
-  html.sb-mini .nav-drawer.is-rail .nd-nav a { justify-content: center; }
-  html.sb-mini .nav-drawer.is-rail .nd-head { justify-content: center; padding: 0; }
-  html.sb-mini .nav-drawer.is-rail .nd-group + .nd-group { border-top: 1px solid var(--hairline-soft); margin-top: 6px; padding-top: 6px; }
+  html.sb-mini .with-nav > .nav-drawer { width: 64px; }
+  html.sb-mini .app-layout.with-nav { padding-left: 64px; }
+  html.sb-mini .with-nav > .nav-drawer :is(.nl, .nd-group-label, .mod-sw, .mod-core, .nd-sub, .nd-foot, .tb-guild-name) { display: none !important; }
+  html.sb-mini .with-nav > .nav-drawer .nd-search { justify-content: center; font-size: 0; padding: 8px; margin: 12px 8px 4px; }
+  html.sb-mini .with-nav > .nav-drawer .sb-toggle { justify-content: center; margin: 4px 8px 0; }
+  html.sb-mini .with-nav > .nav-drawer .sb-toggle span { display: none; }
+  html.sb-mini .with-nav > .nav-drawer .sb-toggle svg { transform: scaleX(-1); }
+  html.sb-mini .with-nav > .nav-drawer .nd-nav a { justify-content: center; }
+  html.sb-mini .with-nav > .nav-drawer .nd-head { justify-content: center; padding: 0; }
+  html.sb-mini .with-nav > .nav-drawer .nd-group + .nd-group { border-top: 1px solid var(--hairline-soft); margin-top: 6px; padding-top: 6px; }
 }
-@media (min-width: 1024px) { .nav-drawer.is-rail .nd-search { display: none; } }
+@media (min-width: 1024px) { .with-nav > .nav-drawer .nd-search { display: none; } }
 /* with the side menu the «≡» button and the top groups are not needed */
-@media (min-width: 1024px) { .app-layout:has(.nav-drawer.is-rail) .tb-burger { display: none; } }
-@media (min-width: 1024px) { html:not(.sb-mini) .nav-drawer.is-rail .tb-guild-name { display: block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+@media (min-width: 1024px) { .app-layout.with-nav .tb-burger { display: none; } }
+@media (min-width: 1024px) { html:not(.sb-mini) .with-nav > .nav-drawer .tb-guild-name { display: block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
 
-/* ---------- the older settings pages, without changing their templates: their patterns become the same rows as the new
-   pages. A switch row (.rule, .checkbox-row) is a flat row with a divider instead of a box; two fields side by side
-   (.two-col) become two rows; «label + number or list» is a split row (name left, control right), «label + text» a
-   stacked row (the field under the name, full width). Forms in the drawer and the message builders keep their own grid. ---------- */
+/* ---------- fields of the older pages, marked in their templates: .fld = a label with its control under it; .fld-inline =
+   a label with a number or a list, which in a card becomes a row like .set-row (name left, control right); .fld-pair =
+   two fields side by side (in a card on a page they become two rows; in a drawer or a builder they stay side by side).
+   A switch row (.rule, .checkbox-row) is a flat row with a divider instead of a box. ---------- */
+.fld > label { display: block; margin: 0 0 var(--sp-1); }
 .app-layout .content .card .checkbox-row { background: none; border: 0; border-top: 1px solid var(--hairline-soft); border-radius: 0; padding: 14px 0; margin: 0; }
 .app-layout .content .card .checkbox-row:hover { border-color: var(--hairline-soft); }
 .app-layout .content .card > h2 + .checkbox-row, .app-layout .content .card > .checkbox-row:first-child { border-top: 0; }
 .app-layout .content .card .checkbox-row > label, .app-layout .content .card label.checkbox-row > span { font-size: var(--fs-14); font-weight: 500; }
 @media (min-width: 761px) {
-  .app-layout .content .card > .two-col, .app-layout .content .card .rule-cfg > .two-col { display: block; }
-  .app-layout .content :is(.card, .card > .two-col, .card .g-split > div, .card .rule-cfg, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.set-row):not(.embed-editor):not(.pick) {
-    display: grid; grid-template-columns: minmax(0, 60fr) minmax(0, 40fr); column-gap: 24px; align-items: center;
-    padding: 12px 0; border-top: 1px solid var(--hairline-soft); margin: 0;
-  }
-  .app-layout .content :is(.card, .card > .two-col, .card .g-split > div, .card .rule-cfg, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.set-row) > label { grid-column: 1; margin: 0; font-size: var(--fs-14); font-weight: 500; color: var(--text-primary); }
-  .app-layout .content :is(.card, .card > .two-col, .card .g-split > div, .card .rule-cfg, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.set-row) > :is(input, select, .fs) { grid-column: 2; grid-row: 1; margin: 0; }
-  .app-layout .content :is(.card, .card > .two-col, .card .g-split > div, .card .rule-cfg, .card .rule-cfg > .two-col) > div:has(> label:first-child + input[type=number]):not(.set-row) > input { justify-self: end; width: 140px; text-align: right; }
-  .app-layout .content :is(.card, .card > .two-col, .card .g-split > div, .card .rule-cfg, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=number], select, .fs)):not(.set-row) > :is(.hint, small, p) { grid-column: 1; margin: 4px 0 0; }
-  .app-layout .content :is(.card, .card > .two-col, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=text], input:not([type]), textarea, .pick)):not(.set-row) { padding: 12px 0; border-top: 1px solid var(--hairline-soft); margin: 0; }
-  .app-layout .content :is(.card, .card > .two-col, .card .rule-cfg > .two-col) > div:has(> label:first-child + :is(input[type=text], input:not([type]), textarea, .pick)):not(.set-row) > label { font-size: var(--fs-14); font-weight: 500; color: var(--text-primary); margin: 0 0 8px; }
-  .app-layout .content .card > h2 + div:has(> label:first-child), .app-layout .content .card > h2 + .two-col > div:first-child, .app-layout .content .card > .card-lead + div, .app-layout .content .card > p + div:has(> label:first-child) { border-top: 0; }
+  .app-layout .content .card > .fld-pair, .app-layout .content .card .rule-cfg > .fld-pair { display: block; }
+  .app-layout .content .card .fld:not(.me-group .fld) { padding: 12px 0; border-top: 1px solid var(--hairline-soft); margin: 0; }
+  .app-layout .content .card .fld:not(.me-group .fld) > label { font-size: var(--fs-14); font-weight: 500; color: var(--text-primary); }
+  .app-layout .content .card .fld-inline:not(.me-group .fld) { display: grid; grid-template-columns: minmax(0, 60fr) minmax(0, 40fr); column-gap: 24px; align-items: center; }
+  .app-layout .content .card .fld-inline:not(.me-group .fld) > label { grid-column: 1; margin: 0; }
+  .app-layout .content .card .fld-inline:not(.me-group .fld) > :is(input, select, .fs, .num-field) { grid-column: 2; grid-row: 1; margin: 0; }
+  .app-layout .content .card .fld-inline:not(.me-group .fld) > :is(input[type=number], .num-field) { justify-self: end; width: 140px; text-align: right; }
+  .app-layout .content .card .fld-inline:not(.me-group .fld) > :is(.hint, small, p) { grid-column: 1; margin: 4px 0 0; }
+  .app-layout .content .card > h2 + .fld, .app-layout .content .card > h2 + .fld-pair > .fld:first-child,
+  .app-layout .content .card > .card-lead + .fld, .app-layout .content .card > p + .fld { border-top: 0; }
 }
 
 /* ---------- small parts of the fields ---------- */
@@ -251,14 +258,10 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
 }
 
 /* ---------- blocks never touch: one 16 px gap between all of them, whatever older rules said about margins ---------- */
-@media (min-width: 1200px) {
-  .app-layout > .content > .card, .app-layout > .content > form.card, .app-layout > .content > section,
-  .app-layout > .content > form:not(.card) > .card, .app-layout > .content > form:not(.card) > section,
-  .app-layout > .content > .grid-2 > .card, .app-layout > .content > div:not(.page-header) { margin: 0 0 16px; }
-}
-.app-layout > .content > form:not(.card) > .card:last-child, .app-layout > .content > form:not(.card) > section:last-child { margin-bottom: 0; }
-.app-layout > .content > form:not(.card) { margin-bottom: 16px; }
+.app-layout > .content > :is(.card, form, section, div:not(.page-header), table, .table-wrap),
+.app-layout > .content > form:not(.card) > :is(.card, section, div) { margin: 0 0 var(--sp-2); }
+.app-layout > .content > :last-child, .app-layout > .content > form:not(.card) > :last-child { margin-bottom: 0; }
 /* a row of buttons whose only button went to the save bar at the bottom: no empty strip with a line */
-.set-actions:not(:has(> :not(.sb-replaced))) { display: none; }
+.set-actions.is-empty { display: none; }
 /* a compact list never makes the page wider than the screen */
 .fs { max-width: 100%; }

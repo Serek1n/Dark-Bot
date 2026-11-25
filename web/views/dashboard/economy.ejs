@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Экономика' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Экономика</h1>
@@ -86,7 +86,7 @@
                       <% if (q.type === 'bool') { %>
                         <label class="rule ef-bool"><span class="rule-text"><b><%= q.label %></b></span><input type="hidden" name="<%= name %>__present" value="1" /><input type="checkbox" name="<%= name %>" <%= p[q.key] ? 'checked' : '' %> /></label>
                       <% } else { %>
-                        <div><label for="<%= name %>"><%= q.label %><%= q.unit ? ', ' + q.unit : '' %></label><input id="<%= name %>" type="number" name="<%= name %>" value="<%= p[q.key] %>" min="<%= q.min %>" max="<%= q.max %>" /><% if (q.hint) { %><div class="hint"><%= q.hint %></div><% } %></div>
+                        <div class="fld"><label for="<%= name %>"><%= q.label %><%= q.unit ? ', ' + q.unit : '' %></label><input id="<%= name %>" type="number" name="<%= name %>" value="<%= p[q.key] %>" min="<%= q.min %>" max="<%= q.max %>" /><% if (q.hint) { %><div class="hint"><%= q.hint %></div><% } %></div>
                       <% } %>
                     <% }) %>
                   </div>
@@ -131,17 +131,17 @@
 
       <form method="post" action="/dashboard/<%= guild.id %>/economy/grant" class="card set-tools" id="grant" data-no-guard data-confirm="Изменить баланс участника? Вернуть прежнее значение можно только обратной операцией." data-confirm-ok="Изменить" data-confirm-soft>
         <h2>Начислить или списать вручную</h2>
-        <div>
+        <div class="fld">
           <label>ID участника</label>
           <input type="text" name="userId" inputmode="numeric" placeholder="Например, 123456789012345678" required pattern="[0-9]{15,25}" />
           <div class="hint">Включите режим разработчика в Discord, правый клик по участнику → «Копировать ID».</div>
         </div>
-        <div class="two-col">
-          <div>
+        <div class="fld-pair">
+          <div class="fld fld-inline">
             <label>Что</label>
             <select name="currency"><option value="coins"><%= settings.currencyName %></option><option value="crystals"><%= settings.crystalName %></option></select>
           </div>
-          <div>
+          <div class="fld fld-inline">
             <label>Сколько (минус — забрать)</label>
             <input type="number" name="amount" value="100" required />
           </div>

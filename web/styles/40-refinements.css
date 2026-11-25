@@ -5,11 +5,11 @@
 
 /* Fields inside a card get an even rhythm (the form itself already uses flex gap). */
 .card > div + div,
-.card > div + .two-col,
-.card > .two-col + div,
-.card > .two-col + .two-col,
+.card > div + .fld-pair,
+.card > .fld-pair + div,
+.card > .fld-pair + .fld-pair,
 .card > .checkbox-row + div,
-.card > .checkbox-row + .two-col { margin-top: 16px; }
+.card > .checkbox-row + .fld-pair { margin-top: 16px; }
 .card > .hint { margin-top: 8px; }
 .card > div > .hint { margin-top: 8px; }
 .card > .checkbox-row + .hint { margin: 10px 2px 0; }
@@ -175,7 +175,7 @@ form.plain { gap: 0; }
 .card h3 { font-family: var(--font-ui); font-size: var(--fs-14); font-weight: 600; color: var(--paper); margin: 0 0 10px; }
 .card h3 + .callout { margin-bottom: 12px; }
 code { white-space: nowrap; }
-.card > div + div, .card > div + .callout, .card > .callout + div, .card > .two-col + .callout, .card > .callout + .callout { margin-top: 16px; }
+.card > div + div, .card > div + .callout, .card > .callout + div, .card > .fld-pair + .callout, .card > .callout + .callout { margin-top: 16px; }
 .card > .rules + h3, .card > .rules + .callout { margin-top: 18px; }
 form.plain > .btn[type=submit] { margin: 2px 0 28px; }
 @media (max-width: 760px) { .card h2 { flex-wrap: wrap; } .card h2 .sub { flex-basis: 100%; margin-top: 0; } }

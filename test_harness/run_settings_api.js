@@ -95,6 +95,14 @@ const schema = require('../shared/settingsSchema');
     const s = await S();
     assert(r.ok && s.xpPerMessageMin === 10 && s.voiceEnabled === true && s.levelUpEvery === 7, JSON.stringify([s.xpPerMessageMin, s.voiceEnabled, s.levelUpEvery]));
   });
+  await test('a saved channel or role deleted in Discord is named for the page; nothing is named when the lists did not come', async () => {
+    const goneRefs = require('../web/utils/goneRefs');
+    const settings = { dataValues: { welcomeChannelId: '111111111111111111', leaveChannelId: '222222222222222222', autoRoleId: '333333333333333333', prefix: '!', levelUpChannelId: null } };
+    const g = goneRefs(settings, [{ id: '111111111111111111' }], [{ id: '444444444444444444' }]);
+    assert(JSON.stringify(g) === JSON.stringify({ leaveChannelId: { id: '222222222222222222', kind: 'channel' }, autoRoleId: { id: '333333333333333333', kind: 'role' } }), JSON.stringify(g));
+    const ui = require('fs').readFileSync(require('path').join(__dirname, '..', 'web', 'public', 'js', 'ui.js'), 'utf8');
+    assert(ui.indexOf('data.gone') > -1 && ui.indexOf('data.gone') < ui.indexOf("document.querySelectorAll('.content select:not([multiple])')"), 'the «⚠️» option is added before the lists are dressed');
+  });
 
   server.close();
   results.forEach((r) => console.log(r.ok ? '✅' : '❌', r.l, r.ok ? '' : '\n   ' + r.e));

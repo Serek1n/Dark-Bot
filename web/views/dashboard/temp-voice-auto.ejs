@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Автоматизация' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Автоматизация</h1>
@@ -21,9 +21,9 @@
         </div>
         <div class="card g-c2">
           <h2>Защита от злоупотреблений</h2>
-          <div class="two-col">
-            <div><label for="tvCd">Пауза между новыми комнатами, с</label><input id="tvCd" type="number" name="tempVoiceCooldownSec" min="0" max="3600" value="<%= settings.tempVoiceCooldownSec ?? 15 %>" /></div>
-            <div><label for="tvMax">Комнат на сервере, не больше</label><input id="tvMax" type="number" name="tempVoiceMaxRooms" min="0" max="500" value="<%= settings.tempVoiceMaxRooms || 0 %>" /><div class="hint">0 — без предела</div></div>
+          <div class="fld-pair">
+            <div class="fld fld-inline"><label for="tvCd">Пауза между новыми комнатами, с</label><input id="tvCd" type="number" name="tempVoiceCooldownSec" min="0" max="3600" value="<%= settings.tempVoiceCooldownSec ?? 15 %>" /></div>
+            <div class="fld fld-inline"><label for="tvMax">Комнат на сервере, не больше</label><input id="tvMax" type="number" name="tempVoiceMaxRooms" min="0" max="500" value="<%= settings.tempVoiceMaxRooms || 0 %>" /><div class="hint">0 — без предела</div></div>
           </div>
           <p class="hint">У каждого участника одна комната: если она уже есть, канал-создатель переносит его в неё. Слишком частый вход в канал-создатель отключает участника и пишет ему, сколько подождать.</p>
         </div>

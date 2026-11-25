@@ -9,22 +9,22 @@
                 <label class="msg-radio"><input type="radio" name="m-mode" value="channel" checked /> <span><b>В канал от имени бота</b><small>Сообщение пишет сам бот</small></span></label>
                 <label class="msg-radio <%= rights.webhooks ? '' : 'is-off' %>"><input type="radio" name="m-mode" value="webhook" <%= rights.webhooks ? '' : 'disabled' %> /> <span><b>Через вебхук</b><small><%= rights.webhooks ? 'Любое имя и аватарка' : 'Нужно право «Управлять вебхуками»' %></small></span></label>
               </div>
-              <div data-show="channel">
+              <div class="fld fld-inline" data-show="channel">
                 <label for="m-channel">Канал</label>
                 <select id="m-channel">
                   <% msgChannels.forEach(c => { %><option value="<%= c.id %>" data-type="<%= c.type %>"><%= c.type === 2 || c.type === 13 ? '🔊' : c.type === 15 || c.type === 16 ? '🗂' : '#' %> <%= c.name %></option><% }) %>
                 </select>
               </div>
               <div data-show="webhook" hidden>
-                <div class="two-col">
-                  <div>
+                <div class="fld-pair">
+                  <div class="fld fld-inline">
                     <label for="m-hook">Вебхук бота</label>
                     <select id="m-hook">
                       <option value="">— вставить ссылку —</option>
                       <% msgHooks.forEach(h => { const ch = msgChannels.find(c => c.id === h.channelId); %><option value="<%= h.id %>"><%= h.name %> · #<%= ch ? ch.name : h.channelId %></option><% }) %>
                     </select>
                   </div>
-                  <div>
+                  <div class="fld">
                     <label for="m-hookurl">или ссылка вебхука</label>
                     <input type="text" id="m-hookurl" inputmode="url" autocomplete="off" placeholder="https://discord.com/api/webhooks/…" />
                   </div>
@@ -33,12 +33,12 @@
               </div>
               <details class="msg-more">
                 <summary>Ветка, форум и правка отправленного</summary>
-                <div class="two-col">
-                  <div>
+                <div class="fld-pair">
+                  <div class="fld">
                     <label for="m-thread">ID ветки (необязательно)</label>
                     <input type="text" id="m-thread" inputmode="numeric" autocomplete="off" placeholder="Отправить внутрь ветки" />
                   </div>
-                  <div>
+                  <div class="fld">
                     <label for="m-threadname">Новая публикация форума</label>
                     <input type="text" id="m-threadname" maxlength="100" autocomplete="off" placeholder="Название публикации" />
                   </div>
@@ -54,9 +54,9 @@
 
             <div class="card" data-show="webhook" hidden>
               <h2>Профиль</h2>
-              <div class="two-col">
-                <div><label for="m-username">Имя отправителя</label><input type="text" id="m-username" data-k="username" maxlength="80" placeholder="Как у вебхука" /></div>
-                <div><label for="m-avatar">Аватарка (ссылка https)</label><input type="text" id="m-avatar" data-k="avatar_url" inputmode="url" placeholder="Как у вебхука" /></div>
+              <div class="fld-pair">
+                <div class="fld"><label for="m-username">Имя отправителя</label><input type="text" id="m-username" data-k="username" maxlength="80" placeholder="Как у вебхука" /></div>
+                <div class="fld"><label for="m-avatar">Аватарка (ссылка https)</label><input type="text" id="m-avatar" data-k="avatar_url" inputmode="url" placeholder="Как у вебхука" /></div>
               </div>
             </div>
 
@@ -191,9 +191,9 @@
         <div class="card" id="m-sched">
           <h2 id="m-sched-title">Новая запись</h2>
           <div class="hint">Текст, эмбеды, кнопки и адресат берутся из вкладки «Редактор». До <%= maxScheduled %> записей на сервер.</div>
-          <div class="two-col">
-            <div><label for="s-name">Название</label><input type="text" id="s-name" maxlength="100" placeholder="Например: Ежедневное напоминание" /></div>
-            <div>
+          <div class="fld-pair">
+            <div class="fld"><label for="s-name">Название</label><input type="text" id="s-name" maxlength="100" placeholder="Например: Ежедневное напоминание" /></div>
+            <div class="fld fld-inline">
               <label for="s-kind">Когда</label>
               <select id="s-kind">
                 <option value="once">В выбранные даты</option>
@@ -210,9 +210,9 @@
             <button type="button" class="btn btn-secondary" data-act="add-date">+ Дата</button>
           </div>
           <div data-kind="hours" hidden>
-            <div class="two-col">
-              <div><label for="s-every">Каждые, часов</label><input type="number" id="s-every" min="1" max="720" value="24" /></div>
-              <div><label for="s-start">Начиная с</label><input type="datetime-local" id="s-start" /></div>
+            <div class="fld-pair">
+              <div class="fld fld-inline"><label for="s-every">Каждые, часов</label><input type="number" id="s-every" min="1" max="720" value="24" /></div>
+              <div class="fld"><label for="s-start">Начиная с</label><input type="datetime-local" id="s-start" /></div>
             </div>
           </div>
           <div data-kind="weekly" hidden>
@@ -221,13 +221,13 @@
               <% [['1','Пн'],['2','Вт'],['3','Ср'],['4','Чт'],['5','Пт'],['6','Сб'],['0','Вс']].forEach(([v, t]) => { %><label><input type="checkbox" name="s-day" value="<%= v %>" /> <%= t %></label><% }) %>
             </div>
           </div>
-          <div data-kind="monthly" hidden>
+          <div class="fld fld-inline" data-kind="monthly" hidden>
             <label for="s-day">День месяца</label><input type="number" id="s-day" min="1" max="31" value="1" />
             <div class="hint">Если в месяце меньше дней — в последний день.</div>
           </div>
-          <div class="two-col">
-            <div data-kind="daily weekly monthly" hidden><label for="s-time">Время</label><input type="time" id="s-time" value="12:00" /></div>
-            <div>
+          <div class="fld-pair">
+            <div class="fld" data-kind="daily weekly monthly" hidden><label for="s-time">Время</label><input type="time" id="s-time" value="12:00" /></div>
+            <div class="fld fld-inline">
               <label for="s-tz">Часовой пояс</label>
               <select id="s-tz"><% zones.forEach(z => { %><option value="<%= z %>" <%= z === defaultZone ? 'selected' : '' %>><%= z %></option><% }) %></select>
             </div>

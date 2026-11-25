@@ -75,7 +75,8 @@ const express = require('express');
     app.use('/dashboard', require('../web/routes/dashboard')); app.use((e, q, s, n) => s.status(500).send(String(e.stack)));
     const server = app.listen(0); const base = `http://127.0.0.1:${server.address().port}/dashboard/${G}`;
     const html = await (await fetch(base + '/features')).text();
-    FEATURES.forEach((f) => assert(html.includes(`data-mod-switch="${f.key}"`) && html.includes(f.title), 'missing ' + f.key));
+    const MM = require('../web/modules');
+    FEATURES.forEach((f) => assert(html.includes(`data-mod-switch="${f.key}"`) && html.includes(MM.BY_KEY.get(f.key).title), 'missing ' + f.key));
     const sw = (key, body) => fetch(`${base}/modules/${key}`, { method: 'POST', headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body).toString() });
     await setFlags({ economyEnabled: true, shopEnabled: true, giveawaysEnabled: true, musicEnabled: false });
     let r = await (await sw('music', { on: '1' })).json();
@@ -99,12 +100,14 @@ const express = require('express');
     assert(r.ok && !(await serverLog.getConfig(G)) && !(await serverLog.isOn(G, 'messages')), 'logs off: nothing is written');
     await sw('logs', { on: '1' });
     assert(await serverLog.getConfig(G), 'logs back on');
-    // merged modules: «Жалобы» is a section of «Наказания», «Голосовые роли» of «Временные голосовые» — same switches, same data
+    // parts of a module: «Жалобы» inside «Жалобы и тикеты», «Голосовые роли» inside «Временные голосовые», «Магазин» inside
+    // «Экономика», «Интерактивные сообщения» inside «Роли по реакциям и кнопкам» — their own switches, no cards of their own
     const M = require('../web/modules');
     const st = M.moduleState(await db.GuildSettings.findOne({ where: { guildId: G } }));
-    assert(!st.groups.some((g) => g.modules.some((m) => m.key === 'report' || m.key === 'voiceRoles')), 'no separate cards');
-    assert(st.list.find((m) => m.key === 'moderation').sections.map((x) => x.key).join() === 'report', 'Жалобы inside Наказания');
-    assert(st.list.find((m) => m.key === 'tempVoice').sections.map((x) => x.key).join() === 'voiceRoles', 'Голосовые роли inside Временные голосовые');
+    const cards = st.groups.flatMap((g) => g.modules.map((m) => m.key));
+    for (const k of ['report', 'voiceRoles', 'shop', 'interactive']) assert(!cards.includes(k), 'a part got a card: ' + k);
+    const partsOf = (k) => st.list.find((m) => m.key === k).parts.map((x) => x.key).join();
+    assert(partsOf('tickets') === 'report' && partsOf('tempVoice') === 'voiceRoles' && partsOf('economy') === 'shop' && partsOf('reactionRoles') === 'interactive', 'parts');
     r = await (await sw('report', { on: '0' })).json();
     assert(r.ok && !(await db.GuildSettings.findOne({ where: { guildId: G } })).reportEnabled, 'the reports switch still works');
     await sw('report', { on: '1' });

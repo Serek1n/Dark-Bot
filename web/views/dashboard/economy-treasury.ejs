@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Казна и цели' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Казна и цели</h1>
@@ -37,17 +37,17 @@
         <div class="rules" style="margin-top:14px">
           <label class="rule"><span class="rule-text"><b>Розыгрыш</b><span>Длится сутки, призы платит казна.</span></span><input type="checkbox" name="v_give" checked /></label>
         </div>
-        <div class="two-col">
-          <div><label for="v_give_amount">Приз каждому</label><input id="v_give_amount" type="number" name="v_give_amount" min="1" value="<%= Math.max(1, Math.floor(treasury / 4)) %>" /></div>
-          <div><label for="v_give_winners">Победителей</label><input id="v_give_winners" type="number" name="v_give_winners" min="1" max="20" value="1" /></div>
+        <div class="fld-pair">
+          <div class="fld fld-inline"><label for="v_give_amount">Приз каждому</label><input id="v_give_amount" type="number" name="v_give_amount" min="1" value="<%= Math.max(1, Math.floor(treasury / 4)) %>" /></div>
+          <div class="fld fld-inline"><label for="v_give_winners">Победителей</label><input id="v_give_winners" type="number" name="v_give_winners" min="1" max="20" value="1" /></div>
         </div>
         <% if (goalsOn && open.length) { %>
           <div class="rules" style="margin-top:14px">
             <label class="rule"><span class="rule-text"><b>Вложить в общую цель</b></span><input type="checkbox" name="v_goal" /></label>
           </div>
-          <div class="two-col">
-            <div><label for="v_goal_id">Цель</label><select id="v_goal_id" name="v_goal_id"><% open.forEach((g) => { %><option value="<%= g.id %>"><%= g.title %></option><% }) %></select></div>
-            <div><label for="v_goal_amount">Сколько</label><input id="v_goal_amount" type="number" name="v_goal_amount" min="1" value="<%= Math.max(1, Math.floor(treasury / 2)) %>" /></div>
+          <div class="fld-pair">
+            <div class="fld fld-inline"><label for="v_goal_id">Цель</label><select id="v_goal_id" name="v_goal_id"><% open.forEach((g) => { %><option value="<%= g.id %>"><%= g.title %></option><% }) %></select></div>
+            <div class="fld fld-inline"><label for="v_goal_amount">Сколько</label><input id="v_goal_amount" type="number" name="v_goal_amount" min="1" value="<%= Math.max(1, Math.floor(treasury / 2)) %>" /></div>
           </div>
         <% } %>
         <label for="vote_hours">Голосование длится, ч</label>
@@ -63,9 +63,9 @@
       </form>
       <form method="post" action="/dashboard/<%= guild.id %>/economy-treasury/giveaway" class="card g-c2" data-no-guard>
         <h2>Розыгрыш из казны</h2>
-        <div class="two-col">
-          <div><label for="give_amount">Приз каждому</label><input id="give_amount" type="number" name="amount" min="1" value="<%= Math.max(1, Math.floor(treasury / 2)) %>" /></div>
-          <div><label for="give_winners">Победителей</label><input id="give_winners" type="number" name="winners" min="1" max="20" value="1" /></div>
+        <div class="fld-pair">
+          <div class="fld fld-inline"><label for="give_amount">Приз каждому</label><input id="give_amount" type="number" name="amount" min="1" value="<%= Math.max(1, Math.floor(treasury / 2)) %>" /></div>
+          <div class="fld fld-inline"><label for="give_winners">Победителей</label><input id="give_winners" type="number" name="winners" min="1" max="20" value="1" /></div>
         </div>
         <label for="give_hours">Длится, ч</label>
         <input id="give_hours" type="number" name="hours" min="1" max="336" value="24" />
@@ -78,9 +78,9 @@
         <h2>Новая общая цель</h2>
         <label for="goal_title">Название</label>
         <input id="goal_title" type="text" name="title" maxlength="80" placeholder="Например, неделя двойного опыта" required />
-        <div class="two-col">
-          <div><label for="goal_target">Собрать, <%= cur %></label><input id="goal_target" type="number" name="target" min="10" value="5000" /></div>
-          <div><label for="goal_days">Срок, дней</label><input id="goal_days" type="number" name="days" min="1" max="60" value="7" /></div>
+        <div class="fld-pair">
+          <div class="fld fld-inline"><label for="goal_target">Собрать, <%= cur %></label><input id="goal_target" type="number" name="target" min="10" value="5000" /></div>
+          <div class="fld fld-inline"><label for="goal_days">Срок, дней</label><input id="goal_days" type="number" name="days" min="1" max="60" value="7" /></div>
         </div>
         <label for="goal_action">Что будет, когда соберём</label>
         <select id="goal_action" name="action">
@@ -88,9 +88,9 @@
           <option value="role">Роль каждому, кто вложился</option>
           <option value="announce">Просто объявление (награду вы выдаёте сами)</option>
         </select>
-        <div class="two-col">
-          <div><label for="goal_mult">Буст: множитель</label><input id="goal_mult" type="number" name="boostMult" min="1.1" max="3" step="0.1" value="2" /></div>
-          <div><label for="goal_hours">Буст: часов</label><input id="goal_hours" type="number" name="boostHours" min="1" max="336" value="24" /></div>
+        <div class="fld-pair">
+          <div class="fld fld-inline"><label for="goal_mult">Буст: множитель</label><input id="goal_mult" type="number" name="boostMult" min="1.1" max="3" step="0.1" value="2" /></div>
+          <div class="fld fld-inline"><label for="goal_hours">Буст: часов</label><input id="goal_hours" type="number" name="boostHours" min="1" max="336" value="24" /></div>
         </div>
         <label for="goal_role">Роль (для «роль каждому»)</label>
         <select id="goal_role" name="roleId"><option value="">—</option><% roles.forEach((r) => { %><option value="<%= r.id %>">@<%= r.name %></option><% }) %></select>

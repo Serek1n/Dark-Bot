@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Логи сервера' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Логи сервера</h1>
@@ -32,7 +32,7 @@
         </div>
         <form method="post" class="log-conn-form" data-no-guard>
           <input type="hidden" name="action" value="connect" />
-          <div>
+          <div class="fld fld-inline">
             <label for="logForum">Форум для логов</label>
             <select name="logForumChannelId" id="logForum" required>
               <option value="">— не выбрано —</option>

@@ -1,3 +1,20 @@
+// --- Saved channels and roles gone in Discord get their «⚠️» option before anything reads the lists (see below).
+(function () {
+  var data = null;
+  try { var el = document.getElementById('guild-entities'); data = el ? JSON.parse(el.textContent) : null; } catch (e) { data = null; }
+  var gone = (data && data.gone) || {};
+  Object.keys(gone).forEach(function (field) {
+    var g = gone[field];
+    document.querySelectorAll('.content select[name="' + field + '"]').forEach(function (sel) {
+      if (sel.querySelector('option[value="' + g.id + '"]')) return;
+      var o = document.createElement('option');
+      o.value = g.id; o.setAttribute('data-gone', g.kind); o.selected = true; o.defaultSelected = true;
+      o.textContent = '⚠️ ' + (g.kind === 'role' ? 'Удалённая роль' : 'Удалённый канал') + ' (ID: ' + g.id + ')';
+      sel.appendChild(o);
+    });
+  });
+})();
+
 // --- Lists of channels and roles, before they become searchable lists below: a channel list is grouped by its Discord
 // category with an icon of the kind (# text, 🔊 voice, 🗂 forum), a role gets its colour. The data comes from the page
 // (#guild-entities, web/middleware/ensureGuildAccess.js); a list that is not of channels or roles stays as it is.
@@ -82,7 +99,6 @@
     templateHelp();
     typeFields();
     embedEditors();
-    cardColumns();
   });
 
   // 2) Navigation: "≡" opens the list of all pages (Esc, the backdrop or a link closes it); the strip of the group's pages
@@ -116,97 +132,6 @@
   }
 
 
-  // Wide screens: the cards of a page stand in two columns, each card under the one above it in its column — the next card
-  // goes to the shorter column, so no card is stretched to its neighbour's height and no empty strip is left inside it.
-  // A full-width block (a heading, a table, a wide card) starts a new section; where the two columns of a section end
-  // almost level, the shorter one's last card is lengthened by the few pixels so both end on one line.
-  // The page keeps its HTML order and its forms (cards inside a <form> stay in it), only the grid positions change.
-  function cardColumns() {
-    var content = document.querySelector('.app-layout > .content');
-    if (!content || content.querySelector('.home-dash') || !window.matchMedia) return; // the home page has its own two equal cards
-    var wide = window.matchMedia('(min-width: 1200px)');
-    var GAP = 16, LEVEL = 72; // px between cards; columns closer than this at a section's end are levelled
-    var items = [], laidOut = false, queued = false, busy = false;
-    // a form's own .style can be hidden behind a field named "style" (form.style is then that field): read it from the prototype
-    var styleOf = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'style').get;
-    var st = function (el) { return styleOf.call(el); };
-
-    function collect() {
-      var out = [];
-      Array.prototype.forEach.call(content.children, function (el) {
-        var cs = getComputedStyle(el);
-        if (cs.display === 'contents') Array.prototype.forEach.call(el.children, function (k) { if (getComputedStyle(k).display !== 'none') out.push(k); });
-        else if (cs.display !== 'none') out.push(el);
-      });
-      return out.map(function (el, i) { return { el: el, i: i, order: Number(getComputedStyle(el).order) || 0 }; })
-        .sort(function (a, b) { return a.order - b.order || a.i - b.i; }).map(function (x) { return x.el; });
-    }
-    function clear() {
-      st(content).gridAutoRows = ''; st(content).rowGap = '';
-      items.forEach(function (el) { st(el).gridRow = ''; st(el).gridColumn = ''; st(el).alignSelf = ''; st(el).minHeight = ''; st(el).height = ''; el.removeAttribute('data-levelled'); });
-      laidOut = false;
-    }
-    function layout() {
-      queued = false;
-      if (!wide.matches) { if (laidOut) clear(); return; }
-      busy = true;
-      items = collect();
-      items.forEach(function (el) { st(el).minHeight = ''; st(el).height = 'auto'; el.removeAttribute('data-levelled'); }); // auto: no rule may tie a card to its grid area
-      st(content).gridAutoRows = '1px'; st(content).rowGap = '0px';
-      var col = [0, 0], last = [null, null], top = 0;
-      function level() { // end of a section: the shorter column's last card takes the few missing pixels
-        var lo = col[0] <= col[1] ? 0 : 1, hi = 1 - lo, card = last[lo];
-        var gap = col[hi] - col[lo], emptyOnly = card && card.querySelector('.empty-state') && !card.querySelector('form, input, select, textarea, table, .card'); // a card that only says "nothing yet" may grow more: its message stays centred
-        if (card && gap > 0 && (gap <= LEVEL || (emptyOnly && gap <= 320))) {
-          var h = card.offsetHeight + col[hi] - col[lo];
-          st(card).minHeight = h + 'px'; card.setAttribute('data-levelled', ''); card.__h = h;
-          var start = parseInt(st(card).gridRow, 10);
-          st(card).gridRow = start + ' / span ' + h;
-          col[lo] = col[hi];
-        }
-        top = Math.max(col[0], col[1]); col = [top, top]; last = [null, null];
-      }
-      items.forEach(function (el) {
-        var half = el.classList.contains('card') && !el.classList.contains('g-span');
-        st(el).alignSelf = 'start';
-        if (!half) {
-          if (last[0] || last[1]) level();
-          st(el).gridColumn = '1 / -1';
-          var h = Math.ceil(el.getBoundingClientRect().height); el.__h = h;
-          st(el).gridRow = (top + 1) + ' / span ' + Math.max(1, h);
-          top += h + (h ? GAP : 0); col = [top, top];
-          return;
-        }
-        var c = col[0] <= col[1] ? 0 : 1;
-        st(el).gridColumn = String(c + 1);
-        var hh = Math.ceil(el.getBoundingClientRect().height); el.__h = hh;
-        st(el).gridRow = (col[c] + 1) + ' / span ' + Math.max(1, hh);
-        col[c] += hh + GAP; last[c] = el;
-      });
-      if (last[0] || last[1]) level();
-      laidOut = true;
-      requestAnimationFrame(function () { requestAnimationFrame(function () { busy = false; }); });
-    }
-    function queue() { if (!queued) { queued = true; requestAnimationFrame(layout); } }
-    layout();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(queue);
-    window.addEventListener('load', queue);
-    window.addEventListener('resize', queue);
-    if (wide.addEventListener) wide.addEventListener('change', queue);
-    if (window.ResizeObserver) {
-      // a card that grows or shrinks (a list opened, an item added) moves the cards under it; the pixels this script adds
-      // to a levelled card are not a change of its own
-      // (each card's height as last placed is remembered: only a different one means it really changed)
-      var ro = new ResizeObserver(function (entries) {
-        if (entries.some(function (e) { return Math.abs(Math.ceil(e.target.getBoundingClientRect().height) - (e.target.__h || 0)) > 1; })) queue();
-      });
-      var watched = [];
-      var watch = function () { collect().forEach(function (el) { if (watched.indexOf(el) === -1) { ro.observe(el); watched.push(el); } }); };
-      watch();
-      new MutationObserver(function () { if (!busy) { watch(); queue(); } }).observe(content, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
-    }
-  }
-
   // 4) Search: Ctrl+K (⌘K) or "/" opens it. It finds pages and the settings inside them (card headings, fields, switches);
   //    a setting opens its page scrolled to it.
   function quickJump() {
@@ -214,7 +139,7 @@
     if (!links.length) return;
     var pages = links.map(function (a) {
       var t = a.getAttribute('title').split(' — ');
-      return { name: t[0], desc: t[1] || '', href: a.getAttribute('href'), icon: a.querySelector('svg') ? a.querySelector('svg').outerHTML : '' };
+      return { name: t[0], desc: t[1] || '', kw: a.getAttribute('data-kw') || '', href: a.getAttribute('href'), icon: a.querySelector('svg') ? a.querySelector('svg').outerHTML : '' };
     });
     var base = (pages[0].href.match(/^\/dashboard\/\d+/) || [''])[0];
     var iconOf = {}; pages.forEach(function (p) { iconOf[(p.href.split('/')[3] || 'overview')] = p; });
@@ -241,7 +166,7 @@
     document.body.appendChild(box);
     var input = box.querySelector('.qj-input'), list = box.querySelector('.qj-list'), shown = [], sel = 0;
     function norm(s) { return s.toLowerCase().replace(/ё/g, 'е'); }
-    function match(it, words) { var h = norm(it.name + ' ' + it.desc); return words.every(function (w) { return h.indexOf(w) !== -1; }); }
+    function match(it, words) { var h = norm(it.name + ' ' + it.desc + ' ' + (it.kw || '')); return words.every(function (w) { return h.indexOf(w) !== -1; }); }
     function head(text) { var d = document.createElement('div'); d.className = 'qj-head'; d.textContent = text; return d; }
     // the typed words are lit in the result (built from text nodes: nothing typed can become markup)
     function mark(el, text, words) {
@@ -405,6 +330,11 @@
       };
       var draw = function () {
         fields.hidden = !toggle.checked;
+        // the fields and the preview side by side while the embed is on; the card and the page take the wide width for it
+        box.classList.toggle('ee-split', toggle.checked);
+        var card = box.closest('.card'); if (card) card.classList.toggle('wide-card', toggle.checked);
+        var main = box.closest('.content');
+        if (main) main.classList.toggle('has-wide-card', Boolean(main.querySelector('.embed-editor.ee-split')));
         if (!host || !window.DCP) return;
         host.hidden = !toggle.checked && !textField;
         if (host.hidden) return;
@@ -1057,14 +987,18 @@
 })();
 
 // --- A saved channel or role that was deleted in Discord: the list shows it as «⚠️ Удалённый …» (option[data-gone]),
-// and a note under the field asks to pick another, instead of an empty or silently changed field.
+// and a note under the field asks to pick another, instead of an empty or silently changed field. The server names
+// such settings in #guild-entities (gone: { field: { id, kind } }); a list without its own «⚠️» option gets it at the
+// very start of this file, before the lists are dressed.
 (function () {
   document.querySelectorAll('option[data-gone]').forEach(function (o) {
     var sel = o.parentNode; if (!sel || !o.selected) return;
+    var role = o.getAttribute('data-gone') === 'role';
     var note = document.createElement('div');
     note.className = 'gone-note'; note.setAttribute('role', 'note');
-    note.textContent = 'Сохранённый канал удалён в Discord — эта настройка сейчас не работает. Выберите другой канал и сохраните.';
-    var box = sel.closest('.set-ctl, div') || sel.parentNode;
+    note.textContent = role ? 'Сохранённая роль удалена в Discord — эта настройка сейчас не работает. Выберите другую роль и сохраните.'
+      : 'Сохранённый канал удалён в Discord — эта настройка сейчас не работает. Выберите другой канал и сохраните.';
+    var box = sel.closest('.set-ctl, .fld, div') || sel.parentNode;
     box.appendChild(note);
     sel.addEventListener('change', function () { if (!o.selected) note.remove(); });
   });
@@ -1123,5 +1057,113 @@
     inp.insertAdjacentElement('afterend', h);
     function upd() { var w = inp.value.trim() ? words(inp.value) : ''; h.textContent = w === null ? 'Не понял срок: напишите, например, 30м, 2ч, 7д или 1мес' : (w ? '= ' + w : ''); h.classList.toggle('bad', w === null); }
     inp.addEventListener('input', upd); upd();
+  });
+})();
+
+// --- The groups of modules: a strip at the top of the page (#grpBar) and its copy in the top bar (.tb-dock). Scrolled
+// down past the strip, the copy slides into the left side of the top bar; scrolled up, it leaves again. Whether the strip
+// is in view comes from an IntersectionObserver; the direction counts only after 12 px in one direction (no flicker
+// at the edge), read once per frame. A tab opens the list of its group's modules (#grpPop).
+(function () {
+  var root = document.documentElement;
+  var bar = document.getElementById('grpBar');
+  var top = document.getElementById('topbar');
+  var pop = document.getElementById('grpPop');
+  if (!bar || !top) return;
+  var dock = top.querySelector('.tb-dock');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+  var past = false, dir = 0, acc = 0, lastY = window.scrollY, docked = false, frame = 0, leaveTimer = 0;
+  var STEP = 12;
+
+  function setDocked(on) {
+    if (on === docked) return;
+    docked = on;
+    clearTimeout(leaveTimer);
+    if (on) {
+      root.classList.remove('tb-leaving'); root.classList.add('tb-docked');
+      if (dock) {
+        dock.setAttribute('aria-hidden', 'false'); dock.querySelectorAll('.grp-tab').forEach(function (t) { t.removeAttribute('tabindex'); });
+        // a narrow top bar scrolls its strip so that the current group is in view
+        var cur = dock.querySelector('.grp-tab.is-cur'); if (cur && dock.scrollWidth > dock.clientWidth) dock.scrollLeft = Math.max(0, cur.offsetLeft - 8);
+      }
+    } else {
+      if (dock) { dock.setAttribute('aria-hidden', 'true'); dock.querySelectorAll('.grp-tab').forEach(function (t) { t.setAttribute('tabindex', '-1'); }); }
+      if (pop && !pop.hidden && dock && dock.contains(opener)) closePop(false);
+      if (reduce && reduce.matches) { root.classList.remove('tb-docked'); return; }
+      root.classList.add('tb-leaving');
+      leaveTimer = setTimeout(function () { root.classList.remove('tb-docked', 'tb-leaving'); }, 170);
+    }
+  }
+  function decide() { setDocked(past && dir > 0); }
+  function onScroll() {
+    if (frame) return;
+    frame = requestAnimationFrame(function () {
+      frame = 0;
+      var y = window.scrollY, d = y - lastY; lastY = y;
+      if (!d) return;
+      // the distance counts in one direction; a turn starts the count again
+      acc = (acc > 0) === (d > 0) ? acc + d : d;
+      if (acc >= STEP) dir = 1; else if (acc <= -STEP) dir = -1;
+      if (y <= 0) dir = -1;
+      decide();
+    });
+  }
+  if ('IntersectionObserver' in window) {
+    var topH = Math.round(top.getBoundingClientRect().height);
+    var io = new IntersectionObserver(function (entries) {
+      var e = entries[entries.length - 1];
+      // out of view above (under the top bar), not below
+      past = !e.isIntersecting && e.boundingClientRect.top < topH;
+      if (!past) dir = 0;
+      decide();
+    }, { rootMargin: '-' + topH + 'px 0px 0px 0px', threshold: 0 });
+    io.observe(bar);
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  // ---- the list of a group's modules ----
+  var opener = null;
+  function place(btn) {
+    var r = btn.getBoundingClientRect();
+    pop.style.top = Math.round(r.bottom + 6) + 'px';
+    var w = pop.offsetWidth || 260;
+    pop.style.left = Math.round(Math.max(12, Math.min(r.left, window.innerWidth - w - 12))) + 'px';
+  }
+  function openPop(btn) {
+    var id = btn.getAttribute('data-grp-open');
+    pop.querySelectorAll('[data-grp-list]').forEach(function (l) { l.hidden = l.getAttribute('data-grp-list') !== id; });
+    pop.hidden = false; place(btn);
+    document.querySelectorAll('[data-grp-open]').forEach(function (b) { b.setAttribute('aria-expanded', b === btn ? 'true' : 'false'); });
+    opener = btn;
+    document.addEventListener('mousedown', outside, true); document.addEventListener('keydown', keys, true);
+    window.addEventListener('resize', closeOnMove); window.addEventListener('scroll', closeOnMove, { passive: true });
+  }
+  function closePop(back) {
+    if (!pop || pop.hidden) return;
+    pop.hidden = true;
+    document.querySelectorAll('[data-grp-open]').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+    document.removeEventListener('mousedown', outside, true); document.removeEventListener('keydown', keys, true);
+    window.removeEventListener('resize', closeOnMove); window.removeEventListener('scroll', closeOnMove);
+    if (back && opener) opener.focus();
+    opener = null;
+  }
+  var moved = 0;
+  function closeOnMove() { if (++moved > 3) { moved = 0; closePop(false); } }
+  function outside(e) { if (!pop.contains(e.target) && !(opener && opener.contains(e.target))) closePop(false); }
+  function keys(e) {
+    var items = Array.prototype.slice.call(pop.querySelectorAll('[data-grp-list]:not([hidden]) .gp-item'));
+    var i = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') { e.preventDefault(); closePop(true); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); (items[i + 1] || items[0]).focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); (items[i - 1] || items[items.length - 1]).focus(); }
+    else if (e.key === 'Tab' && i >= 0) closePop(false);
+  }
+  if (pop) document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-grp-open]');
+    if (!btn) return;
+    moved = 0;
+    if (opener === btn && !pop.hidden) { closePop(false); return; }
+    openPop(btn);
+    if (e.detail === 0) { var first = pop.querySelector('[data-grp-list]:not([hidden]) .gp-item'); if (first) first.focus(); } // opened by the keyboard
   });
 })();

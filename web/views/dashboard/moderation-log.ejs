@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Журнал модерации' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Журнал модерации</h1>
@@ -21,7 +21,7 @@
         </div>
         <form method="get" class="econ-filters mod-userfilter" data-no-guard>
           <% if (action) { %><input type="hidden" name="action" value="<%= action %>" /><% } %>
-          <div><label for="l_user">ID участника или модератора</label><input id="l_user" type="text" name="user" inputmode="numeric" pattern="[0-9]{15,25}" value="<%= user %>" placeholder="Все" /></div>
+          <div class="fld"><label for="l_user">ID участника или модератора</label><input id="l_user" type="text" name="user" inputmode="numeric" pattern="[0-9]{15,25}" value="<%= user %>" placeholder="Все" /></div>
           <button class="btn" type="submit">Показать</button>
         </form>
         <% if (!logs.length) { %>

@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Апелляции' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Апелляции</h1>
@@ -25,9 +25,9 @@
         <div class="ap-kinds">
           <% Object.entries(AP.KINDS).forEach(([k, l]) => { %><label class="checkbox-row"><input type="checkbox" name="kind_<%= k %>" <%= kinds.includes(k) ? 'checked' : '' %> /> <span><%= l %></span></label><% }) %>
         </div>
-        <div class="two-col">
-          <div><label for="apMax">Открытых апелляций у одного</label><input id="apMax" type="number" name="appealsMaxOpen" min="1" max="10" value="<%= settings.appealsMaxOpen || 2 %>" /></div>
-          <div><label for="apCd">Пауза после отказа, дней</label><input id="apCd" type="number" name="appealsCooldownDays" min="0" max="365" value="<%= settings.appealsCooldownDays ?? 7 %>" /></div>
+        <div class="fld-pair">
+          <div class="fld fld-inline"><label for="apMax">Открытых апелляций у одного</label><input id="apMax" type="number" name="appealsMaxOpen" min="1" max="10" value="<%= settings.appealsMaxOpen || 2 %>" /></div>
+          <div class="fld fld-inline"><label for="apCd">Пауза после отказа, дней</label><input id="apCd" type="number" name="appealsCooldownDays" min="0" max="365" value="<%= settings.appealsCooldownDays ?? 7 %>" /></div>
         </div>
         <label for="apCh">Куда сообщать о новых</label>
         <select id="apCh" name="appealsChannelId">

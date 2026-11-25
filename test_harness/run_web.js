@@ -89,7 +89,7 @@ const express = require('express');
     await db.ModLog.create({ guildId: '777000000000000001', userId: '100000000000000009', moderatorId: '100000000000000008', action: 'ban', reason: 'x' });
     const h = await (await fetch(base + '')).text();
     assert(h.includes('/profile') && h.includes('/daily') && h.includes('/mod'), 'commands');
-    assert(!h.includes('/settings') && !h.includes('/manage'), 'stale commands still mentioned');
+    assert(!/<code>\/(settings|manage)\b/.test(h), 'stale commands still mentioned');
     assert(h.includes('Топ по опыту') && h.includes('Бан'), 'top / recent actions');
   });
   await test('moderation: Russian action names and the action filter', async () => {

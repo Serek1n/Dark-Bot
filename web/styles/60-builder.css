@@ -44,7 +44,7 @@
 .me-tools { display: inline-flex; gap: 2px; margin-left: auto; }
 .me-group { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hairline-soft); }
 .me-group h3 { font-size: var(--fs-12); color: var(--fog-dim); margin: 0 0 8px; font-weight: 600; }
-.me-group > div + div, .me-group > .two-col + div, .me-group > div + .two-col { margin-top: 10px; }
+.me-group > div + div, .me-group > .fld-pair + div, .me-group > div + .fld-pair { margin-top: 10px; }
 .me-field { padding: 10px; border: 1px solid var(--hairline-soft); border-radius: var(--r-8); margin-bottom: 8px; background: var(--soft); }
 .me-color input[type="color"] { width: 42px; height: 36px; padding: 2px; border-radius: var(--r-8); flex: 0 0 auto; }
 .me-hex { max-width: 120px; }

@@ -145,10 +145,9 @@ const PNG = (b) => Buffer.isBuffer(b) && b.slice(1, 4).toString() === 'PNG';
   app.use((err, req, res, next) => res.status(500).send(String(err.stack)));
   const server = app.listen(0);
   const base = `http://127.0.0.1:${server.address().port}/dashboard/777000000000000002`;
-  await test('panel: the group «Оформление» with five tabs; saving a tab keeps the theme; the previews are PNG', async () => {
+  await test('panel: «Оформление» in «Настройки панели» with five tabs; saving a tab keeps the theme; the previews are PNG', async () => {
     const M = require('../web/modules');
-    assert(M.GROUPS.some(([id, t]) => id === 'look' && t === 'Оформление'), 'group');
-    assert(M.MODULES.find((m) => m.key === 'appearance').group === 'look', 'module in the group');
+    assert(M.SYSTEM_GROUP[0] === 'system' && M.MODULES.find((m) => m.key === 'appearance').group === 'system', 'in the system block');
     for (const p of ['appearance', 'appearance-levels', 'appearance-achievements', 'appearance-fun', 'appearance-voice']) {
       const r = await fetch(`${base}/${p}`); assert(r.status === 200, p + ' ' + r.status + ' ' + (await r.text()).slice(0, 300));
     }

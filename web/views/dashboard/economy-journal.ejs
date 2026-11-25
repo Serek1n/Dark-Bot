@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Журнал экономики' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Журнал экономики</h1>
@@ -50,10 +50,10 @@
       <div class="card g-span">
         <h2>Операции <span class="muted">· <%= n(total) %></span></h2>
         <form method="get" class="econ-filters" data-no-guard>
-          <div><label for="f_user">ID участника</label><input id="f_user" type="text" name="user" inputmode="numeric" pattern="[0-9]{15,25}" value="<%= f.user %>" placeholder="Все" /></div>
-          <div><label for="f_kind">Операция</label><select id="f_kind" name="kind"><option value="">Все</option><% Object.entries(KIND_LABELS).filter(([k]) => !['chat', 'voice', 'level'].includes(k)).forEach(([k, l]) => { %><option value="<%= k %>" <%= f.kind === k ? 'selected' : '' %>><%= l %></option><% }) %></select></div>
-          <div><label for="f_days">За сколько дней</label><select id="f_days" name="days"><% [1, 7, 30, 90, 365].forEach((d) => { %><option value="<%= d %>" <%= f.days === d ? 'selected' : '' %>><%= d %></option><% }) %></select></div>
-          <div><label for="f_flag">Отметка</label><select id="f_flag" name="flag"><option value="">Любая</option><option value="newbie" <%= f.flag ? 'selected' : '' %>>От новичков</option></select></div>
+          <div class="fld"><label for="f_user">ID участника</label><input id="f_user" type="text" name="user" inputmode="numeric" pattern="[0-9]{15,25}" value="<%= f.user %>" placeholder="Все" /></div>
+          <div class="fld fld-inline"><label for="f_kind">Операция</label><select id="f_kind" name="kind"><option value="">Все</option><% Object.entries(KIND_LABELS).filter(([k]) => !['chat', 'voice', 'level'].includes(k)).forEach(([k, l]) => { %><option value="<%= k %>" <%= f.kind === k ? 'selected' : '' %>><%= l %></option><% }) %></select></div>
+          <div class="fld fld-inline"><label for="f_days">За сколько дней</label><select id="f_days" name="days"><% [1, 7, 30, 90, 365].forEach((d) => { %><option value="<%= d %>" <%= f.days === d ? 'selected' : '' %>><%= d %></option><% }) %></select></div>
+          <div class="fld fld-inline"><label for="f_flag">Отметка</label><select id="f_flag" name="flag"><option value="">Любая</option><option value="newbie" <%= f.flag ? 'selected' : '' %>>От новичков</option></select></div>
           <button class="btn" type="submit">Показать</button>
         </form>
         <% if (!rows.length) { %>

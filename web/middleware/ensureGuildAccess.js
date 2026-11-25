@@ -7,9 +7,11 @@ const { hasManageAccess, getSettings } = require('../utils/common');
 // What the top menu ("Модули ▾") and the module headers need on every page of a server: which modules are on.
 async function withModules(req, res, next) {
   if (res.locals) {
+    let settings = null;
     try {
       const { moduleState } = require('../modules');
-      res.locals.mods = moduleState(await getSettings(req.params.guildId));
+      settings = await getSettings(req.params.guildId);
+      res.locals.mods = moduleState(settings);
     } catch (_) { res.locals.mods = null; } // the page builds the list from its own settings; it still opens
     // the server's channels and roles for the lists on the page (grouped by category, with icons and role colours; see
     // js/ui.js). Both are cached by discordApi, so this costs nothing on a page that asks for them anyway.
@@ -18,6 +20,8 @@ async function withModules(req, res, next) {
         const api = require('../discordApi');
         const [ch, ro] = await Promise.all([api.getGuildChannels(req.params.guildId), api.getGuildRoles(req.params.guildId)]);
         res.locals.entities = { channels: (ch || []).map((c) => ({ id: c.id, n: c.name, t: c.type, p: c.parent_id || null, o: c.position || 0 })), roles: (ro || []).map((r) => ({ id: r.id, c: r.color || 0 })) };
+        // saved channels and roles that are gone in Discord (only when both lists came: an empty answer proves nothing)
+        if (settings && ch && ch.length && ro && ro.length) res.locals.entities.gone = require('../utils/goneRefs')(settings, ch, ro);
       } catch (_) { res.locals.entities = null; }
     }
   }

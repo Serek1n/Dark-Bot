@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Множители' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Множители</h1>
@@ -20,11 +20,11 @@
         <h2>Как множители складываются</h2>
         <% const roleModeText = { largest: 'Самый большой из ролей участника', smallest: 'Самый маленький из ролей', highest: 'У самой высокой роли с бонусом', add: 'Сумма: каждая роль добавляет свой бонус сверх ×1 (×1,5 и ×2 = ×2,5)', multiply: 'Произведение (×1,5 и ×2 = ×3)' }; %>
         <% const stackText = { multiply: 'Перемножаются (канал ×2 и роль ×1,5 = ×3)', add: 'Складываются (канал ×2 и роль ×1,5 = ×2,5)', largest: 'Действует больший из двух', channel: 'Бонус канала важнее: роль считается только там, где у канала бонуса нет', role: 'Бонус роли важнее: канал считается только у тех, у кого нет бонусной роли' }; %>
-        <div>
+        <div class="fld fld-inline">
           <label>Если у участника несколько ролей с бонусом</label>
           <select name="roleBoostMode"><% ROLE_MODES.forEach(m => { %><option value="<%= m %>" <%= (settings.roleBoostMode || 'largest') === m ? 'selected' : '' %>><%= roleModeText[m] %></option><% }) %></select>
         </div>
-        <div>
+        <div class="fld fld-inline">
           <label>Бонус роли и бонус канала вместе</label>
           <select name="boostStacking"><% STACK_MODES.forEach(m => { %><option value="<%= m %>" <%= (settings.boostStacking || 'multiply') === m ? 'selected' : '' %>><%= stackText[m] %></option><% }) %></select>
         </div>
@@ -90,7 +90,7 @@
 
       <form method="post" class="card" id="chAdd" data-drawer="Бонус канала или категории">
         <h2>Бонус канала<span class="sub">Если для канала уже есть бонус, он заменится</span></h2>
-        <div>
+        <div class="fld fld-inline">
           <label>Канал или категория</label>
           <select name="channelId" required>
             <option value="" disabled selected>— выберите —</option>
@@ -99,12 +99,12 @@
           </select>
           <div class="hint">Бонус категории действует на все её каналы. Если у самого канала есть свой бонус, действует он.</div>
         </div>
-        <div class="two-col">
-          <div>
+        <div class="fld-pair">
+          <div class="fld">
             <label>Множитель опыта</label>
             <input type="text" name="xp" inputmode="decimal" value="2" placeholder="1" />
           </div>
-          <div>
+          <div class="fld">
             <label>Множитель монет</label>
             <input type="text" name="coins" inputmode="decimal" value="2" placeholder="1" />
           </div>
@@ -114,16 +114,16 @@
       </form>
       <form method="post" action="/dashboard/<%= guild.id %>/channel-boosts/roles" class="card" id="roleAdd" data-drawer="Бонус роли">
         <h2>Бонус роли<span class="sub">Например, бустерам ×1,5, а роли «Мут» ×0</span></h2>
-        <div>
+        <div class="fld fld-inline">
           <label>Роль</label>
           <select name="roleId" required>
             <option value="" disabled selected>— выберите —</option>
             <% roles.filter(r => r.id !== guild.id).forEach(r => { %><option value="<%= r.id %>">@<%= r.name %></option><% }) %>
           </select>
         </div>
-        <div class="two-col">
-          <div><label>Множитель опыта</label><input type="text" name="xp" inputmode="decimal" value="1,5" placeholder="1" /></div>
-          <div><label>Множитель монет</label><input type="text" name="coins" inputmode="decimal" value="1" placeholder="1" /></div>
+        <div class="fld-pair">
+          <div class="fld"><label>Множитель опыта</label><input type="text" name="xp" inputmode="decimal" value="1,5" placeholder="1" /></div>
+          <div class="fld"><label>Множитель монет</label><input type="text" name="coins" inputmode="decimal" value="1" placeholder="1" /></div>
         </div>
         <div class="hint">От 0 до <%= MAX_BOOST %>. <b>0</b> у роли или канала всегда побеждает: участник с такой ролью (или в таком канале) ничего не получает.</div>
         <button class="btn" type="submit">Добавить</button>

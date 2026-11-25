@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Кастом-команды' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Кастомные команды</h1>
@@ -22,11 +22,11 @@
 
       <form method="post" class="card" id="ccAdd" data-drawer="Новая команда">
         <h2>Новая команда</h2>
-        <div>
+        <div class="fld">
           <label>Триггер (без префикса)</label>
           <input type="text" name="trigger" placeholder="правила" required />
         </div>
-        <div>
+        <div class="fld">
           <label>Ответ бота</label>
           <textarea name="response" id="ccResponse" data-md placeholder="Правила сервера: ... (можно оставить пустым, если ответ — эмбед)"></textarea>
           <%- include('../partials/replacers-help', { target: 'ccResponse' }) %>

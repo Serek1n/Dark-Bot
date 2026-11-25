@@ -9,14 +9,14 @@
     <span>Оформить как эмбед (рамка с заголовком, цветом и картинкой)<% if (locals.hint) { %><small class="hint" style="display:block;margin-top:2px"><%= hint %></small><% } %></span>
   </label>
   <div class="embed-fields" <%= E.on ? '' : 'hidden' %>>
-    <div class="two-col">
-      <div><label>Заголовок</label><input type="text" name="<%= prefix %>_title" maxlength="256" value="<%= E.title || '' %>" data-ef="title" /></div>
+    <div class="fld-pair">
+      <div class="fld"><label>Заголовок</label><input type="text" name="<%= prefix %>_title" maxlength="256" value="<%= E.title || '' %>" data-ef="title" /></div>
       <div class="embed-color"><label>Цвет полосы</label><input type="color" name="<%= prefix %>_color" value="<%= E.color || '#8b7cf6' %>" data-ef="color" /></div>
     </div>
-    <div><label>Текст эмбеда</label><textarea name="<%= prefix %>_description" maxlength="4000" rows="3" data-ef="description" data-md><%= E.description || '' %></textarea></div>
-    <div class="two-col">
-      <div><label>Картинка (ссылка https://…)</label><input type="text" name="<%= prefix %>_image" maxlength="500" value="<%= E.image || '' %>" placeholder="необязательно" data-ef="image" /></div>
-      <div><label>Маленькая картинка справа</label>
+    <div class="fld"><label>Текст эмбеда</label><textarea name="<%= prefix %>_description" maxlength="4000" rows="3" data-ef="description" data-md><%= E.description || '' %></textarea></div>
+    <div class="fld-pair">
+      <div class="fld"><label>Картинка (ссылка https://…)</label><input type="text" name="<%= prefix %>_image" maxlength="500" value="<%= E.image || '' %>" placeholder="необязательно" data-ef="image" /></div>
+      <div class="fld fld-inline"><label>Маленькая картинка справа</label>
         <select name="<%= prefix %>_thumbnail" data-ef="thumbnail">
           <option value="" <%= !E.thumbnail ? 'selected' : '' %>>нет</option>
           <option value="avatar" <%= E.thumbnail === 'avatar' ? 'selected' : '' %>>аватар участника</option>
@@ -24,8 +24,8 @@
         </select>
       </div>
     </div>
-    <div class="two-col">
-      <div><label>Подпись внизу</label><input type="text" name="<%= prefix %>_footer" maxlength="2048" value="<%= E.footer || '' %>" data-ef="footer" /></div>
+    <div class="fld-pair">
+      <div class="fld"><label>Подпись внизу</label><input type="text" name="<%= prefix %>_footer" maxlength="2048" value="<%= E.footer || '' %>" data-ef="footer" /></div>
       <label class="checkbox-row" style="align-self:end"><input type="checkbox" name="<%= prefix %>_timestamp" <%= E.timestamp ? 'checked' : '' %> data-ef="timestamp" /><span>Дата и время отправки</span></label>
     </div>
     <p class="hint">Заменители работают во всех полях эмбеда.</p>

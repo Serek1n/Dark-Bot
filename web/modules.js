@@ -8,13 +8,14 @@
 const { Op } = require('sequelize');
 const { FEATURES } = require('../bot/utils/features');
 
+// Four groups of modules and, apart from them, «Настройки панели»: what belongs to the whole panel, not to a module.
 const GROUPS = [
-  ['community', 'Сообщество'],
-  ['moderation', 'Модерация'],
-  ['server', 'Сервер'],
-  ['tools', 'Оповещения и инструменты'],
-  ['look', 'Оформление']
+  ['activity', 'Активность и экономика'],
+  ['moderation', 'Модерация и безопасность'],
+  ['server', 'Сервер и общение'],
+  ['tools', 'Инструменты и медиа']
 ];
+const SYSTEM_GROUP = ['system', 'Настройки панели'];
 
 // 20×20 line icons (stroke = currentColor)
 const ICONS = {
@@ -47,6 +48,8 @@ const ICONS = {
   listing: '<circle cx="7" cy="7.5" r="2.5"/><circle cx="13.5" cy="7.5" r="2.5"/><path d="M2.5 16C2.8 13.3 4.7 11.5 7 11.5C9.3 11.5 11.2 13.3 11.5 16M10.5 12.3C11.2 11.8 12.3 11.5 13.5 11.5C15.8 11.5 17.2 13.3 17.5 16"/>',
   appearance: '<path d="M10 2.8C5.9 2.8 2.8 5.8 2.8 9.6C2.8 13.6 6 17.2 9.6 17.2C10.7 17.2 11.2 16.5 11.2 15.7C11.2 14.6 10.3 14.3 10.3 13.4C10.3 12.6 10.9 12.1 11.8 12.1H13.6C15.6 12.1 17.2 10.6 17.2 8.6C17.2 5.4 14 2.8 10 2.8Z"/><circle cx="6.6" cy="9.4" r="1.1"/><circle cx="8.6" cy="6.1" r="1.1"/><circle cx="12.4" cy="6.1" r="1.1"/>',
   serverStats: '<path d="M3 17H17"/><path d="M5.5 14V9M10 14V5M14.5 14V11"/>',
+  appeals: '<path d="M4 4.5H16V13H10L6.5 16V13H4Z"/><path d="M10 7V9.5M10 11.2V11.3"/>',
+  core: '<circle cx="10" cy="10" r="2.6"/><path d="M10 2.8V4.6M10 15.4V17.2M2.8 10H4.6M15.4 10H17.2M4.9 4.9L6.2 6.2M13.8 13.8L15.1 15.1M4.9 15.1L6.2 13.8M13.8 6.2L15.1 4.9"/>',
   boosts: '<path d="M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z"/>'
 };
 
@@ -57,62 +60,88 @@ const where = (guildId, extra) => ({ where: { guildId, ...(extra || {}) } });
 const db = () => require('../db');
 const n = (v) => Number(v || 0);
 
-// pages: the panel pages that belong to the module (the first is where its name leads); [] = commands only.
-// core: always on, no switch. depends: switching this one off is offered for these too (they lose their sense without it).
-// stats: the numbers on the home page — [{ value, label }], the first one also goes into the module list.
-// The tabs of the merged modules (old addresses keep working: see web/routes/dashboard/moderation.js and tempVoice.js).
-const MOD_PAGES = ['moderation', 'moderation-punishments', 'moderation-warnings', 'moderation-auto', 'automod', 'moderation-reports', 'moderation-appeals', 'moderation-log', 'moderation-settings'];
+// pages: the panel pages of the module, each page belongs to exactly one module (the first is where its name leads);
+// [] = commands only. parts: other switches that live inside this module, each with the tab it owns (Магазин inside
+// Экономика); a part has no card of its own and no pages of its own. depends: switching this one off is offered for
+// these too (they lose their sense without it). stats: the numbers on the home page — [{ value, label }], the first
+// one also goes into the module list. field: the on/off flag when the module is not in bot/utils/features.js.
+const MOD_PAGES = ['moderation', 'moderation-punishments', 'moderation-warnings', 'moderation-auto', 'moderation-log', 'moderation-settings'];
 const LOOK_PAGES = ['appearance', 'appearance-levels', 'appearance-achievements', 'appearance-fun', 'appearance-voice'];
 const VOICE_PAGES = ['temp-voice', 'temp-voice-rooms', 'temp-voice-panel', 'temp-voice-access', 'temp-voice-roles', 'temp-voice-auto', 'temp-voice-stats', 'temp-voice-settings'];
 const LAYOUT = [
-  { key: 'leveling', group: 'community', pages: ['leveling', 'leveling-rewards', 'channel-boosts', 'leveling-notify', 'leaderboard', 'leveling-data'],
+  // ---- Активность и экономика ----
+  { key: 'leveling', group: 'activity', pages: ['leveling', 'leveling-rewards', 'channel-boosts', 'leveling-notify', 'leaderboard', 'leveling-data'],
+    keywords: 'опыт xp уровень ранг топ лидерборд множитель',
     stats: async (g) => {
       const { MemberProfile, LevelRole } = db();
       const [members, roles] = await Promise.all([MemberProfile.count(where(g)), LevelRole.count(where(g))]);
       return [{ value: members, label: 'участников в системе' }, { value: roles, label: 'ролей за уровни' }];
     } },
-  { key: 'achievements', group: 'community', pages: ['achievements', 'achievements-catalog', 'achievements-edit', 'achievements-members', 'achievements-settings'],
+  { key: 'achievements', group: 'activity', pages: ['achievements', 'achievements-catalog', 'achievements-edit', 'achievements-members', 'achievements-settings'],
+    keywords: 'ачивки награды значки',
     stats: async (g) => {
       const { MemberAchievement } = db();
       const [total, members] = await Promise.all([MemberAchievement.count(where(g)), MemberAchievement.count({ ...where(g), distinct: true, col: 'userId' })]);
       return [{ value: total, label: 'достижений открыто' }, { value: members, label: 'участников с достижениями' }];
     } },
-  { key: 'economy', group: 'community', pages: ['economy', 'shop', 'economy-bank', 'economy-treasury', 'economy-deals', 'economy-journal'],
+  { key: 'economy', group: 'activity', pages: ['economy', 'shop', 'economy-bank', 'economy-treasury', 'economy-deals', 'economy-journal'],
+    parts: [{ key: 'shop', tab: 'shop' }], keywords: 'монеты кристаллы валюта деньги баланс магазин банк казна',
     stats: async (g) => {
       const { MemberProfile } = db();
       const [coins, crystals, holders] = await Promise.all([MemberProfile.sum('balance', where(g)), MemberProfile.sum('crystals', where(g)),
         MemberProfile.count(where(g, { balance: { [Op.gt]: 0 } }))]);
       return [{ value: n(coins), label: 'монет в обороте' }, { value: n(crystals), label: 'кристаллов' }, { value: holders, label: 'участников с деньгами' }];
     } },
-  { key: 'shop', group: 'community', pages: ['shop'], depends: ['economy'],
+  { key: 'shop', depends: ['economy'],
     stats: async (g) => {
       const { ShopItem, Purchase } = db();
       const [items, bought] = await Promise.all([ShopItem.count(where(g)), Purchase.count(where(g))]);
       return [{ value: items, label: 'товаров' }, { value: bought, label: 'покупок' }];
     } },
-  { key: 'giveaways', group: 'community', pages: ['giveaways'],
+  { key: 'giveaways', group: 'activity', pages: ['giveaways'], keywords: 'призы конкурс победитель',
     stats: async (g) => {
       const { Giveaway } = db();
       const [live, all] = await Promise.all([Giveaway.count(where(g, { ended: false })), Giveaway.count(where(g))]);
       return [{ value: live, label: 'идёт сейчас' }, { value: all, label: 'всего' }];
     } },
-  { key: 'polls', group: 'community', pages: [],
+  { key: 'polls', group: 'activity', pages: [], keywords: 'опрос голосование',
     stats: async (g) => { const { Poll } = db(); return [{ value: await Poll.count(where(g, { ended: false })), label: 'идёт сейчас' }]; } },
-  { key: 'fun', group: 'community', pages: [] },
-  { key: 'moderation', group: 'moderation', pages: MOD_PAGES,
+  { key: 'fun', group: 'activity', pages: [], keywords: 'игры кубик монетка' },
+  // ---- Модерация и безопасность ----
+  { key: 'moderation', group: 'moderation', pages: MOD_PAGES, keywords: 'бан мут варн предупреждение кик наказание журнал',
     stats: async (g) => {
-      const { Warning, ModLog, Report } = db();
-      const [warns, actions, reports] = await Promise.all([Warning.count({ where: { guildId: g, revokedAt: null } }), ModLog.count(where(g)), Report.count(where(g, { status: 'open' }))]);
-      return [{ value: warns, label: 'предупреждений' }, { value: actions, label: 'действий модераторов' }, { value: reports, label: 'новых жалоб' }];
+      const { Warning, ModLog } = db();
+      const [warns, actions] = await Promise.all([Warning.count({ where: { guildId: g, revokedAt: null } }), ModLog.count(where(g))]);
+      return [{ value: warns, label: 'предупреждений' }, { value: actions, label: 'действий модераторов' }];
     } },
-  { key: 'automod', group: 'moderation', pages: ['automod'] },
-  // part of «Наказания»: its own switch lives on the «Жалобы» tab, no card of its own in the list of modules
-  { key: 'report', group: 'moderation', parent: 'moderation', pages: ['moderation-reports'] },
-  { key: 'tickets', group: 'moderation', pages: [],
-    stats: async (g) => { const { Ticket } = db(); return [{ value: await Ticket.count(where(g, { status: 'open' })), label: 'открытых обращений' }]; } },
-  { key: 'logs', group: 'moderation', pages: ['logs'] },
-  { key: 'welcome', group: 'server', pages: ['welcome', 'welcome-rejoin', 'reaction-roles'] },
-  { key: 'serverStats', group: 'server', pages: ['server-stats', 'server-stats-channels'],
+  { key: 'automod', group: 'moderation', pages: ['automod'], keywords: 'спам ссылки фильтр слова капс' },
+  { key: 'appeals', group: 'moderation', pages: ['moderation-appeals'], field: 'appealsEnabled', depends: [], title: 'Апелляции',
+    desc: 'Наказанный участник просит снять бан, мут или предупреждение; модераторы решают в панели', keywords: 'обжалование снять бан разбан',
+    stats: async (g) => { const { Appeal } = db(); return [{ value: await Appeal.count(where(g, { status: { [Op.in]: ['new', 'review'] } })), label: 'ждут решения' }]; } },
+  { key: 'tickets', group: 'moderation', title: 'Жалобы и тикеты', desc: 'Жалобы на сообщения и участников и приватные обращения к команде сервера: /ticket, «Report message»',
+    pages: ['moderation-reports'], parts: [{ key: 'report', tab: 'moderation-reports' }], keywords: 'тикет обращение жалоба репорт report',
+    stats: async (g) => {
+      const { Ticket, Report } = db();
+      const [tickets, reports] = await Promise.all([Ticket.count(where(g, { status: 'open' })), Report.count(where(g, { status: 'open' }))]);
+      return [{ value: reports, label: 'новых жалоб' }, { value: tickets, label: 'открытых обращений' }];
+    } },
+  { key: 'report' },
+  { key: 'logs', group: 'moderation', pages: ['logs'], keywords: 'логи аудит события форум' },
+  // ---- Сервер и общение ----
+  { key: 'welcome', group: 'server', pages: ['welcome', 'welcome-rejoin'], keywords: 'приветствие прощание автороль вход' },
+  { key: 'reactionRoles', group: 'server', title: 'Роли по реакциям и кнопкам', desc: 'Роль за реакцию на сообщение, за кнопку или пункт списка',
+    pages: ['reaction-roles', 'interactive'], parts: [{ key: 'interactive', tab: 'interactive' }], keywords: 'реакции кнопки меню выбор ролей самороли',
+    stats: async (g) => {
+      const { ReactionRole, InteractiveMessage } = db();
+      const [rr, im] = await Promise.all([ReactionRole.count(where(g)), InteractiveMessage.count(where(g))]);
+      return [{ value: rr, label: 'ролей по реакциям' }, { value: im, label: 'сообщений с кнопками' }];
+    } },
+  { key: 'interactive' },
+  { key: 'tempVoice', group: 'server', pages: VOICE_PAGES, parts: [{ key: 'voiceRoles', tab: 'temp-voice-roles' }], keywords: 'голос войс комнаты приватные',
+    stats: async (g) => { const { TempVoiceChannel } = db(); return [{ value: await TempVoiceChannel.count(where(g)), label: 'комнат сейчас' }]; } },
+  // works in any voice channel, temporary or not
+  { key: 'voiceRoles' },
+  { key: 'serverStats', group: 'server', pages: ['server-stats', 'server-stats-channels'], keywords: 'статистика счётчики график',
     stats: async (g) => {
       const ss = require('../bot/modules/serverStats');
       const week = await ss.history(g, 7);
@@ -120,19 +149,14 @@ const LAYOUT = [
       const counters = ss.read(await GuildSettings.findOne(where(g))).counters.length;
       return [{ value: week.reduce((s, d) => s + d.messages, 0), label: 'сообщений за неделю' }, { value: counters, label: 'счётчиков в каналах' }];
     } },
-  { key: 'reactionRoles', group: 'server', pages: ['reaction-roles'],
-    stats: async (g) => { const { ReactionRole } = db(); return [{ value: await ReactionRole.count(where(g)), label: 'ролей по реакциям' }]; } },
-  { key: 'interactive', group: 'server', pages: ['interactive'],
-    stats: async (g) => { const { InteractiveMessage } = db(); return [{ value: await InteractiveMessage.count(where(g)), label: 'сообщений с кнопками' }]; } },
-  { key: 'tempVoice', group: 'server', pages: VOICE_PAGES,
-    stats: async (g) => { const { TempVoiceChannel } = db(); return [{ value: await TempVoiceChannel.count(where(g)), label: 'комнат сейчас' }]; } },
-  // part of «Временные голосовые»: works in any voice channel, temporary or not; its switch is on the «Голосовые роли» tab
-  { key: 'voiceRoles', group: 'server', parent: 'tempVoice', pages: ['temp-voice-roles'] },
-  { key: 'customCommands', group: 'server', pages: ['custom-commands'],
+  { key: 'customCommands', group: 'server', pages: ['custom-commands'], keywords: 'префикс ответы автоответ',
     stats: async (g) => { const { CustomCommand } = db(); return [{ value: await CustomCommand.count(where(g)), label: 'команд' }]; } },
-  { key: 'alerts', group: 'tools', pages: ['alerts'],
+  // ---- Инструменты и медиа ----
+  { key: 'webhooks', group: 'tools', title: 'Сообщения и вебхуки', desc: 'Конструктор сообщений с эмбедами и кнопками, отправка от бота или через вебхук, черновики и расписание',
+    pages: ['webhooks'], keywords: 'эмбед конструктор сообщение рассылка расписание' },
+  { key: 'alerts', group: 'tools', pages: ['alerts'], keywords: 'youtube twitch reddit стрим видео уведомления',
     stats: async (g) => { const { Alert } = db(); return [{ value: await Alert.count(where(g)), label: 'подписок' }]; } },
-  { key: 'events', group: 'tools', pages: ['events'],
+  { key: 'events', group: 'tools', pages: ['events'], keywords: 'объявления анонсы',
     stats: async (g) => {
       const { GuildSettings } = db();
       const s = await GuildSettings.findOne(where(g));
@@ -140,49 +164,58 @@ const LAYOUT = [
       const r = be.read(s);
       return [{ value: be.TYPES.filter((t) => r.types[t.key].on).length, label: 'событий включено' }];
     } },
-  { key: 'webhooks', group: 'tools', pages: ['webhooks'] },
+  { key: 'music', group: 'tools', pages: ['music'], keywords: 'плеер плейлист трек',
+    stats: async () => { const { Playlist } = db(); return [{ value: await Playlist.count(), label: 'плейлистов у участников' }]; } },
+  { key: 'reminders', group: 'tools', pages: [], keywords: 'напомнить таймер',
+    stats: async (g) => { const { Reminder } = db(); return [{ value: await Reminder.count(where(g)), label: 'напоминаний ждут' }]; } },
   // the server's card in the public catalog «Сообщества DARK» (no switch: not listing it is the off state)
   { key: 'listing', group: 'tools', title: 'Сообщество в каталоге', desc: 'Карточка сервера в публичном каталоге «Сообщества DARK»: описание, категории, голоса, статистика, продвижение', pages: ['community'],
+    keywords: 'каталог продвижение голоса',
     stats: async (g) => { const { Community } = db(); const c = await Community.findOne(where(g)); return [{ value: c ? c.votes : 0, label: c ? 'голосов в каталоге' : 'не в каталоге' }]; } },
-  { key: 'reminders', group: 'tools', pages: [],
-    stats: async (g) => { const { Reminder } = db(); return [{ value: await Reminder.count(where(g)), label: 'напоминаний ждут' }]; } },
-  // «Оформление»: the theme and the look of the bot's messages (bot/modules/appearance.js); no switch: the defaults are the look
-  { key: 'appearance', group: 'look', title: 'Оформление', desc: 'Тема бота, картинки-карточки и тексты: новый уровень, профиль, топ, достижения, мини-игры, панель комнаты', pages: LOOK_PAGES,
+  // ---- Настройки панели (not modules: no switch, not counted) ----
+  // the theme and the look of the bot's messages (bot/modules/appearance.js); the defaults are the look
+  { key: 'appearance', group: 'system', title: 'Оформление', desc: 'Тема бота, картинки-карточки и тексты: новый уровень, профиль, топ, достижения, мини-игры, панель комнаты', pages: LOOK_PAGES,
+    keywords: 'тема цвета карточка картинка',
     stats: async (g) => {
       const { GuildSettings } = db();
       const ap = require('../bot/modules/appearance');
       const look = ap.read(await GuildSettings.findOne(where(g)));
       return [{ value: (ap.THEMES[look.theme] || ap.THEMES.dark).title, label: 'тема' }, { value: ap.TARGETS.filter((t) => look.targets[t.key].card).length, label: 'с картинкой' }];
     } },
-  { key: 'music', group: 'tools', pages: ['music'],
-    stats: async () => { const { Playlist } = db(); return [{ value: await Playlist.count(), label: 'плейлистов у участников' }]; } }
+  { key: 'core', group: 'system', title: 'Базовые настройки', desc: 'Язык бота на сервере и то, что относится ко всему боту', pages: ['settings'], keywords: 'язык language english' }
 ];
+
+// the module each part lives in (shop → economy), from the owners' `parts`
+const PART_OF = new Map(LAYOUT.flatMap((m) => (m.parts || []).map((p) => [p.key, { owner: m.key, tab: p.tab }])));
 
 const MODULES = LAYOUT.map((m) => {
   const f = FEATURES.find((x) => x.key === m.key);
+  const part = PART_OF.get(m.key);
+  const owner = part ? LAYOUT.find((x) => x.key === part.owner) : null;
   return {
     key: m.key,
-    group: m.group,
+    group: m.group || owner?.group,
     title: m.title || f?.title || m.key,
     desc: m.desc || f?.desc || '',
-    field: f?.field || null, // null: always on
+    field: m.field || f?.field || null, // null: always on
     commands: f?.commands || [],
-    pages: m.pages,
-    page: m.pages[0] || null,
+    pages: part ? [] : (m.pages || []),
+    page: part ? part.tab : (m.pages || [])[0] || null,
     depends: m.depends || [],
-    core: Boolean(m.core),
-    parent: m.parent || null, // a section of another module (kept as its own switch, not listed on its own)
+    system: (m.group || owner?.group) === 'system',
+    partOf: part ? part.owner : null, // a switch inside another module: no card, no pages of its own
+    keywords: m.keywords || '',
     stats: m.stats || null
   };
 });
 const BY_KEY = new Map(MODULES.map((m) => [m.key, m]));
 
 // Pages that are not a module's: what to show in their header instead.
-const PAGE_TITLES = { overview: 'Главная', features: 'Модули', settings: 'Общие настройки', changelog: 'Обновления' };
+const PAGE_TITLES = { overview: 'Главная', features: 'Модули', changelog: 'Обновления' };
 // The tabs of a module with several pages (its header shows them; the search finds each).
-const PAGE_LABELS = { leveling: 'Начисление', 'leveling-rewards': 'Награды и роли', 'channel-boosts': 'Множители', 'leveling-notify': 'Уведомления и топ', leaderboard: 'Лидерборд', 'leveling-data': 'Данные и участники', welcome: 'Сообщения', 'welcome-rejoin': 'Автороль и возврат', 'reaction-roles': 'Роли по реакциям',
-  moderation: 'Обзор', 'moderation-punishments': 'Наказания', 'moderation-warnings': 'Предупреждения', 'moderation-auto': 'Автонаказания', automod: 'Автомодерация',
-  'moderation-reports': 'Жалобы', 'moderation-appeals': 'Апелляции', 'moderation-log': 'Журнал', 'moderation-settings': 'Настройки',
+const PAGE_LABELS = { leveling: 'Начисление', 'leveling-rewards': 'Награды и роли', 'channel-boosts': 'Множители', 'leveling-notify': 'Уведомления и топ', leaderboard: 'Лидерборд', 'leveling-data': 'Данные и участники', welcome: 'Сообщения', 'welcome-rejoin': 'Автороль и возврат', 'reaction-roles': 'По реакциям', interactive: 'Кнопки и списки',
+  moderation: 'Обзор', 'moderation-punishments': 'Наказания', 'moderation-warnings': 'Предупреждения', 'moderation-auto': 'Автонаказания',
+  'moderation-reports': 'Жалобы', 'moderation-log': 'Журнал', 'moderation-settings': 'Настройки',
   'temp-voice': 'Обзор', 'temp-voice-rooms': 'Создание комнат', 'temp-voice-panel': 'Панель управления', 'temp-voice-access': 'Права доступа',
   'temp-voice-roles': 'Голосовые роли', 'temp-voice-auto': 'Автоматизация', 'temp-voice-stats': 'Статистика', 'temp-voice-settings': 'Настройки',
   achievements: 'Обзор', 'achievements-catalog': 'Каталог', 'achievements-edit': 'Создать', 'achievements-members': 'Участники', 'achievements-settings': 'Настройки',
@@ -195,27 +228,38 @@ const PAGE_NEEDS = { 'economy-bank': ['bank', 'seasons'], 'economy-treasury': ['
 const PAGE_LATER = new Set([]);
 const pageVisible = (page, settings) => !PAGE_LATER.has(page) && (!PAGE_NEEDS[page] || PAGE_NEEDS[page].some((k) => require('../bot/modules/econ/config').isOn(settings, k)));
 
-/** The module a page belongs to (the main one, not a section), or null. */
-const moduleOfPage = (page) => MODULES.find((m) => !m.parent && m.pages.includes(page)) || MODULES.find((m) => m.pages.includes(page)) || null;
-/** Every module that has this page, the main one first (moderation-reports: «Наказания» and its section «Жалобы»). */
+// The grid of each page (99-layout.css): .layout-form — settings as rows in a reading-width column (the default);
+// .layout-wide — tables, journals, lists, catalogs and charts across the width; .layout-split-custom — a builder with
+// its preview beside it.
+const WIDE_PAGES = new Set(['overview', 'features', 'changelog', 'leaderboard', 'leveling-data', 'channel-boosts', 'achievements', 'achievements-catalog',
+  'achievements-members', 'alerts', 'community', 'custom-commands', 'economy-deals', 'economy-journal', 'logs', 'moderation', 'moderation-punishments',
+  'moderation-warnings', 'moderation-log', 'music', 'reaction-roles', 'server-stats', 'server-stats-channels', 'shop', 'temp-voice', 'temp-voice-stats', 'giveaways']);
+const SPLIT_PAGES = new Set(['webhooks']);
+const layoutOf = (page) => (SPLIT_PAGES.has(page) ? 'layout-split-custom' : WIDE_PAGES.has(page) ? 'layout-wide' : 'layout-form');
+
+/** The module a page belongs to (each page has exactly one), or null. */
+const moduleOfPage = (page) => MODULES.find((m) => !m.partOf && m.pages.includes(page)) || null;
+/** The module of the page first, then the switches that live on this very tab (Экономика, then Магазин on «Магазин»). */
 const modulesOfPage = (page) => {
-  const own = MODULES.filter((m) => m.pages.includes(page));
-  const main = own.find((m) => !m.parent) || (own[0]?.parent ? BY_KEY.get(own[0].parent) : null);
-  return main ? [main, ...own.filter((m) => m !== main)] : own;
+  const main = moduleOfPage(page);
+  if (!main) return [];
+  return [main, ...MODULES.filter((m) => m.partOf === main.key && m.page === page)];
 };
 
 const isOn = (settings, m) => (m.field ? Boolean(settings && settings[m.field]) : true);
 
 /** The menu's view of the modules for one server: groups with their modules and on/off. */
 function moduleState(settings) {
-  const list = MODULES.map((m) => ({ key: m.key, title: m.title, desc: m.desc, group: m.group, page: m.page, pages: m.pages, core: m.core,
-    switchable: Boolean(m.field), on: isOn(settings, m), depends: m.depends, commands: m.commands, parent: m.parent }));
-  // sections of a merged module are found in `list` but not shown or counted on their own
-  const top = list.filter((m) => !m.parent);
-  for (const m of top) m.sections = list.filter((x) => x.parent === m.key);
+  const list = MODULES.map((m) => ({ key: m.key, title: m.title, desc: m.desc, group: m.group, page: m.page, pages: m.pages, system: m.system,
+    switchable: Boolean(m.field), on: isOn(settings, m), depends: m.depends, commands: m.commands, partOf: m.partOf, keywords: m.keywords }));
+  // the parts of a module are in `list` (for their switches) but have no card and are not counted on their own
+  const top = list.filter((m) => !m.partOf);
+  for (const m of top) m.parts = list.filter((x) => x.partOf === m.key);
   const groups = GROUPS.map(([id, title]) => ({ id, title, modules: top.filter((m) => m.group === id) }));
-  const on = top.filter((m) => m.on).length;
-  return { list, groups, on, total: top.length };
+  const system = { id: SYSTEM_GROUP[0], title: SYSTEM_GROUP[1], modules: top.filter((m) => m.system) };
+  const counted = top.filter((m) => !m.system);
+  const on = counted.filter((m) => m.on).length;
+  return { list, groups, system, on, total: counted.length };
 }
 
 /** Modules that depend on this one (the ones offered to switch off with it). */
@@ -246,7 +290,7 @@ function moduleStats(guildId) {
 /** Forget the numbers of a server (after a change the admin made, so the home page shows it at once). */
 const forgetStats = (guildId) => statsCache.delete(guildId);
 
-module.exports = { GROUPS, MODULES, BY_KEY, ICONS, icon, PAGE_TITLES, PAGE_LABELS, PAGE_NEEDS, pageVisible, moduleOfPage, modulesOfPage, moduleState, dependentsOf, moduleStats, forgetStats, isOn };
+module.exports = { GROUPS, SYSTEM_GROUP, MODULES, layoutOf, BY_KEY, ICONS, icon, PAGE_TITLES, PAGE_LABELS, PAGE_NEEDS, pageVisible, moduleOfPage, modulesOfPage, moduleState, dependentsOf, moduleStats, forgetStats, isOn };
 
 // Templates read the modules as `M` (app.locals.M); a template rendered on its own (tests, error pages) finds them here.
 global.__darkModules = module.exports;

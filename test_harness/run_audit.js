@@ -88,7 +88,8 @@ const assert = require('assert');
     for (const f of fs.readdirSync(path.join(views, 'dashboard'))) {
       const html = fs.readFileSync(path.join(views, 'dashboard', f), 'utf8');
       if (!html.includes("include('../partials/sidebar')")) continue;
-      assert(html.includes('<main class="content" id="main"') && html.includes('</main>'), `${f}: the content is the <main> of the page`);
+      assert(/<main class="content[^\n]*id="main"/.test(html) && html.includes('</main>'), `${f}: the content is the <main> of the page`);
+      assert(html.includes('layoutOf(locals.active)'), `${f}: the page names its grid (.layout-form / .layout-wide / .layout-split-custom)`);
       assert.strictEqual((html.match(/<main\b/g) || []).length, 1, `${f}: one main`);
     }
     const ui = fs.readFileSync(path.join(__dirname, '..', 'web', 'public', 'js', 'ui.js'), 'utf8');

@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Обзор' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <%# The home: every module on the left with its number; on the right the chosen one (?m=key) or the server summary. %>
       <% const M = locals.M || global.__darkModules; const fmtN = (v) => (typeof v === 'string' ? v : Number(v || 0).toLocaleString('ru-RU').replace(/\s/g, '\u202f'));
          const mods = locals.mods || M.moduleState(settings); const stats = locals.stats || {}; const selected = locals.selected || null;
@@ -51,7 +51,7 @@
           <div class="hp-acts">
             <% if (sel.page) { %>
               <a class="btn" href="/dashboard/<%= guild.id %>/<%= sel.page %>">Открыть настройки модуля</a>
-              <% sel.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && !mods.list.some((o) => !o.parent && o.page === p) && M.pageVisible(p, locals.settings)).forEach((p) => { %><a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/<%= p %>"><%= M.PAGE_LABELS[p] %></a><% }) %>
+              <% sel.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && true && M.pageVisible(p, locals.settings)).forEach((p) => { %><a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/<%= p %>"><%= M.PAGE_LABELS[p] %></a><% }) %>
             <% } else { %>
               <p class="hint">У этого модуля нет настроек в панели: он работает командами в Discord.</p>
             <% } %>
@@ -74,8 +74,8 @@
           { v: mods.on + '/' + mods.total, l: 'Модулей включено', href: g + '/features' }
         ];
         const live = [
-          { key: 'report', from: 'moderation', i: 2, l: 'Новых жалоб', href: g + '/moderation-reports' },
-          { key: 'tickets', l: 'Открытых обращений', href: g + '?m=tickets' },
+          { key: 'report', from: 'tickets', i: 0, l: 'Новых жалоб', href: g + '/moderation-reports' },
+          { key: 'tickets', i: 1, l: 'Открытых обращений', href: g + '?m=tickets' },
           { key: 'giveaways', l: 'Розыгрышей идёт', href: g + '/giveaways' },
           { key: 'polls', l: 'Голосований идёт', href: g + '?m=polls' },
           { key: 'tempVoice', l: 'Голосовых комнат', href: g + '/temp-voice' },

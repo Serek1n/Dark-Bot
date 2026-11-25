@@ -31,5 +31,27 @@ test('the panel font is Manrope (same as the bot cards), served from the panel i
   const css = fs.readFileSync(path.join(__dirname, '..', 'web', 'public', 'css', 'fonts.css'), 'utf8');
   assert(css.includes("font-family: 'Manrope'") && fs.existsSync(path.join(__dirname, '..', 'web', 'public', 'fonts', 'manrope-cyrillic-wght-normal.woff2')));
 });
+test('Ctrl+K: every module of the four groups and «Настройки панели» is found, by its name and by its words; no link leads nowhere', () => {
+  const M = require('../web/modules');
+  const ejs = require('ejs');
+  let html = '';
+  ejs.renderFile(path.join(__dirname, '..', 'web', 'views', 'partials', 'sidebar.ejs'), { guild: { id: '123456789012345678', name: 'Т', icon: null }, active: 'overview', user: null }, { async: false }, (e, h) => { if (e) throw e; html = h; });
+  const links = [...html.matchAll(/<a href="([^"]+)"[^>]*title="([^"]+)"(?: data-kw="([^"]*)")?/g)].map((m) => ({ href: m[1], name: m[2].split(' — ')[0], kw: m[3] || '' }));
+  const st = M.moduleState({});
+  for (const m of [...st.groups.flatMap((g) => g.modules), ...st.system.modules]) {
+    const l = links.find((x) => x.name === m.title);
+    assert(l, 'not in the search: ' + m.title);
+    assert(l.kw.includes(m.group === 'system' ? M.SYSTEM_GROUP[1] : M.GROUPS.find((g) => g[0] === m.group)[1]), 'the group is a search word: ' + m.key);
+    for (const part of m.parts) assert(l.kw.includes(part.title), 'a part is found by its module: ' + part.title);
+  }
+  // the words: «магазин» finds Экономика, «тикет» Жалобы и тикеты, «кнопки» Роли по реакциям и кнопкам
+  const find = (w) => links.filter((l) => (l.name + ' ' + l.kw).toLowerCase().includes(w)).map((l) => l.name);
+  assert(find('магазин').includes('Экономика') && find('тикет').includes('Жалобы и тикеты') && find('кнопк').includes('Роли по реакциям и кнопкам') && find('язык').includes('Базовые настройки'), 'keywords');
+  const routes = fs.readdirSync(path.join(__dirname, '..', 'web', 'routes', 'dashboard'), { recursive: true }).filter((f) => f.endsWith('.js')).map((f) => fs.readFileSync(path.join(__dirname, '..', 'web', 'routes', 'dashboard', f), 'utf8')).join('\n');
+  for (const l of links) {
+    const page = (l.href.match(/^\/dashboard\/\d+\/([\w-]+)/) || [])[1];
+    if (page) assert(routes.includes(`'/:guildId/${page}'`) || routes.includes(`/:guildId/${page}`) || new RegExp(`TABS[^\\n]*'${page}'`).test(routes) || routes.includes(`'${page}'`), 'a link leads nowhere: ' + l.href);
+  }
+});
 console.log(results.join('\n')); console.log(`\n${results.length - failed}/${results.length} passed`);
 process.exit(failed ? 1 : 0);

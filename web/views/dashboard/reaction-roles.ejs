@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Роли по реакциям' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Роли по реакциям</h1>
@@ -12,7 +12,7 @@
       </div>
       <form method="post" class="card" id="rrAdd" data-drawer="Новая роль за реакцию">
         <h2>Новая роль за реакцию</h2>
-        <div>
+        <div class="fld fld-inline">
           <label>Канал с сообщением</label>
           <select name="channelId" required>
             <% channels.filter(c => c.type === 0 || c.type === 5).forEach(c => { %>
@@ -20,15 +20,15 @@
             <% }) %>
           </select>
         </div>
-        <div>
+        <div class="fld">
           <label>ID сообщения</label>
           <input type="text" name="messageId" inputmode="numeric" placeholder="Правый клик по сообщению → Копировать ID" required />
         </div>
-        <div>
+        <div class="fld">
           <label>Эмодзи</label>
           <input type="text" name="emoji" placeholder="😀 или &lt;:имя:123456789&gt;" required />
         </div>
-        <div>
+        <div class="fld fld-inline">
           <label>Роль</label>
           <select name="roleId" required>
             <option value="" disabled selected hidden>— выберите роль —</option>
@@ -37,9 +37,9 @@
             <% }) %>
           </select>
         </div>
-        <div class="two-col">
+        <div class="fld-pair">
           <% for (let k = 0; k < 2; k++) { %>
-          <div>
+          <div class="fld fld-inline">
             <label>Ещё роль (необязательно)</label>
             <select name="extraRoleId">
               <option value="">—</option>
@@ -48,7 +48,7 @@
           </div>
           <% } %>
         </div>
-        <div>
+        <div class="fld fld-inline">
           <label>Режим</label>
           <select name="mode">
             <option value="normal">Обычный: реакция выдаёт роли, снятие реакции — забирает</option>

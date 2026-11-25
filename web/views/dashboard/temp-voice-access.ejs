@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Права доступа' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Права доступа</h1>
@@ -23,7 +23,7 @@
         </div>
         <div class="card g-span">
           <h2>Новая комната по умолчанию</h2>
-          <div class="g-split"><div>
+          <div class="fld-pair"><div class="fld fld-inline">
           <label for="tvAccess">Доступ</label>
           <select id="tvAccess" name="tempVoiceDefaultAccess">
             <% Object.entries(ACCESS).forEach(([k, a]) => { %><option value="<%= k %>" <%= (settings.tempVoiceDefaultAccess || 'open') === k ? 'selected' : '' %>><%= a.emoji %> <%= a.label %></option><% }) %>

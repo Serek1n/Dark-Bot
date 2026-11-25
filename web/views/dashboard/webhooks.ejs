@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Вебхуки' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Вебхуки</h1>
@@ -34,8 +34,8 @@
 
       <form method="post" class="card" id="whAdd" data-drawer="Новый вебхук" data-no-guard>
         <h2>Новый вебхук</h2>
-        <div class="two-col">
-          <div>
+        <div class="fld-pair">
+          <div class="fld fld-inline">
             <label>Канал</label>
             <select name="channelId" required>
               <% channels.forEach(c => { %>
@@ -43,12 +43,12 @@
               <% }) %>
             </select>
           </div>
-          <div>
+          <div class="fld">
             <label>Имя (до 32 символов)</label>
             <input type="text" name="name" maxlength="32" required placeholder="Например: Новости" />
           </div>
         </div>
-        <div>
+        <div class="fld">
           <label>Ссылка на аватарку (необязательно, https, PNG/JPG/GIF/WebP до 8 МБ)</label>
           <input type="text" inputmode="url" name="avatarUrl" placeholder="Если не указать, будет аватарка бота" />
         </div>

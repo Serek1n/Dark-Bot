@@ -1,5 +1,0 @@
-<%# The two pages of the server's own settings: which modules are on, and what is common to the whole bot (its language). %>
-<nav class="mh-tabs settings-tabs" aria-label="Настройки сервера">
-  <a href="/dashboard/<%= guild.id %>/features"<%- active === 'features' ? ' class="on" aria-current="page"' : '' %>>Модули</a>
-  <a href="/dashboard/<%= guild.id %>/settings"<%- active === 'settings' ? ' class="on" aria-current="page"' : '' %>>Общие</a>
-</nav>

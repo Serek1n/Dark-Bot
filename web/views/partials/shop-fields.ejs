@@ -1,36 +1,36 @@
-<div class="two-col">
-  <div><label>Название</label><input type="text" name="name" value="<%= it.name %>" maxlength="60" required /></div>
-  <div><label>Цена</label><input type="number" name="price" value="<%= it.price %>" min="1" max="1000000000" required /></div>
+<div class="fld-pair">
+  <div class="fld"><label>Название</label><input type="text" name="name" value="<%= it.name %>" maxlength="60" required /></div>
+  <div class="fld fld-inline"><label>Цена</label><input type="number" name="price" value="<%= it.price %>" min="1" max="1000000000" required /></div>
 </div>
-<div><label>Описание</label><input type="text" name="description" value="<%= it.description || '' %>" maxlength="200" /></div>
-<div class="two-col">
-  <div><label>Валюта</label>
+<div class="fld"><label>Описание</label><input type="text" name="description" value="<%= it.description || '' %>" maxlength="200" /></div>
+<div class="fld-pair">
+  <div class="fld fld-inline"><label>Валюта</label>
     <select name="currency">
       <option value="coins" <%= it.currency === 'coins' ? 'selected' : '' %>><%= settings.currencyName %></option>
       <option value="crystals" <%= it.currency === 'crystals' ? 'selected' : '' %>><%= settings.crystalName %></option>
     </select>
   </div>
-  <div><label>Тип</label>
+  <div class="fld fld-inline"><label>Тип</label>
     <select name="type">
       <option value="item" <%= it.type === 'item' ? 'selected' : '' %>>Предмет (текст или ручная выдача)</option>
       <option value="role" <%= it.type === 'role' ? 'selected' : '' %>>Роль (выдаётся сразу)</option>
     </select>
   </div>
 </div>
-<div data-role-only><label>Роль</label>
+<div class="fld fld-inline" data-role-only><label>Роль</label>
   <select name="roleId">
     <option value="">—</option>
     <% roles.forEach(r => { %><option value="<%= r.id %>" <%= it.roleId === r.id ? 'selected' : (r.blocked ? 'disabled' : '') %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option><% }) %>
   </select>
 </div>
-<div data-role-only><label>Срок действия роли</label>
+<div class="fld" data-role-only><label>Срок действия роли</label>
   <input type="text" name="duration" value="<%= it.durationSeconds ? termText(it.durationSeconds * 1000) : '' %>" data-duration maxlength="30" placeholder="Пусто — навсегда. Например: 10д, 12ч, 1мес" />
   <p class="hint">По окончании бот сам снимет роль, повторная покупка продлевает срок. От 1 минуты до 366 дней.</p>
 </div>
-<div class="two-col">
-  <div><label>Количество на складе</label><input type="number" name="stock" value="<%= it.stock === null || it.stock === undefined ? '' : it.stock %>" min="0" placeholder="Пусто — без ограничений" /></div>
-  <div><label>Минимальный уровень</label><input type="number" name="minLevel" value="<%= it.minLevel || 0 %>" min="0" max="1000" /></div>
+<div class="fld-pair">
+  <div class="fld fld-inline"><label>Количество на складе</label><input type="number" name="stock" value="<%= it.stock === null || it.stock === undefined ? '' : it.stock %>" min="0" placeholder="Пусто — без ограничений" /></div>
+  <div class="fld fld-inline"><label>Минимальный уровень</label><input type="number" name="minLevel" value="<%= it.minLevel || 0 %>" min="0" max="1000" /></div>
 </div>
-<div><label>Сообщение при выдаче</label><textarea name="deliveryMessage" maxlength="500" rows="2" placeholder="Например, ключ или инструкция. Покажется покупателю. Если пусто — выдаёте вручную."><%= it.deliveryMessage || '' %></textarea></div>
+<div class="fld"><label>Сообщение при выдаче</label><textarea name="deliveryMessage" maxlength="500" rows="2" placeholder="Например, ключ или инструкция. Покажется покупателю. Если пусто — выдаёте вручную."><%= it.deliveryMessage || '' %></textarea></div>
 <label class="checkbox-row"><input type="checkbox" name="enabled" <%= it.enabled ? 'checked' : '' %> /> Товар виден в магазине</label>
 <label class="checkbox-row"><input type="checkbox" name="oncePerUser" <%= it.oncePerUser ? 'checked' : '' %> /> <span class="cr-text">Только одна покупка на участника <span class="hint" style="display:block;margin:3px 0 0">— для пробных товаров: купивший больше не сможет купить его снова (даже чтобы продлить срок)</span></span></label>

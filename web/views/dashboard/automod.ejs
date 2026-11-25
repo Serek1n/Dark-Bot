@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Автомодерация' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Автомодерация</h1>
@@ -28,7 +28,7 @@
 
         <div class="card" id="skip">
           <h2>Исключения<span class="sub">Где и для кого автомодерация не работает совсем</span></h2>
-          <div>
+          <div class="fld">
             <label>Каналы, где автомодерация не работает</label>
             <div class="pick">
     
@@ -38,7 +38,7 @@
               <% }) %>
             </div>
           </div>
-          <div>
+          <div class="fld">
             <label>Роли, которых автомодерация не проверяет</label>
             <div class="pick" data-kind="roles">
               <% if (!roles.length) { %><span class="pick-empty">Ролей не найдено</span><% } %>
@@ -132,8 +132,8 @@
 
         <div class="card g-c2" id="action">
           <h2>Что делать с нарушителем<span class="sub">Сообщение удаляется всегда. Здесь — что ещё будет автору</span></h2>
-          <div class="two-col">
-            <div>
+          <div class="fld-pair">
+            <div class="fld fld-inline">
               <label>Наказание автора</label>
               <select name="automodAction">
                 <option value="delete" <%= (settings.automodAction || 'delete') === 'delete' ? 'selected' : '' %>>Только удалить сообщение</option>
@@ -141,7 +141,7 @@
                 <option value="mute" <%= settings.automodAction === 'mute' ? 'selected' : '' %>>Удалить и замутить</option>
               </select>
             </div>
-            <div>
+            <div class="fld fld-inline">
               <label>Срок мута, минут</label>
               <input type="number" name="automodMuteMinutes" value="<%= settings.automodMuteMinutes || 10 %>" min="1" max="40320" />
             </div>
@@ -162,8 +162,8 @@
           <% filters.forEach(f => { const r = cfgOf(f); %>
             <details class="rule-cfg" data-rule="<%= f.key %>" <%= isSet(r) ? '' : 'hidden' %>>
               <summary><b><%= f.title %></b><span class="muted"> — <span class="pr-sum"><%= sumOf(r) || 'настройте ниже' %></span></span></summary>
-              <div class="two-col">
-                <div>
+              <div class="fld-pair">
+                <div class="fld fld-inline">
                   <label>Наказание за это правило</label>
                   <select name="rule_<%= f.key %>_action">
                     <option value="" <%= !r.action ? 'selected' : '' %>>Как в общем блоке</option>
@@ -172,7 +172,7 @@
                     <option value="mute" <%= r.action === 'mute' ? 'selected' : '' %>>Удалить и замутить</option>
                   </select>
                 </div>
-                <div><label>Срок мута, минут</label><input type="number" name="rule_<%= f.key %>_mute" value="<%= r.mute || '' %>" min="1" max="40320" placeholder="как в общем блоке" /></div>
+                <div class="fld fld-inline"><label>Срок мута, минут</label><input type="number" name="rule_<%= f.key %>_mute" value="<%= r.mute || '' %>" min="1" max="40320" placeholder="как в общем блоке" /></div>
               </div>
               <label>Каналы, где это правило не действует</label>
               <div class="pick" data-kind="channels">
@@ -187,7 +187,7 @@
             </details>
           <% }) %>
           </div>
-          <div class="pr-add">
+          <div class="fld fld-inline pr-add">
             <label for="pr-add">Добавить особое наказание для правила</label>
             <select id="pr-add">
               <option value="">— выберите правило —</option>
@@ -208,7 +208,7 @@
               <input type="checkbox" name="automodDehoist" <%= settings.automodDehoist ? 'checked' : '' %> />
             </label>
           </div>
-          <div>
+          <div class="fld">
             <label>Чем заменить недопустимый ник</label>
             <input type="text" name="automodNickReplacement" maxlength="32" value="<%= settings.automodNickReplacement || 'Ник скрыт' %>" />
             <div class="hint">Ники модераторов (право «Управлять никнеймами»), ролей-исключений ниже и тех, кто выше роли бота, не меняются.</div>

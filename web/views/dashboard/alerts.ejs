@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Оповещения' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Оповещения YouTube / Twitch</h1>
@@ -45,19 +45,19 @@
 
       <form method="post" class="card" id="alertAdd" data-drawer="Новая подписка" data-no-guard>
         <h2>Новая подписка</h2>
-        <div>
+        <div class="fld fld-inline">
           <label for="alPlatform">Платформа</label>
           <select id="alPlatform" name="platform" required>
             <option value="youtube">YouTube</option>
             <option value="twitch"<%= twitchReady ? '' : ' disabled' %>>Twitch<%= twitchReady ? '' : ' — не подключён' %></option>
           </select>
         </div>
-        <div>
+        <div class="fld">
           <label for="alTarget">Канал YouTube или логин Twitch</label>
           <input type="text" id="alTarget" name="targetId" required placeholder="UC… или логин" />
           <div class="hint">YouTube: ID канала, начинается с UC («О канале» → «Поделиться» → «Копировать идентификатор канала»). Twitch: логин из ссылки twitch.tv/<b>логин</b>.</div>
         </div>
-        <div>
+        <div class="fld fld-inline">
           <label for="alChannel">Канал Discord для публикации</label>
           <select id="alChannel" name="channelId" required>
             <% channels.filter(c => [0, 5].includes(c.type)).forEach(c => { %>
@@ -65,7 +65,7 @@
             <% }) %>
           </select>
         </div>
-        <div>
+        <div class="fld">
           <label for="alertMessage">Текст сообщения</label>
           <input type="text" name="message" id="alertMessage" maxlength="500" placeholder="{name} только что опубликовал(а) новое видео! {url}" />
           <div class="hint">Пусто — стандартный текст.</div>

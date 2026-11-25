@@ -125,7 +125,7 @@ tbody tr:hover { background: var(--soft); }
   .card { padding: 18px 16px; border-radius: var(--r-14); }
 
   .stat-row { grid-template-columns: repeat(2, 1fr); }
-  .two-col { grid-template-columns: 1fr; }
+  .fld-pair { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) { .guild-card:hover { transform: none; } }

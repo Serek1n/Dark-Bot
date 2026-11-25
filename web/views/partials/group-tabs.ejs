@@ -1,0 +1,11 @@
+<%# The groups of modules as tabs: the four groups and «Настройки панели». Used twice by sidebar.ejs — the strip at the top
+   of the page (variant 'bar') and its compact copy that slides into the top bar while the page is scrolled down (variant
+   'dock', js/ui.js). A tab opens the list of its modules (one shared popover, #grpPop). %>
+<% const M = locals.M || global.__darkModules;
+   const all = [...mods.groups, mods.system];
+   const cur = locals.curGroup || ''; %>
+<% all.forEach((g) => { const isCur = g.id === cur; %>
+  <button type="button" class="grp-tab<%= isCur ? ' is-cur' : '' %><%= g.id === M.SYSTEM_GROUP[0] ? ' is-system' : '' %>" data-grp-open="<%= g.id %>" aria-haspopup="true" aria-expanded="false" aria-controls="grpPop"<%- variant === 'dock' ? ' tabindex="-1"' : '' %><%- isCur ? ' aria-current="true"' : '' %>>
+    <span class="grp-name"><%= g.title %></span>
+  </button>
+<% }) %>

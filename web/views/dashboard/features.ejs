@@ -2,12 +2,11 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Модули' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <h1>Модули</h1>
-        <%- include('../partials/settings-tabs') %>
         <p class="page-intro">Включайте только то, что нужно серверу. Переключатель срабатывает сразу: выключенный модуль перестаёт работать и пропадает из работающих, а все его настройки и данные сохраняются — после включения всё вернётся как было.</p>
       </div>
       <% const M = locals.M || global.__darkModules; const mods = locals.mods || M.moduleState(settings); %>
@@ -36,7 +35,7 @@
                 <div class="mods-title"><%= m.title %><% if (m.depends.length) { %> <span class="mods-dep">нужна «<%= m.depends.map((d) => (mods.list.find((x) => x.key === d) || {}).title).join('», «') %>»</span><% } %></div>
                 <div class="mods-desc"><%= m.desc %></div>
                 <% if (cmds.length) { %><div class="mods-cmds"><% cmds.forEach((c) => { %><code>/<%= c %></code><% }) %></div><% } %>
-                <% (m.sections || []).forEach((sec) => { %>
+                <% (m.parts || []).forEach((sec) => { %>
                   <div class="mods-section" data-mod-row="<%= sec.key %>"><span>Раздел «<%= sec.title %>»</span><label class="mod-sw sm"><input type="checkbox" data-mod-switch="<%= sec.key %>" data-mod-title="<%= sec.title %>"<%= sec.on ? ' checked' : '' %> aria-label="<%= sec.title %>"></label></div>
                 <% }) %>
               </div>
@@ -50,6 +49,16 @@
       <% }) %>
       </div><% }) %>
       </div>
+      <section class="card mods-group mods-system">
+        <h2><%= mods.system.title %></h2>
+        <% mods.system.modules.forEach((m) => { %>
+          <div class="mods-row is-on">
+            <span class="mh-icon is-on"><%- M.icon(m.key, 18) %></span>
+            <div class="mods-main"><div class="mods-title"><%= m.title %></div><div class="mods-desc"><%= m.desc %></div></div>
+            <a class="mods-open" href="/dashboard/<%= guild.id %>/<%= m.page %>">Открыть ›</a>
+          </div>
+        <% }) %>
+      </section>
     </main>
   </div>
 </body>

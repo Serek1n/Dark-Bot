@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Жалобы' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Жалобы</h1>
@@ -13,24 +13,24 @@
       <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
          const name = (id) => (users[id] || { name: id }).name;
          const ST = { open: 'Новые', done: 'Рассмотрены', ignored: 'Отклонены', all: 'Все' }; %>
-      <form method="post" action="<%= g %>/moderation/reports" class="card" data-api="moderation.reports">
+      <form method="post" action="<%= g %>/moderation/reports" class="card set-section" data-api="moderation.reports">
         <h2>Куда приходят жалобы</h2>
-        <label for="reportChannelId">Канал для жалоб</label>
-        <select id="reportChannelId" name="reportChannelId">
-          <option value="">— не выбрано —</option>
-          <% channels.forEach(c => { %><option value="<%= c.id %>" <%= settings.reportChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
-        </select>
-        <div class="hint">Не выбран — жалобы отправить нельзя: бот ответит, что канал не настроен.</div>
-        <div class="two-col">
-          <div>
-            <label for="reportDailyLimit">Жалоб в сутки от одного участника</label>
-            <input id="reportDailyLimit" type="number" name="reportDailyLimit" min="1" max="50" value="<%= settings.reportDailyLimit || 5 %>" />
-          </div>
-          <div class="rules" style="align-self:end;">
-            <label class="rule"><span class="rule-text"><b>Предупреждать о входе участника с жалобами</b></span><input type="checkbox" name="reportJoinAlert" <%= settings.reportJoinAlert !== false ? 'checked' : '' %> /></label>
-          </div>
+        <div class="set-row">
+          <div class="set-text"><label for="reportChannelId">Канал для жалоб</label><p class="set-help">Не выбран — жалобы отправить нельзя: бот ответит, что канал не настроен.</p></div>
+          <div class="set-ctl"><select id="reportChannelId" name="reportChannelId">
+            <option value="">— не выбрано —</option>
+            <% channels.forEach(c => { %><option value="<%= c.id %>" <%= settings.reportChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %>
+          </select></div>
         </div>
-        <button class="btn" type="submit">Сохранить</button>
+        <div class="set-row">
+          <div class="set-text"><label for="reportDailyLimit">Жалоб в сутки от одного участника</label></div>
+          <div class="set-ctl"><input id="reportDailyLimit" type="number" name="reportDailyLimit" min="1" max="50" value="<%= settings.reportDailyLimit || 5 %>" /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="reportJoinAlert">Предупреждать о входе участника с жалобами</label><p class="set-help">В канал жалоб, когда на сервер заходит тот, на кого уже жаловались</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="reportJoinAlert" name="reportJoinAlert" <%= settings.reportJoinAlert !== false ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
       </form>
       <div class="card g-c2">
         <h2>Сводка</h2>

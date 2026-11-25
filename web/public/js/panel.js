@@ -220,6 +220,11 @@ document.addEventListener('DOMContentLoaded', function () {
     Array.prototype.forEach.call(f.querySelectorAll('button[type=submit], button:not([type])'), function (b) {
       if (/^\s*(Сохранить|Save)/i.test(b.textContent) && !b.classList.contains('btn-danger')) b.classList.add('sb-replaced');
     });
+    // a row of buttons whose only button went to the bar: no empty strip with a line
+    Array.prototype.forEach.call(f.querySelectorAll('.set-actions'), function (row) {
+      var rest = Array.prototype.filter.call(row.children, function (c) { return !c.classList.contains('sb-replaced'); });
+      row.classList.toggle('is-empty', rest.length === 0);
+    });
   });
   forms.forEach(function (f) {
     f.addEventListener('input', function () { if (!syncing) mark(f); });

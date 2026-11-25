@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — События бота' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>События бота</h1>
@@ -108,9 +108,9 @@
               <input type="hidden" name="back" value="events" /><input type="hidden" name="boostMult" value="2" /><input type="hidden" name="boostHours" value="24" />
               <label for="q_goal_title">Название</label>
               <input id="q_goal_title" type="text" name="title" maxlength="80" placeholder="Например, сутки двойного опыта" required />
-              <div class="two-col">
-                <div><label for="q_goal_target">Собрать</label><input id="q_goal_target" type="number" name="target" min="10" value="5000" /></div>
-                <div><label for="q_goal_days">Срок, дней</label><input id="q_goal_days" type="number" name="days" min="1" max="60" value="7" /></div>
+              <div class="fld-pair">
+                <div class="fld fld-inline"><label for="q_goal_target">Собрать</label><input id="q_goal_target" type="number" name="target" min="10" value="5000" /></div>
+                <div class="fld fld-inline"><label for="q_goal_days">Срок, дней</label><input id="q_goal_days" type="number" name="days" min="1" max="60" value="7" /></div>
               </div>
               <label for="q_goal_action">Награда</label>
               <select id="q_goal_action" name="action"><option value="boost">Опыт ×2 для всех на сутки</option><option value="announce">Просто объявление</option></select>
@@ -122,9 +122,9 @@
               <h3 class="econ-sub">Голосование казны <span class="muted">· в казне <%= n(econ.treasury) %></span></h3>
               <input type="hidden" name="back" value="events" /><input type="hidden" name="v_split" value="on" /><input type="hidden" name="v_give" value="on" /><input type="hidden" name="v_give_winners" value="1" />
               <p class="hint" style="margin-top:0">Два варианта: раздать поровну активным или разыграть. Бот сам выполнит то, что победит.</p>
-              <div class="two-col">
-                <div><label for="q_v_split">Раздать всего</label><input id="q_v_split" type="number" name="v_split_amount" min="1" value="<%= Math.max(1, Math.floor(econ.treasury / 2)) %>" /></div>
-                <div><label for="q_v_give">Или приз в розыгрыше</label><input id="q_v_give" type="number" name="v_give_amount" min="1" value="<%= Math.max(1, Math.floor(econ.treasury / 2)) %>" /></div>
+              <div class="fld-pair">
+                <div class="fld fld-inline"><label for="q_v_split">Раздать всего</label><input id="q_v_split" type="number" name="v_split_amount" min="1" value="<%= Math.max(1, Math.floor(econ.treasury / 2)) %>" /></div>
+                <div class="fld fld-inline"><label for="q_v_give">Или приз в розыгрыше</label><input id="q_v_give" type="number" name="v_give_amount" min="1" value="<%= Math.max(1, Math.floor(econ.treasury / 2)) %>" /></div>
               </div>
               <label for="q_v_hours">Голосование длится, ч</label>
               <input id="q_v_hours" type="number" name="hours" min="1" max="168" value="24" />
@@ -133,9 +133,9 @@
             <form method="post" action="<%= base %>/economy-treasury/giveaway" class="ev-quick" data-no-guard>
               <h3 class="econ-sub">Розыгрыш из казны</h3>
               <input type="hidden" name="back" value="events" /><input type="hidden" name="hours" value="24" />
-              <div class="two-col">
-                <div><label for="q_g_amount">Приз каждому</label><input id="q_g_amount" type="number" name="amount" min="1" value="<%= Math.max(1, Math.floor(econ.treasury / 2)) %>" /></div>
-                <div><label for="q_g_win">Победителей</label><input id="q_g_win" type="number" name="winners" min="1" max="20" value="1" /></div>
+              <div class="fld-pair">
+                <div class="fld fld-inline"><label for="q_g_amount">Приз каждому</label><input id="q_g_amount" type="number" name="amount" min="1" value="<%= Math.max(1, Math.floor(econ.treasury / 2)) %>" /></div>
+                <div class="fld fld-inline"><label for="q_g_win">Победителей</label><input id="q_g_win" type="number" name="winners" min="1" max="20" value="1" /></div>
               </div>
               <button class="btn" type="submit"<%= cfg.enabled && econ.treasury > 0 ? '' : ' disabled' %>>Запустить на сутки</button>
             </form>

@@ -10,7 +10,7 @@
   .nl { opacity: 1; }
   .nl small { display: none; }
   .content { padding: 24px 18px; max-width: 100%; }
-  .two-col { grid-template-columns: 1fr; }
+  .fld-pair { grid-template-columns: 1fr; }
 }
 
 /* ============================================================

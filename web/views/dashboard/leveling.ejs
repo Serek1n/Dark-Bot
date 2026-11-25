@@ -10,9 +10,9 @@
      'leveling-data': 'Изменить уровень участника вручную, выгрузить уровни или перенести их из другого бота.', leaderboard: 'Участники с самым большим опытом. Отсюда же можно изменить уровень любого из них.' }; %>
 <head><%- include('../partials/head', { title: guild.name + ' — Уровни: ' + TITLES[tab] }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1><%= TITLES[tab] %></h1>

@@ -137,9 +137,8 @@ select.fs-native { position: absolute !important; inset: 0; width: 100% !importa
 .dv-section .dv-text { flex: 1; min-width: 0; }
 .dv-thumb { width: 84px; height: 84px; border-radius: var(--r-8); object-fit: cover; flex: 0 0 84px; }
 /* grid columns may shrink below the width of a long chosen value (it is cut with "…") */
-.trig-row > *, .two-col > *, .v2-item > *, .me-button > *, .rule-ctl > *, .im-item > *, .grid-2 > * { min-width: 0; }
+.trig-row > *, .fld-pair > *, .v2-item > *, .me-button > *, .rule-ctl > *, .im-item > *, .grid-2 > * { min-width: 0; }
 .qj-item.sel .qj-ic svg { color: var(--on-ember); }
 .fs-search input { background: var(--ink); border: 1px solid var(--hairline); }
 .fs-search input:focus { border-color: var(--ember); box-shadow: none; }
 .msg-preview-wrap { top: 124px; }
-.app-layout > .content:has(.msg-tabs) { max-width: 1280px; }

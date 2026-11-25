@@ -141,7 +141,7 @@
       var p = 'embeds.' + i + '.';
       var fields = e.fields.map(function (f, j) {
         var q = p + 'fields.' + j + '.';
-        return '<div class="me-field"><div class="two-col">' + input(q + 'name', 'Название поля', { max: 256 }) + input(q + 'value', 'Значение', { max: 1024, area: true, rows: 2 }) + '</div>' +
+        return '<div class="me-field"><div class="fld-pair">' + input(q + 'name', 'Название поля', { max: 256 }) + input(q + 'value', 'Значение', { max: 1024, area: true, rows: 2 }) + '</div>' +
           '<div class="msg-inline"><label class="msg-check"><input type="checkbox" data-k="' + q + 'inline" ' + (f.inline ? 'checked' : '') + ' /> в строку</label>' +
           '<button type="button" class="btn-link" data-act="field-up" data-e="' + i + '" data-f="' + j + '">↑</button><button type="button" class="btn-link" data-act="field-down" data-e="' + i + '" data-f="' + j + '">↓</button>' +
           '<button type="button" class="btn-link danger" data-act="field-del" data-e="' + i + '" data-f="' + j + '">Удалить поле</button></div></div>';
@@ -150,15 +150,15 @@
         '<summary><b>Эмбед ' + (i + 1) + '</b><span class="muted"> ' + esc(e.title || e.author.name || '') + '</span>' +
         '<span class="me-tools"><button type="button" class="btn-link" data-act="embed-up" data-e="' + i + '">↑</button><button type="button" class="btn-link" data-act="embed-down" data-e="' + i + '">↓</button>' +
         '<button type="button" class="btn-link" data-act="embed-copy" data-e="' + i + '">Копия</button><button type="button" class="btn-link danger" data-act="embed-del" data-e="' + i + '">Удалить</button></span></summary>' +
-        '<div class="me-group"><h3>Автор</h3><div class="two-col">' + input(p + 'author.name', 'Имя', { max: 256 }) + input(p + 'author.url', 'Ссылка', { ph: 'https://' }) + '</div>' + input(p + 'author.icon_url', 'Иконка (ссылка https)', { ph: 'https://' }) + '</div>' +
-        '<div class="me-group"><h3>Содержание</h3><div class="two-col">' + input(p + 'title', 'Заголовок', { max: 256 }) + input(p + 'url', 'Ссылка заголовка', { ph: 'https://' }) + '</div>' +
+        '<div class="me-group"><h3>Автор</h3><div class="fld-pair">' + input(p + 'author.name', 'Имя', { max: 256 }) + input(p + 'author.url', 'Ссылка', { ph: 'https://' }) + '</div>' + input(p + 'author.icon_url', 'Иконка (ссылка https)', { ph: 'https://' }) + '</div>' +
+        '<div class="me-group"><h3>Содержание</h3><div class="fld-pair">' + input(p + 'title', 'Заголовок', { max: 256 }) + input(p + 'url', 'Ссылка заголовка', { ph: 'https://' }) + '</div>' +
         input(p + 'description', 'Описание', { area: true, rows: 4, max: 4096 }) +
         '<div class="me-color"><label for="f-' + i + '-color">Цвет полосы</label><div class="msg-inline"><input type="color" data-color="' + i + '" value="' + (hexOk(e.color) ? (e.color[0] === '#' ? e.color : '#' + e.color) : '#9a93ff') + '" aria-label="Цвет" />' +
         '<input type="text" id="f-' + i + '-color" data-k="' + p + 'color" value="' + esc(e.color) + '" placeholder="#e3a857" maxlength="7" class="me-hex" /></div></div></div>' +
         '<div class="me-group"><h3>Поля <span class="muted">' + e.fields.length + ' / 25</span></h3>' + fields +
         '<button type="button" class="btn btn-secondary" data-act="field-add" data-e="' + i + '" ' + (e.fields.length >= 25 ? 'disabled' : '') + '>+ Поле</button></div>' +
-        '<div class="me-group"><h3>Картинки</h3><div class="two-col">' + input(p + 'image.url', 'Большая картинка', { ph: 'https://' }) + input(p + 'thumbnail.url', 'Миниатюра справа', { ph: 'https://' }) + '</div></div>' +
-        '<div class="me-group"><h3>Подпись</h3><div class="two-col">' + input(p + 'footer.text', 'Текст подписи', { max: 2048 }) + input(p + 'footer.icon_url', 'Иконка подписи', { ph: 'https://' }) + '</div>' +
+        '<div class="me-group"><h3>Картинки</h3><div class="fld-pair">' + input(p + 'image.url', 'Большая картинка', { ph: 'https://' }) + input(p + 'thumbnail.url', 'Миниатюра справа', { ph: 'https://' }) + '</div></div>' +
+        '<div class="me-group"><h3>Подпись</h3><div class="fld-pair">' + input(p + 'footer.text', 'Текст подписи', { max: 2048 }) + input(p + 'footer.icon_url', 'Иконка подписи', { ph: 'https://' }) + '</div>' +
         '<div class="msg-inline">' + input(p + 'timestamp', 'Метка времени', { type: 'datetime-local' }) + '<button type="button" class="btn-link" data-act="ts-now" data-e="' + i + '">сейчас</button><button type="button" class="btn-link" data-act="ts-clear" data-e="' + i + '">убрать</button></div></div>' +
         '</details>';
     }).join('');
@@ -202,7 +202,7 @@
         (b.items.length < 10 ? '<button type="button" class="btn btn-secondary" data-act="v2-item-add" data-list="' + path + '.items" data-type="img">+ Картинка</button>' : '');
     } else if (b.t === 'section') {
       body = input(path + '.text', 'Текст', { area: true, rows: 3, max: 4000 }) +
-        '<div class="two-col"><div><label>Справа от текста</label><select data-k="' + path + '.acc"><option value="thumb" ' + (b.acc !== 'button' ? 'selected' : '') + '>картинка</option><option value="button" ' + (b.acc === 'button' ? 'selected' : '') + '>кнопка-ссылка</option></select></div>' +
+        '<div class="fld-pair"><div><label>Справа от текста</label><select data-k="' + path + '.acc"><option value="thumb" ' + (b.acc !== 'button' ? 'selected' : '') + '>картинка</option><option value="button" ' + (b.acc === 'button' ? 'selected' : '') + '>кнопка-ссылка</option></select></div>' +
         input(path + '.url', b.acc === 'button' ? 'Ссылка кнопки' : 'Картинка (ссылка https)', { ph: 'https://' }) + '</div>' +
         (b.acc === 'button' ? input(path + '.label', 'Текст кнопки', { max: 80 }) : '');
     } else if (b.t === 'buttons') {

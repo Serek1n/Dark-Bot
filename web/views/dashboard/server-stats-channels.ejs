@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Каналы-счётчики' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Каналы-счётчики</h1>
@@ -35,7 +35,7 @@
               <% }) %>
             </div>
             <div class="ss-save-row">
-              <div class="ss-save-field">
+              <div class="fld fld-inline ss-save-field">
                 <label for="ssCat">Папка для новых счётчиков</label>
                 <select id="ssCat" name="categoryId">
                   <option value="">Создать «📊 Статистика» наверху</option>
@@ -68,7 +68,7 @@
         <form method="post" action="<%= g %>/server-stats/create" class="ss-own">
           <h3>Свой текст</h3>
           <div class="ss-own-grid">
-            <div>
+            <div class="fld">
               <label for="ssTpl">Название канала</label>
               <input id="ssTpl" type="text" name="template" maxlength="100" placeholder="🔥 Нас уже {members}!" required />
               <details class="tpl-help" data-tpl-for="ssTpl" open>
@@ -78,7 +78,7 @@
                 </div></div>
               </details>
             </div>
-            <div>
+            <div class="fld fld-inline">
               <label for="ssWhere">Куда</label>
               <select id="ssWhere" name="channelId">
                 <option value="">Новый голосовой канал (в него нельзя зайти)</option>

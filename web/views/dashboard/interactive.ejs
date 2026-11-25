@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Интерактивные сообщения' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Интерактивные сообщения</h1>
@@ -13,8 +13,8 @@
 
       <form method="post" class="card g-span" id="imForm">
         <h2>Новое сообщение с ролями<span class="sub">До <%= max %> сообщений на сервер, до <%= maxItems %> пунктов в каждом</span></h2>
-        <div class="g-split">
-        <div>
+        <div class="fld-pair">
+        <div class="fld fld-inline">
         <label>Канал</label>
         <select name="channelId" required>
           <option value="" disabled selected>— выберите —</option>
@@ -22,17 +22,17 @@
         </select>
         <label style="margin-top:12px;">Текст сообщения</label>
         <textarea name="content" maxlength="2000" rows="3" required placeholder="Выберите роли, которые вам интересны:"></textarea>
-        <div class="two-col" style="margin-top:12px;">
-          <div>
+        <div class="fld-pair" style="margin-top:12px;">
+          <div class="fld fld-inline">
             <label>Как выбирать роль</label>
             <select name="kind" id="imKind"><option value="buttons">Кнопки</option><option value="select">Выпадающий список</option></select>
           </div>
-          <div>
+          <div class="fld fld-inline">
             <label>Что делает нажатие</label>
             <select name="mode"><option value="toggle">Выдать, а при повторном нажатии снять</option><option value="add">Только выдать</option><option value="remove">Только снять</option></select>
           </div>
         </div>
-        <div class="im-select-only" hidden>
+        <div class="fld im-select-only" hidden>
           <label style="margin-top:12px;">Подсказка в списке</label>
           <input type="text" name="placeholder" maxlength="150" placeholder="Выберите роль" />
         </div>

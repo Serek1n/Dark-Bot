@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Голосовые роли' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Голосовые роли</h1>
@@ -12,15 +12,15 @@
       </div>
       <form method="post" action="/dashboard/<%= guild.id %>/voice-roles" class="card g-span">
         <h2>Голосовые роли<span class="sub">Роль выдаётся, пока участник в голосовом канале, и снимается, когда он выходит</span></h2>
-        <div class="two-col">
-          <div>
+        <div class="fld-pair">
+          <div class="fld fld-inline">
             <label>Роль</label>
             <select name="roleId" required>
               <option value="" disabled selected>— выберите —</option>
               <% roles.forEach(r => { %><option value="<%= r.id %>" <%= r.blocked ? 'disabled' : '' %>>@<%= r.name %><%= r.blocked ? ' — ' + r.blocked : '' %></option><% }) %>
             </select>
           </div>
-          <div>
+          <div class="fld fld-inline">
             <label>Канал</label>
             <select name="channelId">
               <option value="">Любой голосовой канал</option>

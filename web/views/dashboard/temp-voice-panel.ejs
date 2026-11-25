@@ -2,9 +2,9 @@
 <html lang="ru">
 <head><%- include('../partials/head', { title: guild.name + ' — Панель управления' }) %></head>
 <body>
-  <div class="app-layout">
+  <div class="app-layout with-nav">
     <%- include('../partials/sidebar') %>
-    <main class="content" id="main" tabindex="-1">
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Панель управления комнатами</h1>
@@ -14,7 +14,7 @@
         <h2>Панель управления комнатами</h2>
         <%- include('../partials/deploy-status', { channelId: settings.tempVoicePanelChannelId, messageId: settings.tempVoicePanelMessageId, channels }) %>
         <div class="hint">Сообщение с кнопками для владельцев комнат: название и лимит, доступ (открыть, закрыть, скрыть), доверенные, приглашение, выгнать, регион, бан и разбан, удаление. Разместите его в отдельном канале, например «панель-управления». Кнопки управляют той комнатой, в которой сидит нажавший (или его собственной). Те же действия есть в команде <code>/voice</code>.</div>
-        <div>
+        <div class="fld fld-inline">
           <label>Канал для панели</label>
           <select name="channelId" required>
             <% channels.filter(c => c.type === 0 || c.type === 5).forEach(c => { %>

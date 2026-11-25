@@ -1,6 +1,39 @@
 [
  {
   "bot": "3.19.5",
+  "panel": "3.36.0",
+  "date": "2026-11-25",
+  "botChanges": [],
+  "panelChanges": [
+   "Модули разложены на 4 группы: активность, модерация, сервер, инструменты",
+   "«Настройки панели» — отдельный блок: оформление и базовые настройки",
+   "«Жалобы и тикеты», «Апелляции» и «Автомодерация» — свои пункты в модерации",
+   "Роли по реакциям и кнопки с ролями теперь в одном модуле",
+   "Магазин — вкладка экономики и больше нигде не повторяется",
+   "Наверху страницы — полоса групп; при прокрутке вниз она переезжает в шапку",
+   "Поиск Ctrl+K находит модули по словам: «магазин», «тикет», «язык»",
+   "Все страницы на одной сетке: формы узкой колонкой, таблицы во всю ширину",
+   "Удалённый в Discord канал или роль подсвечивается на любой странице",
+   "Карточки больше не растягиваются до соседних: пустых полос нет"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "Modules are sorted into 4 groups: activity, moderation, server, tools",
+    "«Panel settings» is a block of its own: appearance and basic settings",
+    "«Reports and tickets», «Appeals» and «Automod» are own items in moderation",
+    "Reaction roles and button roles are now one module",
+    "The shop is a tab of the economy and is not repeated anywhere else",
+    "A strip of groups tops the page; scrolled down, it moves into the top bar",
+    "Ctrl+K finds modules by their words: «shop», «ticket», «language»",
+    "Every page is on one grid: forms in a reading column, tables full width",
+    "A channel or role deleted in Discord is marked on every page",
+    "Cards no longer stretch to their neighbours: no empty strips"
+   ]
+  }
+ },
+ {
+  "bot": "3.19.5",
   "panel": "3.35.0",
   "date": "2026-11-24",
   "botChanges": [],

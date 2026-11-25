@@ -13,12 +13,12 @@ const web = path.join(__dirname, '..', 'web');
     const html = await render('webhooks');
     const M = require('../web/modules');
     const links = html.match(/<a href="\/dashboard\/123456789012345678[^"]*" class="[^"]*" title="[^"]+"/g) || [];
-    const top = M.MODULES.filter((m) => !m.parent); // sections of merged modules (Жалобы, Голосовые роли) are tabs, not menu items
+    const top = M.MODULES.filter((m) => !m.partOf); // the parts of a module (Магазин, Жалобы, Голосовые роли…) are tabs, not menu items
     // the tabs of a module are listed under it only while one of its pages is open
     const subPages = M.modulesOfPage('webhooks').flatMap((m) => m.pages.slice(1)).filter((p) => M.PAGE_LABELS[p] && M.pageVisible(p, undefined));
     assert(links.length === 3 + top.length + subPages.length, 'links ' + links.length);
     const onMod = await render('moderation-log');
-    assert(onMod.includes('/moderation-warnings"') && onMod.includes('/moderation-reports"') && !onMod.includes('/economy-journal"'), 'tabs of the open module only');
+    assert(onMod.includes('/moderation-warnings"') && !onMod.includes('/economy-journal"'), 'tabs of the open module only');
     assert(/href="\/dashboard\/123456789012345678\/webhooks" class="active"/.test(html) && (html.match(/class="active"/g) || []).length === 1, 'one active');
     assert(html.includes('data-menu-open') && html.includes('data-theme-toggle') && html.includes('data-quick-jump') && html.includes('data-mods-open'), 'menu, modules, theme and search buttons');
     for (const m of top) {
@@ -26,6 +26,78 @@ const web = path.join(__dirname, '..', 'web');
       else assert(!html.includes(`data-mod-switch="${m.key}"`), 'a module that is always on got a switch: ' + m.key);
     }
     assert(/class="tb-group tb-mods is-on"/.test(html), 'on a module page "Модули" is lit');
+  });
+  await test('taxonomy: four groups of modules and «Настройки панели» apart; every page has one module; no duplicates, no hidden parents', async () => {
+    const M = require('../web/modules');
+    assert(M.GROUPS.map((g) => g[1]).join('|') === 'Активность и экономика|Модерация и безопасность|Сервер и общение|Инструменты и медиа', 'groups: ' + M.GROUPS.map((g) => g[1]));
+    assert(M.SYSTEM_GROUP[1] === 'Настройки панели', 'system block');
+    assert(!M.MODULES.some((m) => 'parent' in m), 'no parent redirects');
+    const owner = new Map();
+    for (const m of M.MODULES) for (const p of m.pages) { assert(!owner.has(p), `page ${p} in two modules: ${owner.get(p)} and ${m.key}`); owner.set(p, m.key); }
+    for (const m of M.MODULES.filter((x) => x.partOf)) {
+      assert(!m.pages.length && M.BY_KEY.get(m.partOf).pages.includes(m.page), 'a part lives on a tab of its module: ' + m.key);
+      assert(M.BY_KEY.get(m.partOf).group === m.group, 'a part is in its module group: ' + m.key);
+    }
+    const st = M.moduleState({});
+    const where = (k) => st.groups.find((g) => g.modules.some((m) => m.key === k))?.id;
+    const expect = { leveling: 'activity', achievements: 'activity', economy: 'activity', giveaways: 'activity', polls: 'activity', fun: 'activity',
+      moderation: 'moderation', automod: 'moderation', tickets: 'moderation', appeals: 'moderation', logs: 'moderation',
+      welcome: 'server', reactionRoles: 'server', tempVoice: 'server', serverStats: 'server', customCommands: 'server',
+      webhooks: 'tools', alerts: 'tools', events: 'tools', music: 'tools', reminders: 'tools', listing: 'tools' };
+    for (const [k, g] of Object.entries(expect)) assert(where(k) === g, `${k} in ${where(k)}, expected ${g}`);
+    assert(st.system.modules.map((m) => m.key).join() === 'appearance,core', 'system: ' + st.system.modules.map((m) => m.key));
+    assert(st.groups.every((g) => g.modules.length >= 2), 'no group of one module');
+    assert(st.total === Object.keys(expect).length, 'counted modules: ' + st.total);
+    for (const m of M.MODULES) assert(M.ICONS[m.key], 'icon of ' + m.key);
+    // the shop, the reports and the button messages are tabs of their module, their switch on their tab
+    assert(M.modulesOfPage('shop').map((m) => m.key).join() === 'economy,shop' && M.modulesOfPage('moderation-reports').map((m) => m.key).join() === 'tickets,report'
+      && M.modulesOfPage('interactive').map((m) => m.key).join() === 'reactionRoles,interactive' && M.modulesOfPage('economy').map((m) => m.key).join() === 'economy', 'pages and their switches');
+    // every page names its grid
+    assert(M.layoutOf('leveling') === 'layout-form' && M.layoutOf('leaderboard') === 'layout-wide' && M.layoutOf('webhooks') === 'layout-split-custom', 'layouts');
+  });
+  await test('groups: a strip at the top of the page and its copy for the top bar; the current group is marked; the side menu has «Настройки панели»', async () => {
+    const html = await render('economy-journal');
+    const strip = html.match(/<nav class="grp-bar"[\s\S]*?<\/nav>/)[0];
+    const dock = html.match(/<nav class="tb-dock"[\s\S]*?<\/nav>/)[0];
+    for (const part of [strip, dock]) {
+      assert((part.match(/data-grp-open=/g) || []).length === 5, 'four groups and the system block');
+      assert((part.match(/class="grp-tab is-cur"/g) || []).length === 1 && /is-cur" data-grp-open="activity"/.test(part), 'Экономика is in Активность и экономика');
+    }
+    assert(/class="tb-dock"[^>]*aria-hidden="true"/.test(html) && (dock.match(/tabindex="-1"/g) || []).length === 5, 'the copy is out of reach until it is shown');
+    assert(html.indexOf('class="tb-dock"') < html.indexOf('class="tb-actions"'), 'the copy sits on the left of the top bar');
+    const pop = html.match(/<div class="grp-pop"[\s\S]*?\n<\/div>/)[0];
+    assert((pop.match(/data-grp-list=/g) || []).length === 5 && pop.includes('/dashboard/123456789012345678/shop"') === false && pop.includes('/economy"'), 'a list per group, parts not listed');
+    assert(/class="nd-group nd-system"[\s\S]*Оформление[\s\S]*Базовые настройки/.test(html), 'side menu: «Настройки панели» apart');
+    assert(/<div class="grp-wrap layout-wide">/.test(html), 'the strip is as wide as the page');
+    const sys = await render('settings');
+    assert(/is-cur is-system" data-grp-open="system"/.test(sys), 'the settings page is in «Настройки панели»');
+    const ui = fs.readFileSync(path.join(web, 'public/js/ui.js'), 'utf8');
+    assert(ui.includes('IntersectionObserver') && ui.includes('var STEP = 12') && ui.includes('requestAnimationFrame') && ui.includes("'tb-docked'") && ui.includes('prefers-reduced-motion'), 'the scroll script');
+    const css = require('../web/styles').stylesheet().text;
+    assert(/prefers-reduced-motion: reduce\)\s*\{\s*html\.tb-docked \.tb-dock \.grp-tab/.test(css.replace(/\n/g, ' ')) || css.includes('html.tb-docked .tb-dock .grp-tab,html.tb-leaving'), 'no sliding with reduced motion');
+    for (const kf of css.match(/@keyframes grp-[a-z]+\{[^@]*?\}\}/g) || []) assert(!/width|left|height|top|margin/.test(kf), 'the slide moves only transform and opacity: ' + kf);
+  });
+  await test('the scroll states of the top bar: docked going down past the strip, undocked going up; a small jitter changes nothing', async () => {
+    const src = fs.readFileSync(path.join(web, 'public/js/ui.js'), 'utf8');
+    const start = src.indexOf('// --- The groups of modules: a strip');
+    const code = src.slice(start);
+    const classes = new Set(); let ioCb = null; const listeners = {}; let raf = [];
+    const el = (attrs = {}) => ({ attrs, setAttribute(k, v) { this.attrs[k] = v; }, getAttribute(k) { return this.attrs[k]; }, removeAttribute(k) { delete this.attrs[k]; }, querySelectorAll: () => [], querySelector: () => null, contains: () => false, getBoundingClientRect: () => ({ height: 60, top: 0, bottom: 60, left: 0 }), hidden: true, focus() {} });
+    const dock = el({ 'aria-hidden': 'true' });
+    const top = Object.assign(el(), { querySelector: (q) => (q === '.tb-dock' ? dock : null) });
+    const win = { scrollY: 0, innerWidth: 1280, matchMedia: () => ({ matches: false }), addEventListener: (e, f) => { listeners[e] = f; }, removeEventListener() {},
+      IntersectionObserver: function (cb) { ioCb = cb; this.observe = () => {}; } };
+    const document = { documentElement: { classList: { add: (...c) => c.forEach((x) => classes.add(x)), remove: (...c) => c.forEach((x) => classes.delete(x)), contains: (c) => classes.has(c) } },
+      getElementById: (id) => (id === 'grpBar' ? el() : id === 'topbar' ? top : el()), querySelectorAll: () => [], addEventListener() {} };
+    vm.runInNewContext(code, { window: win, document, IntersectionObserver: win.IntersectionObserver, requestAnimationFrame: (f) => { raf.push(f); return raf.length; }, setTimeout: (f) => { f(); return 1; }, clearTimeout() {}, Math, Array });
+    const scrollTo = (y) => { win.scrollY = y; listeners.scroll(); const r = raf; raf = []; r.forEach((f) => f()); };
+    scrollTo(5); scrollTo(10); assert(!classes.has('tb-docked'), 'near the top nothing moves');
+    ioCb([{ isIntersecting: false, boundingClientRect: { top: 9 } }]); // the strip went under the top bar (60 px), its top still on screen
+    scrollTo(300); assert(classes.has('tb-docked') && dock.attrs['aria-hidden'] === 'false', 'down past the strip: the groups are in the top bar');
+    scrollTo(295); assert(classes.has('tb-docked'), 'five pixels back: still docked (hysteresis)');
+    scrollTo(280); assert(!classes.has('tb-docked') && dock.attrs['aria-hidden'] === 'true', 'up by 15 px: the groups leave the top bar');
+    scrollTo(500); assert(classes.has('tb-docked'), 'down again: back in the top bar');
+    ioCb([{ isIntersecting: true, boundingClientRect: { top: 70 } }]); assert(!classes.has('tb-docked'), 'the strip is in view: the top bar is as usual');
   });
   await test('every page of the panel still has its entry in the menu', async () => {
     const html = await render('x'); const routes = fs.readdirSync(path.join(web, 'routes/dashboard')).filter((f) => f.endsWith('.js')).map((f) => fs.readFileSync(path.join(web, 'routes/dashboard', f), 'utf8')).join('\n');

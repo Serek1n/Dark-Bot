@@ -1,11 +1,14 @@
 <%# Panel navigation, built from the modules (web/modules.js): "Главная", "Модули ▾" — every module by group, with a switch
-   for each — and "Обновления". On narrow screens the "≡" button opens the same list. The search (Ctrl+K) reads the links
-   with a title in .nd-nav, so every page of every module is listed there. %>
+   for each — and "Обновления". The side menu (the "≡" drawer on narrow screens) lists the four groups and, apart from
+   them, «Настройки панели». Under the top bar a strip of the groups; scrolled down, it moves into the top bar (js/ui.js).
+   The search (Ctrl+K) reads the links with a title in .nd-nav, so every page of every module is listed there. %>
 <% const M = locals.M || global.__darkModules;
    const mods = locals.mods || M.moduleState(locals.settings);
    const gid = guild.id;
    const curMods = M.modulesOfPage(active);
    const inModule = curMods.length > 0;
+   const curGroup = curMods[0] ? curMods[0].group : '';
+   const modHref = (m) => (m.page ? `/dashboard/${gid}/${m.page}` : `/dashboard/${gid}?m=${m.key}`);
    const initial = String(guild.name || '?').trim().charAt(0).toUpperCase();
    const offTitle = 'Выключить модуль', onTitle = 'Включить модуль', coreTitle = 'Этот модуль нельзя выключить', always = 'всегда';
    const modSwitch = (m, cls) => m.switchable
@@ -24,9 +27,10 @@
     </a>
     <% const pageTitle = (curMods[0] && (M.PAGE_LABELS[active] ? curMods[0].title + ' · ' + M.PAGE_LABELS[active] : curMods[0].title)) || M.PAGE_TITLES[active] || ''; %>
     <% if (pageTitle) { %><span class="tb-page" aria-hidden="true"><%= pageTitle %></span><% } %>
+    <nav class="tb-dock" aria-label="Группы модулей" aria-hidden="true"><%- include('group-tabs', { mods, curGroup, variant: 'dock' }) %></nav>
     <nav class="tb-groups" aria-label="Разделы панели">
       <a href="/dashboard/<%= gid %>" class="tb-group<%= active === 'overview' ? ' is-on' : '' %>"<%- active === 'overview' ? ' aria-current="page"' : '' %>>Главная</a>
-      <button type="button" class="tb-group tb-mods<%= inModule || active === 'features' || active === 'settings' ? ' is-on' : '' %>" data-mods-open aria-expanded="false" aria-controls="modsMenu">Модули <span class="tb-count" data-mods-count><%= mods.on %></span><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg></button>
+      <button type="button" class="tb-group tb-mods<%= (inModule && !curMods[0].system) || active === 'features' ? ' is-on' : '' %>" data-mods-open aria-expanded="false" aria-controls="modsMenu">Модули <span class="tb-count" data-mods-count><%= mods.on %></span><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg></button>
       <a href="/dashboard/<%= gid %>/changelog" class="tb-group<%= active === 'changelog' ? ' is-on' : '' %>"<%- active === 'changelog' ? ' aria-current="page"' : '' %>>Обновления</a>
       <a href="/communities" class="tb-group">Сообщества</a>
     </nav>
@@ -70,12 +74,16 @@
           <div class="mm-cat"><%= g.title %> <small><%= g.modules.filter((m) => m.on).length %>/<%= g.modules.length %></small></div>
           <% g.modules.forEach((m) => { %>
             <div class="mm-row<%= m.on ? ' is-on' : ' is-off' %><%= curMods.some((c) => c.key === m.key) ? ' is-cur' : '' %>" data-mod-row="<%= m.key %>" data-mod-name="<%= m.title.toLowerCase() %>">
-              <a href="<%= m.page ? `/dashboard/${gid}/${m.page}` : `/dashboard/${gid}?m=${m.key}` %>"><%- M.icon(m.key, 16) %><span><%= m.title %></span></a>
+              <a href="<%= modHref(m) %>"><%- M.icon(m.key, 16) %><span><%= m.title %></span></a>
               <%- modSwitch(m, 'sm') %>
             </div>
           <% }) %>
         </div>
       <% }) %>
+    </div>
+    <div class="mm-system">
+      <span class="mm-cat"><%= mods.system.title %></span>
+      <% mods.system.modules.forEach((m) => { %><a href="<%= modHref(m) %>"><%- M.icon(m.key, 16) %><span><%= m.title %></span></a><% }) %>
     </div>
     <div class="mm-foot">Переключатель включает и выключает модуль сразу. Настройки и данные выключенного модуля сохраняются.</div>
   </div>
@@ -104,7 +112,7 @@
     <nav class="nd-nav" aria-label="Меню панели">
       <div class="nd-group">
         <a href="/dashboard/<%= gid %>" class="<%= active === 'overview' ? 'active' : '' %>" title="Главная — сводка по серверу"><%- M.icon('home', 17) %><span class="nl"><b>Главная</b><small>Сводка по серверу</small></span></a>
-        <a href="/dashboard/<%= gid %>/features" class="<%= active === 'features' || active === 'settings' ? 'active' : '' %>" title="Модули — что включено на сервере"><%- M.icon('modules', 17) %><span class="nl"><b>Модули</b><small>Что включено на сервере</small></span></a>
+        <a href="/dashboard/<%= gid %>/features" class="<%= active === 'features' ? 'active' : '' %>" title="Модули — что включено на сервере"><%- M.icon('modules', 17) %><span class="nl"><b>Модули</b><small>Что включено на сервере</small></span></a>
         <a href="/dashboard/<%= gid %>/changelog" class="<%= active === 'changelog' ? 'active' : '' %>" title="Обновления — что нового в боте и панели"><%- M.icon('changelog', 17) %><span class="nl"><b>Обновления</b><small>Что нового в боте и панели</small></span></a>
         <a href="/communities" title="Сообщества — публичный каталог серверов"><%- M.icon('listing', 17) %><span class="nl"><b>Сообщества</b><small>Публичный каталог серверов</small></span></a>
       </div>
@@ -113,15 +121,24 @@
           <div class="nd-group-label"><%= g.title %></div>
           <% g.modules.forEach((m) => { %>
             <div class="nd-mod<%= m.on ? ' is-on' : ' is-off' %>" data-mod-row="<%= m.key %>">
-              <a href="<%= m.page ? `/dashboard/${gid}/${m.page}` : `/dashboard/${gid}?m=${m.key}` %>" class="<%= curMods.some((c) => c.key === m.key) && m.page === active ? 'active' : '' %>" title="<%= m.title %> — <%= m.desc %>"><%- M.icon(m.key, 17) %><span class="nl"><b><%= m.title %></b></span></a>
+              <a href="<%= modHref(m) %>" class="<%= curMods.some((c) => c.key === m.key) && m.page === active ? 'active' : '' %>" title="<%= m.title %> — <%= m.desc %>" data-kw="<%= g.title %> <%= m.keywords %> <%= m.parts.map((x) => x.title).join(' ') %>"><%- M.icon(m.key, 17) %><span class="nl"><b><%= m.title %></b></span></a>
               <%- modSwitch(m, 'sm') %>
             </div>
-            <% if (curMods.some((c) => c.key === m.key)) m.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && !mods.list.some((o) => !o.parent && o.page === p) && M.pageVisible(p, locals.settings)).forEach((p) => { %>
+            <% if (curMods.some((c) => c.key === m.key)) m.pages.slice(1).filter((p) => M.PAGE_LABELS[p] && M.pageVisible(p, locals.settings)).forEach((p) => { %>
               <a href="/dashboard/<%= gid %>/<%= p %>" class="nd-sub<%= active === p ? ' active' : '' %>" title="<%= M.PAGE_LABELS[p] %> — <%= m.title %>"><span class="nl"><b><%= M.PAGE_LABELS[p] %></b></span></a>
             <% }) %>
           <% }) %>
         </div>
       <% }) %>
+      <div class="nd-group nd-system">
+        <div class="nd-group-label"><%= mods.system.title %></div>
+        <% mods.system.modules.forEach((m) => { const here = curMods[0] && curMods[0].key === m.key; %>
+          <a href="<%= modHref(m) %>" class="<%= here && m.page === active ? 'active' : '' %>" title="<%= m.title %> — <%= m.desc %>" data-kw="<%= mods.system.title %> <%= m.keywords %>"><%- M.icon(m.key, 17) %><span class="nl"><b><%= m.title %></b></span></a>
+          <% if (here) m.pages.slice(1).filter((p) => M.PAGE_LABELS[p]).forEach((p) => { %>
+            <a href="/dashboard/<%= gid %>/<%= p %>" class="nd-sub<%= active === p ? ' active' : '' %>" title="<%= M.PAGE_LABELS[p] %> — <%= m.title %>"><span class="nl"><b><%= M.PAGE_LABELS[p] %></b></span></a>
+          <% }) %>
+        <% }) %>
+      </div>
     </nav>
     <div class="nd-foot">
       <a href="/dashboard" class="nd-foot-link">← Все серверы</a>
@@ -130,6 +147,19 @@
       <% if (locals.sys) { %><a class="nd-foot-link" href="/dashboard/<%= gid %>/changelog">Бот v<%= sys.bot %> · панель v<%= sys.panel %></a><% } %>
     </div>
   </aside>
+</div>
+
+<%# the groups of modules: a strip at the top of the page, as wide as the page; scrolled down, it moves into the top bar %>
+<div class="grp-wrap <%= M.layoutOf(active) %>"><nav class="grp-bar" id="grpBar" aria-label="Группы модулей"><%- include('group-tabs', { mods, curGroup, variant: 'bar' }) %></nav></div>
+<div class="grp-pop" id="grpPop" role="menu" hidden>
+  <% [...mods.groups, mods.system].forEach((g) => { %>
+    <div class="gp-list" data-grp-list="<%= g.id %>" hidden>
+      <div class="gp-head"><%= g.title %><% if (g.id !== M.SYSTEM_GROUP[0]) { %> <small>включено <%= g.modules.filter((m) => m.on).length %> из <%= g.modules.length %></small><% } %></div>
+      <% g.modules.forEach((m) => { const here = curMods[0] && curMods[0].key === m.key; %>
+        <a role="menuitem" href="<%= modHref(m) %>" class="gp-item<%= here ? ' is-cur' : '' %><%= m.switchable && !m.on ? ' is-off' : '' %>"<%- here ? ' aria-current="page"' : '' %>><%- M.icon(m.key, 16) %><span><%= m.title %></span><% if (m.switchable && !m.on) { %><small>выкл.</small><% } %></a>
+      <% }) %>
+    </div>
+  <% }) %>
 </div>
 
 <%# the modules for /js/modules.js: names, commands and what depends on what (for the "switch off?" window) %>
