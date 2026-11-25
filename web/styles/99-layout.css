@@ -286,3 +286,16 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
 /* a compact list never makes the page wider than the screen */
 .fs { max-width: 100%; }
 .pv-body > :is(.ee-preview, .msg-preview) { margin-top: 0; }
+
+/* ---------- tickets: a topic is a folded block with its fields; its questions are one row each ---------- */
+.ticket-topic { border: 1px solid var(--hairline); border-radius: var(--r-container); padding: 0 var(--sp-2); margin: var(--sp-1) 0; }
+.ticket-topic > summary { cursor: pointer; padding: 12px 0; list-style: none; }
+.ticket-topic > summary::-webkit-details-marker { display: none; }
+.ticket-topic > summary::before { content: '›'; display: inline-block; margin-right: 8px; color: var(--fog-dim); transition: transform .15s; }
+.ticket-topic[open] > summary::before { transform: rotate(90deg); }
+.ticket-topic[open] { padding-bottom: var(--sp-2); }
+.ticket-topic > .fld, .ticket-topic > .fld-pair { margin-top: var(--sp-1); }
+.ticket-qs { margin-top: var(--sp-2); display: flex; flex-direction: column; gap: var(--sp-1); }
+.ticket-q { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--sp-2); align-items: center; }
+@media (max-width: 760px) { .ticket-q { grid-template-columns: 1fr; gap: 4px; } }
+.app-layout .content .card .ticket-topic .fld { border-top: 0; padding: 4px 0; }

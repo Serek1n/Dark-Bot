@@ -134,6 +134,13 @@ module.exports = (sequelize) => {
       ticketCategoryId: { type: DataTypes.STRING, allowNull: true },
       ticketSupportRoleId: { type: DataTypes.STRING, allowNull: true },
       ticketLogChannelId: { type: DataTypes.STRING, allowNull: true },
+      // stage 3: the settings of these modules as JSON (bot/utils/moduleConfig.js) and where each module works
+      ticketConfig: { type: DataTypes.TEXT, defaultValue: '{}' },
+      pollConfig: { type: DataTypes.TEXT, defaultValue: '{}' },
+      funConfig: { type: DataTypes.TEXT, defaultValue: '{}' },
+      reminderConfig: { type: DataTypes.TEXT, defaultValue: '{}' },
+      brandConfig: { type: DataTypes.TEXT, defaultValue: '{}' },
+      moduleScope: { type: DataTypes.TEXT, defaultValue: '{}' },
       ticketMessage: { type: DataTypes.STRING, defaultValue: 'Опишите вашу проблему, и скоро вам ответит команда сервера.' },
 
       // Automod

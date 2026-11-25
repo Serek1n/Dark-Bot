@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Обращения' }) %></head>
+<body>
+  <div class="app-layout with-nav">
+    <%- include('../partials/sidebar') %>
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Обращения</h1>
+        <p class="page-intro">Открытые обращения и закрытые за последнее время. Переписку закрытого можно прочитать или скачать, открытое — закрыть отсюда (переписка сохранится так же, как при закрытии в Discord).</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const name = (id) => (users[id] || {}).name || id;
+         const when = (d) => d ? new Date(d).toLocaleString('ru-RU', { timeZone: settings.timezone || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+         const ST = { open: 'Открытые', closed: 'Закрытые', all: 'Все' }; %>
+      <div class="stat-row">
+        <div class="stat-box"><div class="value"><%= counts.open %></div><div class="label">открыто сейчас</div></div>
+        <div class="stat-box"><div class="value"><%= counts.closed %></div><div class="label">закрыто всего</div></div>
+        <div class="stat-box"><div class="value"><%= rating ? rating.avg.toFixed(1) + ' ★' : '—' %></div><div class="label"><%= rating ? 'средняя оценка из ' + rating.n : 'оценок пока нет' %></div></div>
+      </div>
+      <% if (!botOnline) { %><div class="callout">Бот сейчас не в сети: закрыть обращение из панели можно, когда он запустится.</div><% } %>
+      <div class="card">
+        <form method="get" class="table-toolbar">
+          <input type="search" name="q" class="tt-search" value="<%= q %>" placeholder="ID участника" aria-label="Найти по ID участника" />
+          <input type="hidden" name="status" value="<%= status %>" />
+          <span class="chips" aria-label="Какие обращения показать"><% Object.entries(ST).forEach(([k, t]) => { %><a href="?status=<%= k %><%= q ? '&q=' + encodeURIComponent(q) : '' %>" class="chip <%= k === status ? 'active' : '' %>"<%- k === status ? ' aria-current="page"' : '' %>><%= t %></a><% }) %></span>
+        </form>
+        <% if (!rows.length) { %>
+          <%- include('../partials/empty-state', { icon: 'tickets', text: status === 'open' ? 'Открытых обращений нет.' : 'Здесь пусто.', action: status === 'open' ? { label: 'Настроить тикеты', href: g + '/tickets' } : null }) %>
+        <% } else { %>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>№</th><th>Автор</th><th>Тема</th><th>Открыто</th><th>Состояние</th><th></th></tr></thead>
+            <tbody>
+              <% rows.forEach((t) => { %>
+                <tr>
+                  <td class="num">#<%= String(t.number).padStart(4, '0') %></td>
+                  <td class="person"><%= name(t.userId) %><small class="mono"><%= t.userId %></small></td>
+                  <td><%= t.category || '—' %></td>
+                  <td class="nowrap"><%= when(t.createdAt) %></td>
+                  <td><% if (t.status === 'open') { %><span class="gw-state">Открыто</span> <small class="muted">активность <%= when(t.lastActivityAt) %></small><% } else { %>Закрыто <%= when(t.closedAt) %><% if (t.closedBy) { %> · <%= name(t.closedBy) %><% } else { %> · бот<% } %><% if (t.closeReason) { %><small class="muted" style="display:block"><%= t.closeReason %></small><% } %><% if (t.rating) { %> <span title="Оценка автора"><%= '★'.repeat(t.rating) %></span><% } %><% } %></td>
+                  <td class="row-act">
+                    <% if (t.status === 'open') { %>
+                      <form method="post" action="<%= g %>/tickets/<%= t.id %>/close" data-no-guard data-confirm="Закрыть обращение #<%= String(t.number).padStart(4, '0') %>? Канал удалится." data-confirm-ok="Закрыть"><button class="btn btn-sm btn-secondary" type="submit"<%= botOnline ? '' : ' disabled' %>>Закрыть</button></form>
+                    <% } else if (t.get('tlen')) { %>
+                      <a class="btn btn-sm btn-secondary" href="<%= g %>/tickets/<%= t.id %>/transcript" target="_blank" rel="noopener">Переписка</a>
+                    <% } else { %><span class="muted">без переписки</span><% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

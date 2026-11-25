@@ -119,7 +119,7 @@ const LAYOUT = [
     desc: 'Наказанный участник просит снять бан, мут или предупреждение; модераторы решают в панели', keywords: 'обжалование снять бан разбан',
     stats: async (g) => { const { Appeal } = db(); return [{ value: await Appeal.count(where(g, { status: { [Op.in]: ['new', 'review'] } })), label: 'ждут решения' }]; } },
   { key: 'tickets', group: 'moderation', title: 'Жалобы и тикеты', desc: 'Жалобы на сообщения и участников и приватные обращения к команде сервера: /ticket, «Report message»',
-    pages: ['moderation-reports'], parts: [{ key: 'report', tab: 'moderation-reports' }], keywords: 'тикет обращение жалоба репорт report',
+    pages: ['tickets', 'tickets-list', 'moderation-reports'], parts: [{ key: 'report', tab: 'moderation-reports' }], keywords: 'тикет обращение жалоба репорт report',
     stats: async (g) => {
       const { Ticket, Report } = db();
       const [tickets, reports] = await Promise.all([Ticket.count(where(g, { status: 'open' })), Report.count(where(g, { status: 'open' }))]);
@@ -215,7 +215,7 @@ const PAGE_TITLES = { overview: 'Главная', features: 'Модули', chan
 // The tabs of a module with several pages (its header shows them; the search finds each).
 const PAGE_LABELS = { leveling: 'Начисление', 'leveling-rewards': 'Награды и роли', 'channel-boosts': 'Множители', 'leveling-notify': 'Уведомления и топ', leaderboard: 'Лидерборд', 'leveling-data': 'Данные и участники', welcome: 'Сообщения', 'welcome-rejoin': 'Автороль и возврат', 'reaction-roles': 'По реакциям', interactive: 'Кнопки и списки',
   moderation: 'Обзор', 'moderation-punishments': 'Наказания', 'moderation-warnings': 'Предупреждения', 'moderation-auto': 'Автонаказания',
-  'moderation-reports': 'Жалобы', 'moderation-log': 'Журнал', 'moderation-settings': 'Настройки',
+  'moderation-reports': 'Жалобы', tickets: 'Тикеты', 'tickets-list': 'Обращения', 'moderation-log': 'Журнал', 'moderation-settings': 'Настройки',
   'temp-voice': 'Обзор', 'temp-voice-rooms': 'Создание комнат', 'temp-voice-panel': 'Панель управления', 'temp-voice-access': 'Права доступа',
   'temp-voice-roles': 'Голосовые роли', 'temp-voice-auto': 'Автоматизация', 'temp-voice-stats': 'Статистика', 'temp-voice-settings': 'Настройки',
   achievements: 'Обзор', 'achievements-catalog': 'Каталог', 'achievements-edit': 'Создать', 'achievements-members': 'Участники', 'achievements-settings': 'Настройки',
@@ -233,7 +233,7 @@ const pageVisible = (page, settings) => !PAGE_LATER.has(page) && (!PAGE_NEEDS[pa
 // its preview beside it (the messages builder turns to it itself while its preview is open, see js/ui.js).
 const WIDE_PAGES = new Set(['overview', 'features', 'changelog', 'leaderboard', 'leveling-data', 'channel-boosts', 'achievements', 'achievements-catalog',
   'achievements-members', 'alerts', 'community', 'custom-commands', 'economy-deals', 'economy-journal', 'logs', 'moderation', 'moderation-punishments',
-  'moderation-warnings', 'moderation-log', 'music', 'reaction-roles', 'server-stats', 'server-stats-channels', 'shop', 'temp-voice', 'temp-voice-stats', 'giveaways']);
+  'moderation-warnings', 'moderation-log', 'tickets-list', 'music', 'reaction-roles', 'server-stats', 'server-stats-channels', 'shop', 'temp-voice', 'temp-voice-stats', 'giveaways']);
 const SPLIT_PAGES = new Set([]);
 const layoutOf = (page) => (SPLIT_PAGES.has(page) ? 'layout-split-custom' : WIDE_PAGES.has(page) ? 'layout-wide' : 'layout-form');
 

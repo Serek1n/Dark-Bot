@@ -1,0 +1,27 @@
+<%# «Где и для кого работает модуль»: the same block on every module page that has commands (bot/utils/moduleConfig.js
+    scope). Locals: module (key), scopeCfg ({ allow, deny, exceptRoles, cooldown }), channels, roles. Saves at once with
+    the save bar like any form. %>
+<% const textCh = channels.filter((c) => [0, 5, 2, 13, 15].includes(c.type)).map((c) => ({ id: c.id, label: '#' + c.name }));
+   const roleItems = roles.filter((r) => r.name !== '@everyone').map((r) => ({ id: r.id, label: r.name })); %>
+<form method="post" action="/dashboard/<%= guild.id %>/scope/<%= module %>" class="card set-section scope-block">
+  <h2>Где и для кого работает</h2>
+  <p class="set-lead">Команды модуля в чужих каналах и у исключённых ролей отвечают коротким отказом, видным только автору.</p>
+  <input type="hidden" name="_fields" value="allow,deny,exceptRoles,cooldown" />
+  <div class="set-row stacked">
+    <div class="set-text"><span class="set-title">Только в этих каналах</span><p class="set-help">Пусто — во всех каналах сервера</p></div>
+    <div class="set-ctl"><%- include('pick-list', { name: 'allow', items: textCh, selected: scopeCfg.allow, kind: 'channels', empty: 'Каналов не найдено' }) %></div>
+  </div>
+  <div class="set-row stacked">
+    <div class="set-text"><span class="set-title">Кроме этих каналов</span></div>
+    <div class="set-ctl"><%- include('pick-list', { name: 'deny', items: textCh, selected: scopeCfg.deny, kind: 'channels', empty: 'Каналов не найдено' }) %></div>
+  </div>
+  <div class="set-row stacked">
+    <div class="set-text"><span class="set-title">Роли без доступа</span><p class="set-help">Участник с любой из них не может пользоваться командами модуля</p></div>
+    <div class="set-ctl"><%- include('pick-list', { name: 'exceptRoles', items: roleItems, selected: scopeCfg.exceptRoles, kind: 'roles', empty: 'Ролей не найдено' }) %></div>
+  </div>
+  <div class="set-row">
+    <div class="set-text"><label for="scope-cooldown-<%= module %>">Пауза между командами одного участника</label><p class="set-help">0 — без паузы</p></div>
+    <div class="set-ctl"><input type="number" id="scope-cooldown-<%= module %>" name="cooldown" min="0" max="3600" step="1" value="<%= scopeCfg.cooldown %>" /> <span class="set-unit">сек</span></div>
+  </div>
+  <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+</form>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Тикеты' }) %></head>
+<body>
+  <div class="app-layout with-nav">
+    <%- include('../partials/sidebar') %>
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Тикеты</h1>
+        <p class="page-intro">Участник нажимает кнопку или выбирает тему под сообщением-панелью — бот создаёт приватный канал, который видят только он и команда сервера. Команды в Discord: <code>/ticket close</code>, <code>/ticket add</code>, <code>/ticket remove</code>.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id;
+         const cats = channels.filter((c) => c.type === 4);
+         const text = channels.filter((c) => c.type === 0 || c.type === 5);
+         const roleItems = roles.map((r) => ({ id: r.id, label: r.name }));
+         const opt = (list, cur, none) => '<option value="">' + none + '</option>' + list.map((c) => '<option value="' + c.id + '"' + (cur === c.id ? ' selected' : '') + '>' + (c.type === 4 ? '📁 ' : '#') + c.name.replace(/</g, '&lt;') + '</option>').join('');
+         const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+         const supportSel = [...new Set([settings.ticketSupportRoleId, ...cfg.supportRoles].filter(Boolean))]; %>
+      <% if (!botOnline) { %><div class="callout">Бот сейчас не в сети: настройки сохраняются, а опубликовать панель можно, когда он запустится.</div><% } %>
+
+      <form method="post" action="<%= g %>/tickets/settings" class="card set-section">
+        <h2>Каналы и команда</h2>
+        <input type="hidden" name="_fields" value="supportRoles,maxOpen,nameFormat" />
+        <div class="set-row">
+          <div class="set-text"><label for="ticketCategoryId">Категория для новых каналов</label><p class="set-help">Не выбрана — каналы появляются вне категорий</p></div>
+          <div class="set-ctl"><select id="ticketCategoryId" name="ticketCategoryId"><%- opt(cats, settings.ticketCategoryId, 'Без категории') %></select></div>
+        </div>
+        <div class="set-row stacked">
+          <div class="set-text"><span class="set-title">Команда поддержки</span><p class="set-help">Эти роли видят все обращения и могут их закрывать. Участники с правом «Управлять каналами» могут всегда</p></div>
+          <div class="set-ctl"><%- include('../partials/pick-list', { name: 'supportRoles', items: roleItems, selected: supportSel, kind: 'roles', empty: 'Ролей не найдено' }) %></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="ticketLogChannelId">Журнал и переписки</label><p class="set-help">Сюда приходит запись о закрытии с файлом переписки</p></div>
+          <div class="set-ctl"><select id="ticketLogChannelId" name="ticketLogChannelId"><%- opt(text, settings.ticketLogChannelId, 'Не сохранять в канал') %></select></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="maxOpen">Открытых обращений у одного участника</label></div>
+          <div class="set-ctl"><input type="number" id="maxOpen" name="maxOpen" min="1" max="5" step="1" value="<%= cfg.maxOpen %>" required /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="nameFormat">Имя канала</label><p class="set-help"><code>{number}</code> номер, <code>{user}</code> имя участника, <code>{category}</code> тема</p></div>
+          <div class="set-ctl"><input type="text" id="nameFormat" name="nameFormat" maxlength="60" value="<%= cfg.nameFormat %>" data-vars="number,user,category" /></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+
+      <form method="post" action="<%= g %>/tickets/settings" class="card set-section">
+        <h2>Темы обращений</h2>
+        <p class="set-lead">До 10 тем. С темами под панелью появляется список вместо кнопки; тема может пинговать свои роли и задавать до 5 вопросов в окне перед созданием канала. Чтобы убрать тему или вопрос, сотрите его название.</p>
+        <input type="hidden" name="_fields" value="categories" />
+        <% const rowsC = cfg.categories.concat(cfg.categories.length < 10 ? [{ label: '', emoji: '', description: '', roles: [], welcome: '', questions: [], isNew: true }] : []); %>
+        <% rowsC.forEach((c, i) => { const p = 'categories_' + i + '_'; %>
+          <details class="ticket-topic"<%= c.isNew ? '' : ' open' %>>
+            <summary><b><%= c.isNew ? '+ Новая тема' : (c.emoji ? c.emoji + ' ' : '') + c.label %></b><% if (!c.isNew && c.questions.length) { %> <span class="muted">· вопросов: <%= c.questions.length %></span><% } %></summary>
+            <div class="fld-pair">
+              <div class="fld"><label for="<%= p %>label">Название</label><input type="text" id="<%= p %>label" name="<%= p %>label" maxlength="45" value="<%= c.label %>" placeholder="Например, Вопрос по оплате" /></div>
+              <div class="fld"><label for="<%= p %>emoji">Эмодзи</label><input type="text" id="<%= p %>emoji" name="<%= p %>emoji" maxlength="32" value="<%= c.emoji %>" placeholder="💳" /></div>
+            </div>
+            <div class="fld"><label for="<%= p %>description">Пояснение в списке</label><input type="text" id="<%= p %>description" name="<%= p %>description" maxlength="100" value="<%= c.description %>" /></div>
+            <div class="fld"><label>Пинговать роли</label><%- include('../partials/pick-list', { name: p + 'roles', items: roleItems, selected: c.roles, kind: 'roles', empty: 'Ролей не найдено' }) %></div>
+            <div class="fld"><label for="<%= p %>welcome">Приветствие в канале</label><textarea id="<%= p %>welcome" name="<%= p %>welcome" maxlength="1000" rows="2" placeholder="Пусто — общий текст панели"><%= c.welcome %></textarea></div>
+            <div class="ticket-qs">
+              <div class="set-title">Вопросы перед созданием</div>
+              <% c.questions.concat(c.questions.length < 5 ? [{ label: '', long: false, required: true, isNew: true }] : []).forEach((q, j) => { const qp = p + 'questions_' + j + '_'; %>
+                <div class="ticket-q">
+                  <input type="text" name="<%= qp %>label" maxlength="45" value="<%= q.label %>" placeholder="<%= q.isNew ? 'Новый вопрос' : '' %>" aria-label="Вопрос <%= j + 1 %>" />
+                  <label class="msg-check"><input type="checkbox" name="<%= qp %>long" <%= q.long ? 'checked' : '' %> /> длинный ответ</label>
+                  <label class="msg-check"><input type="checkbox" name="<%= qp %>required" <%= q.required !== false ? 'checked' : '' %> /> обязательный</label>
+                </div>
+              <% }) %>
+            </div>
+          </details>
+        <% }) %>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+
+      <form method="post" action="<%= g %>/tickets/settings" class="card set-section">
+        <h2>Сообщение-панель</h2>
+        <input type="hidden" name="_fields" value="panelButton" /><input type="hidden" name="_embed" value="1" />
+        <div class="set-row stacked">
+          <div class="set-text"><label for="ticketMessage">Текст</label><p class="set-help">Он же приветствие в новом канале, если у темы нет своего</p></div>
+          <div class="set-ctl"><textarea id="ticketMessage" name="ticketMessage" maxlength="1000" rows="3" data-md><%= settings.ticketMessage %></textarea></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="panelButton">Надпись на кнопке или в списке тем</label></div>
+          <div class="set-ctl"><input type="text" id="panelButton" name="panelButton" maxlength="80" value="<%= cfg.panelButton %>" /></div>
+        </div>
+        <div class="set-row stacked">
+          <%- include('../partials/embed-editor', { prefix: 'panelEmbed', data: cfg.panelEmbed, textFor: 'ticketMessage', hint: 'Без эмбеда бот оформит панель сам: заголовок «Обращение к команде сервера» и ваш текст.' }) %>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+
+      <form method="post" action="<%= g %>/tickets/publish" class="card set-section set-tools" data-no-guard>
+        <h2>Опубликовать панель</h2>
+        <div class="set-row">
+          <div class="set-text"><label for="publishChannel">Канал</label><p class="set-help"><% if (cfg.panelMessageId) { %>Панель уже стоит в <% const pc = text.find((c) => c.id === cfg.panelChannelId); %>#<%= pc ? pc.name : 'удалённом канале' %>: в том же канале она обновится на месте<% } else { %>Сохраните настройки выше, затем опубликуйте<% } %></p></div>
+          <div class="set-ctl"><select id="publishChannel" name="channelId" required><%- opt(text, cfg.panelChannelId, '— выберите —') %></select></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit"<%= botOnline ? '' : ' disabled' %>><%= cfg.panelMessageId ? 'Обновить сообщение в канале' : 'Опубликовать в канал' %></button></div>
+      </form>
+
+      <form method="post" action="<%= g %>/tickets/settings" class="card set-section">
+        <h2>Закрытие</h2>
+        <input type="hidden" name="_fields" value="autoCloseHours,warnHours,transcript,rating,blacklist" />
+        <div class="set-row">
+          <div class="set-text"><label for="autoCloseHours">Закрывать без сообщений через</label><p class="set-help">0 — не закрывать само</p></div>
+          <div class="set-ctl"><input type="number" id="autoCloseHours" name="autoCloseHours" min="0" max="720" step="1" value="<%= cfg.autoCloseHours %>" /> <span class="set-unit">ч</span></div>
+        </div>
+        <div class="set-row" data-depends="autoCloseHours">
+          <div class="set-text"><label for="warnHours">Предупредить заранее за</label><p class="set-help">Участник получит упоминание в канале; любое сообщение отменяет закрытие</p></div>
+          <div class="set-ctl"><input type="number" id="warnHours" name="warnHours" min="0" max="168" step="1" value="<%= cfg.warnHours %>" /> <span class="set-unit">ч</span></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="transcript">Переписка при закрытии</label><p class="set-help">Хранится в канале журнала и здесь, во вкладке «Обращения»</p></div>
+          <div class="set-ctl"><select id="transcript" name="transcript">
+            <option value="txt" <%= cfg.transcript === 'txt' ? 'selected' : '' %>>Текстом (.txt)</option>
+            <option value="html" <%= cfg.transcript === 'html' ? 'selected' : '' %>>Страницей (.html)</option>
+            <option value="off" <%= cfg.transcript === 'off' ? 'selected' : '' %>>Не сохранять</option>
+          </select></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="rating">Просить оценку после закрытия</label><p class="set-help">Автору приходит личное сообщение с оценкой от 1 до 5 звёзд</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="rating" name="rating" <%= cfg.rating ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="blacklist">Не принимать обращения от</label><p class="set-help">ID участников через пробел или запятую</p></div>
+          <div class="set-ctl"><input type="text" id="blacklist" name="blacklist" value="<%= cfg.blacklist.join(', ') %>" placeholder="123456789012345678" /></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+
+      <%- include('../partials/scope-block', { module: 'tickets', scopeCfg, channels, roles }) %>
+    </main>
+  </div>
+</body>
+</html>

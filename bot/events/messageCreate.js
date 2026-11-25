@@ -11,6 +11,7 @@ module.exports = {
   name: 'messageCreate',
   async execute(message) {
     if (!message.guild || message.author.bot) return;
+    require('../modules/tickets').noteActivity(message).catch(() => {}); // a ticket that is talked in does not close by itself
     require('../modules/serverStats').onMessage(message); // «Статистика сервера»: messages of the day
 
     // getOrCreateSettings ensures a row always exists (with sensible defaults like

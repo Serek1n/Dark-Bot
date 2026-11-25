@@ -1,0 +1,8 @@
+<%# Several channels or roles at once (js/ui.js turns it into a search with chips). Locals: name, items [{ id, label, group }],
+    selected (IDs), kind ('roles' | 'channels'), empty (text when there is nothing to pick). Nothing ticked sends nothing:
+    the form names the field in its _fields so the server knows it was emptied. %>
+<% const sel = new Set((locals.selected || []).map(String)); %>
+<div class="pick" data-kind="<%= locals.kind || 'roles' %>">
+  <% if (!items.length) { %><span class="pick-empty"><%= locals.empty || 'Пусто' %></span><% } %>
+  <% items.forEach((it) => { %><label<% if (it.group) { %> data-group="<%= it.group %>"<% } %>><input type="checkbox" name="<%= name %>" value="<%= it.id %>" <%= sel.has(String(it.id)) ? 'checked' : '' %> /><span><%= it.label %></span></label><% }) %>
+</div>
