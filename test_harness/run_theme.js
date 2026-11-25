@@ -53,7 +53,7 @@ const web = path.join(__dirname, '..', 'web');
     assert(M.modulesOfPage('shop').map((m) => m.key).join() === 'economy,shop' && M.modulesOfPage('moderation-reports').map((m) => m.key).join() === 'tickets,report'
       && M.modulesOfPage('interactive').map((m) => m.key).join() === 'reactionRoles,interactive' && M.modulesOfPage('economy').map((m) => m.key).join() === 'economy', 'pages and their switches');
     // every page names its grid
-    assert(M.layoutOf('leveling') === 'layout-form' && M.layoutOf('leaderboard') === 'layout-wide' && M.layoutOf('webhooks') === 'layout-split-custom', 'layouts');
+    assert(M.layoutOf('leveling') === 'layout-form' && M.layoutOf('leaderboard') === 'layout-wide' && M.layoutOf('webhooks') === 'layout-form', 'layouts');
   });
   await test('groups: a strip at the top of the page and its copy for the top bar; the current group is marked; the side menu has «Настройки панели»', async () => {
     const html = await render('economy-journal');

@@ -3,7 +3,7 @@
     shows the whole message), preview (false: the page draws its own preview), attach ({ field, url, name }: a picture the bot attaches when the
     checkbox `field` is on — the embed's image with the embed, a file under the text without it). Every text field takes the same templates as the message. %>
 <% let E = null; try { E = typeof data === 'string' ? JSON.parse(data) : data; } catch (e) { E = null; } E = E && E.on ? E : { on: false }; %>
-<div class="embed-editor" data-embed-editor="<%= prefix %>">
+<div class="embed-editor" data-embed-editor="<%= prefix %>" data-pv-grid="embed">
   <label class="checkbox-row">
     <input type="checkbox" name="<%= prefix %>_on" <%= E.on ? 'checked' : '' %> data-embed-toggle />
     <span>Оформить как эмбед (рамка с заголовком, цветом и картинкой)<% if (locals.hint) { %><small class="hint" style="display:block;margin-top:2px"><%= hint %></small><% } %></span>
@@ -30,7 +30,7 @@
     </div>
     <p class="hint">Заменители работают во всех полях эмбеда.</p>
   </div>
-  <% if (locals.preview !== false) { %>
-    <div class="ee-preview" data-ee-preview data-text-for="<%= locals.textFor || '' %>"<% if (locals.attach) { %> data-attach-field="<%= attach.field %>" data-attach-url="<%= attach.url %>" data-attach-name="<%= attach.name %>"<% } %> aria-label="Как будет выглядеть сообщение"></div>
+  <% if (locals.preview !== false) { const pvLabel = 'Как будет выглядеть сообщение'; %>
+    <%- include('preview-group', { key: 'embed', host: '<div class="ee-preview" data-ee-preview data-text-for="' + (locals.textFor || '') + '"' + (locals.attach ? ' data-attach-field="' + attach.field + '" data-attach-url="' + attach.url + '" data-attach-name="' + attach.name + '"' : '') + ' aria-label="' + pvLabel + '"></div>' }) %>
   <% } %>
 </div>

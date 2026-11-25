@@ -5,10 +5,8 @@
 .msg-tabs button.active { color: var(--paper); border-bottom-color: var(--ember); }
 .msg-tabs button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; border-radius: var(--r-6); }
 .msg-count { display: inline-block; min-width: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--panel-raised); color: var(--fog); font-size: var(--fs-12); line-height: 18px; text-align: center; }
-.msg-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.msg-grid { display: grid; align-items: start; }
 .msg-form > .card + .card, .msg-form > .card + div, .msg-form > div + .card, .msg-form > div + div { margin-top: 14px; }
-.msg-preview-wrap { position: sticky; top: 16px; }
-.msg-preview-head { font-size: var(--fs-12); font-weight: 600; color: var(--fog-dim); margin-bottom: 8px; }
 .msg-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
 .msg-radio { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid var(--hairline); border-radius: var(--r-10); cursor: pointer; margin: 0; }
 .msg-radio:has(input:checked) { border-color: var(--ember); background: var(--ember-tint); }
@@ -117,7 +115,6 @@
 .dm-break { flex-basis: 100%; height: 0; }
 .dm-button { display: inline-flex; align-items: center; gap: 6px; background: var(--dc-line); color: #fff; font-size: var(--fs-14); font-weight: 500; padding: 0 16px; height: 32px; border-radius: var(--r-4); }
 .dm-empty { color: var(--dc-muted); font-size: var(--fs-14); margin-top: 6px; }
-@media (max-width: 1100px) { .msg-grid { grid-template-columns: 1fr; } .msg-preview-wrap { position: static; order: -1; } }
 @media (max-width: 760px) { .msg-mode { grid-template-columns: 1fr; } .msg-item { flex-direction: column; align-items: stretch; } .msg-item-actions { justify-content: flex-start; } .me-button { grid-template-columns: 1fr auto; } .me-button > div:first-child { grid-column: 1 / -1; } }
 .msg-pane [hidden], .msg-pane[hidden] { display: none !important; }
 

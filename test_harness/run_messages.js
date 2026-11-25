@@ -126,6 +126,11 @@ async function test(name, fn) { try { await fn(); results.push(`✅ ${name}`); }
     const data = /<script id="msg-data" type="application\/json">([\s\S]*?)<\/script>/.exec(html)[1];
     assert(!data.includes(TOKEN) && JSON.parse(data).page.endsWith('/webhooks'), 'no webhook token in the builder data');
     assert(/img-src 'self' https: data:/.test(r.headers.get('content-security-policy')), r.headers.get('content-security-policy'));
+    // the preview is a sub-group of the editor, closed until opened, before the editor (on the left when open)
+    const grid = html.slice(html.indexOf('data-pv-grid="builder"'));
+    assert(grid.indexOf('data-pv-group="builder"') > -1 && grid.indexOf('data-pv-group="builder"') < grid.indexOf('id="msg-editor"'), 'the preview group comes first');
+    assert(/data-pv-toggle aria-expanded="false"/.test(html) && /id="pv-body-builder" data-pv-scroll hidden/.test(html) && html.includes('id="m-preview"') && html.includes('data-pv-limits'), 'closed by default, with the limits');
+    assert(/<main class="content layout-form"/.test(html), 'closed: the form width; the split grid only while it is open');
   });
 
   await test('send as the bot: into a channel of this server, pings off unless asked; never into another server', async () => {

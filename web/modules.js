@@ -230,11 +230,11 @@ const pageVisible = (page, settings) => !PAGE_LATER.has(page) && (!PAGE_NEEDS[pa
 
 // The grid of each page (99-layout.css): .layout-form — settings as rows in a reading-width column (the default);
 // .layout-wide — tables, journals, lists, catalogs and charts across the width; .layout-split-custom — a builder with
-// its preview beside it.
+// its preview beside it (the messages builder turns to it itself while its preview is open, see js/ui.js).
 const WIDE_PAGES = new Set(['overview', 'features', 'changelog', 'leaderboard', 'leveling-data', 'channel-boosts', 'achievements', 'achievements-catalog',
   'achievements-members', 'alerts', 'community', 'custom-commands', 'economy-deals', 'economy-journal', 'logs', 'moderation', 'moderation-punishments',
   'moderation-warnings', 'moderation-log', 'music', 'reaction-roles', 'server-stats', 'server-stats-channels', 'shop', 'temp-voice', 'temp-voice-stats', 'giveaways']);
-const SPLIT_PAGES = new Set(['webhooks']);
+const SPLIT_PAGES = new Set([]);
 const layoutOf = (page) => (SPLIT_PAGES.has(page) ? 'layout-split-custom' : WIDE_PAGES.has(page) ? 'layout-wide' : 'layout-form');
 
 /** The module a page belongs to (each page has exactly one), or null. */

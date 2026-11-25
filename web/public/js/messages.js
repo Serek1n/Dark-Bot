@@ -242,6 +242,49 @@
     preview();
   }
 
+  // ---------- the two-way link of the editor and the preview (dcp.js mount: link) ----------
+  // a field's data-k → the element of the preview: content, sender, embed:i[:part], button:i, block:i
+  var EMBED_PART = { 'author.name': 'author', 'author.url': 'author', 'author.icon_url': 'author', title: 'title', url: 'title', description: 'description',
+    'image.url': 'image', 'thumbnail.url': 'thumbnail', 'footer.text': 'footer', 'footer.icon_url': 'footer', timestamp: 'footer', color: '' };
+  var PART_FIELD = { author: 'author.name', title: 'title', description: 'description', image: 'image.url', thumbnail: 'thumbnail.url', footer: 'footer.text' };
+  function elOfKey(k) {
+    if (!k) return null;
+    if (k === 'content' || k === 'mentions') return 'content';
+    if (k === 'username' || k === 'avatar_url') return 'sender';
+    var m = /^embeds\.(\d+)\.(.+)$/.exec(k);
+    if (m) {
+      var f = /^fields\.(\d+)\./.exec(m[2]); if (f) return 'embed:' + m[1] + ':fields.' + f[1];
+      return 'embed:' + m[1] + (EMBED_PART[m[2]] ? ':' + EMBED_PART[m[2]] : '');
+    }
+    m = /^buttons\.(\d+)\./.exec(k); if (m) return 'button:' + m[1];
+    m = /^blocks\.(\d+)/.exec(k); if (m) return 'block:' + m[1];
+    return null;
+  }
+  var link = {
+    scope: $('#msg-editor'),
+    elOf: function (f) {
+      var k = f.getAttribute('data-k'); if (k) return elOfKey(k);
+      var c = f.getAttribute('data-color'); if (c !== null) return 'embed:' + c;
+      var v = f.getAttribute('data-vcolor'); if (v) return elOfKey(v);
+      var card = f.closest('.me-embed'); if (card) return 'embed:' + Array.prototype.indexOf.call(embedsBox.children, card);
+      return null;
+    },
+    open: function (name) {
+      var p = name.split(':'); var t = null;
+      if (name === 'content') t = $('#m-content');
+      else if (name === 'sender') t = mode() === 'webhook' ? $('#m-username') : $('#m-channel');
+      else if (p[0] === 'embed') {
+        var card = embedsBox.children[+p[1]]; if (card && card.tagName === 'DETAILS') card.open = true;
+        var fm = /^fields\.(\d+)$/.exec(p[2] || '');
+        t = $('[data-k="embeds.' + p[1] + '.' + (fm ? 'fields.' + fm[1] + '.name' : PART_FIELD[p[2]] || 'title') + '"]');
+      } else if (p[0] === 'button') t = $('[data-k="buttons.' + p[1] + '.label"]');
+      else if (p[0] === 'row') t = $('[data-k="buttons.' + (+p[1] * 5) + '.label"]');
+      else if (p[0] === 'block') { var b = blocksBox && blocksBox.children[+p[1]]; t = b ? b.querySelector('input, textarea, select') || b : null; }
+      else if (p[0] === 'files') t = null;
+      if (t) { t.focus({ preventScroll: true }); t.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+    }
+  };
+
   // ---------- preview: Discord's look (web/public/js/dcp.js draws it; the themes, the phone width and the limits are its) ----------
   function channelName(id) { var c = D.channels.filter(function (x) { return x.id === id; })[0]; return c ? c.name : 'канал'; }
   var pv = null;
@@ -254,7 +297,7 @@
           payload: toMessage(),
           opts: { author: hook ? { name: state.username || hookName, avatar: state.avatar_url, webhook: true } : {}, empty: state.kind === 'v2' ? 'Добавьте блок — здесь появится сообщение.' : 'Напишите текст или добавьте эмбед — здесь появится сообщение.' }
         };
-      }, { onImport: function (data) { $('#m-json').value = JSON.stringify(data); importJson(); } });
+      }, { onImport: function (data) { $('#m-json').value = JSON.stringify(data); importJson(); }, link: link });
       return;
     }
     pv.update();

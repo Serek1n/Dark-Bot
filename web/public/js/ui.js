@@ -328,17 +328,31 @@
         }
         return msg;
       };
+      // the two-way link: a field lights its part of the preview, a click on a part opens its field
+      var EF = { title: 'title', description: 'description', image: 'image', thumbnail: 'thumbnail', footer: 'footer', timestamp: 'footer', color: '' };
+      var link = {
+        scope: box.closest('form') || box,
+        elOf: function (f) {
+          if (textField && f === textField) return 'content';
+          if (!box.contains(f)) return null;
+          if (f.hasAttribute('data-embed-toggle')) return 'embed:0';
+          var k = f.getAttribute('data-ef'); return k !== null && k in EF ? 'embed:0' + (EF[k] ? ':' + EF[k] : '') : null;
+        },
+        open: function (name) {
+          var t = null;
+          if (name === 'content' || name === 'sender') t = textField;
+          else if (/^embed:0/.test(name)) {
+            var part = name.split(':')[2] || 'title';
+            var key = Object.keys(EF).filter(function (k) { return EF[k] === part; })[0] || 'title';
+            t = toggle.checked ? get(key) : toggle;
+          }
+          if (t) { t.focus({ preventScroll: true }); t.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        }
+      };
       var draw = function () {
         fields.hidden = !toggle.checked;
-        // the fields and the preview side by side while the embed is on; the card and the page take the wide width for it
-        box.classList.toggle('ee-split', toggle.checked);
-        var card = box.closest('.card'); if (card) card.classList.toggle('wide-card', toggle.checked);
-        var main = box.closest('.content');
-        if (main) main.classList.toggle('has-wide-card', Boolean(main.querySelector('.embed-editor.ee-split')));
         if (!host || !window.DCP) return;
-        host.hidden = !toggle.checked && !textField;
-        if (host.hidden) return;
-        if (!pv) pv = window.DCP.mount(host, function () { var f = {}; if (attached()) f[attachName] = host.getAttribute('data-attach-url'); return { payload: payload(), opts: { tokens: true, files: f, empty: 'Пустое сообщение не отправится — напишите текст или включите эмбед.' } }; });
+        if (!pv) pv = window.DCP.mount(host, function () { var f = {}; if (attached()) f[attachName] = host.getAttribute('data-attach-url'); return { payload: payload(), opts: { tokens: true, files: f, empty: 'Пустое сообщение не отправится — напишите текст или включите эмбед.' } }; }, { link: link });
         else pv.update();
       };
       box.addEventListener('input', draw); box.addEventListener('change', draw);
@@ -1166,4 +1180,55 @@
     openPop(btn);
     if (e.detail === 0) { var first = pop.querySelector('[data-grp-list]:not([hidden]) .gp-item'); if (first) first.focus(); } // opened by the keyboard
   });
+})();
+
+
+// --- The preview of a message as a sub-group of its editor (partials/preview-group.ejs). Closed by default; the choice is
+// kept in this browser. Open, the editor and the preview stand side by side (.pv-open on [data-pv-grid]); a card with
+// an open preview takes the wide width, and the messages builder turns its page into the custom split grid.
+(function () {
+  var groups = document.querySelectorAll('[data-pv-group]');
+  if (!groups.length) return;
+  var main = document.querySelector('.app-layout > .content');
+  var wrap = document.querySelector('.grp-wrap');
+  var LAYOUTS = ['layout-form', 'layout-wide', 'layout-split-custom'];
+  var base = main ? LAYOUTS.filter(function (c) { return main.classList.contains(c); })[0] : '';
+  function read(k) { try { return localStorage.getItem('dark-pv-' + k); } catch (e) { return null; } }
+  function write(k, v) { try { localStorage.setItem('dark-pv-' + k, v); } catch (e) { /* not remembered */ } }
+  function layout() {
+    if (!main) return;
+    var builderOpen = Array.prototype.some.call(document.querySelectorAll('[data-pv-grid="builder"].pv-open'), function (g) { return !g.closest('[hidden]'); });
+    var want = builderOpen ? 'layout-split-custom' : base;
+    [main, wrap].forEach(function (el) { if (!el) return; LAYOUTS.forEach(function (c) { el.classList.toggle(c, c === want); }); });
+    var wide = false;
+    document.querySelectorAll('[data-pv-grid="embed"]').forEach(function (g) {
+      var on = g.classList.contains('pv-open'); var card = g.closest('.card');
+      if (card) card.classList.toggle('wide-card', on);
+      if (on) wide = true;
+    });
+    main.classList.toggle('has-wide-card', wide);
+  }
+  function set(g, open, save) {
+    var btn = g.querySelector('[data-pv-toggle]'); var body = g.querySelector('.pv-body'); var act = g.querySelector('[data-pv-act]');
+    var grid = g.closest('[data-pv-grid]');
+    body.hidden = !open; btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (act) act.textContent = open ? 'Скрыть' : 'Показать';
+    if (grid) grid.classList.toggle('pv-open', open);
+    if (save) write(g.getAttribute('data-pv-group'), open ? '1' : '0');
+    layout();
+  }
+  groups.forEach(function (g) {
+    var key = g.getAttribute('data-pv-group');
+    set(g, read(key) === '1', false);
+    g.querySelector('[data-pv-toggle]').addEventListener('click', function () {
+      var open = g.querySelector('.pv-body').hidden;
+      // one choice for the same kind of editor: every embed editor of the page opens and closes together
+      document.querySelectorAll('[data-pv-group="' + key + '"]').forEach(function (x) { set(x, open, x === g); });
+      if (!open) g.querySelector('[data-pv-toggle]').focus();
+    });
+  });
+  // the builder's tabs: the split grid only while the editor is shown
+  document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-tab]')) setTimeout(layout, 0); });
+  window.addEventListener('hashchange', function () { setTimeout(layout, 0); });
+  setTimeout(layout, 0);
 })();

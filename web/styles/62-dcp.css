@@ -224,3 +224,15 @@ img.dcp-bemoji { width: 18px; height: 18px; }
 @media (pointer: coarse) { .dcp-sw { width: 32px; height: 32px; } }
 .dcp-aed { display: flex; flex-direction: column; gap: 10px; }
 .dcp-aacts [hidden] { display: none; }
+
+/* ---------- the preview by elements (data-el): each part of the message can be lit from the editor and opens its field
+   when clicked (the builders wire it, see js/messages.js and js/ui.js) ---------- */
+.dcp-block + .dcp-block:has(> .dcp-md, > .dcp-section) { margin-top: 8px; }
+.dcp-block:has(> .dcp-sep) + .dcp-block { margin-top: 0; }
+.dcp-thumbwrap { display: block; }
+.dcp-thumbwrap > .dcp-thumb { display: block; }
+.dcp-linked [data-el] { border-radius: var(--r-4); transition: box-shadow .15s ease, background-color .15s ease; cursor: pointer; }
+.dcp-linked [data-el]:hover { box-shadow: 0 0 0 1px color-mix(in srgb, var(--ember) 45%, transparent); }
+.dcp-linked [data-el].dcp-lit { box-shadow: 0 0 0 2px var(--ember); background-color: color-mix(in srgb, var(--ember) 10%, transparent); }
+.dcp-linked .dcp-embed[data-el].dcp-lit { box-shadow: 0 0 0 2px var(--ember); }
+@media (prefers-reduced-motion: reduce) { .dcp-linked [data-el] { transition: none; } }

@@ -1,7 +1,8 @@
 <%# The message builder (text, embeds, Discord components, drafts, schedule, tools): the panes of the "Вебхуки" page. %>
       <!-- Editor -->
       <section class="msg-pane" data-pane="editor">
-        <div class="msg-grid">
+        <div class="msg-grid" data-pv-grid="builder">
+          <%- include('preview-group', { key: 'builder', host: '<div class="msg-preview" id="m-preview"></div>' }) %>
           <div class="msg-form" id="msg-editor">
             <div class="card">
               <h2>Куда отправить</h2>
@@ -126,10 +127,6 @@
             </div>
           </div>
 
-          <div class="msg-preview-wrap">
-            <div class="msg-preview-head">Предпросмотр</div>
-            <div class="msg-preview" id="m-preview"></div>
-          </div>
         </div>
       </section>
 

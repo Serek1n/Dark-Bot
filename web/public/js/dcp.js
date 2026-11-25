@@ -260,20 +260,23 @@
     return e.name ? '<span class="dcp-bemoji">' + esc(e.name) + '</span>' : '';
   }
   var BTN = { 1: 'primary', 2: 'secondary', 3: 'success', 4: 'danger', 5: 'link', 6: 'premium' };
-  function buttonHtml(b) {
+  // el: the name of the element for the two-way link with the editor (data-el, see mount)
+  var elAttr = function (el) { return el ? ' data-el="' + esc(el) + '"' : ''; };
+  function buttonHtml(b, el) {
     var st = BTN[b.style] || (b.url ? 'link' : 'secondary');
-    if (st === 'premium') return '<span class="dcp-btn premium' + (b.disabled ? ' off' : '') + '">🛒 <span>Купить</span></span>';
-    return '<span class="dcp-btn ' + st + (b.disabled ? ' off' : '') + '"' + (st === 'link' && safeLink(b.url) ? ' title="' + safeLink(b.url) + '"' : '') + '>' + emojiHtml(b.emoji) + (b.label ? '<span>' + esc(b.label) + '</span>' : '') + (st === 'link' ? ICON_LINK : '') + '</span>';
+    if (st === 'premium') return '<span class="dcp-btn premium' + (b.disabled ? ' off' : '') + '"' + elAttr(el) + '>🛒 <span>Купить</span></span>';
+    return '<span class="dcp-btn ' + st + (b.disabled ? ' off' : '') + '"' + elAttr(el) + (st === 'link' && safeLink(b.url) ? ' title="' + safeLink(b.url) + '"' : '') + '>' + emojiHtml(b.emoji) + (b.label ? '<span>' + esc(b.label) + '</span>' : '') + (st === 'link' ? ICON_LINK : '') + '</span>';
   }
   function selectHtml(s) {
     var chosen = (s.options || []).filter(function (o) { return o.default; });
     var text = chosen.length ? chosen.map(function (o) { return esc(o.label); }).join(', ') : esc(s.placeholder || (s.type === 5 ? 'Выберите участника' : s.type === 6 ? 'Выберите роль' : s.type === 8 ? 'Выберите канал' : 'Выберите вариант'));
     return '<div class="dcp-select' + (s.disabled ? ' off' : '') + (chosen.length ? '' : ' empty') + '"><span>' + text + '</span><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg></div>';
   }
-  function rowHtml(r) {
+  function rowHtml(r, ri) {
     var items = r.components || [];
-    if (items.length && items[0].type !== 2) return '<div class="dcp-row">' + selectHtml(items[0]) + '</div>';
-    return '<div class="dcp-row">' + items.map(buttonHtml).join('') + '</div>';
+    var named = ri !== undefined && ri !== null;
+    if (items.length && items[0].type !== 2) return '<div class="dcp-row"' + elAttr(named ? 'row:' + ri : '') + '>' + selectHtml(items[0]) + '</div>';
+    return '<div class="dcp-row"' + elAttr(named ? 'row:' + ri : '') + '>' + items.map(function (b, ci) { return buttonHtml(b, named ? 'button:' + (ri * 5 + ci) : ''); }).join('') + '</div>';
   }
   function mediaUrl(u, files) {
     u = String(u || '');
@@ -300,13 +303,14 @@
   function fieldsHtml(fields, o) {
     var rows = []; var cur = null;
     fields.slice(0, 25).forEach(function (f) {
+      if (!f || !(f.name || f.value)) return;
       if (!f.inline) { rows.push([f]); cur = null; return; }
       if (!cur || cur.length === 3) { cur = []; rows.push(cur); }
       cur.push(f);
     });
     return '<div class="dcp-fields">' + rows.map(function (r) {
       return '<div class="dcp-frow n' + r.length + '">' + r.map(function (f) {
-        return '<div class="dcp-field"><div class="dcp-fname">' + md(f.name, { headings: false, lists: false, quotes: false, users: o.users, tokens: o.tokens }) + '</div><div class="dcp-fvalue">' + md(f.value, { headings: false, plain: o.plain, users: o.users, tokens: o.tokens }) + '</div></div>';
+        return '<div class="dcp-field"' + elAttr(o.ei !== undefined ? 'embed:' + o.ei + ':fields.' + f.__i : '') + '><div class="dcp-fname">' + md(f.name, { headings: false, lists: false, quotes: false, users: o.users, tokens: o.tokens }) + '</div><div class="dcp-fvalue">' + md(f.value, { headings: false, plain: o.plain, users: o.users, tokens: o.tokens }) + '</div></div>';
       }).join('') + '</div>';
     }).join('') + '</div>';
   }
@@ -318,31 +322,33 @@
   }
   function embedHtml(e, o) {
     var color = colorOf(e.color);
-    var thumb = e.thumbnail && e.thumbnail.url ? imgTag(e.thumbnail.url, 'dcp-thumb', '', o.files) : '';
-    var h = '<div class="dcp-embed"' + (color ? ' style="--bar:' + color + '"' : '') + '><div class="dcp-egrid' + (thumb ? ' has-thumb' : '') + '"><div class="dcp-emain">';
+    var part = function (name) { return o.ei !== undefined ? elAttr('embed:' + o.ei + ':' + name) : ''; };
+    var thumb = e.thumbnail && e.thumbnail.url ? '<span class="dcp-thumbwrap"' + part('thumbnail') + '>' + imgTag(e.thumbnail.url, 'dcp-thumb', '', o.files) + '</span>' : '';
+    var h = '<div class="dcp-embed"' + (o.ei !== undefined ? elAttr('embed:' + o.ei) : '') + (color ? ' style="--bar:' + color + '"' : '') + '><div class="dcp-egrid' + (thumb ? ' has-thumb' : '') + '"><div class="dcp-emain">';
     if (e.author && e.author.name) {
       var an = safeLink(e.author.url) ? '<a href="' + safeLink(e.author.url) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(e.author.name) + '</a>' : '<span>' + esc(e.author.name) + '</span>';
-      h += '<div class="dcp-author">' + (e.author.icon_url ? imgTag(e.author.icon_url, 'dcp-aicon', '', o.files) : '') + an + '</div>';
+      h += '<div class="dcp-author"' + part('author') + '>' + (e.author.icon_url ? imgTag(e.author.icon_url, 'dcp-aicon', '', o.files) : '') + an + '</div>';
     }
     if (e.title) {
       var t = md(e.title, { headings: false, lists: false, quotes: false, links: false, users: o.users, tokens: o.tokens });
-      h += '<div class="dcp-etitle">' + (safeLink(e.url) ? '<a href="' + safeLink(e.url) + '" target="_blank" rel="noopener noreferrer nofollow">' + t + '</a>' : t) + '</div>';
+      h += '<div class="dcp-etitle"' + part('title') + '>' + (safeLink(e.url) ? '<a href="' + safeLink(e.url) + '" target="_blank" rel="noopener noreferrer nofollow">' + t + '</a>' : t) + '</div>';
     }
-    if (e.description) h += '<div class="dcp-edesc">' + md(e.description, { plain: o.plain, users: o.users, tokens: o.tokens }) + '</div>';
-    if (e.fields && e.fields.length) h += fieldsHtml(e.fields.filter(function (f) { return f && (f.name || f.value); }), o);
+    if (e.description) h += '<div class="dcp-edesc"' + part('description') + '>' + md(e.description, { plain: o.plain, users: o.users, tokens: o.tokens }) + '</div>';
+    if (e.fields && e.fields.length) h += fieldsHtml(e.fields.map(function (f, j) { return f ? Object.assign({ __i: j }, f) : f; }), o);
     h += '</div>' + thumb + '</div>';
-    if (e.image && e.image.url) h += imgTag(e.image.url, 'dcp-eimage', '', o.files);
+    if (e.image && e.image.url) h += '<div class="dcp-eimagewrap"' + part('image') + '>' + imgTag(e.image.url, 'dcp-eimage', '', o.files) + '</div>';
     var ts = e.timestamp ? new Date(e.timestamp) : null;
     if ((e.footer && e.footer.text) || (ts && !isNaN(ts))) {
-      h += '<div class="dcp-efoot">' + (e.footer && e.footer.icon_url && e.footer.text ? imgTag(e.footer.icon_url, 'dcp-ficon', '', o.files) : '') + '<span>' + esc(e.footer ? e.footer.text : '') + (e.footer && e.footer.text && ts && !isNaN(ts) ? ' • ' : '') + (ts && !isNaN(ts) ? esc(whenText(ts)) : '') + '</span></div>';
+      h += '<div class="dcp-efoot"' + part('footer') + '>' + (e.footer && e.footer.icon_url && e.footer.text ? imgTag(e.footer.icon_url, 'dcp-ficon', '', o.files) : '') + '<span>' + esc(e.footer ? e.footer.text : '') + (e.footer && e.footer.text && ts && !isNaN(ts) ? ' • ' : '') + (ts && !isNaN(ts) ? esc(whenText(ts)) : '') + '</span></div>';
     }
     return h + '</div>';
   }
 
   // Components V2
   function v2(list, o, inContainer) {
-    return (list || []).map(function (c) {
+    return (list || []).map(function (c, bi) {
       if (!c) return '';
+      if (!inContainer && o.top !== false) { var inner = v2([c], Object.assign({}, o, { top: false }), false); return inner ? '<div class="dcp-block"' + elAttr('block:' + bi) + '>' + inner + '</div>' : ''; }
       switch (c.type) {
         case 10: return mdBlock(c.content, { plain: o.plain, users: o.users, tokens: o.tokens });
         case 14: return '<div class="dcp-sep' + (Number(c.spacing) === 2 ? ' big' : '') + (c.divider !== false ? ' line' : '') + '"></div>';
@@ -379,13 +385,13 @@
     var body = '';
     if (v2on) body += v2(p.components, o, false);
     else {
-      if (p.content) body += mdBlock(p.content, { plain: o.plain, users: o.users, tokens: o.tokens });
-      (p.embeds || []).slice(0, 10).forEach(function (e) { if (e) body += embedHtml(e, o); });
+      if (p.content) body += '<div class="dcp-part"' + elAttr('content') + '>' + mdBlock(p.content, { plain: o.plain, users: o.users, tokens: o.tokens }) + '</div>';
+      (p.embeds || []).slice(0, 10).forEach(function (e, ei) { if (e) body += embedHtml(e, Object.assign({}, o, { ei: ei })); });
       var att = (p.attachments || []).filter(function (x) { return x && x.url; });
       var imgs = att.filter(function (x) { return /\.(png|jpe?g|gif|webp)(\?|$)/i.test(x.filename || x.url) && !(p.embeds || []).some(function (e) { return e && e.image && e.image.url === 'attachment://' + x.filename; }); });
-      if (imgs.length) body += gallery(imgs.map(function (x) { return { url: x.url, description: x.description, spoiler: /^SPOILER_/.test(x.filename || '') }; }), o.files);
+      if (imgs.length) body += '<div class="dcp-part"' + elAttr('files') + '>' + gallery(imgs.map(function (x) { return { url: x.url, description: x.description, spoiler: /^SPOILER_/.test(x.filename || '') }; }), o.files) + '</div>';
       att.filter(function (x) { return imgs.indexOf(x) < 0 && !/\.(png|jpe?g|gif|webp)(\?|$)/i.test(x.filename || x.url); }).forEach(function (x) { body += fileCard(x.filename, x.size, false); });
-      (p.components || []).slice(0, 5).forEach(function (r) { if (r && r.type === 1) body += rowHtml(r); });
+      (p.components || []).slice(0, 5).forEach(function (r, ri) { if (r && r.type === 1) body += rowHtml(r, ri); });
     }
     if (!body) body = '<div class="dcp-empty">' + esc(opts.empty || 'Здесь появится сообщение.') + '</div>';
     var mentionsMe = !v2on && /<@!?(\d+)>|@everyone|@here/.test(p.content || '') && (/@everyone|@here/.test(p.content || '') || (CTX.user && CTX.user.id && (p.content || '').indexOf('<@' + CTX.user.id + '>') >= 0) || (CTX.user && CTX.user.id && (p.content || '').indexOf('<@!' + CTX.user.id + '>') >= 0));
@@ -395,8 +401,8 @@
     }
     var time = whenText(opts.time ? new Date(opts.time) : new Date());
     return '<div class="dcp-msg' + (opts.ephemeral ? ' ephemeral' : '') + (mentionsMe ? ' mentioned' : '') + '">' + head +
-      '<div class="dcp-line-msg"><div class="dcp-ava">' + (avatar ? '<img src="' + avatar + '" alt="" />' : '<span>' + esc(name.slice(0, 1).toUpperCase()) + '</span>') + '</div>' +
-      '<div class="dcp-body"><div class="dcp-head"><b class="dcp-name"' + (colorOf(a.color) ? ' style="color:' + colorOf(a.color) + '"' : '') + '>' + esc(name) + '</b>' + badge + '<span class="dcp-when">' + esc(time) + '</span></div>' +
+      '<div class="dcp-line-msg"><div class="dcp-ava" data-el="sender">' + (avatar ? '<img src="' + avatar + '" alt="" />' : '<span>' + esc(name.slice(0, 1).toUpperCase()) + '</span>') + '</div>' +
+      '<div class="dcp-body"><div class="dcp-head" data-el="sender"><b class="dcp-name"' + (colorOf(a.color) ? ' style="color:' + colorOf(a.color) + '"' : '') + '>' + esc(name) + '</b>' + badge + '<span class="dcp-when">' + esc(time) + '</span></div>' +
       '<div class="dcp-content">' + body + (opts.edited ? '<span class="dcp-edited">(изменено)</span>' : '') + '</div>' +
       (opts.ephemeral ? '<div class="dcp-eph"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z"/><circle cx="10" cy="10" r="2.5"/></svg>Это сообщение видите только вы • <u>Скрыть сообщение</u></div>' : '') +
       '</div></div></div>';
@@ -453,6 +459,23 @@
     return out;
   }
 
+  var plural = function (n, one, few, many) { var m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? few : many; };
+  /** How full the message is against Discord's limits: { content, embedChars, embeds, fields (the most in one embed), rows, buttons, blocks }. */
+  function limits(p) {
+    p = p || {}; var len = function (x) { return String(x || '').length; };
+    var v2on = Boolean(p.v2) || (Number(p.flags) & V2) === V2;
+    var out = { v2: v2on, content: len(p.content), embedChars: 0, embeds: 0, fields: 0, rows: 0, buttons: 0, blocks: 0 };
+    if (v2on) { out.blocks = (p.components || []).length; return out; }
+    (p.embeds || []).forEach(function (e) {
+      if (!e) return; out.embeds++;
+      out.embedChars += len(e.title) + len(e.description) + len(e.author && e.author.name) + len(e.footer && e.footer.text);
+      (e.fields || []).forEach(function (f) { out.embedChars += len(f && f.name) + len(f && f.value); });
+      out.fields = Math.max(out.fields, (e.fields || []).length);
+    });
+    (p.components || []).forEach(function (r) { if (r && r.type === 1) { out.rows++; out.buttons += (r.components || []).length; } });
+    return out;
+  }
+
   // ---------- the preview with its bar ----------
   var THEMES = [['ash', 'Ash'], ['dark', 'Dark'], ['onyx', 'Onyx'], ['light', 'Light']];
   var DEVICES = [['desktop', 'ПК'], ['mobile', 'Телефон']];
@@ -484,10 +507,60 @@
       issues.hidden = !list.length;
       issues.innerHTML = list.map(function (x) { return '<li class="' + x.level + '">' + esc(x.text) + '</li>'; }).join('');
       if (!box.hidden && document.activeElement !== ta) ta.value = JSON.stringify(api(last), null, 2);
+      relight(false);
+      var lim = limits(last);
+      fillGroup(list, lim);
+      if (mopts.onDraw) mopts.onDraw(last, list, lim);
+    }
+    // the sub-group around the preview (partials/preview-group.ejs): a short status in its header, the limits under it
+    function fillGroup(list, l) {
+      var g = host.closest('[data-pv-group]'); if (!g) return;
+      var badge = g.querySelector('[data-pv-badge]'); var bar = g.querySelector('[data-pv-limits]');
+      var errs = list.filter(function (x) { return x.level === 'error'; }).length;
+      var bits = l.v2 ? [l.blocks + ' ' + plural(l.blocks, 'блок', 'блока', 'блоков')] : [l.content + ' ' + plural(l.content, 'символ', 'символа', 'символов')];
+      if (!l.v2 && l.embeds) bits.push(l.embeds + ' ' + plural(l.embeds, 'эмбед', 'эмбеда', 'эмбедов'));
+      if (!l.v2 && l.buttons) bits.push(l.buttons + ' ' + plural(l.buttons, 'кнопка', 'кнопки', 'кнопок'));
+      if (errs) bits.push('⚠ ' + errs + ' ' + plural(errs, 'ошибка', 'ошибки', 'ошибок'));
+      if (badge) { badge.textContent = bits.join(' · '); badge.classList.toggle('bad', errs > 0); }
+      if (bar) {
+        var item = function (name, v, max) { return '<span class="' + (v > max ? 'over' : '') + '">' + esc(name) + ' ' + v + ' / ' + max + '</span>'; };
+        bar.innerHTML = l.v2 ? item('Блоков', l.blocks, 40)
+          : item('Текст', l.content, 2000) + item('Эмбеды', l.embedChars, 6000) + item('Полей', l.fields, 25) + item('Рядов', l.rows, 5);
+      }
+    }
+    // ---- the two-way link with the editor (mopts.link): a field in focus or under the pointer lights its element here,
+    // a click on an element here opens its field. link: { scope, elOf(fieldEl) → name, open(name) }. A name is
+    // «content», «sender», «embed:0», «embed:0:title», «embed:0:fields.2», «button:3», «row:0», «block:1», «files»;
+    // a name without its own element lights the nearest one above it (embed:0:color → embed:0).
+    var litName = null, focusName = null;
+    function scrollNear(el) {
+      var c = host.closest('[data-pv-scroll]'); if (!c || c.scrollHeight <= c.clientHeight + 2) return;
+      var r = el.getBoundingClientRect(), b = c.getBoundingClientRect();
+      if (r.top < b.top + 8) c.scrollTop -= b.top - r.top + 16; else if (r.bottom > b.bottom - 8) c.scrollTop += Math.min(r.bottom - b.bottom + 16, r.top - b.top - 16);
+    }
+    function relight(scroll) {
+      screen.querySelectorAll('.dcp-lit').forEach(function (x) { x.classList.remove('dcp-lit'); });
+      var n = litName, el = null;
+      while (n && !(el = screen.querySelector('[data-el="' + n.replace(/\x22/g, '') + '"]'))) n = n.indexOf(':') > 0 ? n.slice(0, n.lastIndexOf(':')) : '';
+      if (el) { el.classList.add('dcp-lit'); if (scroll) scrollNear(el); }
+    }
+    var link = mopts.link;
+    if (link) {
+      host.classList.add('dcp-linked');
+      var scope = link.scope || document;
+      var nameOf = function (t) { var f = t && t.closest ? t.closest('input, textarea, select, [data-el-field]') : null; return f && scope.contains(f) ? link.elOf(f) : null; };
+      scope.addEventListener('focusin', function (ev) { var n = nameOf(ev.target); focusName = n; litName = n; relight(true); });
+      scope.addEventListener('focusout', function () { setTimeout(function () { if (!scope.contains(document.activeElement)) { focusName = null; litName = null; relight(false); } }, 0); });
+      scope.addEventListener('mouseover', function (ev) { var n = nameOf(ev.target); if (n && n !== litName) { litName = n; relight(false); } });
+      scope.addEventListener('mouseleave', function () { litName = focusName; relight(false); });
     }
     host.addEventListener('click', function (ev) {
       var t = ev.target.closest('button'); if (!t || !host.contains(t)) {
-        var sp = ev.target.closest('.dcp-spoiler, .dcp-container.spoiler, .dcp-gi.spoiler, .dcp-sthumb.spoiler'); if (sp) sp.classList.add('open'); return;
+        var sp = ev.target.closest('.dcp-spoiler, .dcp-container.spoiler, .dcp-gi.spoiler, .dcp-sthumb.spoiler');
+        if (sp && !sp.classList.contains('open')) { sp.classList.add('open'); return; }
+        var part = link && ev.target.closest('[data-el]');
+        if (part && screen.contains(part)) { ev.preventDefault(); litName = focusName = part.getAttribute('data-el'); relight(false); link.open(litName); }
+        return;
       }
       if (t.hasAttribute('data-dcp-theme')) { theme = t.getAttribute('data-dcp-theme'); store.set('theme', theme); syncAll(); return; }
       if (t.hasAttribute('data-dcp-device')) { device = t.getAttribute('data-dcp-device'); store.set('device', device); syncAll(); return; }
@@ -499,7 +572,7 @@
     });
     host.addEventListener('keydown', function (ev) { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList && ev.target.classList.contains('dcp-spoiler')) { ev.preventDefault(); ev.target.classList.add('open'); } });
     function say(t) { var m = host.querySelector('[data-dcp-jsonmsg]'); m.textContent = t; setTimeout(function () { m.textContent = ''; }, 2000); }
-    var h = { host: host, update: update, sync: function () { root.setAttribute('data-dcp-theme', store.get('theme', theme)); root.setAttribute('data-device', store.get('device', device)); host.querySelectorAll('[data-dcp-theme]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-dcp-theme') === root.getAttribute('data-dcp-theme'))); }); host.querySelectorAll('[data-dcp-device]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-dcp-device') === root.getAttribute('data-device'))); }); update(); } };
+    var h = { host: host, update: update, light: function (n, scroll) { litName = n; relight(scroll); }, sync: function () { root.setAttribute('data-dcp-theme', store.get('theme', theme)); root.setAttribute('data-device', store.get('device', device)); host.querySelectorAll('[data-dcp-theme]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-dcp-theme') === root.getAttribute('data-dcp-theme'))); }); host.querySelectorAll('[data-dcp-device]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-dcp-device') === root.getAttribute('data-device'))); }); update(); } };
     hosts.push(h); listeners.push(update);
     update(); context();
     return h;
@@ -743,5 +816,5 @@
     return String(text || '').replace(/\{([a-z_][\w.]{0,40})\}/gi, function (all, k) { return Object.prototype.hasOwnProperty.call(map, k.toLowerCase()) ? map[k.toLowerCase()] : all; });
   }
 
-  window.DCP = { ansiEditor: ansiEditor, ansiParse: ansiParse, ansiWrite: ansiWrite, render: render, md: md, validate: validate, mount: mount, toolbar: toolbar, context: context, sample: sample, api: api, stamp: stamp, isJumbo: isJumbo, ctx: CTX, onContext: function (f) { listeners.push(f); } };
+  window.DCP = { limits: limits, ansiEditor: ansiEditor, ansiParse: ansiParse, ansiWrite: ansiWrite, render: render, md: md, validate: validate, mount: mount, toolbar: toolbar, context: context, sample: sample, api: api, stamp: stamp, isJumbo: isJumbo, ctx: CTX, onContext: function (f) { listeners.push(f); } };
 })();

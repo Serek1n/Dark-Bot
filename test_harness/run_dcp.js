@@ -103,6 +103,31 @@ test('ANSI editor: a block is read into coloured pieces and written back the sam
   if (D.ansiWrite([{ t: 'just text' }]) !== 'just text') throw new Error('no codes for plain text');
 });
 
+test('the preview by elements: sender, text, each embed and its parts, fields by their index, buttons, Components V2 blocks', () => {
+  const h = D.render({ content: 'Привет', embeds: [{ title: 'Т', description: 'О', author: { name: 'А' }, footer: { text: 'П' }, image: { url: 'https://x/i.png' }, thumbnail: { url: 'https://x/t.png' },
+    fields: [{ name: '', value: '' }, { name: 'Ф', value: 'з' }] }, { title: 'Второй' }], components: [{ type: 1, components: [{ type: 2, style: 5, label: 'a', url: 'https://a' }, { type: 2, style: 5, label: 'b', url: 'https://b' }] }] });
+  ['data-el="sender"', 'data-el="content"', 'data-el="embed:0"', 'data-el="embed:0:title"', 'data-el="embed:0:description"', 'data-el="embed:0:author"', 'data-el="embed:0:footer"',
+    'data-el="embed:0:image"', 'data-el="embed:0:thumbnail"', 'data-el="embed:0:fields.1"', 'data-el="embed:1"', 'data-el="row:0"', 'data-el="button:0"', 'data-el="button:1"'].forEach((x) => has(h, x));
+  not(h, 'data-el="embed:0:fields.0"'); // an empty field is not drawn, the next keeps its own index
+  const v = D.render({ v2: true, components: [{ type: 10, content: 'один' }, { type: 17, components: [{ type: 10, content: 'два' }] }] });
+  has(v, 'data-el="block:0"'); has(v, 'data-el="block:1"'); not(v, 'data-el="block:2"');
+  not(D.render({ content: '<b data-el="x">' }), 'data-el="x"');
+});
+test('the limits of Discord for the header of the preview: text, embeds together, the most fields, rows', () => {
+  const l = D.limits({ content: 'abc', embeds: [{ title: 'ab', fields: [{ name: 'n', value: 'vv' }, { name: 'x', value: '' }] }, { description: 'dddd' }], components: [{ type: 1, components: [{}, {}] }, { type: 1, components: [{}] }] });
+  assert(l.content === 3 && l.embeds === 2 && l.embedChars === 2 + 3 + 1 + 4 && l.fields === 2 && l.rows === 2 && l.buttons === 3, JSON.stringify(l));
+  assert(D.limits({ v2: true, components: [{}, {}] }).blocks === 2, 'v2 blocks');
+});
+test('mount: the two-way link and the sub-group are wired (a field lights its part, a click opens its field)', () => {
+  assert(/scope\.addEventListener\('focusin'/.test(src) && /link\.open\(litName\)/.test(src) && src.includes("closest('[data-pv-group]')") && src.includes('data-pv-limits'), 'link and group');
+  const ms = fs.readFileSync(path.join(__dirname, '..', 'web', 'public', 'js', 'messages.js'), 'utf8');
+  const elOf = ms.slice(ms.indexOf('function elOfKey'), ms.indexOf('var link = {'));
+  const EM = ms.slice(ms.indexOf('var EMBED_PART'), ms.indexOf('function elOfKey'));
+  const f = new Function(EM + elOf + 'return elOfKey;')();
+  const want = { content: 'content', username: 'sender', 'embeds.1.title': 'embed:1:title', 'embeds.0.fields.3.value': 'embed:0:fields.3', 'embeds.0.color': 'embed:0', 'embeds.2.footer.icon_url': 'embed:2:footer', 'buttons.7.url': 'button:7', 'blocks.2.children.0.content': 'block:2' };
+  for (const [k, v] of Object.entries(want)) assert(f(k) === v, k + ' → ' + f(k));
+});
+
 results.forEach((r) => console.log(r.ok ? '✅' : '❌', r.l, r.ok ? '' : '\n   ' + r.e));
 console.log(`\nИтого: ${results.filter((r) => r.ok).length}/${results.length} прошли успешно`);
 process.exit(results.every((r) => r.ok) ? 0 : 1);

@@ -1,6 +1,31 @@
 [
  {
   "bot": "3.19.5",
+  "panel": "3.37.0",
+  "date": "2026-11-25",
+  "botChanges": [],
+  "panelChanges": [
+   "Превью сообщения — сворачиваемый блок над редактором, по умолчанию скрыт",
+   "Открытое превью стоит слева и не уезжает при прокрутке, редактор — справа",
+   "Поле в фокусе подсвечивает свою часть превью; клик по части открывает её поле",
+   "В заголовке превью — символы, эмбеды, кнопки и ошибки лимитов Discord",
+   "Под превью — лимиты: текст 2000, эмбеды 6000, поля 25, ряды кнопок 5",
+   "Так же устроены приветствие, прощание, новый уровень, достижения и свои команды"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "The message preview is a collapsible block above the editor, hidden at first",
+    "Open, the preview stands on the left and stays in view, the editor on the right",
+    "A field in focus lights its part of the preview; a click on a part opens its field",
+    "The preview header shows characters, embeds, buttons and Discord limit errors",
+    "Under the preview: the limits — text 2000, embeds 6000, fields 25, button rows 5",
+    "Welcome, goodbye, level-up, achievements and own commands work the same way"
+   ]
+  }
+ },
+ {
+  "bot": "3.19.5",
   "panel": "3.36.1",
   "date": "2026-11-25",
   "botChanges": [],

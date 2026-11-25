@@ -1,0 +1,17 @@
+<%# The preview of a message as a sub-group of its editor (js/ui.js «preview groups»): a header that opens and closes it,
+    with a short status (characters, embeds, buttons, problems), and the preview itself with Discord's limits under it.
+    Closed by default; the choice is kept in this browser. Open, the editor and the preview stand side by side
+    (.pv-open on the [data-pv-grid] around them: the preview on the left, sticky); below 1100 px the preview is above.
+    Locals: key (remembered state), host (the HTML of the element the preview is drawn into). %>
+<div class="pv-group" data-pv-group="<%= key %>">
+  <button type="button" class="pv-toggle" data-pv-toggle aria-expanded="false" aria-controls="pv-body-<%= key %>">
+    <svg class="pv-eye" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z"/><circle cx="10" cy="10" r="2.5"/></svg>
+    <span class="pv-title">Превью сообщения</span>
+    <span class="pv-badge" data-pv-badge></span>
+    <span class="pv-act" data-pv-act>Показать</span>
+  </button>
+  <div class="pv-body" id="pv-body-<%= key %>" data-pv-scroll hidden>
+    <%- host %>
+    <div class="pv-limits" data-pv-limits aria-label="Лимиты Discord"></div>
+  </div>
+</div>

@@ -162,17 +162,37 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
 .ks-item.off .ds-dot { background: var(--warning); box-shadow: 0 0 0 4px var(--warning-tint); }
 .preset-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
 
-/* ---------- Form | Preview: the fields of a Discord message on the left, how it will look on the right, staying in view
-   while the fields are filled in. js/ui.js sets .ee-split while the embed is on; a plain message gets the preview under
-   the text, across the width. A card holding one asks for the wide width (.wide-card). ---------- */
+/* ---------- the preview of a message: a sub-group of its editor (partials/preview-group.ejs, js/ui.js) ----------
+   Closed: a header over the editor, the editor keeps the form width. Open on a wide screen: the custom split grid —
+   the preview on the left (42fr, at least 360 px, sticky, scrolling inside when the message is long), the editor on
+   the right (58fr); the page widens to 1440 px for it. Below 1100 px the preview opens above the editor. */
+[data-pv-grid] > .pv-group { order: -1; min-width: 0; }
+.pv-toggle { display: flex; align-items: center; gap: var(--sp-1); width: 100%; min-height: var(--h-control); padding: 0 12px; border: 1px solid var(--hairline); border-radius: var(--r-control); background: var(--panel-raised); color: var(--paper); font: inherit; font-size: var(--fs-14); cursor: pointer; text-align: left; }
+.pv-toggle:hover { border-color: var(--ember); }
+.pv-toggle:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+.pv-toggle .pv-eye { color: var(--fog); flex: none; }
+.pv-title { font-weight: 500; }
+.pv-badge { color: var(--fog); font-size: var(--fs-12); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.pv-badge.bad { color: var(--danger); }
+.pv-act { margin-left: auto; color: var(--ember); font-size: var(--fs-13); flex: none; }
+.pv-toggle[aria-expanded="true"] { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.pv-body { border: 1px solid var(--hairline); border-top: 0; border-radius: 0 0 var(--r-control) var(--r-control); padding: var(--sp-1); background: var(--panel); }
+.pv-body[hidden] { display: none; }
+.pv-limits { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: var(--sp-1) 4px 0; font-size: var(--fs-12); color: var(--fog-dim); font-variant-numeric: tabular-nums; }
+.pv-limits .over { color: var(--danger); font-weight: 600; }
+.embed-editor > .pv-group { margin-top: var(--sp-2); }
+.msg-grid { grid-template-columns: minmax(0, 1fr); gap: var(--sp-2); }
 @media (min-width: 1100px) {
-  .embed-editor.ee-split { display: grid; grid-template-columns: minmax(0, 55fr) minmax(0, 45fr); column-gap: 24px; align-items: start; }
-  .embed-editor.ee-split > .checkbox-row { grid-column: 1 / -1; }
-  .embed-editor.ee-split > .embed-fields { grid-column: 1; }
-  .embed-editor.ee-split > .ee-preview { grid-column: 2; position: sticky; top: 72px; }
+  .msg-grid.pv-open { grid-template-columns: minmax(360px, 42fr) minmax(0, 58fr); gap: var(--sp-3); }
+  :is(.msg-grid, .embed-editor).pv-open > .pv-group { position: sticky; top: 76px; align-self: start; display: flex; flex-direction: column; max-height: calc(100vh - 92px); }
+  :is(.msg-grid, .embed-editor).pv-open > .pv-group > .pv-body { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+  .embed-editor.pv-open { display: grid; grid-template-columns: minmax(320px, 42fr) minmax(0, 58fr); column-gap: var(--sp-3); align-items: start; }
+  .embed-editor.pv-open > .pv-group { grid-column: 1; grid-row: 1 / span 4; margin-top: 0; }
+  .embed-editor.pv-open > :not(.pv-group) { grid-column: 2; }
   .app-layout > .content .card.wide-card { max-width: var(--w-table); }
   .app-layout > .content.layout-form.has-wide-card { max-width: calc(var(--w-table) + 64px); }
 }
+@media (prefers-reduced-motion: no-preference) { .pv-body { animation: rise .16s ease both; } }
 
 /* ---------- App shell on wide screens: a fixed side menu (244 px; 64 px folded, only by its button) ---------- */
 .sb-toggle { display: none; }
@@ -265,3 +285,4 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
 .set-actions.is-empty { display: none; }
 /* a compact list never makes the page wider than the screen */
 .fs { max-width: 100%; }
+.pv-body > :is(.ee-preview, .msg-preview) { margin-top: 0; }
