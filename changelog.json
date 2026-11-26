@@ -1,5 +1,22 @@
 [
  {
+  "bot": "3.22.2",
+  "panel": "3.41.0",
+  "date": "2026-11-26",
+  "botChanges": [
+   "Музыка: бот больше не выходит из голосового посреди играющего трека",
+   "Сломанный трек или пропуск больше не оставляют таймер простоя включённым"
+  ],
+  "panelChanges": [],
+  "en": {
+   "botChanges": [
+    "Music: the bot no longer leaves voice in the middle of a playing track",
+    "A broken or skipped track no longer leaves the idle timer running"
+   ],
+   "panelChanges": []
+  }
+ },
+ {
   "bot": "3.22.1",
   "panel": "3.41.0",
   "date": "2026-11-26",

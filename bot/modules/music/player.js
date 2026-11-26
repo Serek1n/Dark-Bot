@@ -173,6 +173,7 @@ class GuildQueue {
     this.playlist = null;
     this._skipped = false; // the current track was skipped (a skip never repeats the track)
     this._progressTimer = null;
+    this._playChain = Promise.resolve(); // playNext runs one at a time
     this._bindPlayerEvents();
   }
 
@@ -234,6 +235,8 @@ class GuildQueue {
   }
 
   _bindPlayerEvents() {
+    // music really plays: whatever started the idle timer, it is not idle any more
+    this.player.on(AudioPlayerStatus.Playing, () => { if (!this.paused) this._clearIdleTimer(); });
     this.player.on(AudioPlayerStatus.Idle, () => {
       this._killCurrentProcess();
       // Remember what just played, so the "previous" button can bring it back
@@ -386,6 +389,8 @@ class GuildQueue {
       this.idleTimer = null;
       const people = this.listeners();
       const waited = Date.now() - this._idleSince;
+      const status = this.player.state.status;
+      if (!this.paused && (status === AudioPlayerStatus.Playing || status === AudioPlayerStatus.Buffering)) { this._clearIdleTimer(); return; } // it plays: never leave
       if (people && this.paused && this.playing && waited < PAUSE_LIMIT_MS) { this._startIdleTimer(); return; }
       if (people && !this.playing && this.tracks.length) { this.playNext().catch((err) => logger.error('playNext error', err)); return; }
       const minutes = Math.max(1, Math.round(waited / 60000));
@@ -410,8 +415,22 @@ class GuildQueue {
     this.tracks.push(track);
   }
 
-  async playNext(interaction = null) {
-    if (this.player.state.status !== AudioPlayerStatus.Idle && this.playing) return;
+  /**
+   * Starts the next track. Calls run one after another: the player's «error» and «idle» both come for one broken track,
+   * and finding a track by name takes seconds — two at once used to play one track while the other, seeing an empty
+   * queue, started the idle timer, and the bot left in the middle of the music.
+   */
+  playNext(interaction = null) {
+    const run = this._playChain.then(() => this._playNextNow(interaction));
+    this._playChain = run.catch(() => {});
+    return run;
+  }
+
+  async _playNextNow(interaction = null) {
+    if (this.player.state.status !== AudioPlayerStatus.Idle && this.playing) {
+      if (interaction) await this._showPanel(interaction); // a /play that waited for another start: its reply is the panel
+      return;
+    }
     this._refillFromPlaylist();
     const next = this.tracks.shift();
     if (!next) {
@@ -453,7 +472,7 @@ class GuildQueue {
       this._killCurrentProcess();
       logger.error('Failed to start track', next.url, err);
       this._warnSkip(next.title);
-      this.playNext(interaction).catch((e) => logger.error('Failed to continue the queue', e));
+      await this._playNextNow(interaction); // the next one, in the same turn of the queue
     }
   }
 

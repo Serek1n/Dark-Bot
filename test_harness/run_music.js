@@ -231,6 +231,35 @@ async function main() {
     assert.ok(t.sent.some((m) => /Музыка не играла/.test(String(m.payload))), t.sent.map((m) => String(m.payload)).join(' | '));
   });
 
+  await run('race: two starts at once (the player\'s «error» and «idle» for one track) never leave the idle timer on a playing track', async () => {
+    const room = { id: 'vc7', name: 'Music', members: new Map([['p1', { user: { bot: false } }]]), guild: { voiceAdapterCreator: () => {}, channels: { cache: new Map() } } };
+    const t = fakeTextChannel();
+    const q7 = player.getOrCreateQueue('g7', room, t);
+    q7.enqueue(track(1));
+    await Promise.all([q7.playNext(), q7.playNext()]);
+    assert.ok(q7.playing && q7.playing.title === 'Track 1', 'plays');
+    assert.strictEqual(q7.idleTimer, null, 'no idle timer while the track plays');
+    await new Promise((r) => setTimeout(r, 900));
+    assert.ok(player.getQueue('g7'), 'still in voice');
+    assert.ok(!t.sent.some((m) => /выхожу/.test(String(m.payload))), 'no goodbye');
+    player.destroyQueue('g7');
+  });
+
+  await run('idle timer: if it fires while music really plays, the bot stays', async () => {
+    const room = { id: 'vc8', name: 'Music', members: new Map([['p1', { user: { bot: false } }]]), guild: { voiceAdapterCreator: () => {}, channels: { cache: new Map() } } };
+    const t = fakeTextChannel();
+    const q8 = player.getOrCreateQueue('g8', room, t);
+    q8.enqueue(track(1));
+    await q8.playNext();
+    const real = q8.player.state;
+    Object.defineProperty(q8.player, 'state', { configurable: true, get: () => ({ ...real, status: 'playing' }), set: () => {} }); // as Discord reports it with a live connection
+    q8._startIdleTimer();
+    await new Promise((r) => setTimeout(r, 900));
+    assert.ok(player.getQueue('g8'), 'did not leave');
+    delete q8.player.state;
+    player.destroyQueue('g8');
+  });
+
   await run('yt-dlp arguments: SoundCloud asks for the plain mp3 first, YouTube for the best audio', async () => {
     const sc = player.ytDlpAudioArgs('https://soundcloud.com/a/b');
     assert.strictEqual(sc[sc.indexOf('-f') + 1].split('/')[0], 'http_mp3_1_0');
