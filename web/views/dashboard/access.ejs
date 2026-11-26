@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Права доступа' }) %></head>
+<body>
+  <div class="app-layout with-nav">
+    <%- include('../partials/sidebar') %>
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Права доступа</h1>
+        <p class="page-intro">Кому открыть панель, не давая права «Управлять сервером»: роли или отдельному участнику — только нужные разделы. Права роли и личные права складываются. Владелец сервера и администраторы видят всё всегда.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const mine = new Set(myScopes);
+         const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: settings.timezone || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+         const roleColor = (r) => (r && r.color ? '#' + Number(r.color).toString(16).padStart(6, '0') : 'var(--fog)');
+         const lockNote = ' — этого права у вас нет, выдать его нельзя';
+         const scopeBoxes = (prefix, checked) => A.SCOPES.map(([k, t, d]) => { const lock = !full && (!mine.has(k) || k === 'access.manage'); return '<label class="acc-scope' + (lock ? ' is-locked' : '') + '" title="' + d.replace(/\x22/g, '&quot;') + (lock ? lockNote : '') + '"><input type="checkbox" name="scopes" value="' + k + '"' + (checked.includes(k) ? ' checked' : '') + (lock ? ' disabled' : '') + ' /><span><b>' + t + '</b><small>' + d + '</small></span></label>'; }).join(''); %>
+      <% if (err) { %><div class="callout callout-danger" role="alert"><%= err %></div><% } %>
+      <% if (!full) { %><div class="callout">У вас право «Права доступа» без полного доступа: вы выдаёте только те права, что есть у вас, и только ролям ниже вашей.</div><% } %>
+
+      <div class="card">
+        <h2>Кому выдан доступ <span class="muted"><%= entries.length %></span></h2>
+        <div class="table-toolbar"><button type="button" class="btn tt-add" data-drawer-open="accessAdd">Выдать доступ</button></div>
+        <% if (!entries.length) { %>
+          <%- include('../partials/empty-state', { icon: 'access', text: 'Пока панель видят только владелец и те, у кого есть право «Управлять сервером». Выдайте доступ роли модераторов — например, пресетом «Младший модератор».', action: { label: 'Выдать доступ', drawer: 'accessAdd' } }) %>
+        <% } else { %>
+          <div class="acc-list">
+          <% entries.forEach((e) => { const preset = A.PRESETS.find((p) => p[0] === e.presetId); %>
+            <details class="acc-entry">
+              <summary>
+                <span class="acc-who"><% if (e.type === 'role') { %><span class="role-chip"><i style="background:<%= roleColor(e.role) %>"></i><%= e.role ? '@' + e.role.name : 'Удалённая роль ' + e.targetId %></span><% } else { %><span class="person"><%= e.user ? e.user.name : e.targetId %><small class="mono"><%= e.targetId %></small></span><% } %></span>
+                <span class="acc-scopes"><%= preset ? preset[1] + ' · ' : '' %><%= e.scopes.length %> <%= e.scopes.length === 1 ? 'право' : e.scopes.length < 5 ? 'права' : 'прав' %></span>
+                <span class="acc-by muted"><%= e.updatedBy ? ((users[e.updatedBy] || {}).name || e.updatedBy) + ', ' : '' %><%= when(e.updatedAt) %></span>
+              </summary>
+              <form method="post" action="<%= g %>/access/save" class="acc-form" data-no-guard>
+                <input type="hidden" name="targetType" value="<%= e.type %>" /><input type="hidden" name="targetId" value="<%= e.targetId %>" />
+                <div class="acc-grid"><%- scopeBoxes(e.type + e.targetId, e.scopes) %></div>
+                <div class="set-actions"><button class="btn" type="submit">Сохранить права</button></div>
+              </form>
+              <form method="post" action="<%= g %>/access/<%= e.id %>/delete" data-no-guard data-confirm="Снять все права этой записи? Доступ пропадёт на следующем открытии страницы." data-confirm-ok="Снять"><button class="btn btn-secondary btn-sm" type="submit">Снять все права</button></form>
+            </details>
+          <% }) %>
+          </div>
+        <% } %>
+      </div>
+
+      <form method="post" action="<%= g %>/access/save" class="card" id="accessAdd" data-drawer="Выдать доступ" data-no-guard>
+        <h2>Выдать доступ</h2>
+        <div class="fld">
+          <label for="accType">Кому</label>
+          <select id="accType" name="targetType"><option value="role">Роли</option><option value="user">Участнику по ID</option></select>
+        </div>
+        <div class="fld">
+          <label for="accRole">Роль или ID участника</label>
+          <select id="accRole" name="targetId" data-acc-role>
+            <% roles.forEach((r) => { const lock = !full && r.position >= myTop; %><option value="<%= r.id %>"<%= lock ? ' disabled' : '' %>>@<%= r.name %><%= lock ? ' — не ниже вашей роли' : '' %></option><% }) %>
+          </select>
+          <input type="text" name="targetId" data-acc-user placeholder="ID участника: 123456789012345678" inputmode="numeric" hidden disabled />
+        </div>
+        <div class="fld">
+          <label for="accPreset">Готовый набор</label>
+          <select id="accPreset" name="presetId" data-acc-preset>
+            <option value="">Без набора — отмечу сам</option>
+            <% A.PRESETS.forEach(([k, t, s]) => { %><option value="<%= k %>" data-scopes="<%= s.join(',') %>"><%= t %></option><% }) %>
+          </select>
+        </div>
+        <div class="acc-grid" data-acc-boxes><%- scopeBoxes('new', []) %></div>
+        <button class="btn" type="submit">Выдать</button>
+      </form>
+
+      <form method="post" action="<%= g %>/access/settings" class="card set-section">
+        <h2>Безопасность</h2>
+        <input type="hidden" name="_fields" value="panelStrict,panelAuditChannelId" />
+        <div class="set-row">
+          <div class="set-text"><label for="panelStrict">Строгий режим</label><p class="set-help">Право «Управлять сервером» само по себе больше не открывает панель целиком: таким участникам нужны права на этой странице. Владелец и администраторы видят всё всегда<% if (!canStrict) { %>. Меняют только владелец и администраторы<% } %></p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="panelStrict" name="panelStrict" <%= settings.panelStrict ? 'checked' : '' %> <%= canStrict ? '' : 'disabled' %> /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="panelAuditChannelId">Журнал панели в канал</label><p class="set-help">Кто кому выдал права и что меняли участники с выданным доступом</p></div>
+          <div class="set-ctl"><select id="panelAuditChannelId" name="panelAuditChannelId"><option value="">Не отправлять</option><% channels.forEach((c) => { %><option value="<%= c.id %>" <%= settings.panelAuditChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %></select></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit"<%= full ? '' : ' disabled' %>>Сохранить</button></div>
+      </form>
+
+      <div class="card">
+        <h2>Журнал панели</h2>
+        <% if (!log.length) { %><p class="empty-state">Записей пока нет.</p><% } else { %>
+          <div class="table-wrap table-scroll"><table class="data-table">
+            <thead><tr><th>Когда</th><th>Кто</th><th>Что</th></tr></thead>
+            <tbody><% log.forEach((l) => { %><tr><td class="nowrap"><%= when(l.createdAt) %></td><td><%= l.userId ? ((users[l.userId] || {}).name || l.userId) : '—' %></td><td><b><%= LABELS[l.action] || l.action %>:</b> <%= l.detail %></td></tr><% }) %></tbody>
+          </table></div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -10,7 +10,7 @@
      const mainState = st(main.key);
      const switchable = own.filter((m) => st(m.key).switchable);
      const groupTitle = main.group === M.SYSTEM_GROUP[0] ? M.SYSTEM_GROUP[1] : (M.GROUPS.find((g) => g[0] === main.group) || [])[1];
-     const tabs = main.pages.filter((p) => (M.PAGE_LABELS[p] || p === main.page) && M.pageVisible(p, locals.settings));
+     const tabs = main.pages.filter((p) => (M.PAGE_LABELS[p] || p === main.page) && M.pageVisible(p, locals.settings) && M.canOpen(locals.access, p));
      // on a tab that is a part with its own switch (Магазин inside Экономика) the warning is about that part, and about
      // the module itself only when the part needs it
      const parts = own.slice(1).filter((m) => st(m.key).switchable);

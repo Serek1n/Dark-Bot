@@ -84,8 +84,13 @@
           { key: 'alerts', l: 'Подписок на оповещения', href: g + '/alerts' }
         ].filter((x) => isOn(x.key));
         
+        // «Права доступа»: a link to a page this viewer may not open leads nowhere — the number stays, the link goes
+        const openHref = (h) => { if (!h) return null; const pg = (h.split('?')[0].split('/')[3]) || 'overview'; return M.canOpen(locals.access, pg) ? h : null; };
+        kpis.forEach((k) => { k.href = openHref(k.href); });
+        const attOpen = att.filter((a) => openHref(a.href));
+        const liveOpen = live.filter((x) => openHref(x.href));
       %>
-          <% if (att.length) { %>
+          <% if (attOpen.length) { const att = attOpen; %>
           <div class="hd-attn" role="status">
             <span class="hd-attn-title">Требует внимания <span class="hp-attn-n"><%= att.length %></span></span>
             <% att.forEach((a) => { %><a class="hd-attn-chip <%= a.level %>" href="<%= a.href %>"><span class="hp-attn-ico"><%- M.icon(a.icon, 14) %></span><span><%= a.text %></span></a><% }) %>
@@ -100,7 +105,7 @@
           <% if (live.length) { %>
           <div class="hd-live" aria-label="Сейчас на сервере">
             <span class="hd-live-cap">Сейчас на сервере</span>
-            <% live.forEach((x) => { const v = Number(sv(x.from || x.key, x.i)) || 0; %>
+            <% liveOpen.forEach((x) => { const v = Number(sv(x.from || x.key, x.i)) || 0; %>
               <a class="hd-live-row<%= v ? ' has' : '' %>" href="<%= x.href %>"><span class="hp-attn-ico"><%- M.icon(x.key, 14) %></span><span class="hd-live-l"><%= x.l %></span><b><%= fmtN(v) %></b></a>
             <% }) %>
           </div>

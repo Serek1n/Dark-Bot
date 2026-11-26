@@ -4,7 +4,7 @@
 // API being temporarily unreachable) render a friendly error page instead.
 function asyncHandler(fn) {
   return function (req, res, next) {
-    Promise.resolve(fn(req, res, next)).catch(next);
+    return Promise.resolve(fn(req, res, next)).catch(next); // returned: a caller that awaits it (a test) sees the end
   };
 }
 

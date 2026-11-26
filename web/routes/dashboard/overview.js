@@ -12,7 +12,24 @@ const router = express.Router();
 // ---- Guild picker ----
 router.get('/', async (req, res) => {
   const [botGuilds, userGuilds] = await Promise.all([getBotGuilds(), refreshUserGuilds(req, { force: true })]);
-  const guilds = userGuilds.filter(hasManageAccess).map((g) => {
+  // «Права доступа»: a server is also listed where the person or one of his roles was given scopes; a server in the
+  // strict mode lists a «Manage Server» member only if he was given scopes too (owners and administrators always)
+  const { PanelRoleAccess } = require('../../../db');
+  const access = require('../../utils/access');
+  const present = userGuilds.filter((g) => botGuilds.has(g.id));
+  const [granted, strictRows] = await Promise.all([
+    PanelRoleAccess.findAll({ where: { guildId: present.map((g) => g.id) }, attributes: ['guildId'], group: ['guildId'], raw: true }).catch(() => []),
+    GuildSettings.findAll({ where: { guildId: present.map((g) => g.id), panelStrict: true }, attributes: ['guildId', 'panelStrict'] }).catch(() => [])
+  ]);
+  const grantedIds = new Set(granted.map((r) => r.guildId)); const strict = new Map(strictRows.map((r) => [r.guildId, r]));
+  const open = new Set();
+  await Promise.all(present.map(async (g) => {
+    if (hasManageAccess(g) && !strict.has(g.id)) { open.add(g.id); return; }
+    if (!grantedIds.has(g.id) && !hasManageAccess(g)) return;
+    const a = await access.resolve(g.id, req.user.id, { guild: g, settings: strict.get(g.id) || null }).catch(() => null);
+    if (a && (a.full || a.scopes.size)) open.add(g.id);
+  }));
+  const guilds = userGuilds.filter((g) => open.has(g.id) || (!botGuilds.has(g.id) && hasManageAccess(g))).map((g) => {
     const live = botGuilds.get(g.id); // the bot's own data has the current name and icon
     return { ...g, name: live?.name || g.name, icon: live ? live.icon : g.icon, botPresent: Boolean(live), inviteUrl: live ? null : inviteUrl(process.env.DISCORD_CLIENT_ID, g.id) };
   });

@@ -301,3 +301,24 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
 .app-layout .content .card .ticket-topic .fld { border-top: 0; padding: 4px 0; }
 .var-warn { color: var(--warning); margin-top: 4px; }
 .var-warn[hidden] { display: none; }
+
+/* ---------- «Права доступа»: the entries as folded rows, the rights as a grid of boxes ---------- */
+.acc-list { display: flex; flex-direction: column; gap: var(--sp-1); }
+.acc-entry { border: 1px solid var(--hairline); border-radius: var(--r-container); padding: 0 var(--sp-2); }
+.acc-entry > summary { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto; gap: var(--sp-2); align-items: center; min-height: 48px; cursor: pointer; list-style: none; }
+.acc-entry > summary::-webkit-details-marker { display: none; }
+.acc-entry[open] { padding-bottom: var(--sp-2); }
+.acc-scopes { color: var(--text-secondary); font-size: var(--fs-13); }
+.acc-by { font-size: var(--fs-12); text-align: right; }
+.acc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--sp-1); margin: var(--sp-1) 0; }
+.acc-scope { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--hairline); border-radius: var(--r-control); cursor: pointer; }
+.acc-scope:has(input:checked) { border-color: var(--ember); background: var(--ember-tint); }
+.acc-scope input { margin-top: 3px; }
+.acc-scope span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.acc-scope b { font-weight: 500; font-size: var(--fs-14); }
+.acc-scope small { color: var(--text-secondary); font-size: var(--fs-12); line-height: 1.4; }
+.acc-scope.is-locked { opacity: .5; cursor: not-allowed; }
+@media (max-width: 760px) { .acc-entry > summary { grid-template-columns: 1fr; gap: 2px; padding: 8px 0; } .acc-by { text-align: left; } }
+.callout-danger { border-color: var(--danger); }
+.is-locked-form { opacity: .6; }
+.lock-note { margin-top: 8px; color: var(--text-secondary); font-size: var(--fs-13); }

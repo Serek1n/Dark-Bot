@@ -6,6 +6,7 @@ module.exports = {
   name: 'guildMemberRemove',
   async execute(member) {
     if (!member?.guild || member.user?.bot) return;
+    try { require('../../web/utils/access').forget(member.guild.id, member.id); } catch { /* the panel is not in this process */ } // no panel access after leaving
     require('../modules/serverStats').onLeave(member); // «Статистика сервера»: who left today
     await saveSnapshot(member); // roles and nickname, to give them back if he returns
     const settings = await getOrCreateSettings(member.guild.id);

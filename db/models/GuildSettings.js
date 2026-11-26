@@ -135,6 +135,9 @@ module.exports = (sequelize) => {
       ticketSupportRoleId: { type: DataTypes.STRING, allowNull: true },
       ticketLogChannelId: { type: DataTypes.STRING, allowNull: true },
       // stage 3: the settings of these modules as JSON (bot/utils/moduleConfig.js) and where each module works
+      // stage 4: «Права доступа» — «Manage Server» no longer opens everything (strict), where the panel's log goes
+      panelStrict: { type: DataTypes.BOOLEAN, defaultValue: false },
+      panelAuditChannelId: { type: DataTypes.STRING, allowNull: true },
       ticketConfig: { type: DataTypes.TEXT, defaultValue: '{}' },
       pollConfig: { type: DataTypes.TEXT, defaultValue: '{}' },
       funConfig: { type: DataTypes.TEXT, defaultValue: '{}' },

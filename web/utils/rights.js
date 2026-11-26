@@ -9,7 +9,9 @@ function panelRights(req) {
   let perms = 0n;
   try { perms = BigInt(a.permissions || '0'); } catch { perms = 0n; }
   const full = Boolean(a.viaOwnerOverride || a.owner || (perms & ADMINISTRATOR));
-  return { full, webhooks: full || Boolean(perms & MANAGE_WEBHOOKS), everyone: full || Boolean(perms & MENTION_EVERYONE) };
+  // «Права доступа»: the scope «Вебхуки» opens the webhooks as Discord's own right would; @everyone stays Discord's right
+  const scoped = Boolean(req.access && !req.access.full && req.access.scopes?.has?.('webhooks.manage'));
+  return { full, webhooks: full || scoped || Boolean(perms & MANAGE_WEBHOOKS), everyone: full || Boolean(perms & MENTION_EVERYONE) };
 }
 
 module.exports = { panelRights, ADMINISTRATOR, MENTION_EVERYONE, MANAGE_WEBHOOKS };

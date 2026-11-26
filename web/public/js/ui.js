@@ -1277,3 +1277,49 @@
     if (form) form.addEventListener('submit', function () { if (check() && window.darkToast) window.darkToast('В тексте есть неизвестные теги — проверьте подсказку под полем', true); });
   });
 })();
+
+// --- «Права доступа»: a role from the list or a member's ID; a ready set ticks its rights (they can still be changed).
+(function () {
+  var form = document.getElementById('accessAdd');
+  if (!form) return;
+  var type = form.querySelector('[name="targetType"]'), role = form.querySelector('[data-acc-role]'), user = form.querySelector('[data-acc-user]'), preset = form.querySelector('[data-acc-preset]');
+  function sync() { var u = type.value === 'user'; user.hidden = !u; user.disabled = !u; role.disabled = u; var w = role.closest('.fs'); if (w) w.hidden = u; else role.hidden = u; }
+  type.addEventListener('change', sync); sync();
+  preset.addEventListener('change', function () {
+    var o = preset.selectedOptions[0]; var list = o && o.getAttribute('data-scopes') ? o.getAttribute('data-scopes').split(',') : null;
+    if (!list) return;
+    form.querySelectorAll('[data-acc-boxes] input[name="scopes"]').forEach(function (b) { if (!b.disabled) b.checked = list.indexOf(b.value) >= 0; });
+  });
+})();
+
+// --- «Права доступа»: a member with delegated rights sees forms he may not send as locked, with the right they need
+// (the server refuses them anyway: web/utils/access.js). The table of addresses and scopes comes from the page.
+(function () {
+  var el = document.getElementById('panel-access');
+  if (!el) return;
+  var A; try { A = JSON.parse(el.textContent); } catch (e) { return; }
+  var mine = A.scopes || [];
+  var rules = (A.rules || []).map(function (r) { return [r[0].split('|'), new RegExp(r[1]), r[2]]; });
+  var m = /^\/dashboard\/(\d{15,25})/.exec(location.pathname); if (!m) return;
+  var base = '/dashboard/' + m[1];
+  function need(method, path) {
+    var sub = path.indexOf(base) === 0 ? path.slice(base.length) : null; if (sub === null) return [];
+    sub = sub.split('?')[0].replace(/\/+$/, '');
+    for (var i = 0; i < rules.length; i++) if (rules[i][0].indexOf(method) >= 0 && rules[i][1].test(sub)) return rules[i][2];
+    return null;
+  }
+  function allowed(list) { return Boolean(list) && (!list.length || list.some(function (s) { return mine.indexOf(s) >= 0; })); }
+  document.querySelectorAll('form').forEach(function (f) {
+    var method = (f.getAttribute('method') || 'GET').toUpperCase(); if (method === 'GET') return;
+    var action = f.getAttribute('action') || location.pathname;
+    var a = document.createElement('a'); a.href = action; var list = need(method, a.pathname);
+    if (allowed(list)) return;
+    f.classList.add('is-locked-form');
+    f.querySelectorAll('input, select, textarea, button').forEach(function (x) { x.disabled = true; });
+    var note = document.createElement('p'); note.className = 'lock-note';
+    note.textContent = 'Только просмотр: для изменений нужно право ' + (list && list.length ? list.map(function (s) { return '«' + (A.titles[s] || s) + '»'; }).join(' или ') : 'администратора') + '.';
+    f.appendChild(note);
+  });
+  // the module switches: only with «Настройки сервера»
+  if (mine.indexOf('settings.core') < 0) document.querySelectorAll('[data-mod-switch], [data-mod-enable]').forEach(function (x) { x.disabled = true; x.title = 'Включать и выключать модули может участник с правом «Настройки сервера»'; });
+})();

@@ -49,6 +49,7 @@ const ICONS = {
   appearance: '<path d="M10 2.8C5.9 2.8 2.8 5.8 2.8 9.6C2.8 13.6 6 17.2 9.6 17.2C10.7 17.2 11.2 16.5 11.2 15.7C11.2 14.6 10.3 14.3 10.3 13.4C10.3 12.6 10.9 12.1 11.8 12.1H13.6C15.6 12.1 17.2 10.6 17.2 8.6C17.2 5.4 14 2.8 10 2.8Z"/><circle cx="6.6" cy="9.4" r="1.1"/><circle cx="8.6" cy="6.1" r="1.1"/><circle cx="12.4" cy="6.1" r="1.1"/>',
   serverStats: '<path d="M3 17H17"/><path d="M5.5 14V9M10 14V5M14.5 14V11"/>',
   appeals: '<path d="M4 4.5H16V13H10L6.5 16V13H4Z"/><path d="M10 7V9.5M10 11.2V11.3"/>',
+  access: '<rect x="4" y="9" width="12" height="8.5" rx="2"/><path d="M7 9V6.5C7 4.8 8.3 3.5 10 3.5C11.7 3.5 13 4.8 13 6.5V9M10 12.5V14"/>',
   core: '<circle cx="10" cy="10" r="2.6"/><path d="M10 2.8V4.6M10 15.4V17.2M2.8 10H4.6M15.4 10H17.2M4.9 4.9L6.2 6.2M13.8 13.8L15.1 15.1M4.9 15.1L6.2 13.8M13.8 6.2L15.1 4.9"/>',
   boosts: '<path d="M10.8 2.5L4.5 11H9.7L9.2 17.5L15.5 9H10.3L10.8 2.5Z"/>'
 };
@@ -182,6 +183,8 @@ const LAYOUT = [
       const look = ap.read(await GuildSettings.findOne(where(g)));
       return [{ value: (ap.THEMES[look.theme] || ap.THEMES.dark).title, label: 'тема' }, { value: ap.TARGETS.filter((t) => look.targets[t.key].card).length, label: 'с картинкой' }];
     } },
+  { key: 'access', group: 'system', title: 'Права доступа', desc: 'Кому открыть панель без права «Управлять сервером»: роли и участники, их права, журнал', pages: ['access'],
+    keywords: 'доступ права роли модераторы rbac' },
   { key: 'core', group: 'system', title: 'Базовые настройки', desc: 'Язык бота на сервере и то, что относится ко всему боту', pages: ['settings'], keywords: 'язык language english' }
 ];
 
@@ -262,6 +265,27 @@ function moduleState(settings) {
   return { list, groups, system, on, total: counted.length };
 }
 
+// ---- «Права доступа»: what a member with delegated rights sees (res.locals.access: { full, scopes }) ----
+/** May this viewer open this page? */
+function canOpen(access, page) {
+  if (!access || access.full) return true;
+  const need = require('./utils/access').scopeFor('GET', page === 'overview' ? '' : '/' + page);
+  return Boolean(need && need.some((x) => access.scopes.includes(x)));
+}
+/** The table of scopes and their names for the page (js/ui.js). */
+const accessForClient = () => { const A = require('./utils/access'); return { rules: A.rulesForClient(), titles: A.SCOPE_TITLE }; };
+/** May this viewer switch modules on and off (the «Модули» page and every switch)? */
+const canSwitch = (access) => !access || access.full || access.scopes.includes('settings.core');
+/** The menu's view of the modules for this viewer: only the modules with a page he may open, only those pages. */
+function forViewer(state, access) {
+  if (!access || access.full) return state;
+  const keep = (m) => { const pages = m.pages.filter((p) => canOpen(access, p)); return pages.length ? { ...m, pages, page: pages[0], switchable: m.switchable && canSwitch(access) } : null; };
+  const groups = state.groups.map((g) => ({ ...g, modules: g.modules.map(keep).filter(Boolean) })).filter((g) => g.modules.length);
+  const system = { ...state.system, modules: state.system.modules.map(keep).filter(Boolean) };
+  const list = state.list.map((m) => ({ ...m, switchable: m.switchable && canSwitch(access) }));
+  return { ...state, list, groups, system, limited: true };
+}
+
 /** Modules that depend on this one (the ones offered to switch off with it). */
 const dependentsOf = (key) => MODULES.filter((m) => m.depends.includes(key)).map((m) => m.key);
 
@@ -290,7 +314,7 @@ function moduleStats(guildId) {
 /** Forget the numbers of a server (after a change the admin made, so the home page shows it at once). */
 const forgetStats = (guildId) => statsCache.delete(guildId);
 
-module.exports = { GROUPS, SYSTEM_GROUP, MODULES, layoutOf, BY_KEY, ICONS, icon, PAGE_TITLES, PAGE_LABELS, PAGE_NEEDS, pageVisible, moduleOfPage, modulesOfPage, moduleState, dependentsOf, moduleStats, forgetStats, isOn };
+module.exports = { GROUPS, SYSTEM_GROUP, MODULES, layoutOf, canOpen, canSwitch, forViewer, accessForClient, BY_KEY, ICONS, icon, PAGE_TITLES, PAGE_LABELS, PAGE_NEEDS, pageVisible, moduleOfPage, modulesOfPage, moduleState, dependentsOf, moduleStats, forgetStats, isOn };
 
 // Templates read the modules as `M` (app.locals.M); a template rendered on its own (tests, error pages) finds them here.
 global.__darkModules = module.exports;

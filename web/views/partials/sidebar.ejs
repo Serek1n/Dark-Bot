@@ -8,6 +8,7 @@
    const curMods = M.modulesOfPage(active);
    const inModule = curMods.length > 0;
    const curGroup = curMods[0] ? curMods[0].group : '';
+   const acc = locals.access || null; const seeHome = M.canOpen(acc, 'overview'); const seeMods = M.canSwitch(acc);
    const modHref = (m) => (m.page ? `/dashboard/${gid}/${m.page}` : `/dashboard/${gid}?m=${m.key}`);
    const initial = String(guild.name || '?').trim().charAt(0).toUpperCase();
    const offTitle = 'Выключить модуль', onTitle = 'Включить модуль', coreTitle = 'Этот модуль нельзя выключить', always = 'всегда';
@@ -29,9 +30,9 @@
     <% if (pageTitle) { %><span class="tb-page" aria-hidden="true"><%= pageTitle %></span><% } %>
     <nav class="tb-dock" aria-label="Группы модулей" aria-hidden="true"><%- include('group-tabs', { mods, curGroup, variant: 'dock' }) %></nav>
     <nav class="tb-groups" aria-label="Разделы панели">
-      <a href="/dashboard/<%= gid %>" class="tb-group<%= active === 'overview' ? ' is-on' : '' %>"<%- active === 'overview' ? ' aria-current="page"' : '' %>>Главная</a>
+      <% if (seeHome) { %><a href="/dashboard/<%= gid %>" class="tb-group<%= active === 'overview' ? ' is-on' : '' %>"<%- active === 'overview' ? ' aria-current="page"' : '' %>>Главная</a><% } %>
       <button type="button" class="tb-group tb-mods<%= (inModule && !curMods[0].system) || active === 'features' ? ' is-on' : '' %>" data-mods-open aria-expanded="false" aria-controls="modsMenu">Модули <span class="tb-count" data-mods-count><%= mods.on %></span><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8l4 4 4-4"/></svg></button>
-      <a href="/dashboard/<%= gid %>/changelog" class="tb-group<%= active === 'changelog' ? ' is-on' : '' %>"<%- active === 'changelog' ? ' aria-current="page"' : '' %>>Обновления</a>
+      <% if (seeHome) { %><a href="/dashboard/<%= gid %>/changelog" class="tb-group<%= active === 'changelog' ? ' is-on' : '' %>"<%- active === 'changelog' ? ' aria-current="page"' : '' %>>Обновления</a><% } %>
       <a href="/communities" class="tb-group">Сообщества</a>
     </nav>
     <div class="tb-actions">
@@ -66,7 +67,7 @@
     <div class="mm-head">
       <label class="mm-search"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="M13 13L17 17"/></svg><input type="search" placeholder="Найти модуль" aria-label="Найти модуль" data-mods-filter autocomplete="off"></label>
       <span class="mm-count">Включено <b data-mods-count><%= mods.on %></b> из <%= mods.total %></span>
-      <a class="mm-all" href="/dashboard/<%= gid %>/features">Все модули ›</a>
+      <% if (seeMods) { %><a class="mm-all" href="/dashboard/<%= gid %>/features">Все модули ›</a><% } %>
     </div>
     <div class="mm-cols">
       <% mods.groups.forEach((g) => { %>
@@ -111,9 +112,9 @@
     </button>
     <nav class="nd-nav" aria-label="Меню панели">
       <div class="nd-group">
-        <a href="/dashboard/<%= gid %>" class="<%= active === 'overview' ? 'active' : '' %>" title="Главная — сводка по серверу"><%- M.icon('home', 17) %><span class="nl"><b>Главная</b><small>Сводка по серверу</small></span></a>
-        <a href="/dashboard/<%= gid %>/features" class="<%= active === 'features' ? 'active' : '' %>" title="Модули — что включено на сервере"><%- M.icon('modules', 17) %><span class="nl"><b>Модули</b><small>Что включено на сервере</small></span></a>
-        <a href="/dashboard/<%= gid %>/changelog" class="<%= active === 'changelog' ? 'active' : '' %>" title="Обновления — что нового в боте и панели"><%- M.icon('changelog', 17) %><span class="nl"><b>Обновления</b><small>Что нового в боте и панели</small></span></a>
+        <% if (seeHome) { %><a href="/dashboard/<%= gid %>" class="<%= active === 'overview' ? 'active' : '' %>" title="Главная — сводка по серверу"><%- M.icon('home', 17) %><span class="nl"><b>Главная</b><small>Сводка по серверу</small></span></a><% } %>
+        <% if (seeMods) { %><a href="/dashboard/<%= gid %>/features" class="<%= active === 'features' ? 'active' : '' %>" title="Модули — что включено на сервере"><%- M.icon('modules', 17) %><span class="nl"><b>Модули</b><small>Что включено на сервере</small></span></a><% } %>
+        <% if (seeHome) { %><a href="/dashboard/<%= gid %>/changelog" class="<%= active === 'changelog' ? 'active' : '' %>" title="Обновления — что нового в боте и панели"><%- M.icon('changelog', 17) %><span class="nl"><b>Обновления</b><small>Что нового в боте и панели</small></span></a><% } %>
         <a href="/communities" title="Сообщества — публичный каталог серверов"><%- M.icon('listing', 17) %><span class="nl"><b>Сообщества</b><small>Публичный каталог серверов</small></span></a>
       </div>
       <% mods.groups.forEach((g) => { %>
@@ -161,6 +162,9 @@
     </div>
   <% }) %>
 </div>
+
+<%# «Права доступа»: what this viewer may send (js/ui.js locks the forms that need a right he lacks) %>
+<% if (acc && !acc.full) { %><script type="application/json" id="panel-access"><%- JSON.stringify({ scopes: acc.scopes, ...M.accessForClient() }).replace(/</g, '\\u003c') %></script><% } %>
 
 <%# the modules for /js/modules.js: names, commands and what depends on what (for the "switch off?" window) %>
 <script type="application/json" id="mods-data"><%- JSON.stringify(mods.list.map((m) => ({ key: m.key, title: m.title, on: m.on, switchable: m.switchable, depends: m.depends, commands: m.commands }))).replace(/</g, '\\u003c') %></script>

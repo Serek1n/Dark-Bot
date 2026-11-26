@@ -45,7 +45,7 @@ const web = path.join(__dirname, '..', 'web');
       welcome: 'server', reactionRoles: 'server', tempVoice: 'server', serverStats: 'server', customCommands: 'server',
       webhooks: 'tools', alerts: 'tools', events: 'tools', music: 'tools', reminders: 'tools', listing: 'tools' };
     for (const [k, g] of Object.entries(expect)) assert(where(k) === g, `${k} in ${where(k)}, expected ${g}`);
-    assert(st.system.modules.map((m) => m.key).join() === 'appearance,core', 'system: ' + st.system.modules.map((m) => m.key));
+    assert(st.system.modules.map((m) => m.key).join() === 'appearance,access,core', 'system: ' + st.system.modules.map((m) => m.key));
     assert(st.groups.every((g) => g.modules.length >= 2), 'no group of one module');
     assert(st.total === Object.keys(expect).length, 'counted modules: ' + st.total);
     for (const m of M.MODULES) assert(M.ICONS[m.key], 'icon of ' + m.key);

@@ -1,6 +1,37 @@
 [
  {
   "bot": "3.20.0",
+  "panel": "3.39.0",
+  "date": "2026-11-26",
+  "botChanges": [],
+  "panelChanges": [
+   "Новая страница «Права доступа»: панель для модераторов без права «Управлять сервером»",
+   "Права выдаются роли или участнику: 18 разделов отдельно или готовым набором",
+   "Наборы: младший и старший модератор, саппорт, ивенты, экономика, аудитор",
+   "Каждый адрес панели проверяет своё право; без него — понятный отказ 403",
+   "Нельзя выдать права, которых нет у себя, и роли не ниже своей",
+   "Сняли роль в Discord — доступ к панели пропадает на следующем запросе",
+   "Строгий режим: «Управлять сервером» без выданных прав больше не открывает панель",
+   "Журнал панели: кто кому выдал права и что меняли сотрудники, по желанию — в канал",
+   "Модератор видит в меню только свои разделы; чужие формы — только для просмотра"
+  ],
+  "en": {
+   "botChanges": [],
+   "panelChanges": [
+    "New «Access» page: the panel for moderators without «Manage Server»",
+    "Rights are given to a role or a member: 18 sections one by one or as a ready set",
+    "Sets: junior and senior moderator, support, events, economy, auditor",
+    "Every address of the panel checks its right; without it — a clear 403",
+    "Nobody gives rights he lacks, nor to a role not below his own",
+    "A role taken in Discord ends the panel access at the next request",
+    "Strict mode: «Manage Server» without given rights no longer opens the panel",
+    "Panel log: who gave rights to whom and what staff changed, optionally to a channel",
+    "A moderator sees only his sections in the menu; other forms are read-only"
+   ]
+  }
+ },
+ {
+  "bot": "3.20.0",
   "panel": "3.38.0",
   "date": "2026-11-26",
   "botChanges": [

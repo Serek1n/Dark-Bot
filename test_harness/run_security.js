@@ -86,11 +86,11 @@ const express = require('express');
     const original = userGuilds.refreshUserGuilds;
     let list = [{ id: '777000000000000001', permissions: String(0x20) }];
     const mw = require('../web/middleware/ensureGuildAccess');
-    const run = async (guildId, user) => { const out = { status: 200, next: false }; const res = { status: (c) => { out.status = c; return res; }, render: () => {} }; await mw.ensureGuildAccess({ params: { guildId }, user }, res, () => { out.next = true; }); return out; };
+    const run = async (guildId, user) => { const out = { status: 200, next: false }; const res = { status: (c) => { out.status = c; return res; }, render: (v, o) => { out.msg = o && o.message; } }; await mw.ensureGuildAccess({ params: { guildId }, user }, res, (e) => { if (e) out.err = String(e.stack).slice(0, 300); else out.next = true; }); return out; };
     const user = { id: 'U1', guilds: list, guildsAt: Date.now(), guildsOkAt: Date.now(), accessToken: 't' };
     const axios = require('axios'); const realGet = axios.create; // refreshUserGuilds uses its own axios instance: drive it through the saved list instead
     user.guildsAt = Date.now(); // inside the 20 s window the saved list is used
-    assert((await run('777000000000000001', user)).next === true, 'admin of server 1');
+    { const o = await run('777000000000000001', user); assert(o.next === true, 'admin of server 1 ' + JSON.stringify(o)); }
     assert((await run('777000000000000002', user)).status === 403, 'not admin of server 2');
     user.guilds = []; assert((await run('777000000000000001', user)).status === 403, 'role removed -> refused');
     const old = { id: 'U2', guilds: list, guildsAt: Date.now(), guildsOkAt: Date.now() - 2 * 3600_000 };
