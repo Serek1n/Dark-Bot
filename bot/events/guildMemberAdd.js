@@ -26,6 +26,7 @@ module.exports = {
     require('../modules/reports').joinAlert(member).catch(() => {}); // someone with reports joined: a note for the moderators
     await restoreMember(member); // returning member: roles and nickname come back (works even when the welcome message is off)
     await require('../modules/punishments').onRejoin(member); // a mute by role, quarantine or restriction still running is given again
+    await require('../modules/appealGuild').onJoin(member).catch((err) => logger.warn('Appeal server check failed:', err.message)); // on an appeal server: a pass, a punishment, or a stranger
     const settings = await getOrCreateSettings(member.guild.id);
     if (settings?.automodEnabled && (settings.automodNicknames || settings.automodDehoist)) await require('../modules/automod').checkMemberName(member, settings);
     if (!settings || !settings.welcomeEnabled) return;

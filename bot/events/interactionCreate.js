@@ -73,6 +73,12 @@ module.exports = {
       return;
     }
 
+    // appeals in the DMs and the team's decisions (bot/modules/appealDm.js); answers its own errors
+    if (require('../modules/appealDm').isAppealComponent(interaction)) {
+      await require('../modules/appealDm').handle(interaction);
+      return;
+    }
+
     if (isTopButton(interaction)) {
       try {
         await handleTopButton(interaction);

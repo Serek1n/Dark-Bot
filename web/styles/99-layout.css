@@ -346,3 +346,10 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
 .role-filter-row { display: flex; gap: 10px; align-items: center; }
 .role-filter-row input { flex: 1 1 auto; min-width: 0; }
 .role-filter-row .btn { flex: 0 0 auto; width: auto !important; }
+.ag-check li.ok { color: var(--text-secondary); }
+.ag-check li.bad { color: var(--ember); }
+.set-row.set-row-stack { grid-template-columns: minmax(0, 1fr); }
+.set-row-stack .ap-kinds { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.pass-reject input { width: 170px !important; }
+.pass-comment { min-width: 150px; }
+.pass-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }

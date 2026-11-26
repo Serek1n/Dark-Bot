@@ -6,10 +6,12 @@
 const { Op } = require('sequelize');
 const logger = require('../utils/logger');
 
-const KINDS = { ban: 'Бан', mute: 'Мут', warn: 'Предупреждение' };
-const STATUS = { new: 'Новая', review: 'На рассмотрении', approved: 'Одобрена', rejected: 'Отклонена' };
-const OPEN = ['new', 'review'];
-const PERM = { ban: 'BanMembers', mute: 'ModerateMembers', warn: 'ModerateMembers' };
+const KINDS = { ban: 'Бан', mute: 'Мут', warn: 'Предупреждение', role_mute: 'Мут ролью', quarantine: 'Карантин' };
+const STATUS = { new: 'Новая', review: 'На рассмотрении', info: 'Нужны подробности', approved: 'Одобрена', rejected: 'Отклонена' };
+const OPEN = ['new', 'review', 'info'];
+const PERM = { ban: 'BanMembers', mute: 'ModerateMembers', warn: 'ModerateMembers', role_mute: 'ManageRoles', quarantine: 'ManageRoles' };
+const PERM_NAME = { BanMembers: 'Банить участников', ModerateMembers: 'Отправлять участников подумать', ManageRoles: 'Управлять ролями' };
+const ROLE_KINDS = ['role_mute', 'quarantine'];
 const TEXT_MIN = 20; const TEXT_MAX = 2000;
 const MAX_LINKS = 3;
 const DAY = 86400000;
@@ -18,7 +20,7 @@ const PER_DAY = 5; // appeals one person may file in a day, on all servers toget
 class AppealError extends Error {}
 const db = () => require('../../db');
 const client = () => require('../../web/botBridge').getClient();
-const kindsOn = (settings) => String(settings?.appealsKinds ?? 'ban,mute,warn').split(',').filter((k) => KINDS[k]);
+const kindsOn = (settings) => String(settings?.appealsKinds ?? 'ban,mute,warn,role_mute,quarantine').split(',').filter((k) => KINDS[k]);
 const isOn = (settings) => settings?.appealsEnabled !== false && settings?.appealsEnabled !== 0;
 const panelBase = () => (process.env.WEB_BASE_URL || '').replace(/\/+$/, '');
 const fmtDate = (d) => (d ? new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
@@ -79,6 +81,15 @@ async function punishmentsOf(userId) {
     const inForce = row.action === 'ban' ? await banInForce(row.guildId, userId, row) : await muteInForce(row.guildId, userId, row);
     if (inForce) out.push(shape(row.action, row));
   }
+  // mute by role and quarantine (bot/modules/punishments.js): in force while their row is active
+  const roleRows = await db().RolePunishment.findAll({ where: { userId, active: true, kind: { [Op.in]: ROLE_KINDS } }, order: [['id', 'DESC']], limit: 50 });
+  for (const r of roleRows) {
+    let s = settings.get(r.guildId);
+    if (!s && !settings.has(r.guildId)) { s = await GuildSettings.findOne({ where: { guildId: r.guildId } }); settings.set(r.guildId, s); }
+    if (!isOn(s) || !kindsOn(s).includes(r.kind) || !r.caseNumber) continue;
+    const entry = await ModLog.findOne({ where: { guildId: r.guildId, caseNumber: r.caseNumber } });
+    if (entry && !out.some((p) => p.kind === r.kind && p.id === entry.id)) out.push(shape(r.kind, entry, { until: r.expiresAt || null }));
+  }
   const mod = require('./moderation');
   for (const gid of [...new Set(warns.map((w) => w.guildId))]) {
     const s = settings.get(gid);
@@ -116,7 +127,7 @@ function cleanLinks(raw) {
 }
 
 /** Files an appeal (everything is checked here, not only in the form). Returns the appeal. */
-async function create(userId, { guildId, kind, id, text, links }) {
+async function create(userId, { guildId, kind, id, text, links, source = 'web' }) {
   const { Appeal, AppealNote } = db();
   const settings = await require('./leveling').getOrCreateSettings(String(guildId));
   if (!isOn(settings)) throw new AppealError('На этом сервере апелляции выключены.');
@@ -138,10 +149,11 @@ async function create(userId, { guildId, kind, id, text, links }) {
     if (prev?.status === 'rejected' && prev.decidedAt && new Date(prev.decidedAt).getTime() + pause > Date.now()) {
       throw new AppealError(`Апелляцию на это наказание отклонили. Подать новую можно после ${fmtDate(new Date(new Date(prev.decidedAt).getTime() + pause))}.`);
     }
-    const appeal = await Appeal.create({ guildId: p.guildId, userId, kind: p.kind, ...same, caseNumber: p.caseNumber, punishReason: String(p.reason).slice(0, 300), punishedAt: p.at, punishUntil: p.until, text: body, links: cleanLinksValue });
+    const appeal = await Appeal.create({ guildId: p.guildId, userId, kind: p.kind, source: source === 'dm' ? 'dm' : 'web', ...same, caseNumber: p.caseNumber, punishReason: String(p.reason).slice(0, 300), punishedAt: p.at, punishUntil: p.until, text: body, links: cleanLinksValue });
     await AppealNote.create({ appealId: appeal.id, authorId: userId, kind: 'status', text: 'new', visible: true });
     notifyUser(appeal, 'Апелляция принята', 'Модераторы получили её. Решение придёт сюда и будет видно на сайте.').catch(() => {});
     notifyModerators(appeal, settings).catch(() => {});
+    require('./appealGuild').linkAppeal(appeal).catch((err) => logger.warn(`appeal #${appeal.id} on the appeal server: ${err.message}`));
     return appeal;
   });
 }
@@ -153,7 +165,7 @@ async function mayDecide(guild, moderatorId, kind) {
   const m = await guild.members.fetch(moderatorId).catch(() => null);
   if (!m) return 'Вы не участник этого сервера.';
   if (m.permissions?.has?.('Administrator') || m.permissions?.has?.(PERM[kind])) return null;
-  return `Для решения по этой апелляции нужно право «${PERM[kind] === 'BanMembers' ? 'Банить участников' : 'Отправлять участников подумать'}».`;
+  return `Для решения по этой апелляции нужно право «${PERM_NAME[PERM[kind]] || PERM_NAME.ModerateMembers}».`;
 }
 
 /** Can the bot lift it, and is it still in force? Returns { inForce, why } (why: what stops the bot). */
@@ -162,6 +174,11 @@ async function liftCheck(guild, appeal) {
   if (appeal.kind === 'warn') {
     const w = await Warning.findByPk(appeal.warningId);
     return { inForce: Boolean(w && !w.revokedAt), why: null };
+  }
+  if (ROLE_KINDS.includes(appeal.kind)) {
+    const row = await db().RolePunishment.findOne({ where: { guildId: appeal.guildId, userId: appeal.userId, kind: appeal.kind, caseNumber: appeal.caseNumber, active: true } });
+    const can = guild.members.me?.permissions?.has?.('ManageRoles');
+    return { inForce: Boolean(row), why: row && can === false ? 'У бота нет права «Управлять ролями» — снять наказание он не сможет.' : null };
   }
   const entry = await ModLog.findByPk(appeal.modLogId);
   if (!entry) return { inForce: false, why: null };
@@ -191,6 +208,13 @@ async function lift(guild, appeal, moderatorId) {
     await mod.unbanUser(guild, appeal.userId, { moderatorId, reason });
     return 'Бан снят.';
   }
+  if (ROLE_KINDS.includes(appeal.kind)) {
+    const row = await db().RolePunishment.findOne({ where: { guildId: appeal.guildId, userId: appeal.userId, kind: appeal.kind, caseNumber: appeal.caseNumber, active: true } });
+    if (!row) return 'Наказание уже было снято.';
+    const r = await require('./punishments').lift(guild, row, { by: moderatorId, reason });
+    if (appeal.kind === 'quarantine') return `Карантин снят, ролей возвращено: ${r.given?.length || 0}${r.skipped?.length ? `, не удалось вернуть: ${r.skipped.length}` : ''}.`;
+    return 'Мут ролью снят.';
+  }
   const member = await guild.members.fetch(appeal.userId).catch(() => null);
   if (!member) return 'Участника нет на сервере — мут снимать не с кого.';
   await member.timeout(null, reason);
@@ -205,13 +229,15 @@ async function lift(guild, appeal, moderatorId) {
  */
 async function decide(appealId, guildId, moderatorId, decision, reason = '') {
   const { Appeal, AppealNote } = db();
-  if (!['review', 'approved', 'rejected'].includes(decision)) throw new AppealError('Неизвестное решение.');
+  if (!['review', 'info', 'approved', 'rejected'].includes(decision)) throw new AppealError('Неизвестное решение.');
   const appeal = await Appeal.findOne({ where: { id: Number(appealId) || 0, guildId: String(guildId) } });
   if (!appeal) throw new AppealError('Апелляция не найдена.');
   if (!OPEN.includes(appeal.status)) throw new AppealError('По этой апелляции уже принято решение.');
   if (decision === 'review' && appeal.status === 'review') throw new AppealError('Апелляция уже на рассмотрении.');
   const why = String(reason || '').trim().slice(0, 500);
-  if (decision !== 'review' && why.length < 3) throw new AppealError('Укажите причину решения — её увидит автор апелляции.');
+  if (decision === 'info' && appeal.status === 'info') throw new AppealError('Подробности уже запрошены — ждём ответа автора.');
+  if (decision === 'info' && why.length < 3) throw new AppealError('Напишите, что именно нужно уточнить — вопрос увидит автор апелляции.');
+  if (!['review', 'info'].includes(decision) && why.length < 3) throw new AppealError('Укажите причину решения — её увидит автор апелляции.');
   const guild = client()?.guilds?.cache?.get(appeal.guildId) || null;
   const denied = await mayDecide(guild, moderatorId, appeal.kind);
   if (denied) throw new AppealError(denied);
@@ -220,14 +246,16 @@ async function decide(appealId, guildId, moderatorId, decision, reason = '') {
     check = await liftCheck(guild, appeal);
     if (check.why) throw new AppealError(check.why);
   }
-  const from = decision === 'review' ? ['new'] : OPEN;
+  const from = decision === 'review' ? ['new'] : decision === 'info' ? ['new', 'review'] : OPEN;
+  const final = ['approved', 'rejected'].includes(decision);
   const [changed] = await Appeal.update(
-    { status: decision, moderatorId, decisionReason: decision === 'review' ? appeal.decisionReason : why, decidedAt: decision === 'review' ? null : new Date() },
+    { status: decision, moderatorId, decisionReason: final ? why : appeal.decisionReason, decidedAt: final ? new Date() : null },
     { where: { id: appeal.id, status: { [Op.in]: from } } }
   );
   if (!changed) throw new AppealError('По этой апелляции уже принято решение.');
   await appeal.reload();
   await AppealNote.create({ appealId: appeal.id, authorId: moderatorId, kind: 'status', text: decision + (why && decision !== 'review' ? `: ${why}` : ''), visible: true });
+  if (decision === 'info') await AppealNote.create({ appealId: appeal.id, authorId: moderatorId, kind: 'comment', text: `Вопрос модератора: ${why}`, visible: true });
   if (decision === 'approved') {
     let result;
     try {
@@ -239,9 +267,11 @@ async function decide(appealId, guildId, moderatorId, decision, reason = '') {
     await appeal.update({ actionResult: result.slice(0, 300) });
     await AppealNote.create({ appealId: appeal.id, authorId: null, kind: 'comment', text: result, visible: true });
   }
-  const titles = { review: 'Апелляция на рассмотрении', approved: 'Апелляция одобрена', rejected: 'Апелляция отклонена' };
-  const bodies = { review: 'Модератор взял её в работу.', approved: `Причина: ${why}\n${appeal.actionResult || ''}`, rejected: `Причина: ${why}` };
-  notifyUser(appeal, titles[decision], bodies[decision]).catch(() => {});
+  const titles = { review: 'Апелляция на рассмотрении', info: 'Модератору нужны подробности', approved: 'Апелляция одобрена', rejected: 'Апелляция отклонена' };
+  const bodies = { review: 'Модератор взял её в работу.', info: `Вопрос: ${why}\nОтветьте кнопкой ниже или на сайте.`, approved: `Причина: ${why}\n${appeal.actionResult || ''}`, rejected: `Причина: ${why}` };
+  await notifyUser(appeal, titles[decision], bodies[decision]).catch(() => {});
+  // the visit on the appeal server ends with the approved appeal (its role, thread and, by the server's choice, the member)
+  if (decision === 'approved') await require('./appealGuild').closeFor(appeal.guildId, appeal.userId, { reason: `Апелляция #${appeal.id} одобрена` }).catch((err) => logger.warn(`appeal #${appeal.id} appeal server: ${err.message}`));
   return appeal;
 }
 
@@ -257,6 +287,24 @@ async function comment(appealId, guildId, authorId, text, visible = false) {
   return note;
 }
 
+/** The author answers the moderator's question: the appeal goes back to review. */
+async function reply(appealId, userId, text) {
+  const { Appeal, AppealNote } = db();
+  const appeal = await Appeal.findOne({ where: { id: Number(appealId) || 0, userId: String(userId) } });
+  if (!appeal) throw new AppealError('Апелляция не найдена.');
+  if (appeal.status !== 'info') throw new AppealError('Модератор сейчас ничего не спрашивает по этой апелляции.');
+  const body = String(text || '').trim();
+  if (body.length < 2) throw new AppealError('Ответ пустой.');
+  if (body.length > TEXT_MAX) throw new AppealError(`Слишком длинно: не больше ${TEXT_MAX} символов.`);
+  const [changed] = await Appeal.update({ status: 'review' }, { where: { id: appeal.id, status: 'info' } });
+  if (!changed) throw new AppealError('Модератор сейчас ничего не спрашивает по этой апелляции.');
+  await AppealNote.create({ appealId: appeal.id, authorId: userId, kind: 'comment', text: `Ответ автора: ${body}`.slice(0, 2100), visible: true });
+  await appeal.reload();
+  const settings = await require('./leveling').getOrCreateSettings(appeal.guildId);
+  notifyModerators(appeal, settings, { title: `💬 Ответ по апелляции #${appeal.id}`, text: body }).catch(() => {});
+  return appeal;
+}
+
 /** A private message to the author (if Discord lets the bot write to him); the site shows the status anyway. */
 async function notifyUser(appeal, title, text) {
   const c = client();
@@ -267,22 +315,84 @@ async function notifyUser(appeal, title, text) {
   const e = new EmbedBuilder().setColor(color).setTitle(`${title} · #${appeal.id}`).setDescription(String(text || '').slice(0, 1500))
     .addFields({ name: 'Сервер', value: guild?.name || appeal.guildId, inline: true }, { name: 'Наказание', value: KINDS[appeal.kind], inline: true }, { name: 'Статус', value: STATUS[appeal.status], inline: true });
   if (panelBase()) e.setURL(`${panelBase()}/appeals/${appeal.id}`);
-  return Boolean(await c.users.send(appeal.userId, { embeds: [e] }).catch(() => null));
+  const payload = { embeds: [e] };
+  if (appeal.status === 'info') {
+    const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+    payload.components = [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`appeal:reply:${appeal.id}`).setLabel('Ответить модератору').setStyle(ButtonStyle.Primary))];
+  }
+  return Boolean(await c.users.send(appeal.userId, payload).catch(() => null));
 }
 
 /** Tells the server's team about a new appeal: the appeals channel, else the moderation log channel. */
-async function notifyModerators(appeal, settings) {
+async function notifyModerators(appeal, settings, { title = null, text = null } = {}) {
   const guild = client()?.guilds?.cache?.get(appeal.guildId);
   const id = settings?.appealsChannelId || settings?.modLogChannelId;
   if (!guild || !id) return false;
   const channel = guild.channels.cache.get(id) || (await guild.channels.fetch(id).catch(() => null));
   if (!channel?.send) return false;
   const { EmbedBuilder } = require('discord.js');
-  const e = new EmbedBuilder().setColor(0x9a93ff).setTitle(`📨 Новая апелляция #${appeal.id}`)
-    .setDescription(appeal.text.slice(0, 1000))
+  const e = new EmbedBuilder().setColor(0x9a93ff).setTitle(title || `📨 Новая апелляция #${appeal.id}${appeal.source === 'dm' ? ' · из ЛС' : ''}`)
+    .setDescription(String(text || appeal.text).slice(0, 1000))
     .addFields({ name: 'Кто', value: `<@${appeal.userId}> (${appeal.userId})`, inline: true }, { name: 'Наказание', value: `${KINDS[appeal.kind]}${appeal.caseNumber ? ` · дело #${appeal.caseNumber}` : ''}`, inline: true }, { name: 'Причина наказания', value: appeal.punishReason || '—' });
   if (panelBase()) e.setURL(`${panelBase()}/dashboard/${appeal.guildId}/moderation-appeals/${appeal.id}`);
-  return Boolean(await channel.send({ embeds: [e], allowedMentions: { parse: [] } }).catch(() => null));
+  return Boolean(await channel.send({ embeds: [e], components: decisionButtons(appeal), allowedMentions: { parse: [] } }).catch(() => null));
+}
+
+/** «Одобрить / Отклонить / Уточнить» under an appeal, for the team in Discord (bot/modules/appealDm.js handles them). */
+function decisionButtons(appeal) {
+  const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+  return [new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`apdec:approved:${appeal.id}`).setLabel('Одобрить').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(`apdec:rejected:${appeal.id}`).setLabel('Отклонить').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId(`apdec:info:${appeal.id}`).setLabel('Запросить подробности').setStyle(ButtonStyle.Secondary)
+  )];
+}
+
+/**
+ * The private message of a punishment, sent BEFORE a ban or kick (while there is still a common server). With appeals on
+ * for this kind it carries «appeal here» (a form in the DMs), «open the form on the site» and the appeal server's button
+ * (a personal invite in the «instant» mode, a request in the «moderator» one). Closed DMs never stop the punishment.
+ * opts.reach = false: the person is not on the server — nothing is sent, an «instant» invite is still made (the site shows it).
+ * Returns { message, delivered, skipped, code, pass }.
+ */
+async function punishmentDm(guild, userId, text, settings, kind = null, { reach = true } = {}) {
+  if (settings && (settings.modDmEnabled === false || settings.modDmEnabled === 0)) return { message: null, delivered: false, skipped: true, pass: null };
+  const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+  const row = new ActionRowBuilder();
+  let pass = null;
+  if (kind && KINDS[kind] && isOn(settings) && kindsOn(settings).includes(kind)) {
+    if (settings.appealsDm !== false && settings.appealsDm !== 0) row.addComponents(new ButtonBuilder().setCustomId(`appeal:dm:${guild.id}`).setLabel('Подать апелляцию здесь').setStyle(ButtonStyle.Primary));
+    if (panelBase()) row.addComponents(new ButtonBuilder().setURL(`${panelBase()}/appeals`).setLabel('Открыть форму на сайте').setStyle(ButtonStyle.Link));
+    const AG = require('./appealGuild');
+    const c = AG.cfgOf(settings);
+    if (c.on && c.kinds.includes(kind)) {
+      if (c.mode === 'instant') {
+        pass = await AG.issue(guild.id, userId, { kind, by: guild.client?.user?.id || null, settings, client: guild.client }).catch((err) => { logger.warn(`appeal server invite: ${err.message}`); return null; });
+        if (pass) row.addComponents(new ButtonBuilder().setURL(AG.inviteUrl(pass)).setLabel('Сервер апелляций').setStyle(ButtonStyle.Link));
+      } else {
+        row.addComponents(new ButtonBuilder().setCustomId(`appeal:pass:${guild.id}`).setLabel('Запросить вход на сервер апелляций').setStyle(ButtonStyle.Secondary));
+      }
+    }
+  }
+  if (!reach) return { message: null, delivered: false, skipped: false, code: 'absent', pass };
+  const payload = { content: `${text}\n— сервер **${guild.name}**`.slice(0, 2000) };
+  if (row.components.length) payload.components = [row];
+  else if (kind) payload.content = `${text}${appealHint(settings, kind)}\n— сервер **${guild.name}**`.slice(0, 2000);
+  try {
+    const message = await guild.client.users.send(userId, payload);
+    return { message: message || true, delivered: true, skipped: false, pass };
+  } catch (err) {
+    return { message: null, delivered: false, skipped: false, code: err?.code ?? err?.rawError?.code ?? null, pass };
+  }
+}
+
+/** After the case is written: the invite learns its case; an undelivered DM is noted in the case (the site still works). */
+async function afterPunishmentDm(guildId, entry, r) {
+  if (!r || !entry?.caseNumber) return;
+  if (r.pass && !r.pass.caseNumber) await r.pass.update({ caseNumber: entry.caseNumber }).catch(() => {});
+  if (r.delivered || r.skipped) return;
+  const why = r.code === 50007 ? 'у участника закрыты личные сообщения (50007)' : r.code === 'absent' ? 'участника нет на сервере' : 'Discord не принял сообщение';
+  await db().CaseNote.create({ guildId, caseNumber: entry.caseNumber, authorId: null, kind: 'note', text: `Уведомление в ЛС не доставлено: ${why}. Обжаловать можно на сайте /appeals${r.pass ? ', там же будет приглашение на сервер апелляций' : ''}.` }).catch(() => {});
 }
 
 /** The line added to a punishment's private message: where to appeal it. */
@@ -291,4 +401,4 @@ function appealHint(settings, kind) {
   return `\nНе согласны? Подайте апелляцию: ${panelBase()}/appeals`;
 }
 
-module.exports = { KINDS, STATUS, OPEN, PERM, TEXT_MIN, TEXT_MAX, MAX_LINKS, PER_DAY, AppealError, kindsOn, isOn, punishmentsOf, ownPunishment, cleanLinks, create, decide, comment, mayDecide, liftCheck, notifyUser, notifyModerators, appealHint, fmtDate };
+module.exports = { KINDS, STATUS, OPEN, PERM, ROLE_KINDS, reply, decisionButtons, punishmentDm, afterPunishmentDm, TEXT_MIN, TEXT_MAX, MAX_LINKS, PER_DAY, AppealError, kindsOn, isOn, punishmentsOf, ownPunishment, cleanLinks, create, decide, comment, mayDecide, liftCheck, notifyUser, notifyModerators, appealHint, fmtDate };

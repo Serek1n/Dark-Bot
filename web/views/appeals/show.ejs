@@ -12,8 +12,10 @@
         <p class="page-intro"><a href="/appeals">← Все мои наказания и апелляции</a></p>
       </div>
     </header>
-    <% const chip = { new: 'badge-note', review: 'badge-mute', approved: 'badge-unban', rejected: 'badge-ban' };
-       const ST = { new: 'Подана', review: 'Взята на рассмотрение', approved: 'Одобрена', rejected: 'Отклонена' }; %>
+    <% const chip = { new: 'badge-note', review: 'badge-mute', info: 'badge-warn', approved: 'badge-unban', rejected: 'badge-ban' };
+       const ST = { new: 'Подана', review: 'Взята на рассмотрение', info: 'Модератор запросил подробности', approved: 'Одобрена', rejected: 'Отклонена' }; %>
+    <% if (replied) { %><%- include('../partials/flash', { head: 'Ответ отправлен.', text: 'Апелляция снова на рассмотрении.', param: 'replied' }) %><% } %>
+    <% if (error) { %><%- include('../partials/flash', { error: true, text: error, param: 'err' }) %><% } %>
     <% if (sent) { %><%- include('../partials/flash', { head: 'Апелляция отправлена.', text: 'Модераторы сервера её увидят; решение придёт сюда и в личные сообщения, если бот может вам написать.', param: 'sent' }) %><% } %>
     <div class="card">
       <div class="appeal-status"><h2>Статус</h2><span class="badge <%= chip[appeal.status] %>"><%= A.STATUS[appeal.status] %></span></div>
@@ -21,12 +23,23 @@
         <div><small>Сервер</small><b><%= guild.name %></b></div>
         <div><small>Наказание</small><b><%= A.KINDS[appeal.kind] %><%= appeal.caseNumber ? ' · дело #' + appeal.caseNumber : '' %></b></div>
         <div><small>Дата наказания</small><b><%= A.fmtDate(appeal.punishedAt) %></b></div>
-        <div><small>Подана</small><b><%= A.fmtDate(appeal.createdAt) %></b></div>
+        <div><small>Подана</small><b><%= A.fmtDate(appeal.createdAt) %><%= appeal.source === 'dm' ? ' · из ЛС' : '' %></b></div>
       </div>
       <p class="appeal-reason"><small>Причина наказания</small><span><%= appeal.punishReason || '—' %></span></p>
-      <% if (appeal.decisionReason && !['new', 'review'].includes(appeal.status)) { %><p class="appeal-reason"><small>Причина решения</small><span><%= appeal.decisionReason %></span></p><% } %>
+      <% if (appeal.decisionReason && ['approved', 'rejected'].includes(appeal.status)) { %><p class="appeal-reason"><small>Причина решения</small><span><%= appeal.decisionReason %></span></p><% } %>
       <% if (appeal.actionResult) { %><p class="appeal-reason"><small>Что сделал бот</small><span><%= appeal.actionResult %></span></p><% } %>
     </div>
+    <% if (appeal.status === 'info') { %>
+      <div class="card">
+        <h2>Модератору нужны подробности</h2>
+        <p class="hint">Вопрос — в истории ниже. Ответьте здесь или кнопкой в личных сообщениях.</p>
+        <form method="post" action="/appeals/<%= appeal.id %>/reply" class="appeal-reply">
+          <label for="r_text">Ваш ответ</label>
+          <textarea id="r_text" name="text" rows="4" minlength="2" maxlength="<%= A.TEXT_MAX %>" required></textarea>
+          <button class="btn" type="submit">Ответить</button>
+        </form>
+      </div>
+    <% } %>
     <div class="card">
       <h2>Ваше объяснение</h2>
       <p class="appeal-text"><%= appeal.text %></p>

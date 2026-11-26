@@ -33,7 +33,7 @@ const { makeUser, makeInteraction } = require('./mock');
   const S = {}; ['MUTE', 'QUAR', 'NOIMG', 'R1', 'R2', 'BOOST', 'HIGH', 'TEMP', 'GONE'].forEach((k, i) => { S[k] = String(400000000000000001n + BigInt(i)); });
   const N = (id) => Object.keys(S).find((k) => S[k] === id) || id;
   const dms = [];
-  const client = { user: { id: 'BOT' }, users: { send: async (id, t) => { dms.push({ id, t }); } }, guilds: { cache: new Map() } };
+  const client = { user: { id: 'BOT' }, users: { send: async (id, t) => { dms.push({ id, t: typeof t === 'string' ? t : t.content, p: t }); } }, guilds: { cache: new Map() } };
   const role = (name, position, o = {}) => ({ id: S[name] || name, name, position, managed: false, permissions: { bitfield: 0n }, comparePositionTo(x) { return position - x.position; }, ...o });
   const members = new Map();
   const G = { id: 'G5', name: 'Сервер', client, ownerId: 'OWNER', channels: { cache: new Map(), fetch: async () => null } };

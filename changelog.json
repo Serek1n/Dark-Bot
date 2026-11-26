@@ -1,5 +1,52 @@
 [
  {
+  "bot": "3.22.0",
+  "panel": "3.41.0",
+  "date": "2026-11-26",
+  "botChanges": [
+   "ЛС о наказании приходит до бана — с кнопками «Подать апелляцию здесь» и «Форма на сайте»",
+   "Апелляция прямо в ЛС: выбор наказания и форма в Discord, те же лимиты, что на сайте",
+   "Закрытые ЛС не срывают наказание: в деле появляется отметка, апелляция доступна на сайте",
+   "/appeal — «Мои наказания и апелляции», работает и в личных сообщениях",
+   "Обжаловать можно и мут ролью, и карантин: одобрение снимает их и возвращает роли",
+   "Модератор может запросить подробности, автор отвечает кнопкой в ЛС или на сайте",
+   "Кнопки «Одобрить», «Отклонить», «Запросить подробности» под новой апелляцией в канале",
+   "Сервер апелляций: одноразовое приглашение сразу при наказании или по пропуску",
+   "На сервере апелляций — роль и приватная ветка разбора; посторонних можно выгонять",
+   "Одобренная апелляция закрывает разбор и убирает участника с сервера апелляций"
+  ],
+  "panelChanges": [
+   "Апелляции: переключатель «Апелляция в ЛС» и новые виды — мут ролью, карантин",
+   "Настройка сервера апелляций: режим, канал приглашений, срок, роль, ветки, посторонние",
+   "Проверка прав бота на сервере апелляций; выбрать можно только свой сервер",
+   "Очередь пропусков на сервер апелляций: пропустить или отклонить с причиной",
+   "Статус «Ждут ответа автора» и кнопка «Запросить подробности» в апелляции",
+   "Сайт /appeals: вход на сервер апелляций и ответ на вопрос модератора"
+  ],
+  "en": {
+   "botChanges": [
+    "The punishment DM arrives before the ban — with «Appeal here» and «Form on the site»",
+    "Appeal right in DMs: pick the punishment and fill a form, with the site's limits",
+    "Closed DMs never stop a punishment: the case notes it, the site still works",
+    "/appeal — «My punishments and appeals», works in DMs too",
+    "Mutes by role and quarantines can be appealed: approval lifts them, roles return",
+    "A moderator can ask for details; the author replies with a DM button or on the site",
+    "«Approve», «Reject», «Ask for details» buttons under a new appeal in the channel",
+    "Appeal server: a one-use invite right with the punishment or by a moderator's pass",
+    "On the appeal server — a role and a private review thread; strangers can be kicked",
+    "An approved appeal closes the review and removes the member from the appeal server"
+   ],
+   "panelChanges": [
+    "Appeals: an «Appeal in DMs» switch and new kinds — mute by role, quarantine",
+    "Appeal server settings: mode, invite channel, lifetime, role, threads, strangers",
+    "A check of the bot's rights on the appeal server; only a server you manage can be chosen",
+    "A queue of appeal server passes: let in or refuse with a reason",
+    "«Waiting for the author» status and an «Ask for details» button in an appeal",
+    "Site /appeals: entry to the appeal server and a reply to a moderator's question"
+   ]
+  }
+ },
+ {
   "bot": "3.21.0",
   "panel": "3.40.0",
   "date": "2026-11-26",

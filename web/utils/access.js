@@ -55,6 +55,8 @@ const RULES = [
   R(READ, /^\/moderation-appeals(\/|$)/, ['appeals.read', 'appeals.decide']),
   R(WRITE, /^\/moderation-appeals\/\d+\/(decide|comment)$/, 'appeals.decide'),
   R(WRITE, /^\/moderation\/appeals$/, 'appeals.decide'),
+  R(WRITE, /^\/moderation\/appeal-guild$/, 'appeals.decide'),
+  R(WRITE, /^\/moderation-appeals\/pass\/\d+\/(approve|reject)$/, 'appeals.decide'),
   R(READ, /^\/moderation-reports$/, ['reports.decide', 'moderation.read']),
   R(WRITE, /^\/moderation-reports\/\d+\/ignore$/, 'reports.decide'),
   R(WRITE, /^\/moderation\/reports$/, 'reports.decide'),

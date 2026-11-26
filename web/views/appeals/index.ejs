@@ -12,7 +12,10 @@
         <p class="page-intro">Ваши действующие наказания на серверах с ботом Dark и ваши апелляции. Быть на сервере не нужно.</p>
       </div>
     </header>
-    <% const when = (d) => A.fmtDate(d); const chip = { new: 'badge-note', review: 'badge-mute', approved: 'badge-unban', rejected: 'badge-ban' }; %>
+    <% const when = (d) => A.fmtDate(d); const chip = { new: 'badge-note', review: 'badge-mute', info: 'badge-warn', approved: 'badge-unban', rejected: 'badge-ban' }; %>
+    <% if (flash === 'issued') { %><%- include('../partials/flash', { head: 'Приглашение готово.', text: 'Ссылка на сервер апелляций — в карточке наказания ниже. Она одноразовая.', param: 'pass' }) %><% } %>
+    <% if (flash === 'requested') { %><%- include('../partials/flash', { head: 'Запрос отправлен.', text: 'Модераторы решат, пустить ли вас на сервер апелляций. Ответ появится здесь и в личных сообщениях.', param: 'pass' }) %><% } %>
+    <% if (flash === 'err') { %><%- include('../partials/flash', { error: true, text: passWhy || 'Не получилось.', param: 'pass,why' }) %><% } %>
     <div class="card">
       <h2>Можно обжаловать</h2>
       <% if (!punishments.length) { %>
@@ -22,7 +25,7 @@
           <% punishments.forEach((p) => { const g = guilds[p.guildId] || { name: p.guildId }; %>
             <div class="appeal-row">
               <div class="appeal-main">
-                <b><%= A.KINDS[p.kind] %></b><span class="muted"> · </span><span><%= g.name %></span><% if (p.caseNumber) { %><span class="muted"> · </span><span class="muted">дело #<%= p.caseNumber %></span><% } %>
+                <div class="appeal-title"><b><%= A.KINDS[p.kind] %></b><span class="muted"> · </span><span><%= g.name %></span><% if (p.caseNumber) { %><span class="muted"> · </span><span class="muted">дело #<%= p.caseNumber %></span><% } %></div>
                 <div class="muted"><span>Причина:</span> <span><%= p.reason %></span></div>
                 <div class="muted"><span>Когда:</span> <span><%= when(p.at) %></span><% if (p.until) { %> · <span>до</span> <span><%= when(p.until) %></span><% } %></div>
               </div>
@@ -31,6 +34,27 @@
                 <% } else { %><a class="btn" href="/appeals/new?g=<%= p.guildId %>&kind=<%= p.kind %>&id=<%= p.id %>">Обжаловать</a><% } %>
               </div>
             </div>
+            <% const door = doors[p.guildId]; if (door && !doors[p.guildId].done) { doors[p.guildId].done = true; const ps = door.pass; %>
+              <div class="appeal-door">
+                <b class="appeal-door-head">Сервер апелляций</b>
+                <% if (door.invite) { %>
+                  <span>Ваше личное приглашение, одноразовое, до <%= when(ps.expiresAt) %>:</span> <a class="btn" href="<%= door.invite %>" rel="noopener noreferrer" target="_blank">Перейти на сервер апелляций</a>
+                <% } else if (ps && ps.status === 'issued' && ps.expiresAt && new Date(ps.expiresAt) > new Date()) { %>
+                  <span class="muted">Приглашение уже выдано (в личных сообщениях) и действует до <%= when(ps.expiresAt) %>.</span>
+                <% } else if (ps && ps.status === 'joined') { %>
+                  <span class="muted">Вы уже на сервере апелляций.</span>
+                <% } else if (ps && ps.status === 'requested') { %>
+                  <span class="muted">Запрос на вход отправлен <%= when(ps.createdAt) %> — ждём решения модераторов.</span>
+                <% } else { %>
+                  <% if (ps && ps.status === 'rejected') { %><span class="muted">Прошлый запрос отклонён: <%= ps.decisionReason || '—' %></span><% } %>
+                  <form method="post" action="/appeals/pass" class="appeal-door-form">
+                    <input type="hidden" name="g" value="<%= p.guildId %>" />
+                    <% if (door.mode === 'moderator') { %><input type="text" name="comment" maxlength="300" placeholder="Коротко: зачем вам на сервер апелляций" aria-label="Комментарий к запросу" /><% } %>
+                    <button class="btn btn-secondary" type="submit"><%= door.mode === 'moderator' ? 'Запросить вход на сервер апелляций' : 'Получить приглашение' %></button>
+                  </form>
+                <% } %>
+              </div>
+            <% } %>
           <% }) %>
         </div>
       <% } %>

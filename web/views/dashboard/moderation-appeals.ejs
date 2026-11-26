@@ -8,17 +8,19 @@
       <div class="page-header">
         <%- include('../partials/module-head') %>
         <h1>Апелляции</h1>
-        <p class="page-intro">Наказанные обжалуют бан, мут или предупреждение на сайте — войдя через Discord, даже если они забанены. Одобренная апелляция снимает наказание сама; история наказаний остаётся.</p>
+        <p class="page-intro">Наказанные обжалуют наказание на сайте или прямо в личных сообщениях с ботом — даже если они забанены. Для бесед с командой можно подключить отдельный сервер апелляций. Одобренная апелляция снимает наказание сама; история наказаний остаётся.</p>
       </div>
       <% const g = '/dashboard/' + guild.id; const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
          const name = (id) => (users[id] || { name: id }).name;
          const kinds = AP.kindsOn(settings);
-         const chip = { new: 'badge-note', review: 'badge-mute', approved: 'badge-unban', rejected: 'badge-ban' };
-         const ST = { new: 'Новые', review: 'На рассмотрении', approved: 'Одобренные', rejected: 'Отклонённые', all: 'Все' }; %>
+         const chip = { new: 'badge-note', review: 'badge-mute', info: 'badge-warn', approved: 'badge-unban', rejected: 'badge-ban' };
+         const ST = { new: 'Новые', review: 'На рассмотрении', info: 'Ждут ответа автора', approved: 'Одобренные', rejected: 'Отклонённые', all: 'Все' }; %>
+      <% if (error) { %><%- include('../partials/flash', { error: true, text: error, param: 'err' }) %><% } %>
       <form method="post" action="<%= g %>/moderation/appeals" class="card g-c1">
         <h2>Приём апелляций</h2>
         <div class="rules">
           <label class="rule"><span class="rule-text"><b>Принимать апелляции</b><span>Выключено — форма скажет, что на этом сервере апелляции не принимаются.</span></span><input type="checkbox" name="appealsEnabled" <%= AP.isOn(settings) ? 'checked' : '' %> /></label>
+          <label class="rule"><span class="rule-text"><b>Апелляция в личных сообщениях</b><span>Под сообщением о наказании — кнопка «Подать апелляцию здесь»: форма открывается прямо в Discord.</span></span><input type="checkbox" name="appealsDm" <%= settings.appealsDm !== false ? 'checked' : '' %> /></label>
           <label class="rule"><span class="rule-text"><b>Можно приложить ссылки</b><span>До 3 ссылок https на скриншоты и переписку.</span></span><input type="checkbox" name="appealsLinks" <%= settings.appealsLinks !== false ? 'checked' : '' %> /></label>
         </div>
         <label>Что можно обжаловать</label>
@@ -41,19 +43,100 @@
       <div class="card g-c2">
         <h2>Сводка</h2>
         <div class="mini-list">
-          <% ['new', 'review', 'approved', 'rejected'].forEach((k) => { %><a class="mini-row" href="<%= g %>/moderation-appeals?status=<%= k %>"><span class="person"><span><%= ST[k] %></span></span><b><%= counts[k] %></b></a><% }) %>
+          <% ['new', 'review', 'info', 'approved', 'rejected'].forEach((k) => { %><a class="mini-row" href="<%= g %>/moderation-appeals?status=<%= k %>"><span class="person"><span><%= ST[k] %></span></span><b><%= counts[k] %></b></a><% }) %>
         </div>
         <h3 class="econ-sub">Как это работает</h3>
         <ol class="ap-steps">
-          <li>Участник входит на сайт через Discord и видит свои действующие наказания — данные бот берёт из своего журнала, подменить их нельзя.</li>
-          <li>Пишет объяснение; новая апелляция приходит в выбранный канал.</li>
+          <li>Бот пишет наказанному в личные сообщения ещё до бана — с кнопками «Подать апелляцию здесь», «Открыть форму на сайте» и, если включён, сервером апелляций.</li>
+          <li>На сайте участник входит через Discord и видит свои действующие наказания — данные бот берёт из своего журнала, подменить их нельзя.</li>
+          <li>Новая апелляция приходит в выбранный канал с кнопками «Одобрить», «Отклонить», «Запросить подробности».</li>
           <li>Модератор с правом на это наказание берёт её на рассмотрение, оставляет комментарии, одобряет или отклоняет с причиной.</li>
-          <li>Одобрено — бот сам снимает бан, мут или предупреждение. Участник получает ответ в личные сообщения и на сайте.</li>
+          <li>Одобрено — бот сам снимает бан, мут, предупреждение, мут ролью или карантин. Участник получает ответ в личные сообщения и на сайте.</li>
         </ol>
         <h3 class="econ-sub">Ссылка для участников</h3>
         <% if (panelUrl) { %><p class="ap-link"><code><%= panelUrl %>/appeals</code></p><% } else { %><p class="hint">Адрес сайта не задан (WEB_BASE_URL).</p><% } %>
-        <p class="hint" style="margin-top:0">Бот сам добавляет эту ссылку в личное сообщение о бане, муте или предупреждении. Одному человеку — не больше 5 апелляций в сутки на всех серверах.</p>
+        <p class="hint" style="margin-top:0">Если личные сообщения закрыты, это отмечается в деле, а сайт работает всегда. Одному человеку — не больше 5 апелляций в сутки на всех серверах.</p>
       </div>
+      <% const agKinds = AG.cfgOf(settings).kinds; const MODE = { off: 'Выключен', instant: 'Сразу при наказании', moderator: 'По пропуску модератора' };
+         const STRICTL = { off: 'Ничего не делать', notify: 'Сообщить модераторам', kick: 'Выгнать' }; %>
+      <form method="post" action="<%= g %>/moderation/appeal-guild" class="card set-section g-span" id="appeal-guild">
+        <h2>Сервер апелляций</h2>
+        <p class="set-lead">Отдельный сервер, где наказанный (прежде всего забаненный) может поговорить с командой. Вход — по личному одноразовому приглашению.</p>
+        <div class="set-row">
+          <div class="set-text"><label for="agMode">Режим</label><p class="set-help">«Сразу» — приглашение приходит вместе с сообщением о наказании. «По пропуску» — участник просит, модератор решает</p></div>
+          <div class="set-ctl"><select id="agMode" name="appealGuildMode"><% AG.MODES.forEach((m) => { %><option value="<%= m %>" <%= (settings.appealGuildMode || 'off') === m ? 'selected' : '' %>><%= MODE[m] %></option><% }) %></select></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="agId">ID сервера апелляций</label><p class="set-help">Бот должен быть на нём, а у вас — право «Управлять сервером» там</p></div>
+          <div class="set-ctl"><input type="text" id="agId" name="appealGuildId" inputmode="numeric" pattern="[0-9]{15,25}" value="<%= settings.appealGuildId || '' %>" placeholder="ID сервера" /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="agCh">Канал для приглашений</label><p class="set-help">Сюда ведут приглашения; здесь же создаются приватные ветки</p></div>
+          <div class="set-ctl"><select id="agCh" name="appealInviteChannelId"><option value="">Не выбран</option><% (agInfo ? agInfo.channels : []).forEach((c) => { %><option value="<%= c.id %>" <%= settings.appealInviteChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %></select></div>
+        </div>
+        <div class="set-row set-row-stack">
+          <div class="set-text"><b>За какие наказания</b><p class="set-help">Только с ними можно попасть на сервер апелляций</p></div>
+          <div class="ap-kinds"><% Object.entries(AP.KINDS).forEach(([k, l]) => { %><label class="checkbox-row"><input type="checkbox" name="agkind_<%= k %>" <%= agKinds.includes(k) ? 'checked' : '' %> /> <span><%= l %></span></label><% }) %></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="agHours">Приглашение действует</label><p class="set-help">Одноразовое: после входа ссылка больше не работает</p></div>
+          <div class="set-ctl"><input type="number" id="agHours" name="appealInviteHours" min="1" max="168" value="<%= settings.appealInviteHours || 48 %>" /> <span class="set-unit">ч</span></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="agRole">Роль «На апелляции»</label><p class="set-help">Выдаётся на сервере апелляций тому, кто пришёл с пропуском или наказанием</p></div>
+          <div class="set-ctl"><select id="agRole" name="appealGuildRoleId"><option value="">Не выдавать</option><% (agInfo ? agInfo.roles : []).forEach((r) => { %><option value="<%= r.id %>" <%= settings.appealGuildRoleId === r.id ? 'selected' : '' %>>@<%= r.name %></option><% }) %></select></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="agThread">Приватная ветка для каждого</label><p class="set-help">Разбор наказания с кнопкой «Подать апелляцию»; новая апелляция появится там с кнопками решения</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="agThread" name="appealGuildThread" <%= settings.appealGuildThread ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="agStrict">Если зашёл посторонний</label><p class="set-help">Без пропуска и без действующего наказания</p></div>
+          <div class="set-ctl"><select id="agStrict" name="appealGuildStrict"><% AG.STRICT.forEach((m) => { %><option value="<%= m %>" <%= (settings.appealGuildStrict || 'off') === m ? 'selected' : '' %>><%= STRICTL[m] %></option><% }) %></select></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="agKick">Убирать с сервера апелляций после одобрения</label><p class="set-help">Роль снимается, ветка закрывается, участник выходит — сервер остаётся чистым</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="agKick" name="appealGuildKickOnDone" <%= settings.appealGuildKickOnDone !== false ? 'checked' : '' %> /></div>
+        </div>
+        <% if (agCheck.length) { %>
+          <ul class="check-list ag-check">
+            <% agCheck.forEach((c) => { %><li class="<%= c.ok ? 'ok' : 'bad' %>"><%= c.ok ? '✓' : '✗' %> <%= c.text %></li><% }) %>
+          </ul>
+        <% } else if (settings.appealGuildId && !agInfo) { %>
+          <p class="hint">Бот не видит этот сервер — каналы и роли появятся, когда он там будет.</p>
+        <% } %>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+      <% if (passes.length || settings.appealGuildMode === 'moderator') { const PS = { requested: 'Ждёт решения', approving: 'Выдаётся', issued: 'Приглашение выдано', joined: 'На сервере', rejected: 'Отклонён', closed: 'Закрыт' }; %>
+        <div class="card g-span" id="passes">
+          <h2>Пропуска на сервер апелляций<span class="sub">Запросы и выданные приглашения</span></h2>
+          <% if (!passes.length) { %>
+            <p class="empty-state">Запросов пока не было. Наказанный просит пропуск кнопкой в личных сообщениях или на сайте.</p>
+          <% } else { %>
+            <div class="table-scroll"><table>
+              <thead><tr><th>№</th><th>Кто</th><th>Наказание</th><th>Комментарий</th><th>Когда</th><th>Статус</th><th></th></tr></thead>
+              <tbody>
+                <% passes.forEach((x) => { const expired = x.status === 'issued' && x.expiresAt && new Date(x.expiresAt) <= new Date(); %>
+                  <tr>
+                    <td class="nowrap">#<%= x.id %></td>
+                    <td class="nowrap"><%= name(x.userId) %></td>
+                    <td class="nowrap"><%= AP.KINDS[x.kind] || '—' %><% if (x.caseNumber) { %> <a class="muted" href="<%= g %>/moderation-case/<%= x.caseNumber %>">#<%= x.caseNumber %></a><% } %></td>
+                    <td class="muted pass-comment"><%= x.comment || '—' %></td>
+                    <td class="nowrap"><%= when(x.createdAt) %></td>
+                    <td class="nowrap"><span class="badge <%= x.status === 'requested' ? 'badge-note' : x.status === 'rejected' ? 'badge-ban' : 'badge-unban' %>"><%= expired ? 'Приглашение истекло' : (PS[x.status] || x.status) %></span><% if (x.approvedBy && x.status !== 'requested') { %> <span class="muted"><%= name(x.approvedBy) %></span><% } %></td>
+                    <td class="nowrap">
+                      <% if (x.status === 'requested') { %><div class="pass-actions">
+                        <form method="post" action="<%= g %>/moderation-appeals/pass/<%= x.id %>/approve" class="inline-extend" data-no-guard><button class="btn btn-sm" type="submit">Пропустить</button></form>
+                        <form method="post" action="<%= g %>/moderation-appeals/pass/<%= x.id %>/reject" class="inline-extend pass-reject" data-no-guard><input type="text" name="reason" required minlength="3" maxlength="300" placeholder="Причина отказа" aria-label="Причина отказа" /><button class="btn btn-sm btn-secondary" type="submit">Отклонить</button></form>
+                      </div><% } %>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table></div>
+          <% } %>
+        </div>
+      <% } %>
       <div class="card g-span">
         <h2>Апелляции</h2>
         <div class="chips">

@@ -93,7 +93,18 @@ module.exports = (sequelize) => {
       appealsMaxOpen: { type: DataTypes.INTEGER, defaultValue: 2 }, // open appeals of one person on this server
       appealsCooldownDays: { type: DataTypes.INTEGER, defaultValue: 7 }, // after a refusal, before the same punishment again
       appealsLinks: { type: DataTypes.BOOLEAN, defaultValue: true },
-      appealsKinds: { type: DataTypes.STRING, defaultValue: 'ban,mute,warn' },
+      appealsKinds: { type: DataTypes.STRING, defaultValue: 'ban,mute,warn,role_mute,quarantine' },
+      appealsDm: { type: DataTypes.BOOLEAN, defaultValue: true }, // the punishment's DM carries «appeal here» (a modal in the DMs)
+      // the appeal server (bot/modules/appealGuild.js): a separate server where punished people talk to the team
+      appealGuildId: { type: DataTypes.STRING, allowNull: true },
+      appealInviteChannelId: { type: DataTypes.STRING, allowNull: true }, // the channel there the invites lead to
+      appealGuildMode: { type: DataTypes.STRING(10), defaultValue: 'off' }, // off | instant | moderator
+      appealGuildKinds: { type: DataTypes.STRING, defaultValue: 'ban' }, // punishments that open the way to it
+      appealInviteHours: { type: DataTypes.INTEGER, defaultValue: 48 }, // the life of a personal invite
+      appealGuildRoleId: { type: DataTypes.STRING, allowNull: true }, // given there to a legitimate visitor
+      appealGuildThread: { type: DataTypes.BOOLEAN, defaultValue: false }, // a private thread for each visitor
+      appealGuildStrict: { type: DataTypes.STRING(8), defaultValue: 'off' }, // a stranger without a pass: off | notify | kick
+      appealGuildKickOnDone: { type: DataTypes.BOOLEAN, defaultValue: true }, // an approved appeal: the visitor leaves the appeal server
       achievementsEnabled: { type: DataTypes.BOOLEAN, defaultValue: true },
       achievementsNotify: { type: DataTypes.STRING, defaultValue: 'auto' }, // auto | channel | dm | off
       achievementsChannelId: { type: DataTypes.STRING, allowNull: true },

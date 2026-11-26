@@ -2,7 +2,7 @@ const { DataTypes, Model } = require('sequelize');
 
 // An appeal against a punishment. The punishment is pointed to by its own record (a ModLog case for a ban or a mute, a
 // Warning for a warning); what it was is copied at the moment of filing, so the appeal stays readable whatever happens later.
-// status: new → review → approved | rejected. A decision is written only by a conditional update (status still open), so the
+// status: new → review (⇄ info: more is asked of the author) → approved | rejected. A decision is written only by a conditional update (status still open), so the
 // same appeal can never be decided twice.
 module.exports = (sequelize) => {
   class Appeal extends Model {}
@@ -10,7 +10,8 @@ module.exports = (sequelize) => {
     {
       guildId: { type: DataTypes.STRING, allowNull: false },
       userId: { type: DataTypes.STRING, allowNull: false },
-      kind: { type: DataTypes.STRING(10), allowNull: false }, // ban | mute | warn
+      kind: { type: DataTypes.STRING(10), allowNull: false }, // ban | mute | warn | role_mute | quarantine
+      source: { type: DataTypes.STRING(8), defaultValue: 'web' }, // web | dm
       modLogId: { type: DataTypes.INTEGER, allowNull: true },
       warningId: { type: DataTypes.INTEGER, allowNull: true },
       caseNumber: { type: DataTypes.INTEGER, allowNull: true },

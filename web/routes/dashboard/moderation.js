@@ -381,15 +381,22 @@ router.get('/:guildId/moderation-appeals', ensureGuildAccess, async (req, res) =
   const { guildId } = req.params;
   const { Appeal } = require('../../../db');
   const [guild, settings, channels] = await Promise.all([getGuild(guildId), getSettings(guildId), getGuildChannels(guildId)]);
-  const status = ['new', 'review', 'approved', 'rejected', 'all'].includes(req.query.status) ? req.query.status : 'new';
+  const status = ['new', 'review', 'info', 'approved', 'rejected', 'all'].includes(req.query.status) ? req.query.status : 'new';
   const where = status === 'all' ? { guildId } : { guildId, status };
-  const [rows, counts] = await Promise.all([
+  const { AppealGuildPass } = require('../../../db');
+  const [rows, counts, passes] = await Promise.all([
     Appeal.findAll({ where, order: [['id', 'DESC']], limit: 60 }),
-    Promise.all(['new', 'review', 'approved', 'rejected'].map((x) => Appeal.count({ where: { guildId, status: x } })))
+    Promise.all(['new', 'review', 'info', 'approved', 'rejected'].map((x) => Appeal.count({ where: { guildId, status: x } }))),
+    AppealGuildPass.findAll({ where: { guildId }, order: [['id', 'DESC']], limit: 30 })
   ]);
-  const users = await getUsers([...new Set(rows.flatMap((r) => [r.userId, r.moderatorId].filter(Boolean)))]);
-  res.render('dashboard/moderation-appeals', base(req, 'moderation-appeals', { guild, settings, channels: textChannels(channels), rows, users, status,
-    counts: { new: counts[0], review: counts[1], approved: counts[2], rejected: counts[3] }, AP: appeals(), panelUrl: (process.env.WEB_BASE_URL || '').replace(/\/+$/, '') }));
+  const users = await getUsers([...new Set([...rows.flatMap((r) => [r.userId, r.moderatorId]), ...passes.flatMap((x) => [x.userId, x.approvedBy])].filter(Boolean))]);
+  // the appeal server as the bot sees it: its channels and roles to choose from, what it may do there
+  const AG = require('../../../bot/modules/appealGuild');
+  const ag = settings.appealGuildId ? getClient()?.guilds?.cache?.get(settings.appealGuildId) : null;
+  const agInfo = ag ? { name: ag.name, channels: [...ag.channels.cache.values()].filter((c) => c.type === 0).sort((a, b) => a.position - b.position).map((c) => ({ id: c.id, name: c.name })),
+    roles: [...ag.roles.cache.values()].filter((r) => r.id !== ag.id && !r.managed).sort((a, b) => b.position - a.position).map((r) => ({ id: r.id, name: r.name })) } : null;
+  res.render('dashboard/moderation-appeals', base(req, 'moderation-appeals', { guild, settings, channels: textChannels(channels), rows, users, status, passes, AG, agInfo, agCheck: AG.check(settings),
+    counts: { new: counts[0], review: counts[1], info: counts[2], approved: counts[3], rejected: counts[4] }, AP: appeals(), panelUrl: (process.env.WEB_BASE_URL || '').replace(/\/+$/, ''), error: req.query.err ? String(req.query.err).slice(0, 300) : null }));
 });
 
 router.get('/:guildId/moderation-appeals/:id(\\d+)', ensureGuildAccess, async (req, res) => {
@@ -437,11 +444,62 @@ router.post('/:guildId/moderation/appeals', ensureGuildAccess, async (req, res) 
   settings.appealsMaxOpen = clampInt(req.body.appealsMaxOpen, 1, 10, 2);
   settings.appealsCooldownDays = clampInt(req.body.appealsCooldownDays, 0, 365, 7);
   settings.appealsLinks = req.body.appealsLinks === 'on';
-  const kinds = ['ban', 'mute', 'warn'].filter((k) => req.body[`kind_${k}`] === 'on');
+  const kinds = Object.keys(appeals().KINDS).filter((k) => req.body[`kind_${k}`] === 'on');
   settings.appealsKinds = kinds.join(',');
+  settings.appealsDm = req.body.appealsDm === 'on';
   const missing = await pickChannels(req.body, settings, guildId, { appealsChannelId: 'post' });
   await settings.save();
   res.redirect(missing.length ? noPerm(guildId, 'moderation-appeals', missing) : saved(guildId, 'moderation-appeals'));
+});
+
+// ---- the appeal server ----
+const agBack = (guildId, err) => (err ? `/dashboard/${guildId}/moderation-appeals?err=${encodeURIComponent(err)}#appeal-guild` : saved(guildId, 'moderation-appeals'));
+router.post('/:guildId/moderation/appeal-guild', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const AG = require('../../../bot/modules/appealGuild');
+  const settings = await getSettings(guildId);
+  const b = req.body;
+  const mode = AG.MODES.includes(b.appealGuildMode) ? b.appealGuildMode : 'off';
+  const agId = snowflake(b.appealGuildId) || null;
+  if (agId && agId === guildId) return res.redirect(agBack(guildId, 'Сервер апелляций должен быть отдельным сервером, не этим.'));
+  if (agId && agId !== settings.appealGuildId) {
+    // the bot will make invites, give roles and kick people there: only for someone who manages that server too
+    const ag = getClient()?.guilds?.cache?.get(agId);
+    if (!ag) return res.redirect(agBack(guildId, 'Бот не состоит на этом сервере — сначала пригласите его туда.'));
+    const me = await ag.members.fetch(req.user?.id).catch(() => null);
+    const manages = ag.ownerId === req.user?.id || Boolean(me?.permissions?.has?.(P.ManageGuild));
+    if (!manages) return res.redirect(agBack(guildId, 'Нужно право «Управлять сервером» на сервере апелляций — выбрать можно только сервер, которым вы управляете.'));
+  }
+  const ag = agId ? getClient()?.guilds?.cache?.get(agId) : null;
+  const chId = snowflake(b.appealInviteChannelId) || null;
+  const roleId = snowflake(b.appealGuildRoleId) || null;
+  settings.appealGuildId = agId;
+  settings.appealInviteChannelId = chId && ag?.channels?.cache?.has(chId) ? chId : null;
+  settings.appealGuildRoleId = roleId && ag?.roles?.cache?.has(roleId) ? roleId : null;
+  settings.appealGuildMode = mode;
+  settings.appealGuildKinds = Object.keys(appeals().KINDS).filter((k) => b[`agkind_${k}`] === 'on').join(',') || 'ban';
+  settings.appealInviteHours = clampInt(b.appealInviteHours, 1, 168, 48);
+  settings.appealGuildThread = b.appealGuildThread === 'on';
+  settings.appealGuildKickOnDone = b.appealGuildKickOnDone === 'on';
+  settings.appealGuildStrict = AG.STRICT.includes(b.appealGuildStrict) ? b.appealGuildStrict : 'off';
+  if (mode !== 'off' && (!settings.appealGuildId || !settings.appealInviteChannelId)) {
+    settings.appealGuildMode = 'off';
+    await settings.save();
+    return res.redirect(agBack(guildId, 'Сохранено, но режим выключен: выберите сервер апелляций и канал для приглашений.'));
+  }
+  await settings.save();
+  res.redirect(saved(guildId, 'moderation-appeals'));
+});
+router.post('/:guildId/moderation-appeals/pass/:id(\\d+)/:act(approve|reject)', ensureGuildAccess, async (req, res) => {
+  const { guildId, id, act } = req.params;
+  const AG = require('../../../bot/modules/appealGuild');
+  try {
+    await AG.decide(Number(id), guildId, req.user?.id, act, req.body.reason, { client: getClient() });
+    res.redirect(`/dashboard/${guildId}/moderation-appeals?saved=1#passes`);
+  } catch (e) {
+    if (!(e instanceof appeals().AppealError)) throw e;
+    res.redirect(`/dashboard/${guildId}/moderation-appeals?err=${encodeURIComponent(e.message.slice(0, 300))}#passes`);
+  }
 });
 
 module.exports = router;

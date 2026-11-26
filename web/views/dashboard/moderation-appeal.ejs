@@ -12,8 +12,8 @@
       </div>
       <% const g = '/dashboard/' + guild.id; const when = (d) => AP.fmtDate(d);
          const name = (id) => (id ? (users[id] || { name: id }).name : 'бот');
-         const chip = { new: 'badge-note', review: 'badge-mute', approved: 'badge-unban', rejected: 'badge-ban' };
-         const ST = { new: 'Подана', review: 'Взята на рассмотрение', approved: 'Одобрена', rejected: 'Отклонена' };
+         const chip = { new: 'badge-note', review: 'badge-mute', info: 'badge-warn', approved: 'badge-unban', rejected: 'badge-ban' };
+         const ST = { new: 'Подана', review: 'Взята на рассмотрение', info: 'Запрошены подробности', approved: 'Одобрена', rejected: 'Отклонена' };
          const open = AP.OPEN.includes(appeal.status);
          const ACT = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Снят мут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' }; %>
       <% if (error) { %><div class="card g-span mod-alert"><p style="margin:0"><b>Не получилось:</b> <%= error %></p></div><% } %>
@@ -25,7 +25,7 @@
           <div><small>Номер</small><b><%= appeal.caseNumber ? 'дело #' + appeal.caseNumber : (appeal.kind === 'warn' ? 'предупреждение #' + appeal.warningId : '—') %></b></div>
           <div><small>Дата</small><b><%= when(appeal.punishedAt) %></b></div>
           <div><small>До</small><b><%= appeal.punishUntil ? when(appeal.punishUntil) : (appeal.kind === 'ban' ? 'навсегда' : '—') %></b></div>
-          <div><small>Подана</small><b><%= when(appeal.createdAt) %></b></div>
+          <div><small>Подана</small><b><%= when(appeal.createdAt) %><%= appeal.source === 'dm' ? ' · из ЛС' : '' %></b></div>
         </div>
         <p class="appeal-reason"><small>Причина наказания</small><span><%= appeal.punishReason || '—' %></span></p>
         <% if (check) { %><p class="hint" style="margin:0"><%= check.inForce ? 'Наказание сейчас действует.' : 'Наказание уже не действует — одобрение ничего не снимет.' %><%= check.why ? ' ' + check.why : '' %></p><% } %>
@@ -44,12 +44,13 @@
           <% } %>
           <form method="post" action="<%= g %>/moderation-appeals/<%= appeal.id %>/decide" class="ap-decide" data-no-guard>
             <div class="fld">
-              <label for="apReason">Причина решения (её увидит участник)</label>
+              <label for="apReason">Причина решения или вопрос автору (их увидит участник)</label>
               <textarea id="apReason" name="reason" rows="3" maxlength="500" required></textarea>
             </div>
             <div class="btn-row">
               <button class="btn" type="submit" name="decision" value="approved"<%= mayDecide ? ' disabled' : '' %>>Одобрить и снять наказание</button>
               <button class="btn btn-danger" type="submit" name="decision" value="rejected"<%= mayDecide ? ' disabled' : '' %>>Отклонить</button>
+              <% if (appeal.status !== 'info') { %><button class="btn btn-secondary" type="submit" name="decision" value="info"<%= mayDecide ? ' disabled' : '' %>>Запросить подробности</button><% } else { %><span class="muted">Ждём ответа автора на вопрос.</span><% } %>
             </div>
           </form>
         </div>

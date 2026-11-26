@@ -45,11 +45,6 @@ function whyCannotRoles(guild, member) {
   return null;
 }
 
-async function dm(guild, userId, text, settings) {
-  if (settings && settings.modDmEnabled === false) return;
-  await guild.client.users.send(userId, `${text}\n— сервер **${guild.name}**`).catch(() => {});
-}
-
 /**
  * Gives a punishment by role. opts: { roleId (restrict), ms (null: until lifted), moderatorId, reason, settings }.
  * Returns { entry, row, skipped } — skipped: roles quarantine could not take (above the bot or of an integration).
@@ -92,7 +87,8 @@ async function apply(guild, member, kind, { roleId = null, ms = null, moderatorI
     await announceCase(guild, entry);
     const until = ms ? `на ${formatDuration(ms)}` : 'до снятия модератором';
     const what = kind === 'restrict' ? `ограничение «${cfg.restrictRoles.find((x) => x.roleId === role.id)?.label || role.name}»` : TITLE[kind];
-    await dm(guild, member.id, `${kind === 'quarantine' ? '🚧' : '🔇'} Вам выдан ${what} ${until}: ${reason}${kind === 'restrict' ? '' : require('./appeals').appealHint(settings, 'mute')}`, settings);
+    const ap = require('./appeals');
+    await ap.afterPunishmentDm(guild.id, entry, await ap.punishmentDm(guild, member.id, `${kind === 'quarantine' ? '🚧' : '🔇'} Вам выдан ${what} ${until}: ${reason}`, settings, kind === 'restrict' ? null : kind));
     return { entry, row, skipped };
   });
 }

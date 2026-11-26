@@ -31,7 +31,7 @@ const { makeUser, makeInteraction } = require('./mock');
 
   // ---- a tiny fake server ----
   const dms = []; let dmFail = false;
-  const client = { user: { id: 'BOT' }, users: { send: async (id, t) => { if (dmFail) throw new Error('closed DMs'); dms.push({ id, t }); } }, guilds: { cache: new Map() } };
+  const client = { user: { id: 'BOT' }, users: { send: async (id, t) => { if (dmFail) throw new Error('closed DMs'); dms.push({ id, t: typeof t === 'string' ? t : t.content, p: t }); } }, guilds: { cache: new Map() } };
   const world = { timeouts: [], kicks: [], bans: new Set(), banCalls: [], unbans: [] };
   const members = new Map();
   const G = { id: 'G1', name: 'Сервер', client, ownerId: 'OWNER', roles: { everyone: { id: 'everyone' } }, channels: { fetch: async () => null } };

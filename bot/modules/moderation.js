@@ -76,7 +76,8 @@ async function muteMember(guild, member, ms, { moderatorId, reason, settings }) 
   await callDiscord(() => member.timeout(ms, reason), 'mute');
   const entry = await recordAndAnnounce(guild, { userId: member.id, moderatorId, action: 'mute', reason, duration: ms });
   settings = settings ?? (await loadSettings(guild.id));
-  await dmMember(guild, member.id, `🔇 Вы получили мут на ${formatDuration(ms)}: ${reason}${require('./appeals').appealHint(settings, 'mute')}`, settings);
+  const ap = require('./appeals');
+  await ap.afterPunishmentDm(guild.id, entry, await ap.punishmentDm(guild, member.id, `🔇 Вы получили мут на ${formatDuration(ms)}: ${reason}`, settings, 'mute'));
   return entry;
 }
 
@@ -99,7 +100,10 @@ async function banUser(guild, userId, { moderatorId, reason, ms = null, deleteSe
   // The case is written BEFORE the ban: a stop right after the ban can no longer leave a temporary ban with no record (it
   // would never be lifted). If the ban fails, the case and the DM are taken back.
   const { createCase, announceCase } = require('../utils/modlog');
-  const dm = member ? await dmMember(guild, userId, `🔨 Вы забанены ${until}: ${reason}${require('./appeals').appealHint(settings, 'ban')}`, settings) : null;
+  // the DM goes BEFORE the ban: after it there is no common server and Discord refuses to deliver it
+  const ap = require('./appeals');
+  const dmr = await ap.punishmentDm(guild, userId, `🔨 Вы забанены ${until}: ${reason}`, settings, 'ban', { reach: Boolean(member) });
+  const dm = dmr.message;
   const older = await ModLog.findAll({ where: { guildId: guild.id, userId, action: 'ban', active: true }, attributes: ['id'] });
   const entry = await createCase(guild.id, { userId, moderatorId, action: 'ban', reason: String(reason || 'Без причины').slice(0, 1000), duration: ms, expiresAt: ms ? new Date(Date.now() + ms) : null, active: Boolean(ms) });
   require('./serverLog').markReported(guild.id, userId, 'ban'); // before the ban: its Discord event must not be logged twice
@@ -112,6 +116,7 @@ async function banUser(guild, userId, { moderatorId, reason, ms = null, deleteSe
   }
   // A new ban replaces an older temporary one.
   if (older.length) await ModLog.update({ active: false }, { where: { id: older.map((o) => o.id) } });
+  await ap.afterPunishmentDm(guild.id, entry, member ? dmr : { ...dmr, skipped: !dmr.pass });
   return announceCase(guild, entry);
 }
 
@@ -139,7 +144,8 @@ async function warnMember(guild, user, { moderatorId, reason, settings, points =
   });
   const entry = await recordAndAnnounce(guild, { userId: user.id, moderatorId, action: 'warn', reason: weight > 1 ? `${reason} (${weight} балл.)` : reason });
   const pts = cfg.escalateBy === 'points' ? ` · баллов: ${total}` : '';
-  await dmMember(guild, user.id, `⚠️ Вы получили предупреждение (${count}${pts}): ${reason}${require('./appeals').appealHint(settings, 'warn')}`, settings);
+  const ap = require('./appeals');
+  await ap.afterPunishmentDm(guild.id, entry, await ap.punishmentDm(guild, user.id, `⚠️ Вы получили предупреждение (${count}${pts}): ${reason}`, settings, 'warn'));
 
   // the server's ladder (by count, or by points crossed now); without one, the older thresholds by count
   let rule = null;
