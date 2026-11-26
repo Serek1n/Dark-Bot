@@ -16,7 +16,44 @@ router.get('/:guildId/features', ensureGuildAccess, async (req, res) => {
 // «Базовые настройки»: what belongs to the whole bot on this server, not to one module (its language, its time zone)
 router.get('/:guildId/settings', ensureGuildAccess, async (req, res) => {
   const [guild, settings] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId)]);
-  res.render('dashboard/settings', { guild, settings, Z: require('../../../shared/zones'), active: 'settings' });
+  const P = require('../../utils/portability');
+  // the result of a loaded file: kept, matched by name and left out (the names of what was not found)
+  let imported = null;
+  try { imported = req.query.imp ? JSON.parse(Buffer.from(String(req.query.imp), 'base64url').toString('utf8')) : null; } catch { imported = null; }
+  res.render('dashboard/settings', { guild, settings, Z: require('../../../shared/zones'), active: 'settings', brand: require('../../../bot/utils/moduleConfig').read(settings, 'brand'), MODULE_TITLES: P.MODULE_TITLES, imported });
+});
+
+// ---- «Перенос настроек»: the file, loading it here, a module back to its defaults ----
+router.get('/:guildId/settings/export', ensureGuildAccess, async (req, res) => {
+  const { getGuildChannels, getGuildRoles } = require('../../discordApi');
+  const [guild, settings, channels, roles] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId).catch(() => []), getGuildRoles(req.params.guildId).catch(() => [])]);
+  const file = require('../../utils/portability').exportSettings(settings, { guild, channels, roles });
+  res.set('Content-Type', 'application/json; charset=utf-8');
+  res.set('Content-Disposition', `attachment; filename="dark-settings-${req.params.guildId}.json"`);
+  res.send(JSON.stringify(file, null, 2));
+});
+router.post('/:guildId/settings/import', express.urlencoded({ extended: true, limit: '2mb' }), ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const { getGuildChannels, getGuildRoles } = require('../../discordApi');
+  let file;
+  try { file = JSON.parse(String(req.body.json || '')); } catch { return res.redirect(saved(guildId, 'settings', 'invalid')); }
+  const [settings, channels, roles] = await Promise.all([getSettings(guildId), getGuildChannels(guildId).catch(() => []), getGuildRoles(guildId).catch(() => [])]);
+  let r;
+  try { r = require('../../utils/portability').importSettings(file, { attributes: settings.constructor.rawAttributes, channels, roles }); } catch (err) { return res.redirect(saved(guildId, 'settings', 'invalid')); }
+  Object.assign(settings, r.values);
+  await settings.save();
+  require('../../../bot/modules/branding').forget(guildId);
+  const imp = Buffer.from(JSON.stringify({ kept: r.report.kept, mapped: r.report.mapped, dropped: r.report.dropped.slice(0, 20).map((d) => d.name || d.id), more: Math.max(0, r.report.dropped.length - 20) })).toString('base64url');
+  res.redirect(`/dashboard/${guildId}/settings?importdone=1&imp=${imp}`);
+});
+router.post('/:guildId/settings/reset-module', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const settings = await getSettings(guildId);
+  const done = require('../../utils/portability').resetModule(settings, String(req.body.module || ''), settings.constructor.rawAttributes);
+  if (!done.length) return res.redirect(saved(guildId, 'settings', 'invalid'));
+  await settings.save();
+  require('../../../bot/modules/branding').forget(guildId);
+  res.redirect(saved(guildId, 'settings', 'moduleReset'));
 });
 
 router.post('/:guildId/language', ensureGuildAccess, async (req, res) => {

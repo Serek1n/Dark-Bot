@@ -28,7 +28,7 @@
         <% if (!rows.length) { %>
           <%- include('../partials/empty-state', { icon: 'tickets', text: status === 'open' ? 'Открытых обращений нет.' : 'Здесь пусто.', action: status === 'open' ? { label: 'Настроить тикеты', href: g + '/tickets' } : null }) %>
         <% } else { %>
-          <div class="table-wrap"><table class="data-table">
+          <div class="table-wrap table-scroll"><table class="data-table">
             <thead><tr><th>№</th><th>Автор</th><th>Тема</th><th>Открыто</th><th>Состояние</th><th></th></tr></thead>
             <tbody>
               <% rows.forEach((t) => { %>

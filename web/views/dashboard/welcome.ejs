@@ -27,7 +27,7 @@
           </div>
           <div class="set-row stacked" data-depends="welcomeChannelId">
             <div class="set-text"><label for="welcomeMessage">Текст приветствия</label><p class="set-help"><code>{user}</code> упоминание, <code>{name}</code> имя, <code>{server}</code> сервер, <code>{count}</code> сколько людей на сервере. Можно оставить пустым, если включён эмбед</p></div>
-            <div class="set-ctl"><textarea name="welcomeMessage" id="welcomeMessage" data-md maxlength="1800"><%= settings.welcomeMessage %></textarea></div>
+            <div class="set-ctl"><textarea name="welcomeMessage" id="welcomeMessage" data-md data-vars="user,name,server,count" maxlength="1800"><%= settings.welcomeMessage %></textarea></div>
             <%- include('../partials/replacers-help', { target: 'welcomeMessage' }) %>
           </div>
           <div class="set-row stacked" data-depends="welcomeChannelId">
@@ -46,7 +46,7 @@
           </div>
           <div class="set-row stacked" data-depends="leaveChannelId">
             <div class="set-text"><label for="leaveMessage">Текст прощания</label><p class="set-help"><code>{user}</code> имя без упоминания, <code>{server}</code> сервер, <code>{count}</code> сколько осталось людей</p></div>
-            <div class="set-ctl"><textarea name="leaveMessage" id="leaveMessage" data-md maxlength="1800"><%= settings.leaveMessage %></textarea></div>
+            <div class="set-ctl"><textarea name="leaveMessage" id="leaveMessage" data-md data-vars="user,name,server,count" maxlength="1800"><%= settings.leaveMessage %></textarea></div>
             <%- include('../partials/replacers-help', { target: 'leaveMessage' }) %>
           </div>
           <div class="set-row stacked" data-depends="leaveChannelId">

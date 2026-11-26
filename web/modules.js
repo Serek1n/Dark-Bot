@@ -104,9 +104,9 @@ const LAYOUT = [
       const [live, all] = await Promise.all([Giveaway.count(where(g, { ended: false })), Giveaway.count(where(g))]);
       return [{ value: live, label: 'идёт сейчас' }, { value: all, label: 'всего' }];
     } },
-  { key: 'polls', group: 'activity', pages: [], keywords: 'опрос голосование',
+  { key: 'polls', group: 'activity', pages: ['polls'], keywords: 'опрос голосование',
     stats: async (g) => { const { Poll } = db(); return [{ value: await Poll.count(where(g, { ended: false })), label: 'идёт сейчас' }]; } },
-  { key: 'fun', group: 'activity', pages: [], keywords: 'игры кубик монетка' },
+  { key: 'fun', group: 'activity', pages: ['fun'], keywords: 'игры кубик монетка' },
   // ---- Модерация и безопасность ----
   { key: 'moderation', group: 'moderation', pages: MOD_PAGES, keywords: 'бан мут варн предупреждение кик наказание журнал',
     stats: async (g) => {
@@ -166,7 +166,7 @@ const LAYOUT = [
     } },
   { key: 'music', group: 'tools', pages: ['music'], keywords: 'плеер плейлист трек',
     stats: async () => { const { Playlist } = db(); return [{ value: await Playlist.count(), label: 'плейлистов у участников' }]; } },
-  { key: 'reminders', group: 'tools', pages: [], keywords: 'напомнить таймер',
+  { key: 'reminders', group: 'tools', pages: ['reminders'], keywords: 'напомнить таймер',
     stats: async (g) => { const { Reminder } = db(); return [{ value: await Reminder.count(where(g)), label: 'напоминаний ждут' }]; } },
   // the server's card in the public catalog «Сообщества DARK» (no switch: not listing it is the off state)
   { key: 'listing', group: 'tools', title: 'Сообщество в каталоге', desc: 'Карточка сервера в публичном каталоге «Сообщества DARK»: описание, категории, голоса, статистика, продвижение', pages: ['community'],
@@ -233,7 +233,7 @@ const pageVisible = (page, settings) => !PAGE_LATER.has(page) && (!PAGE_NEEDS[pa
 // its preview beside it (the messages builder turns to it itself while its preview is open, see js/ui.js).
 const WIDE_PAGES = new Set(['overview', 'features', 'changelog', 'leaderboard', 'leveling-data', 'channel-boosts', 'achievements', 'achievements-catalog',
   'achievements-members', 'alerts', 'community', 'custom-commands', 'economy-deals', 'economy-journal', 'logs', 'moderation', 'moderation-punishments',
-  'moderation-warnings', 'moderation-log', 'tickets-list', 'music', 'reaction-roles', 'server-stats', 'server-stats-channels', 'shop', 'temp-voice', 'temp-voice-stats', 'giveaways']);
+  'moderation-warnings', 'moderation-log', 'tickets-list', 'music', 'reaction-roles', 'server-stats', 'server-stats-channels', 'shop', 'temp-voice', 'temp-voice-stats', 'giveaways', 'polls']);
 const SPLIT_PAGES = new Set([]);
 const layoutOf = (page) => (SPLIT_PAGES.has(page) ? 'layout-split-custom' : WIDE_PAGES.has(page) ? 'layout-wide' : 'layout-form');
 

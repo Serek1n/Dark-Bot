@@ -54,12 +54,12 @@
           <details class="ticket-topic"<%= c.isNew ? '' : ' open' %>>
             <summary><b><%= c.isNew ? '+ Новая тема' : (c.emoji ? c.emoji + ' ' : '') + c.label %></b><% if (!c.isNew && c.questions.length) { %> <span class="muted">· вопросов: <%= c.questions.length %></span><% } %></summary>
             <div class="fld-pair">
-              <div class="fld"><label for="<%= p %>label">Название</label><input type="text" id="<%= p %>label" name="<%= p %>label" maxlength="45" value="<%= c.label %>" placeholder="Например, Вопрос по оплате" /></div>
-              <div class="fld"><label for="<%= p %>emoji">Эмодзи</label><input type="text" id="<%= p %>emoji" name="<%= p %>emoji" maxlength="32" value="<%= c.emoji %>" placeholder="💳" /></div>
+              <div class="fld"><label>Название</label><input type="text" id="<%= p %>label" name="<%= p %>label" maxlength="45" value="<%= c.label %>" placeholder="Например, Вопрос по оплате" /></div>
+              <div class="fld"><label>Эмодзи</label><input type="text" id="<%= p %>emoji" name="<%= p %>emoji" maxlength="32" value="<%= c.emoji %>" placeholder="💳" /></div>
             </div>
-            <div class="fld"><label for="<%= p %>description">Пояснение в списке</label><input type="text" id="<%= p %>description" name="<%= p %>description" maxlength="100" value="<%= c.description %>" /></div>
+            <div class="fld"><label>Пояснение в списке</label><input type="text" id="<%= p %>description" name="<%= p %>description" maxlength="100" value="<%= c.description %>" /></div>
             <div class="fld"><label>Пинговать роли</label><%- include('../partials/pick-list', { name: p + 'roles', items: roleItems, selected: c.roles, kind: 'roles', empty: 'Ролей не найдено' }) %></div>
-            <div class="fld"><label for="<%= p %>welcome">Приветствие в канале</label><textarea id="<%= p %>welcome" name="<%= p %>welcome" maxlength="1000" rows="2" placeholder="Пусто — общий текст панели"><%= c.welcome %></textarea></div>
+            <div class="fld"><label>Приветствие в канале</label><textarea id="<%= p %>welcome" name="<%= p %>welcome" maxlength="1000" rows="2" placeholder="Пусто — общий текст панели"><%= c.welcome %></textarea></div>
             <div class="ticket-qs">
               <div class="set-title">Вопросы перед созданием</div>
               <% c.questions.concat(c.questions.length < 5 ? [{ label: '', long: false, required: true, isNew: true }] : []).forEach((q, j) => { const qp = p + 'questions_' + j + '_'; %>

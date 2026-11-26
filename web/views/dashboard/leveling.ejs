@@ -135,7 +135,7 @@
           <h2>Текст поздравления</h2>
           <div class="set-row stacked">
             <div class="set-text"><label for="levelUpMessage">Свой текст</label><p class="set-help">Пусто — стандартный. <code>{user}</code> упоминание, <code>{name}</code> имя, <code>{level}</code> новый уровень, <code>{oldLevel}</code> прежний, <code>{role}</code> роль за уровень, <code>{crystals}</code> кристаллы, <code>{server}</code> сервер</p></div>
-            <div class="set-ctl"><textarea name="levelUpMessage" id="levelUpMessage" data-md maxlength="1500" rows="3" placeholder="{user} теперь {level} уровня! 🎉"><%= settings.levelUpMessage || '' %></textarea></div>
+            <div class="set-ctl"><textarea name="levelUpMessage" id="levelUpMessage" data-md data-vars="user,name,level,oldLevel,server,crystals,role" maxlength="1500" rows="3" placeholder="{user} теперь {level} уровня! 🎉"><%= settings.levelUpMessage || '' %></textarea></div>
             <%- include('../partials/replacers-help', { target: 'levelUpMessage' }) %>
           </div>
           <div class="set-row">

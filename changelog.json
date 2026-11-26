@@ -1,5 +1,52 @@
 [
  {
+  "bot": "3.20.0",
+  "panel": "3.38.0",
+  "date": "2026-11-26",
+  "botChanges": [
+   "Тикеты: темы со списком, вопросы в окне, роли поддержки и лимит открытых",
+   "Тихие тикеты закрываются сами с предупреждением; переписка — текстом или HTML",
+   "После закрытия тикета автор может поставить оценку от 1 до 5",
+   "/poll: один ответ, анонимно кнопками, ветка для обсуждения, вид итогов сервера",
+   "Мини-игры: ставки монетами в /coinflip и /rps с налогом в казну и дневным пределом",
+   "Свои ответы шара /8ball, пауза между играми, ответ только игроку",
+   "/remind понимает время: 18:30 или 25.12 18:30 по часовому поясу сервера",
+   "Команды работают только в разрешённых каналах и не для исключённых ролей",
+   "Цвета, значки, подпись и вид дат в ответах бота — свои у каждого сервера"
+  ],
+  "panelChanges": [
+   "Новые страницы: Тикеты и Обращения, Голосования, Мини-игры, Напоминания",
+   "Тикеты: темы, панель с превью и публикацией, закрытие, таблица с перепиской",
+   "Голосования и напоминания: таблицы с досрочным завершением и удалением",
+   "Блок «Где и для кого работает»: каналы, роли без доступа, пауза",
+   "Базовые настройки: вид ответов бота, файл настроек, сброс модуля",
+   "Импорт настроек находит каналы и роли по названию и называет пропущенные",
+   "Под текстами приветствия и уровня — подсказка о теге с опечаткой"
+  ],
+  "en": {
+   "botChanges": [
+    "Tickets: topics in a list, questions in a window, support roles, a limit of open ones",
+    "Quiet tickets close by themselves with a warning; the transcript as text or HTML",
+    "After a ticket is closed its author can rate it from 1 to 5",
+    "/poll: one answer, anonymous by buttons, a discussion thread, the server's results look",
+    "Mini-games: coin bets in /coinflip and /rps with a treasury tax and a daily limit",
+    "Own /8ball answers, a pause between games, a reply only the player sees",
+    "/remind understands times: 18:30 or 25.12 18:30 in the server's time zone",
+    "Commands work only in allowed channels and not for excluded roles",
+    "Colours, marks, footer and date style of the bot's replies — each server its own"
+   ],
+   "panelChanges": [
+    "New pages: Tickets and Ticket list, Polls, Mini-games, Reminders",
+    "Tickets: topics, the panel with a preview and publishing, closing, a list with transcripts",
+    "Polls and reminders: lists with ending early and deleting",
+    "The «Where and for whom» block: channels, roles without access, a pause",
+    "Basic settings: the look of bot replies, a settings file, a module reset",
+    "Importing settings finds channels and roles by name and names the skipped ones",
+    "Welcome and level-up texts point out a mistyped tag"
+   ]
+  }
+ },
+ {
   "bot": "3.19.5",
   "panel": "3.37.0",
   "date": "2026-11-25",

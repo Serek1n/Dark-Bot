@@ -109,7 +109,7 @@ const PNG = (b) => Buffer.isBuffer(b) && b.slice(1, 4).toString() === 'PNG';
   await test('mini-games: text in a frame by default; a picture, both, plain text — as set for the server', async () => {
     let r = await play('dice');
     assert(r.embeds?.length === 1 && !r.files.length, 'default text');
-    const row = await GuildSettings.create({ guildId: 'g-fun' });
+    const [row] = await GuildSettings.findOrCreate({ where: { guildId: 'g-fun' } }); // the game itself already read the server's settings
     ap.applyForm(row, { fun_card: 'on' }, ['fun']); await row.save(); ap.forget('g-fun');
     r = await play('coinflip');
     assert(r.files.length === 1 && !r.embeds, 'picture only');

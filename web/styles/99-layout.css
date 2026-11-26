@@ -299,3 +299,5 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
 .ticket-q { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--sp-2); align-items: center; }
 @media (max-width: 760px) { .ticket-q { grid-template-columns: 1fr; gap: 4px; } }
 .app-layout .content .card .ticket-topic .fld { border-top: 0; padding: 4px 0; }
+.var-warn { color: var(--warning); margin-top: 4px; }
+.var-warn[hidden] { display: none; }

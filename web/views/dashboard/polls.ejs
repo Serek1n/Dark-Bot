@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Голосования' }) %></head>
+<body>
+  <div class="app-layout with-nav">
+    <%- include('../partials/sidebar') %>
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Голосования</h1>
+        <p class="page-intro">Участники создают голосования командой <code>/poll</code>: вопрос, варианты через « | », срок. Здесь — кто может их создавать, правила, вид итогов и голосования, которые идут сейчас.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const roleItems = roles.map((r) => ({ id: r.id, label: r.name }));
+         const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: settings.timezone || 'Europe/Moscow', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); %>
+      <div class="card">
+        <h2>Голосования <span class="muted"><%= live %> идёт</span></h2>
+        <div class="chips"><a class="chip <%= status === 'live' ? 'active' : '' %>" href="?status=live">Идут сейчас</a><a class="chip <%= status === 'ended' ? 'active' : '' %>" href="?status=ended">Завершённые</a></div>
+        <% if (!rows.length) { %>
+          <%- include('../partials/empty-state', { icon: 'polls', text: status === 'live' ? 'Сейчас голосований нет. Начните в Discord: /poll.' : 'Завершённых голосований пока нет.', action: null }) %>
+        <% } else { %>
+          <div class="table-wrap table-scroll"><table class="data-table">
+            <thead><tr><th>Вопрос</th><th>Вариантов</th><th>Как</th><th>Итоги</th><th>Автор</th><th></th></tr></thead>
+            <tbody>
+              <% rows.forEach((p) => { let n = 0; try { n = JSON.parse(p.options).length; } catch (e) {} const forever = new Date(p.endsAt).getTime() >= NEVER; %>
+                <tr>
+                  <td><a href="https://discord.com/channels/<%= guild.id %>/<%= p.channelId %>/<%= p.messageId %>" target="_blank" rel="noopener"><%= p.question %></a></td>
+                  <td class="num"><%= n %></td>
+                  <td><%= p.anonymous ? 'анонимно, кнопками' : 'реакциями' %><%= p.multi === false ? ' · один ответ' : '' %></td>
+                  <td class="nowrap"><%= forever ? 'без срока' : (p.ended ? 'подведены ' : '') + when(p.endsAt) %></td>
+                  <td><%= p.authorId ? ((users[p.authorId] || {}).name || p.authorId) : '—' %></td>
+                  <td class="row-act"><% if (!p.ended) { %><form method="post" action="<%= g %>/polls/<%= p.id %>/end" data-no-guard data-confirm="Завершить голосование «<%= p.question %>» сейчас и отправить итоги?" data-confirm-ok="Завершить"><button class="btn btn-sm btn-secondary" type="submit">Завершить</button></form><% } %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+
+      <form method="post" action="<%= g %>/config/polls" class="card set-section">
+        <h2>Правила</h2>
+        <input type="hidden" name="_fields" value="creatorRoles,defaultMinutes,maxDays,maxOptions,multi,anonymous,thread" />
+        <div class="set-row stacked">
+          <div class="set-text"><span class="set-title">Кто может создавать</span><p class="set-help">Пусто — все участники. С правом «Управлять сервером» — всегда</p></div>
+          <div class="set-ctl"><%- include('../partials/pick-list', { name: 'creatorRoles', items: roleItems, selected: cfg.creatorRoles, kind: 'roles', empty: 'Ролей не найдено' }) %></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="defaultMinutes">Срок, если его не указали</label><p class="set-help">0 — бессрочно</p></div>
+          <div class="set-ctl"><input type="number" id="defaultMinutes" name="defaultMinutes" min="0" max="43200" step="1" value="<%= cfg.defaultMinutes %>" /> <span class="set-unit">мин</span></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="maxDays">Самый долгий срок</label></div>
+          <div class="set-ctl"><input type="number" id="maxDays" name="maxDays" min="1" max="30" step="1" value="<%= cfg.maxDays %>" /> <span class="set-unit">дн</span></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="maxOptions">Вариантов ответа не больше</label></div>
+          <div class="set-ctl"><input type="number" id="maxOptions" name="maxOptions" min="2" max="10" step="1" value="<%= cfg.maxOptions %>" /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="multi">Несколько ответов по умолчанию</label><p class="set-help">Выключено — у каждого один ответ: вторая реакция снимает первую. Создатель может выбрать сам</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="multi" name="multi" <%= cfg.multi ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="anonymous">Разрешить анонимные</label><p class="set-help">Голоса кнопками; бот хранит их сам, никто не видит, кто как ответил</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="anonymous" name="anonymous" <%= cfg.anonymous ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="thread">Ветка для обсуждения</label><p class="set-help">Под каждым голосованием бот открывает ветку</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="thread" name="thread" <%= cfg.thread ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+
+      <form method="post" action="<%= g %>/config/polls" class="card set-section">
+        <h2>Вид</h2>
+        <input type="hidden" name="_fields" value="color,resultColor,barFull,barEmpty,footer" />
+        <div class="set-row">
+          <div class="set-text"><label for="pollColor">Цвет голосования</label><p class="set-help">Пусто — цвет бота</p></div>
+          <div class="set-ctl"><input type="text" id="pollColor" name="color" maxlength="7" value="<%= cfg.color %>" placeholder="#e3a857" data-color-field /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="resultColor">Цвет итогов</label></div>
+          <div class="set-ctl"><input type="text" id="resultColor" name="resultColor" maxlength="7" value="<%= cfg.resultColor %>" placeholder="#2b2d31" data-color-field /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="barFull">Полоса итогов</label><p class="set-help">Знак заполненной части и пустой: <span class="mono"><%= cfg.barFull.repeat(6) + cfg.barEmpty.repeat(4) %></span></p></div>
+          <div class="set-ctl"><input type="text" id="barFull" name="barFull" maxlength="2" value="<%= cfg.barFull %>" aria-label="Заполненная часть" style="width:64px;text-align:center" /> <input type="text" name="barEmpty" maxlength="2" value="<%= cfg.barEmpty %>" aria-label="Пустая часть" style="width:64px;text-align:center" /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="pollFooter">Подпись внизу</label><p class="set-help">Пусто — «Голосование от» и имя автора</p></div>
+          <div class="set-ctl"><input type="text" id="pollFooter" name="footer" maxlength="100" value="<%= cfg.footer %>" /></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+
+      <%- include('../partials/scope-block', { module: 'polls', scopeCfg, channels, roles }) %>
+    </main>
+  </div>
+</body>
+</html>

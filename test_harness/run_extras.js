@@ -24,7 +24,7 @@ const { makeGuild, makeUser, makeChannel } = require('./mock');
   const run = async (options, msg) => {
     const replies = [];
     const i = { guild: makeGuild({ id: 'PG1' }), guildId: 'PG1', channelId: 'C1', user: makeUser('U1'), member: { displayName: 'Нея' },
-      options: { getString: (n) => options[n] ?? null }, reply: async (x) => replies.push(x), fetchReply: async () => msg };
+      options: { getString: (n) => options[n] ?? null, getBoolean: (n) => options[n] ?? null }, editReply: async () => {}, reply: async (x) => replies.push(x), fetchReply: async () => msg };
     await poll.execute(i); return replies;
   };
 

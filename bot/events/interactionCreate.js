@@ -9,6 +9,7 @@ const { isTicketButton, handleTicketButton } = require('../modules/tickets');
 const { isVoiceRoomComponent, handleVoiceRoomComponent } = require('../modules/voiceRoom');
 const { isWebhookComponent, handleWebhookComponent } = require('../modules/webhookPanel');
 const { featureForCommand, isEnabled, disabledText } = require('../utils/features');
+const mc = require('../utils/moduleConfig');
 const { getOrCreateSettings } = require('../modules/leveling');
 
 // Discord refused for lack of rights: name the missing ones; anything else: the usual short text.
@@ -46,6 +47,19 @@ module.exports = {
         if (feature && !isEnabled(featureSettings, feature.key)) {
           return await interaction.reply({ embeds: [embeds.info(disabledText(featureSettings, feature.key))], flags: MessageFlags.Ephemeral });
         }
+        // «Где и для кого работает модуль» (bot/utils/moduleConfig.js): channels, roles without access, a pause
+        const scope = feature && mc.SCOPE_MODULES.includes(feature.key) ? mc.scopeOf(featureSettings, feature.key) : null;
+        if (scope && (scope.allow.length || scope.deny.length || scope.exceptRoles.length || scope.cooldown)) {
+          const ch = interaction.channel;
+          const verdict = mc.scopeAllows(scope, { channelId: interaction.channelId, parentId: ch?.isThread?.() ? ch.parentId : null, roles: [...(interaction.member?.roles?.cache?.keys?.() || interaction.member?.roles || [])] });
+          if (!verdict.ok) {
+            const where = verdict.why === 'role' ? 'Вам эта команда на сервере недоступна.' : `Эта команда работает ${verdict.allow ? `только в ${verdict.allow.slice(0, 5).map((c) => `<#${c}>`).join(', ')}` : 'не в этом канале'}.`;
+            return await interaction.reply({ embeds: [embeds.info(where)], flags: MessageFlags.Ephemeral });
+          }
+          const left = mc.cooldownLeft(scope, interaction.guildId, feature.key, interaction.user?.id || '');
+          if (left > 0) return await interaction.reply({ embeds: [embeds.info(`Подождите ${left} сек. перед следующей командой.`)], flags: MessageFlags.Ephemeral });
+        }
+        await require('../modules/branding').wrap(interaction).catch(() => {}); // the replies in the server's look
         await command.execute(interaction);
       } catch (err) {
         logger.error(`Command "${interaction.commandName}" failed:`, err);
@@ -69,7 +83,7 @@ module.exports = {
       return;
     }
 
-    for (const [matches, handle, label] of [[isGiveawayButton, handleGiveawayButton, 'Giveaway'], [isTicketButton, handleTicketButton, 'Ticket']]) {
+    for (const [matches, handle, label] of [[isGiveawayButton, handleGiveawayButton, 'Giveaway'], [isTicketButton, handleTicketButton, 'Ticket'], [require('../modules/polls').isPollButton, require('../modules/polls').handlePollButton, 'Poll']]) {
       if (!matches(interaction)) continue;
       try {
         await handle(interaction);

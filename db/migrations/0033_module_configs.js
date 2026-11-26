@@ -15,6 +15,8 @@ async function up({ sequelize }) {
   await addColumns(sequelize, 'tickets', [['category', 'VARCHAR(255)'], ['answers', 'TEXT'], ['lastActivityAt', 'DATETIME'], ['warnedAt', 'DATETIME'],
     ['rating', 'INTEGER'], ['transcript', 'TEXT'], ['closeReason', 'VARCHAR(255)']]);
   await addColumns(sequelize, 'polls', [['anonymous', 'BOOLEAN DEFAULT 0'], ['multi', 'BOOLEAN DEFAULT 1'], ['votes', 'TEXT'], ['authorId', 'VARCHAR(255)']]);
+  const [polls] = await sequelize.query('PRAGMA table_info(polls);');
+  if (polls.length) await sequelize.query('CREATE INDEX IF NOT EXISTS polls_message_id ON polls (messageId);'); // a reaction finds its one-answer poll
 }
 
 module.exports = { name: '0033_module_configs', up };

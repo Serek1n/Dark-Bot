@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Мини-игры' }) %></head>
+<body>
+  <div class="app-layout with-nav">
+    <%- include('../partials/sidebar') %>
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Мини-игры</h1>
+        <p class="page-intro">Кубик, монетка, шар предсказаний и «камень, ножницы, бумага»: <code>/dice</code>, <code>/coinflip</code>, <code>/8ball</code>, <code>/rps</code>. Картинку результата настраивают в <a href="/dashboard/<%= guild.id %>/appearance-fun">Оформлении</a>.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id; const cur = settings.currencyName || 'монет';
+         const GAMES = [['dice', 'Кубик', '/dice'], ['coinflip', 'Монетка', '/coinflip'], ['8ball', 'Шар предсказаний', '/8ball'], ['rps', 'Камень, ножницы, бумага', '/rps']]; %>
+      <form method="post" action="<%= g %>/config/fun" class="card set-section">
+        <h2>Игры</h2>
+        <input type="hidden" name="_fields" value="dice,coinflip,8ball,rps,cooldownSec,ephemeral" />
+        <% GAMES.forEach(([k, t, c]) => { %>
+          <div class="set-row">
+            <div class="set-text"><label for="game-<%= k %>"><%= t %></label><p class="set-help"><code><%= c %></code></p></div>
+            <div class="set-ctl"><input type="checkbox" class="switch" id="game-<%= k %>" name="<%= k %>" <%= cfg[k] ? 'checked' : '' %> /></div>
+          </div>
+        <% }) %>
+        <div class="set-row">
+          <div class="set-text"><label for="cooldownSec">Пауза между играми одного участника</label><p class="set-help">Для каждой игры своя. 0 — без паузы</p></div>
+          <div class="set-ctl"><input type="number" id="cooldownSec" name="cooldownSec" min="0" max="3600" step="1" value="<%= cfg.cooldownSec %>" /> <span class="set-unit">сек</span></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="ephemeral">Результат видит только игрок</label><p class="set-help">Выключено — результат виден всем в канале</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="ephemeral" name="ephemeral" <%= cfg.ephemeral ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+
+      <form method="post" action="<%= g %>/config/fun" class="card set-section">
+        <h2>Ставки</h2>
+        <p class="set-lead">В <code>/coinflip</code> и <code>/rps</code> можно поставить <%= cur %> сервера: ставка списывается, выигрыш возвращает её с коэффициентом, налог с прибыли уходит в казну.<% if (!economyOn) { %> <b>Модуль «Экономика» выключен — ставки не работают, пока его не включат.</b><% } %></p>
+        <input type="hidden" name="_fields" value="bets,betMin,betMax,dailyWinCap,taxPct,coinflipPayout,rpsPayout" />
+        <div class="set-row">
+          <div class="set-text"><label for="bets">Разрешить ставки</label></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="bets" name="bets" <%= cfg.bets ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-row" data-depends="bets">
+          <div class="set-text"><label for="betMin">Ставка</label><p class="set-help">От и до, <%= cur %></p></div>
+          <div class="set-ctl"><input type="number" id="betMin" name="betMin" min="1" max="1000000" step="1" value="<%= cfg.betMin %>" aria-label="Не меньше" /> <span class="set-dash">—</span> <input type="number" name="betMax" min="1" max="10000000" step="1" value="<%= cfg.betMax %>" aria-label="Не больше" /></div>
+        </div>
+        <div class="set-row" data-depends="bets">
+          <div class="set-text"><label for="dailyWinCap">Выигрыш за день не больше</label><p class="set-help">Чистый выигрыш участника за сутки; дальше ставки до завтра закрыты. 0 — без предела</p></div>
+          <div class="set-ctl"><input type="number" id="dailyWinCap" name="dailyWinCap" min="0" max="100000000" step="1" value="<%= cfg.dailyWinCap %>" /></div>
+        </div>
+        <div class="set-row" data-depends="bets">
+          <div class="set-text"><label for="taxPct">Налог в казну</label><p class="set-help">С прибыли, не со ставки</p></div>
+          <div class="set-ctl"><input type="number" id="taxPct" name="taxPct" min="0" max="50" step="1" value="<%= cfg.taxPct %>" /> <span class="set-unit">%</span></div>
+        </div>
+        <div class="set-row" data-depends="bets">
+          <div class="set-text"><label for="coinflipPayout">Выплата за угаданную монетку</label><p class="set-help">В процентах от ставки: 190 — ставка ×1,9</p></div>
+          <div class="set-ctl"><input type="number" id="coinflipPayout" name="coinflipPayout" min="100" max="1000" step="5" value="<%= cfg.coinflipPayout %>" /> <span class="set-unit">%</span></div>
+        </div>
+        <div class="set-row" data-depends="bets">
+          <div class="set-text"><label for="rpsPayout">Выплата за победу в «камень, ножницы, бумага»</label><p class="set-help">Ничья возвращает ставку</p></div>
+          <div class="set-ctl"><input type="number" id="rpsPayout" name="rpsPayout" min="100" max="1000" step="5" value="<%= cfg.rpsPayout %>" /> <span class="set-unit">%</span></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+
+      <form method="post" action="<%= g %>/config/fun" class="card set-section">
+        <h2>Ответы шара предсказаний</h2>
+        <p class="set-lead">По одному ответу в строке. Если все три списка пусты, шар отвечает стандартными 20 фразами. Цвет ответа — по списку: зелёный, жёлтый, красный.</p>
+        <input type="hidden" name="_fields" value="answersGood,answersMaybe,answersBad" />
+        <% [['answersGood', 'Да', 'good'], ['answersMaybe', 'Неясно', 'maybe'], ['answersBad', 'Нет', 'bad']].forEach(([k, t, mood]) => { %>
+          <div class="set-row stacked">
+            <div class="set-text"><label for="<%= k %>"><%= t %></label><p class="set-help">До 40 строк по 100 символов</p></div>
+            <div class="set-ctl"><textarea id="<%= k %>" name="<%= k %>" rows="4" placeholder="<%= ANSWERS.filter((a) => a[1] === mood).slice(0, 3).map((a) => a[0]).join('\n') %>"><%= cfg[k].join('\n') %></textarea></div>
+          </div>
+        <% }) %>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+
+      <%- include('../partials/scope-block', { module: 'fun', scopeCfg, channels, roles }) %>
+    </main>
+  </div>
+</body>
+</html>

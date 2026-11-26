@@ -1232,3 +1232,48 @@
   window.addEventListener('hashchange', function () { setTimeout(layout, 0); });
   setTimeout(layout, 0);
 })();
+
+// --- «Перенос настроек»: the chosen file is read here and sent as text (the form stays an ordinary one).
+(function () {
+  var input = document.querySelector('[data-import-file]');
+  if (!input || !window.FileReader) return;
+  var box = input.closest('form'); var ta = box.querySelector('[data-import-json]'); var go = box.querySelector('[data-import-go]');
+  input.addEventListener('change', function () {
+    var f = input.files && input.files[0]; go.disabled = true; ta.value = '';
+    if (!f) return;
+    if (f.size > 2 * 1024 * 1024) { if (window.darkToast) window.darkToast('Файл больше 2 МБ — это не файл настроек', true); return; }
+    var r = new FileReader();
+    r.onload = function () {
+      try { var j = JSON.parse(String(r.result)); if (j.format !== 'dark-settings/1') throw new Error('format'); ta.value = String(r.result); go.disabled = false; } catch (e) { if (window.darkToast) window.darkToast('Это не файл настроек Dark', true); }
+    };
+    r.readAsText(f);
+  });
+})();
+
+// --- Templates in a text: a {name} the field does not know is pointed out under it (with the closest known name), and
+// once more when the form is saved. Fields list their names in data-vars="user,name,server".
+(function () {
+  function dist(a, b) {
+    var m = []; for (var i = 0; i <= a.length; i++) { m[i] = [i]; for (var j = 1; j <= b.length; j++) m[i][j] = i ? Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)) : j; }
+    return m[a.length][b.length];
+  }
+  function unknown(el) {
+    var known = el.getAttribute('data-vars').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+    var out = []; var re = /\{([a-zA-Zа-яё_]+)\}/g; var m;
+    while ((m = re.exec(el.value))) if (known.indexOf(m[1]) < 0 && out.indexOf(m[1]) < 0) out.push(m[1]);
+    return out.map(function (u) { var best = known.slice().sort(function (x, y) { return dist(u, x) - dist(u, y); })[0]; return { name: u, hint: best && dist(u, best) <= 2 ? best : null }; });
+  }
+  document.querySelectorAll('[data-vars]').forEach(function (el) {
+    var note = document.createElement('div'); note.className = 'hint var-warn'; note.setAttribute('aria-live', 'polite'); note.hidden = true;
+    el.insertAdjacentElement('afterend', note);
+    function check() {
+      var bad = unknown(el);
+      note.hidden = !bad.length;
+      note.textContent = bad.length ? 'Бот не знает ' + bad.map(function (b) { return '{' + b.name + '}' + (b.hint ? ' — может, {' + b.hint + '}?' : ''); }).join(', ') + '. Такой тег останется в тексте как есть.' : '';
+      return bad.length;
+    }
+    el.addEventListener('input', check); check();
+    var form = el.closest('form');
+    if (form) form.addEventListener('submit', function () { if (check() && window.darkToast) window.darkToast('В тексте есть неизвестные теги — проверьте подсказку под полем', true); });
+  });
+})();

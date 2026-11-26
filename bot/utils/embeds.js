@@ -6,7 +6,7 @@ const COLORS = {
   primary: 0xe3a857, // ember — brand accent
   success: 0x5cb98a,
   danger: 0xe5686c,
-  warning: 0xe3a857,
+  warning: 0xe3a858, // one step off primary on purpose: a server's own colours (bot/modules/branding.js) tell them apart
   neutral: 0x2b2d31 // near-black, for low-emphasis / quiet responses
 };
 

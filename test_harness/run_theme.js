@@ -80,7 +80,7 @@ const web = path.join(__dirname, '..', 'web');
   await test('the scroll states of the top bar: docked going down past the strip, undocked going up; a small jitter changes nothing', async () => {
     const src = fs.readFileSync(path.join(web, 'public/js/ui.js'), 'utf8');
     const start = src.indexOf('// --- The groups of modules: a strip');
-    const code = src.slice(start);
+    const code = src.slice(start, src.indexOf('\n// --- ', start + 10) > 0 ? src.indexOf('\n// --- ', start + 10) : undefined);
     const classes = new Set(); let ioCb = null; const listeners = {}; let raf = [];
     const el = (attrs = {}) => ({ attrs, setAttribute(k, v) { this.attrs[k] = v; }, getAttribute(k) { return this.attrs[k]; }, removeAttribute(k) { delete this.attrs[k]; }, querySelectorAll: () => [], querySelector: () => null, contains: () => false, getBoundingClientRect: () => ({ height: 60, top: 0, bottom: 60, left: 0 }), hidden: true, focus() {} });
     const dock = el({ 'aria-hidden': 'true' });

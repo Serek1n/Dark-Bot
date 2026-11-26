@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Напоминания' }) %></head>
+<body>
+  <div class="app-layout with-nav">
+    <%- include('../partials/sidebar') %>
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Напоминания</h1>
+        <p class="page-intro">Участник пишет <code>/remind add</code>: через сколько (<code>2h</code>, <code>1d</code>) или во сколько (<code>18:30</code>, <code>25.12 18:30</code> — по часовому поясу сервера из <a href="/dashboard/<%= guild.id %>/settings">Базовых настроек</a>), и бот напоминает в канале или в личных сообщениях.</p>
+      </div>
+      <% const g = '/dashboard/' + guild.id;
+         const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: settings.timezone || 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+         const chName = (id) => { const c = channels.find((x) => x.id === id); return c ? '#' + c.name : 'личные сообщения'; }; %>
+      <form method="post" action="<%= g %>/config/reminders" class="card set-section">
+        <h2>Правила</h2>
+        <input type="hidden" name="_fields" value="maxPerUser,minMinutes,maxDays,dmOnly,stripMentions" />
+        <div class="set-row">
+          <div class="set-text"><label for="maxPerUser">Напоминаний у одного участника</label></div>
+          <div class="set-ctl"><input type="number" id="maxPerUser" name="maxPerUser" min="1" max="50" step="1" value="<%= cfg.maxPerUser %>" /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="minMinutes">Не раньше чем через</label><p class="set-help">0 — от 10 секунд</p></div>
+          <div class="set-ctl"><input type="number" id="minMinutes" name="minMinutes" min="0" max="1440" step="1" value="<%= cfg.minMinutes %>" /> <span class="set-unit">мин</span></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="maxDays">Не позже чем через</label></div>
+          <div class="set-ctl"><input type="number" id="maxDays" name="maxDays" min="1" max="365" step="1" value="<%= cfg.maxDays %>" /> <span class="set-unit">дн</span></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="dmOnly">Только в личные сообщения</label><p class="set-help">Выключено — в канале, где создали, если участник может там писать</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="dmOnly" name="dmOnly" <%= cfg.dmOnly ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="stripMentions">Убирать упоминания ролей</label><p class="set-help">@everyone и @here не срабатывают никогда; с этой настройкой — и упоминания ролей</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="stripMentions" name="stripMentions" <%= cfg.stripMentions ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+
+      <div class="card">
+        <h2>Ждут отправки <span class="muted"><%= total %></span></h2>
+        <form method="get" class="table-toolbar">
+          <input type="search" name="q" class="tt-search" value="<%= q %>" placeholder="ID участника или слово из текста" aria-label="Найти напоминание" />
+        </form>
+        <% if (!rows.length) { %>
+          <%- include('../partials/empty-state', { icon: 'reminders', text: q ? 'Ничего не найдено.' : 'Напоминаний сейчас нет.', action: null }) %>
+        <% } else { %>
+          <div class="table-wrap table-scroll"><table class="data-table">
+            <thead><tr><th>Когда</th><th>Кому</th><th>Текст</th><th>Куда</th><th></th></tr></thead>
+            <tbody>
+              <% rows.forEach((r) => { %>
+                <tr>
+                  <td class="nowrap"><%= when(r.remindAt) %></td>
+                  <td class="person"><%= (users[r.userId] || {}).name || r.userId %><small class="mono"><%= r.userId %></small></td>
+                  <td><%= r.text.length > 140 ? r.text.slice(0, 140) + '…' : r.text %></td>
+                  <td><%= chName(r.channelId) %></td>
+                  <td class="row-act"><form method="post" action="<%= g %>/reminders/<%= r.id %>/delete" data-no-guard data-confirm="Удалить напоминание? Участник его не получит." data-confirm-ok="Удалить"><button class="btn btn-sm btn-secondary" type="submit">Удалить</button></form></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+
+      <%- include('../partials/scope-block', { module: 'reminders', scopeCfg, channels, roles }) %>
+    </main>
+  </div>
+</body>
+</html>

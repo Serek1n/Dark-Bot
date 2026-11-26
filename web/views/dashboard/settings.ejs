@@ -34,6 +34,55 @@
         </div>
         <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
       </form>
+      <form method="post" action="/dashboard/<%= guild.id %>/config/brand" class="card set-section">
+        <h2>Ответы бота</h2>
+        <p class="set-lead">Как выглядят ответы команд на этом сервере. Пусто — как у бота по умолчанию.</p>
+        <input type="hidden" name="_fields" value="colorInfo,colorSuccess,colorWarning,colorError,colorMod,emojiSuccess,emojiError,footer,ephemeral,dateStyle" />
+        <% [['colorInfo', 'Цвет информации', '#e3a857'], ['colorSuccess', 'Цвет успеха', '#5cb98a'], ['colorWarning', 'Цвет предупреждения', '#e3a857'], ['colorError', 'Цвет ошибки', '#e5686c'], ['colorMod', 'Цвет ответов модерации', 'как у успеха']].forEach(([k, t, ph]) => { %>
+          <div class="set-row">
+            <div class="set-text"><label for="<%= k %>"><%= t %></label></div>
+            <div class="set-ctl"><input type="text" id="<%= k %>" name="<%= k %>" maxlength="7" value="<%= brand[k] %>" placeholder="<%= ph %>" data-color-field /></div>
+          </div>
+        <% }) %>
+        <div class="set-row">
+          <div class="set-text"><label for="emojiSuccess">Значки успеха и ошибки</label><p class="set-help">Стоят в начале ответа; пусто — без значка</p></div>
+          <div class="set-ctl"><input type="text" id="emojiSuccess" name="emojiSuccess" maxlength="32" value="<%= brand.emojiSuccess %>" aria-label="Значок успеха" style="width:96px;text-align:center" /> <input type="text" name="emojiError" maxlength="32" value="<%= brand.emojiError %>" aria-label="Значок ошибки" style="width:96px;text-align:center" /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="brandFooter">Подпись внизу ответов</label><p class="set-help">Только у ответов без своей подписи</p></div>
+          <div class="set-ctl"><input type="text" id="brandFooter" name="footer" maxlength="100" value="<%= brand.footer %>" placeholder="Например, Night Owls · правила в #rules" /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="brandEphemeral">Справочные ответы видит только автор</label><p class="set-help"><code>/help</code>, <code>/info</code>, <code>/profile</code>, <code>/balance</code>, <code>/top</code>, <code>/stats</code> и подобные</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="brandEphemeral" name="ephemeral" <%= brand.ephemeral ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="dateStyle">Вид дат в ответах</label><p class="set-help">Discord показывает их каждому в его часовом поясе</p></div>
+          <div class="set-ctl"><select id="dateStyle" name="dateStyle">
+            <% [['', 'Как задумано в команде'], ['R', 'Относительно: «через 2 часа»'], ['f', 'Дата и время: «25 ноября 2026 г., 18:30»'], ['F', 'С днём недели'], ['d', 'Коротко: «25.11.2026»'], ['D', 'Дата словами'], ['t', 'Только время']].forEach(([v, t]) => { %><option value="<%= v %>" <%= brand.dateStyle === v ? 'selected' : '' %>><%= t %></option><% }) %>
+          </select></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+
+      <section class="card set-section set-tools">
+        <h2>Перенос настроек</h2>
+        <% if (imported) { %>
+          <div class="callout" role="status">Загружено. Каналы и роли: <b><%= imported.kept %></b> есть на сервере, <b><%= imported.mapped %></b> найдены по названию<% if (imported.dropped.length) { %>, не найдены и пропущены: <%= imported.dropped.join(', ') %><%= imported.more ? ' и ещё ' + imported.more : '' %> — выберите их заново на страницах модулей<% } %>.</div>
+        <% } %>
+        <div class="set-row">
+          <div class="set-text"><span class="set-title">Скачать настройки</span><p class="set-help">Файл JSON со всеми настройками модулей. Без денег, сезонов и секретов</p></div>
+          <div class="set-ctl"><a class="btn btn-secondary" href="/dashboard/<%= guild.id %>/settings/export" download>Скачать файл</a></div>
+        </div>
+        <form method="post" action="/dashboard/<%= guild.id %>/settings/import" class="set-row stacked" data-no-guard data-confirm="Заменить настройки этого сервера настройками из файла?" data-confirm-ok="Загрузить">
+          <div class="set-text"><label for="importFile">Загрузить из файла</label><p class="set-help">Каналы и роли, которых здесь нет, бот ищет по названию; ненайденные пропускает и называет</p></div>
+          <div class="set-ctl"><input type="file" id="importFile" accept="application/json,.json" data-import-file /><textarea name="json" data-import-json hidden></textarea><button class="btn btn-secondary" type="submit" data-import-go disabled>Загрузить</button></div>
+        </form>
+        <form method="post" action="/dashboard/<%= guild.id %>/settings/reset-module" class="set-row" data-no-guard data-confirm="Вернуть настройки модуля к стандартным? Его данные (участники, деньги, тикеты) останутся." data-confirm-ok="Сбросить">
+          <div class="set-text"><label for="resetModule">Сбросить модуль</label><p class="set-help">Только настройки; включён ли модуль, не меняется</p></div>
+          <div class="set-ctl"><select id="resetModule" name="module"><% Object.entries(MODULE_TITLES).forEach(([k, t]) => { %><option value="<%= k %>"><%= t %></option><% }) %></select> <button class="btn btn-secondary" type="submit">Сбросить</button></div>
+        </form>
+      </section>
     </main>
   </div>
 </body>

@@ -59,6 +59,8 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 // the bot's own line icons (its application emojis, bot/modules/appEmojis.js) for the previews of «Оформление»
 app.use('/app-emoji', express.static(path.join(__dirname, '..', 'bot', 'assets', 'emoji'), { maxAge: '7d' }));
+// a settings file loaded in «Базовые настройки» may be larger than any form; everything else keeps the small limit
+app.use(/^\/dashboard\/\d+\/settings\/import$/, express.urlencoded({ extended: true, limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // Basic hardening headers. The panel loads only its own assets plus Discord's CDN for avatars.
