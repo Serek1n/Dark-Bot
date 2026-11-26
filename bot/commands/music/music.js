@@ -72,9 +72,12 @@ async function enqueueAndPlay(interaction, tracks, { playlist = null, note = '' 
     if (note) await interaction.followUp({ content: note, flags: MessageFlags.Ephemeral }).catch(() => {});
     return true;
   }
+  // the music was paused: a new track means «play», otherwise it would wait in the queue while the bot sits idle
+  const resumed = queue.paused;
+  if (resumed) queue.resume();
   queue.refreshPanel();
   await interaction.editReply({
-    embeds: [embeds.success(`${tracks.length > 1 ? `Добавлено ${tracks.length} треков в очередь.` : `Добавлено в очередь: **${tracks[0].title}**`}${note ? `\n${note}` : ''}`)]
+    embeds: [embeds.success(`${tracks.length > 1 ? `Добавлено ${tracks.length} треков в очередь.` : `Добавлено в очередь: **${tracks[0].title}**`}${resumed ? '\nПауза снята.' : ''}${note ? `\n${note}` : ''}`)]
   });
   return true;
 }

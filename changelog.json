@@ -1,5 +1,24 @@
 [
  {
+  "bot": "3.22.1",
+  "panel": "3.41.0",
+  "date": "2026-11-26",
+  "botChanges": [
+   "Музыка: бот больше не уходит из голосового, пока люди слушают паузу",
+   "/play во время паузы снимает её, а не только добавляет трек в очередь",
+   "Уходя, бот пишет честно: в канале никого нет или музыка не играла"
+  ],
+  "panelChanges": [],
+  "en": {
+   "botChanges": [
+    "Music: the bot no longer leaves voice while people sit through a pause",
+    "/play during a pause resumes it instead of only queueing the track",
+    "When leaving, the bot says why: nobody in the channel, or no music played"
+   ],
+   "panelChanges": []
+  }
+ },
+ {
   "bot": "3.22.0",
   "panel": "3.41.0",
   "date": "2026-11-26",

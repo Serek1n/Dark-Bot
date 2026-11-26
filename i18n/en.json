@@ -685,8 +685,6 @@
  "видео недоступно (приватное, удалено или закрыто для региона)": "the video is unavailable (private, removed or blocked in this region)",
  "▶ Играет: **{0}**": "▶ Playing: **{0}**",
  "трек": "track",
- "👋 Никто не слушает уже 5 минут, выхожу из голосового канала.": "👋 Nobody has been listening for 5 minutes, leaving the voice channel.",
- "Бот вышел из голосового канала: музыки не было 5 минут.": "The bot left the voice channel: there was no music for 5 minutes.",
  " Ещё пропущено треков: {0}.": " Tracks skipped as well: {0}.",
  "⚠️ Не удалось воспроизвести **{0}**{1}, пропускаю.{2}": "⚠️ Couldn't play **{0}**{1}, skipping.{2}",
  "Воспроизведение остановлено.": "Playback stopped.",
@@ -6014,5 +6012,10 @@
  "Пропуска на сервер апелляций⟦0⟧Запросы и выданные приглашения": "Appeal server passes⟦0⟧Requests and issued invites",
  "Запросов пока не было. Наказанный просит пропуск кнопкой в личных сообщениях или на сайте.": "No requests yet. A punished member asks for a pass with a button in DMs or on the site.",
  "Приглашение истекло": "Invite expired",
- "Пропустить": "Let in"
+ "Пропустить": "Let in",
+ "\nПауза снята.": "\nResumed.",
+ "👋 В голосовом канале никого нет — выхожу.": "👋 Nobody is in the voice channel — leaving.",
+ "👋 Музыка на паузе уже {0} мин. — выхожу из голосового канала. Включите снова через `/play`.": "👋 The music has been paused for {0} min — leaving the voice channel. Start it again with `/play`.",
+ "👋 Музыка не играла {0} мин. — выхожу из голосового канала. Включите снова через `/play`.": "👋 No music for {0} min — leaving the voice channel. Start it again with `/play`.",
+ "Бот вышел из голосового канала: музыка не играла.": "The bot left the voice channel: no music was playing."
 }

@@ -18,6 +18,7 @@ const logger = require('../../utils/logger');
  */
 
 const IDLE_TIMEOUT_MS = Number(process.env.VOICE_IDLE_MINUTES || 5) * 60 * 1000;
+const PAUSE_LIMIT_MS = Math.max(IDLE_TIMEOUT_MS, Number(process.env.VOICE_PAUSE_MINUTES || 30) * 60 * 1000); // a pause with people in the channel
 // A playlist is cut to this many tracks: each Spotify/Apple track is a separate search, so a 500-track list would keep the bot busy for many minutes.
 const MAX_PLAYLIST = 100;
 const YTDLP_BIN = process.env.YTDLP_PATH || 'yt-dlp';
@@ -358,22 +359,42 @@ class GuildQueue {
   }
 
   _clearIdleTimer() {
+    this._idleSince = null;
     if (this.idleTimer) {
       clearTimeout(this.idleTimer);
       this.idleTimer = null;
     }
   }
 
-  /** Leaves the voice channel after IDLE_TIMEOUT_MS without music (nothing playing, or paused). */
+  /** People (not bots) in the bot's voice channel right now; null when the bot cannot see the channel. */
+  listeners() {
+    const ch = this.voiceChannel?.guild?.channels?.cache?.get?.(this.voiceChannel.id) || this.voiceChannel;
+    const members = ch?.members;
+    if (!members || typeof members.values !== 'function') return null;
+    return [...members.values()].filter((m) => !m.user?.bot).length;
+  }
+
+  /**
+   * After IDLE_TIMEOUT_MS without music the bot leaves — but not from people who only paused it: a pause with listeners
+   * waits (up to PAUSE_LIMIT_MS in all). Nobody in the channel, or nothing left to play: it leaves and says which.
+   */
   _startIdleTimer() {
+    const since = this._idleSince || Date.now(); // a re-armed wait keeps counting from its start
     this._clearIdleTimer();
+    this._idleSince = since;
     this.idleTimer = setTimeout(() => {
       this.idleTimer = null;
-      logger.info?.(`Idle for ${IDLE_TIMEOUT_MS / 60000} min, leaving voice in guild ${this.guildId}`);
-      this.textChannel
-        ?.send('👋 Никто не слушает уже 5 минут, выхожу из голосового канала.')
-        .catch(() => {});
-      destroyQueue(this.guildId, 'Бот вышел из голосового канала: музыки не было 5 минут.');
+      const people = this.listeners();
+      const waited = Date.now() - this._idleSince;
+      if (people && this.paused && this.playing && waited < PAUSE_LIMIT_MS) { this._startIdleTimer(); return; }
+      if (people && !this.playing && this.tracks.length) { this.playNext().catch((err) => logger.error('playNext error', err)); return; }
+      const minutes = Math.max(1, Math.round(waited / 60000));
+      const text = people === 0 ? '👋 В голосовом канале никого нет — выхожу.'
+        : this.paused ? `👋 Музыка на паузе уже ${minutes} мин. — выхожу из голосового канала. Включите снова через \`/play\`.`
+          : `👋 Музыка не играла ${minutes} мин. — выхожу из голосового канала. Включите снова через \`/play\`.`;
+      logger.info?.(`Idle for ${minutes} min (listeners: ${people ?? '?'}, paused: ${this.paused}), leaving voice in guild ${this.guildId}`);
+      this.textChannel?.send(text).catch(() => {});
+      destroyQueue(this.guildId, 'Бот вышел из голосового канала: музыка не играла.');
     }, IDLE_TIMEOUT_MS);
     this.idleTimer.unref?.();
   }
