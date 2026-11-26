@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><%- include('../partials/head', { title: guild.name + ' — Дело #' + entry.caseNumber }) %></head>
+<body>
+  <div class="app-layout with-nav">
+    <%- include('../partials/sidebar') %>
+    <main class="content <%= (locals.M || global.__darkModules).layoutOf(locals.active) %>" id="main" tabindex="-1">
+      <% const g = '/dashboard/' + guild.id;
+         const who = (id) => (users[id] && users[id].name) || id || '—';
+         const when = (d) => new Date(d).toLocaleString('ru-RU', { timeZone: process.env.TZ || 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+         const RU = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка', role_mute: 'Мут ролью', unrole_mute: 'Мут ролью снят', quarantine: 'Карантин', unquarantine: 'Карантин снят', restrict: 'Ограничение', unrestrict: 'Ограничение снято', temprole: 'Временная роль', untemprole: 'Временная роль снята' };
+         const label = (a) => RU[a] || a;
+         const NOTE = { note: 'Заметка', reason: 'Изменена причина', duration: 'Изменён срок', lifted: 'Снято' };
+         const pun = rolePun && rolePun.active ? rolePun : null; %>
+      <div class="page-header">
+        <%- include('../partials/module-head') %>
+        <h1>Дело #<%= entry.caseNumber %></h1>
+        <p class="page-intro"><%= label(entry.action) %> · <%= who(entry.userId) %> · <%= when(entry.createdAt) %></p>
+      </div>
+      <p class="crumbs"><a href="<%= g %>/moderation-log">← Журнал модерации</a></p>
+      <section class="card set-section" id="case">
+        <h2>Подробности</h2>
+        <dl class="case-facts">
+          <dt>Участник</dt><dd><%= who(entry.userId) %> <span class="muted">(<%= entry.userId %>)</span></dd>
+          <dt>Модератор</dt><dd><%= who(entry.moderatorId) %></dd>
+          <dt>Причина</dt><dd><%= entry.reason || '—' %></dd>
+          <% const endAt = (pun && pun.expiresAt) || (tempRole && tempRole.expiresAt) || entry.expiresAt; %>
+          <dt>Срок</dt><dd><%= entry.duration ? formatDuration(Number(entry.duration)) : (pun && !pun.expiresAt ? 'до снятия' : (endAt ? '' : '—')) %><% if (endAt) { %><%= entry.duration ? ' · ' : '' %>до <%= when(endAt) %><% } %></dd>
+          <% if (rolePun) { %><dt>Состояние</dt><dd><%= rolePun.active ? 'действует' : 'снято' + (rolePun.liftedAt ? ' ' + when(rolePun.liftedAt) : '') %></dd><% } %>
+          <% if (tempRole) { %><dt>Временная роль</dt><dd>действует до <%= when(tempRole.expiresAt) %></dd><% } %>
+        </dl>
+        <% if (pun || tempRole) { const base = pun ? `${g}/moderation-punishments/role/${pun.id}` : `${g}/moderation-punishments/temprole/${tempRole.id}`; %>
+          <div class="case-actions">
+            <form method="post" action="<%= base %>/extend" class="inline-extend" data-no-guard><input type="text" name="duration" placeholder="+1d" aria-label="На сколько продлить" size="5" required /><button class="btn btn-secondary" type="submit">Продлить</button></form>
+            <form method="post" action="<%= base %>/lift" data-no-guard data-confirm="Снять наказание сейчас?" data-confirm-ok="Снять"><button class="btn btn-secondary" type="submit">Снять</button></form>
+          </div>
+        <% } %>
+      </section>
+      <section class="card set-section" id="notes">
+        <h2>Заметки и изменения</h2>
+        <% if (!notes.length) { %>
+          <p class="empty-state">Заметок пока нет.</p>
+        <% } else { %>
+          <ul class="case-notes">
+            <% notes.forEach((n) => { %><li><span class="badge"><%= NOTE[n.kind] || n.kind %></span> <%= n.text %> <span class="muted">· <%= who(n.authorId) %> · <%= when(n.createdAt) %></span></li><% }) %>
+          </ul>
+        <% } %>
+        <form method="post" action="<%= g %>/moderation-case/<%= entry.caseNumber %>/note" class="case-form" data-no-guard>
+          <label for="c_note">Новая заметка</label>
+          <textarea id="c_note" name="text" maxlength="900" rows="2" required placeholder="Видна только модераторам"></textarea>
+          <button class="btn" type="submit">Добавить заметку</button>
+        </form>
+        <form method="post" action="<%= g %>/moderation-case/<%= entry.caseNumber %>/reason" class="case-form" data-no-guard>
+          <label for="c_reason">Изменить причину</label>
+          <input id="c_reason" type="text" name="text" maxlength="500" required value="<%= entry.reason || '' %>" />
+          <button class="btn btn-secondary" type="submit">Сохранить причину</button>
+        </form>
+        <p class="hint">Старая причина остаётся в заметках.</p>
+      </section>
+      <section class="card set-section" id="history">
+        <h2>Другие дела участника</h2>
+        <ul class="case-notes">
+          <% history.forEach((h) => { %><li><% if (h.caseNumber) { %><a href="<%= g %>/moderation-case/<%= h.caseNumber %>">#<%= h.caseNumber %></a><% } %> <%= label(h.action) %> · <%= h.reason || '—' %> <span class="muted">· <%= when(h.createdAt) %></span></li><% }) %>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

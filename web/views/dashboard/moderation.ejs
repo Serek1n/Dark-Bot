@@ -42,7 +42,7 @@
           <p class="empty-state">Наказаний пока не было.</p>
         <% } else { %>
           <div class="mini-list">
-            <% const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' }; %>
+            <% const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка', role_mute: 'Мут ролью', unrole_mute: 'Мут ролью снят', quarantine: 'Карантин', unquarantine: 'Карантин снят', restrict: 'Ограничение', unrestrict: 'Ограничение снято', temprole: 'Временная роль', untemprole: 'Временная роль снята' }; %>
             <% recent.forEach((l) => { const u = users[l.userId] || { name: l.userId, avatar: '' }; %>
               <div class="mini-row"><span class="badge badge-<%= l.action %>"><%= actionRu[l.action] || l.action %></span><span class="person"><% if (u.avatar) { %><img src="<%= u.avatar %>" alt="" loading="lazy" /><% } else { %><span class="av-letter" aria-hidden="true"><%= String(u.name || '?').charAt(0).toUpperCase() %></span><% } %><span><%= u.name %></span></span><span class="val">#<%= l.caseNumber || '—' %></span></div>
             <% }) %>

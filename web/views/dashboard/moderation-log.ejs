@@ -10,7 +10,7 @@
         <h1>Журнал модерации</h1>
         <p class="page-intro">Все действия модераторов, автомодерации и автонаказаний с номерами дел. Подробности дела в Discord: <code>/mod case</code>, история участника: <code>/mod history</code>.</p>
       </div>
-      <% const g = '/dashboard/' + guild.id; const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' };
+      <% const g = '/dashboard/' + guild.id; const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка', role_mute: 'Мут ролью', unrole_mute: 'Мут ролью снят', quarantine: 'Карантин', unquarantine: 'Карантин снят', restrict: 'Ограничение', unrestrict: 'Ограничение снято', temprole: 'Временная роль', untemprole: 'Временная роль снята' };
          const q = (extra) => { const p = new URLSearchParams(); if (action) p.set('action', action); if (user) p.set('user', user); Object.entries(extra || {}).forEach(([k, v]) => (v === '' ? p.delete(k) : p.set(k, v))); const s = p.toString(); return s ? '?' + s : ''; };
          const pages = Math.max(1, Math.ceil(total / 50)); %>
       <div class="card g-span" id="journal">

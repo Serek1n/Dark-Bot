@@ -15,7 +15,15 @@ const LABELS = {
   unban: '♻️ Разбан',
   clear: '🧹 Очистка сообщений',
   automod: '🤖 Автомодерация',
-  note: '📝 Заметка'
+  note: '📝 Заметка',
+  role_mute: '🔇 Мут ролью',
+  unrole_mute: '🔊 Мут ролью снят',
+  quarantine: '🚧 Карантин',
+  unquarantine: '✅ Карантин снят',
+  restrict: '⛔ Ограничение',
+  unrestrict: '✅ Ограничение снято',
+  temprole: '⏳ Временная роль',
+  untemprole: '⌛ Временная роль снята'
 };
 
 /** Writes a case with the next number of this server ("дело #N"); numbers never repeat, even for simultaneous actions. */

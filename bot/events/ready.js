@@ -52,6 +52,7 @@ module.exports = {
     require('../modules/communities').adoptOldPictures().catch(() => {}); // catalog pictures from Discord links → kept by the bot
     require('../modules/serverStats').startServerStats(client); // «Статистика сервера»: numbers by day, counters in channel names
     require('../modules/tempRoles').startTempRoleScheduler(client); // takes temporary roles away when their time is up
+    require('../modules/punishments').startRolePunishmentScheduler(client); // lifts mutes by role, quarantines and restrictions
     startRestoreCleanup(); // forgets old data of members who left
     require('../modules/tickets').sweepClosedTickets(client).catch(() => {}); // closed tickets whose channel outlived a restart
     require('../modules/dbBackup').startDbBackup(); // a copy of the database once a day

@@ -48,6 +48,40 @@ async function giveOrExtend(guild, member, roleId, ms, byId, reason) {
   return { expiresAt, extended: false };
 }
 
+/**
+ * /temprole give and the ladder of automatic punishments: the role for a while as a case (ModLog «temprole»), with the
+ * reason and an optional DM. Returns { expiresAt, entry }.
+ */
+async function giveWithCase(guild, member, role, ms, { byId, reason = null, dm = false } = {}) {
+  const expiresAt = await give(guild, member, role, ms, byId);
+  const why = String(reason || 'Без причины').slice(0, 900);
+  const entry = await require('../utils/modlog').recordAndAnnounce(guild, { userId: member.id, moderatorId: byId, action: 'temprole', reason: `@${role.name}: ${why}`, duration: ms, expiresAt });
+  await TempRole.update({ reason: why, caseNumber: entry.caseNumber }, { where: { guildId: guild.id, userId: member.id, roleId: role.id } });
+  if (dm) await guild.client.users.send(member.id, `⏳ Вам выдана роль **${role.name}** до <t:${Math.floor(expiresAt.getTime() / 1000)}:f>: ${why}\n— сервер **${guild.name}**`).catch(() => {});
+  return { expiresAt, entry };
+}
+/** Takes a temporary role away before its end (a moderator, the panel, the undo of a removed warning). */
+async function removeWithCase(guild, row, { byId, reason = null } = {}) {
+  const member = await guild.members.fetch(row.userId).catch(() => null);
+  if (member?.roles?.cache?.has(row.roleId)) await member.roles.remove(row.roleId, 'Временная роль снята');
+  await row.destroy();
+  if (row.caseNumber) await require('../../db').CaseNote.create({ guildId: row.guildId, caseNumber: row.caseNumber, authorId: byId, kind: 'lifted', text: String(reason || 'Снята модератором').slice(0, 1000) }).catch(() => {});
+  return require('../utils/modlog').recordAndAnnounce(guild, { userId: row.userId, moderatorId: byId, action: 'untemprole', reason: `<@&${row.roleId}>: ${reason || 'снята модератором'}${row.caseNumber ? ` (дело #${row.caseNumber})` : ''}` });
+}
+/** A longer (or shorter) term from now or from its end, written in the case. */
+async function extendWithCase(row, ms, byId) {
+  const old = row.expiresAt;
+  const expiresAt = new Date(Math.max(Date.now(), new Date(row.expiresAt).getTime()) + ms);
+  await row.update({ expiresAt });
+  if (row.caseNumber) {
+    const { ModLog, CaseNote } = require('../../db');
+    await ModLog.update({ expiresAt }, { where: { guildId: row.guildId, caseNumber: row.caseNumber } }).catch(() => {});
+    await CaseNote.create({ guildId: row.guildId, caseNumber: row.caseNumber, authorId: byId, kind: 'duration', text: `Срок продлён: ${new Date(old).toISOString().slice(0, 16).replace('T', ' ')} → ${expiresAt.toISOString().slice(0, 16).replace('T', ' ')} (UTC)` }).catch(() => {});
+  }
+  poke('temproles');
+  return expiresAt;
+}
+
 /** Is this member's role on a term (and until when)? null when it is not. */
 async function termOf(guildId, userId, roleId) {
   const row = await TempRole.findOne({ where: { guildId, userId, roleId } });
@@ -110,4 +144,4 @@ function startTempRoleScheduler(client) {
   scheduler = createScheduler({ name: 'temproles', nextDue: () => TempRole.min('expiresAt'), run: () => tick(client) }).start();
 }
 
-module.exports = { give, giveOrExtend, termOf, tick, startTempRoleScheduler, wake: () => scheduler?.wake?.() };
+module.exports = { give, giveWithCase, removeWithCase, extendWithCase, giveOrExtend, termOf, tick, startTempRoleScheduler, wake: () => scheduler?.wake?.() };

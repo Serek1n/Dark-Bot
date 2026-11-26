@@ -36,4 +36,18 @@ function hierarchyError(actor, target) {
   return null;
 }
 
-module.exports = { memberHasPermission, isModerator, isAdmin, hierarchyError };
+/**
+ * The same rule for an action from the web panel: the moderator (by ID) may not act on someone whose highest role is
+ * not below his own. Returns a sentence, or null. Members the bot cannot read are left to Discord's own checks.
+ */
+async function panelHierarchyError(guild, actorId, targetId) {
+  if (!guild || !actorId || !targetId) return null;
+  if (actorId === targetId) return 'Нельзя применить это к самому себе.';
+  if (targetId === guild.ownerId) return 'Нельзя применить это к владельцу сервера.';
+  if (actorId === guild.ownerId) return null;
+  const [actor, target] = await Promise.all([guild.members.fetch(actorId).catch(() => null), guild.members.fetch(targetId).catch(() => null)]);
+  if (!actor || !target) return null;
+  return hierarchyError(actor, target);
+}
+
+module.exports = { memberHasPermission, isModerator, isAdmin, hierarchyError, panelHierarchyError };

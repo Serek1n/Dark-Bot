@@ -322,3 +322,27 @@ input[type=search]:focus { outline: none; border-color: var(--ember); box-shadow
 .callout-danger { border-color: var(--danger); }
 .is-locked-form { opacity: .6; }
 .lock-note { margin-top: 8px; color: var(--text-secondary); font-size: var(--fs-13); }
+.inline-extend { display: inline-flex !important; flex-direction: row !important; gap: 4px; align-items: center; margin-right: 4px !important; }
+.inline-extend input { width: 72px; min-height: var(--h-control-sm) !important; padding: 4px 8px; }
+.data-table .row-act { white-space: nowrap; }
+
+/* moderation case page and role checks (stage 5) */
+.case-facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 0 0 14px; }
+.case-facts dt { color: var(--text-secondary); }
+.case-facts dd { margin: 0; overflow-wrap: anywhere; }
+.case-notes { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 8px; }
+.case-notes li { overflow-wrap: anywhere; }
+.case-form { display: grid; gap: 6px; margin-top: 12px; max-width: 640px; }
+.case-form .btn { justify-self: start; }
+.check-list { margin: 0 0 12px; padding-left: 18px; display: grid; gap: 6px; }
+.check-list li { overflow-wrap: anywhere; }
+.crumbs { margin: 0 0 4px; font-size: var(--fs-13); }
+@media (max-width: 560px) { .case-facts { grid-template-columns: 1fr; gap: 2px; } .case-facts dd { margin-bottom: 8px; } }
+.case-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.case-actions .inline-extend { display: flex; flex-direction: row !important; gap: 8px; align-items: center; flex-wrap: nowrap; }
+.case-actions .inline-extend input { width: 90px; }
+.case-form + .case-form { margin-top: 20px; }
+.role-filter { display: grid !important; gap: 6px; margin: 4px 0 12px; max-width: 420px; }
+.role-filter-row { display: flex; gap: 10px; align-items: center; }
+.role-filter-row input { flex: 1 1 auto; min-width: 0; }
+.role-filter-row .btn { flex: 0 0 auto; width: auto !important; }

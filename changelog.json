@@ -1,5 +1,54 @@
 [
  {
+  "bot": "3.21.0",
+  "panel": "3.40.0",
+  "date": "2026-11-26",
+  "botChanges": [
+   "/mod rolemute: мут ролью дольше 28 дней или до снятия, переживает перезаход",
+   "/mod quarantine: роли снимаются и сохраняются, остаётся только канал разбора",
+   "При снятии карантина роли возвращаются; удалённые за это время пропускаются",
+   "/mod restrict: ограничительные роли сервера (без картинок, без голоса…) на срок",
+   "/temprole: выдать, снять, продлить, список — с причиной, делом и письмом в ЛС",
+   "Предупреждения с баллами и своим сроком сгорания",
+   "Лестница наказаний по числу предупреждений или по сумме баллов: от тайм-аута до бана",
+   "Откат: снятое ошибочное предупреждение снимает и мягкое автонаказание",
+   "Шаблоны причин в подсказках /mod, тихий режим, заметки к делу, смена срока",
+   "Бот не наказывает того, чья роль не ниже роли модератора или бота"
+  ],
+  "panelChanges": [
+   "Настройки наказаний: роли мута и карантина, канал разбора, тихий режим",
+   "Проверка ролей по каналам и кнопка «Проставить запреты во всех каналах»",
+   "Ограничительные роли и шаблоны причин — таблицами",
+   "Автонаказания: лестница из 10 ступеней, баллы, сгорание и откат",
+   "Наказания: таблица ролевых наказаний и временных ролей с поиском, продлением и снятием",
+   "Страница дела: подробности, заметки, смена причины с историей, другие дела участника",
+   "Номера дел в журнале ведут на страницу дела"
+  ],
+  "en": {
+   "botChanges": [
+    "/mod rolemute: a mute by role longer than 28 days or until lifted, kept over a rejoin",
+    "/mod quarantine: roles are taken and saved, only the review channel stays",
+    "Lifting a quarantine gives the roles back; roles deleted meanwhile are skipped",
+    "/mod restrict: the server's restriction roles (no images, no voice…) for a term",
+    "/temprole: give, remove, extend, list — with a reason, a case and a DM",
+    "Warnings with points and their own expiry",
+    "A punishment ladder by warning count or points sum: from timeout to ban",
+    "Revert: a removed wrong warning lifts its soft automatic punishment too",
+    "Reason presets in /mod hints, silent mode, case notes, changing a term",
+    "The bot does not punish someone whose role is not below the moderator's or the bot's"
+   ],
+   "panelChanges": [
+    "Punishment settings: mute and quarantine roles, review channel, silent mode",
+    "A check of the roles across channels and a «Set the denies in every channel» button",
+    "Restriction roles and reason presets as tables",
+    "Automatic punishments: a ladder of 10 steps, points, expiry and revert",
+    "Punishments: a table of role punishments and temporary roles with search, extend and lift",
+    "Case page: details, notes, reason change with history, the member's other cases",
+    "Case numbers in the log lead to the case page"
+   ]
+  }
+ },
+ {
   "bot": "3.20.0",
   "panel": "3.39.0",
   "date": "2026-11-26",

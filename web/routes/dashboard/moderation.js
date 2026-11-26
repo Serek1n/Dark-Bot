@@ -14,7 +14,7 @@ const { getClient } = require('../../botBridge');
 const router = express.Router();
 const mod = () => require('../../../bot/modules/moderation');
 const { formatDuration } = require('../../../bot/utils/duration');
-const ACTIONS = ['warn', 'unwarn', 'mute', 'unmute', 'kick', 'ban', 'unban', 'clear', 'automod', 'note'];
+const ACTIONS = ['warn', 'unwarn', 'mute', 'unmute', 'kick', 'ban', 'unban', 'clear', 'automod', 'note', 'role_mute', 'unrole_mute', 'quarantine', 'unquarantine', 'restrict', 'unrestrict', 'temprole', 'untemprole'];
 const textChannels = (channels) => channels.filter((c) => c.type === 0 || c.type === 5);
 const base = (req, page, extra) => ({ guild: extra.guild, settings: extra.settings, formatDuration, active: page, ...extra });
 
@@ -75,8 +75,17 @@ router.get('/:guildId/moderation-punishments', ensureGuildAccess, async (req, re
     seen.add(m.userId); return true;
   }).map((m) => ({ ...m.get(), endsAt: new Date(new Date(m.createdAt).getTime() + Number(m.duration || 0)) }));
   const permBans = await ModLog.findAll({ where: { guildId, action: 'ban', active: false, duration: null }, order: [['createdAt', 'DESC']], limit: 30 });
-  const users = await getUsers([...new Set([...bans, ...running, ...permBans].flatMap((l) => [l.userId, l.moderatorId]))]);
-  res.render('dashboard/moderation-punishments', base(req, 'moderation-punishments', { guild, settings, bans, mutes: running, permBans, users, modfail: String(req.query.modfail || '').slice(0, 300) }));
+  // punishments by roles and temporary roles: what runs now, with lifting and extending (stage 5)
+  const { RolePunishment, TempRole } = require('../../../db');
+  const q = snowflake(req.query.user) || '';
+  const [rolePuns, tempRoles] = await Promise.all([
+    RolePunishment.findAll({ where: { guildId, active: true, ...(q ? { userId: q } : {}) }, order: [['id', 'DESC']], limit: 200 }),
+    TempRole.findAll({ where: { guildId, ...(q ? { userId: q } : {}) }, order: [['expiresAt', 'ASC']], limit: 200 })
+  ]);
+  const users = await getUsers([...new Set([...bans, ...running, ...permBans].flatMap((l) => [l.userId, l.moderatorId]).concat(rolePuns.flatMap((r) => [r.userId, r.givenBy]), tempRoles.flatMap((t) => [t.userId, t.givenBy])).filter((x) => x && /^\d+$/.test(x)))]);
+  const cfg = require('../../../bot/utils/moduleConfig').read(settings, 'mod');
+  const roleName = (id) => getClient()?.guilds?.cache?.get(guildId)?.roles?.cache?.get(id)?.name || null;
+  res.render('dashboard/moderation-punishments', base(req, 'moderation-punishments', { guild, settings, bans, mutes: running, permBans, users, rolePuns, tempRoles, cfg, roleName, q, modfail: String(req.query.modfail || '').slice(0, 300) }));
 });
 
 // Lifting a running punishment from the panel: the bot does it in Discord and writes the case.
@@ -87,7 +96,7 @@ router.post('/:guildId/moderation-punishments/lift', ensureGuildAccess, async (r
   const g = getClient()?.guilds?.cache?.get(guildId);
   if (!userId || !g) return res.redirect(saved(guildId, 'moderation-punishments', 'invalid'));
   // the same right as in Discord: «Управлять сервером» opens the panel, but lifting a ban needs «Банить», a mute — «Отправлять подумать»
-  const denied = await appeals().mayDecide(g, req.user?.id, kind);
+  const denied = await appeals().mayDecide(g, req.user?.id, kind) || await require('../../../bot/utils/permissions').panelHierarchyError(g, req.user?.id, userId);
   if (denied) return res.redirect(`/dashboard/${guildId}/moderation-punishments?modfail=${encodeURIComponent(denied)}`);
   const reason = `Снято в панели${req.user?.username ? ` (${req.user.username})` : ''}`;
   try {
@@ -105,6 +114,36 @@ router.post('/:guildId/moderation-punishments/lift', ensureGuildAccess, async (r
   }
   res.redirect(saved(guildId, 'moderation-punishments', 'lifted'));
 });
+
+/** A punishment by role or a temporary role from the panel: lift now, or extend. Needs «Управлять ролями» and a target below the moderator. */
+async function roleAction(req, res, which) {
+  const { guildId } = req.params;
+  const back = (flag, why) => res.redirect(why ? `/dashboard/${guildId}/moderation-punishments?modfail=${encodeURIComponent(why)}` : saved(guildId, 'moderation-punishments', flag));
+  const g = getClient()?.guilds?.cache?.get(guildId);
+  if (!g) return back('offline');
+  const { RolePunishment, TempRole } = require('../../../db');
+  const row = which === 'role' ? await RolePunishment.findOne({ where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId, active: true } })
+    : await TempRole.findOne({ where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId } });
+  if (!row) return back('invalid');
+  const moderator = await g.members.fetch(req.user?.id).catch(() => null);
+  if (g.ownerId !== req.user?.id && !moderator?.permissions?.has?.(P.ManageRoles)) return back(null, 'Для этого нужно право «Управлять ролями» на сервере.');
+  const h = await require('../../../bot/utils/permissions').panelHierarchyError(g, req.user?.id, row.userId);
+  if (h) return back(null, h);
+  try {
+    if (req.params.act === 'lift') {
+      if (which === 'role') await require('../../../bot/modules/punishments').lift(g, row, { by: req.user?.id, reason: String(req.body.reason || '').slice(0, 200) || 'Снято в панели' });
+      else await require('../../../bot/modules/tempRoles').removeWithCase(g, row, { byId: req.user?.id, reason: 'Снята в панели' });
+      return back('lifted');
+    }
+    const ms = require('../../../bot/utils/duration').parseDuration(String(req.body.duration || ''));
+    if (!ms) return back(null, 'Не понял срок продления: например, 1d или 12h.');
+    if (which === 'role') await require('../../../bot/modules/punishments').extend(row, ms, req.user?.id);
+    else await require('../../../bot/modules/tempRoles').extendWithCase(row, ms, req.user?.id);
+    return back('saved');
+  } catch (err) { return back(null, err.message); }
+}
+router.post('/:guildId/moderation-punishments/role/:id(\\d+)/:act(lift|extend)', ensureGuildAccess, (req, res) => roleAction(req, res, 'role'));
+router.post('/:guildId/moderation-punishments/temprole/:id(\\d+)/:act(lift|extend)', ensureGuildAccess, (req, res) => roleAction(req, res, 'temp'));
 
 // ---- Предупреждения ----
 router.get('/:guildId/moderation-warnings', ensureGuildAccess, async (req, res) => {
@@ -132,10 +171,11 @@ router.post('/:guildId/moderation-warnings/:id/revoke', ensureGuildAccess, async
   const { guildId } = req.params;
   const w = await Warning.findOne({ where: { id: clampInt(req.params.id, 1, 2147483647, 0), guildId } });
   if (!w) return res.redirect(saved(guildId, 'moderation-warnings', 'invalid'));
-  const denied = await appeals().mayDecide(getClient()?.guilds?.cache?.get(guildId), req.user?.id, 'warn');
+  const gg = getClient()?.guilds?.cache?.get(guildId);
+  const denied = await appeals().mayDecide(gg, req.user?.id, 'warn') || await require('../../../bot/utils/permissions').panelHierarchyError(gg, req.user?.id, w.userId);
   if (denied) return res.redirect(`/dashboard/${guildId}/moderation-warnings?modfail=${encodeURIComponent(denied)}`);
   const reason = String(req.body.reason || '').trim().slice(0, 200) || 'Снято в панели';
-  if (!(await mod().revokeWarning(w, { by: req.user?.id || 'panel', reason }))) return res.redirect(saved(guildId, 'moderation-warnings', 'already'));
+  if (!(await mod().revokeWarning(w, { by: req.user?.id || 'panel', reason, guild: gg || null }))) return res.redirect(saved(guildId, 'moderation-warnings', 'already'));
   const g = getClient()?.guilds?.cache?.get(guildId);
   if (g) await require('../../../bot/utils/modlog').recordAndAnnounce(g, { userId: w.userId, moderatorId: req.user?.id || g.client.user.id, action: 'unwarn', reason: `Снято предупреждение #${w.id}: ${reason}` }).catch(() => {});
   res.redirect(saved(guildId, 'moderation-warnings', 'unwarned'));
@@ -151,6 +191,7 @@ router.get('/:guildId/moderation-auto', ensureGuildAccess, async (req, res) => {
   const parse = (t) => { try { return JSON.parse(t || 'null'); } catch { return null; } };
   res.render('dashboard/moderation-auto', base(req, 'moderation-auto', {
     guild, settings, users, thresholds: mod().parseThresholds(settings.modWarnThresholds), ready: botReadiness(guildId),
+    cfg: require('../../../bot/utils/moduleConfig').read(settings, 'mod'), roles: (await require('../../discordApi').getGuildRoles(guildId).catch(() => [])).filter((r) => r.name !== '@everyone' && !r.managed).sort((a, b) => b.position - a.position),
     recent: recent.map((w) => ({ id: w.id, userId: w.userId, createdAt: w.createdAt, auto: parse(w.autoAction) })), describe: (a) => mod().describeEscalation(a)
   }));
 });
@@ -227,8 +268,82 @@ router.get('/:guildId/moderation-log', ensureGuildAccess, async (req, res) => {
 
 // ---- Настройки ----
 router.get('/:guildId/moderation-settings', ensureGuildAccess, async (req, res) => {
-  const [guild, settings, channels] = await Promise.all([getGuild(req.params.guildId), getSettings(req.params.guildId), getGuildChannels(req.params.guildId)]);
-  res.render('dashboard/moderation-settings', base(req, 'moderation-settings', { guild, settings, channels: textChannels(channels), ready: botReadiness(req.params.guildId) }));
+  const { guildId } = req.params;
+  const [guild, settings, channels, roles] = await Promise.all([getGuild(guildId), getSettings(guildId), getGuildChannels(guildId), require('../../discordApi').getGuildRoles(guildId).catch(() => [])]);
+  const cfg = require('../../../bot/utils/moduleConfig').read(settings, 'mod');
+  // the check of the mute and quarantine roles in the channels (the bot's own view of the server)
+  const g = getClient()?.guilds?.cache?.get(guildId);
+  const P2 = require('../../../bot/modules/punishments');
+  const checks = g ? { mute: cfg.muteRoleId ? P2.checkRole(g, 'role_mute', cfg.muteRoleId) : null, quarantine: cfg.quarantineRoleId ? P2.checkRole(g, 'quarantine', cfg.quarantineRoleId, cfg.quarantineChannelId) : null } : null;
+  res.render('dashboard/moderation-settings', base(req, 'moderation-settings', { guild, settings, channels: textChannels(channels), ready: botReadiness(guildId), cfg, checks,
+    roles: roles.filter((r) => r.name !== '@everyone' && !r.managed).sort((a, b) => b.position - a.position), fixed: req.query.fixed ? String(req.query.fixed).slice(0, 40) : null }));
+});
+
+// the roles of punishments, the restriction roles, reason presets, the ladder (all in modConfig: bot/utils/moduleConfig.js)
+router.post('/:guildId/moderation/modcfg', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const mc = require('../../../bot/utils/moduleConfig');
+  // an empty step of the ladder (no «at») is not a step
+  for (const k of Object.keys(req.body)) { const m = /^ladder_(\d+)_at$/.exec(k); if (m && !String(req.body[k]).trim()) for (const x of Object.keys(req.body)) if (x.startsWith(`ladder_${m[1]}_`)) delete req.body[x]; }
+  const { values, fieldErrors } = mc.fromForm('mod', req.body);
+  const page = req.body._page === 'auto' ? 'moderation-auto' : 'moderation-settings';
+  const wantsJson = String(req.get('accept') || '').includes('application/json');
+  if (Object.keys(fieldErrors).length) return wantsJson ? res.status(400).json({ ok: false, fieldErrors }) : res.redirect(`/dashboard/${guildId}/${page}?invalid=1&err=${Object.keys(fieldErrors).join(',')}`);
+  const settings = await getSettings(guildId);
+  if (values.ladder) values.ladder = values.ladder.filter((st) => !['temprole', 'restrict'].includes(st.action) || st.roleId);
+  mc.write(settings, 'mod', values);
+  if (req.body._page === 'auto') {
+    settings.modEscalateNeedsPerm = req.body.modEscalateNeedsPerm === 'on';
+    settings.modWarnExpireDays = clampInt(req.body.modWarnExpireDays, 0, 365, settings.modWarnExpireDays);
+  }
+  await settings.save();
+  if (wantsJson) return res.json({ ok: true });
+  res.redirect(saved(guildId, page));
+});
+
+// «Проставить запреты»: the denies of the mute role, or «only the review channel» of the quarantine role, in every channel
+router.post('/:guildId/moderation/roles/fix', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const g = getClient()?.guilds?.cache?.get(guildId);
+  if (!g) return res.redirect(saved(guildId, 'moderation-settings', 'offline'));
+  const cfg = require('../../../bot/utils/moduleConfig').read(await getSettings(guildId), 'mod');
+  const kind = req.body.kind === 'quarantine' ? 'quarantine' : 'role_mute';
+  const roleId = kind === 'quarantine' ? cfg.quarantineRoleId : cfg.muteRoleId;
+  if (!roleId) return res.redirect(saved(guildId, 'moderation-settings', 'invalid'));
+  try {
+    const r = await require('../../../bot/modules/punishments').fixChannels(g, kind, roleId, cfg.quarantineChannelId);
+    res.redirect(`/dashboard/${guildId}/moderation-settings?fixed=${r.done}-${r.failed}`);
+  } catch (err) { res.redirect(`/dashboard/${guildId}/moderation-settings?invalid=1`); }
+});
+
+// ---- Дело: the case, its notes and changes, a new note, a new reason ----
+router.get('/:guildId/moderation-case/:n(\\d+)', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const { CaseNote, RolePunishment, TempRole } = require('../../../db');
+  const n = clampInt(req.params.n, 1, 2147483647, 0);
+  const entry = await ModLog.findOne({ where: { guildId, caseNumber: n } });
+  if (!entry) return res.redirect(saved(guildId, 'moderation-log', 'invalid'));
+  const [guild, settings, notes, rolePun, tempRole, history] = await Promise.all([getGuild(guildId), getSettings(guildId),
+    CaseNote.findAll({ where: { guildId, caseNumber: n }, order: [['id', 'ASC']] }), RolePunishment.findOne({ where: { guildId, caseNumber: n } }), TempRole.findOne({ where: { guildId, caseNumber: n } }),
+    ModLog.findAll({ where: { guildId, userId: entry.userId }, order: [['id', 'DESC']], limit: 10 })]);
+  const users = await getUsers([...new Set([entry.userId, entry.moderatorId, ...notes.map((x) => x.authorId), ...history.map((h) => h.moderatorId)].filter(Boolean))]);
+  res.render('dashboard/moderation-case', base(req, 'moderation-log', { guild, settings, entry, notes, rolePun, tempRole, history, users }));
+});
+router.post('/:guildId/moderation-case/:n(\\d+)/:what(note|reason)', ensureGuildAccess, async (req, res) => {
+  const { guildId } = req.params;
+  const n = clampInt(req.params.n, 1, 2147483647, 0);
+  const entry = await ModLog.findOne({ where: { guildId, caseNumber: n } });
+  const text = String(req.body.text || '').trim().slice(0, 900);
+  if (!entry || !text) return res.redirect(`/dashboard/${guildId}/moderation-case/${n}?invalid=1`);
+  const { CaseNote } = require('../../../db');
+  if (req.params.what === 'reason') {
+    if (entry.userId === req.user?.id) return res.redirect(`/dashboard/${guildId}/moderation-case/${n}?invalid=1`); // nobody rewrites his own case
+    await CaseNote.create({ guildId, caseNumber: n, authorId: req.user?.id || null, kind: 'reason', text: `Причина изменена. Было: ${String(entry.reason || '—').slice(0, 900)}` });
+    await entry.update({ reason: text });
+  } else {
+    await CaseNote.create({ guildId, caseNumber: n, authorId: req.user?.id || null, kind: 'note', text });
+  }
+  res.redirect(`/dashboard/${guildId}/moderation-case/${n}?saved=1`);
 });
 
 router.post('/:guildId/moderation/settings', ensureGuildAccess, async (req, res) => {

@@ -39,6 +39,90 @@
           </div>
         </section>
       </form>
+      <% const roleOpts = (sel) => roles.map((r) => `<option value="${r.id}" ${sel === r.id ? 'selected' : ''}>@${r.name.replace(/[<>&\x22]/g, '')}</option>`).join('');
+         const goneRole = (id) => id && !roles.some((r) => r.id === id); %>
+      <form method="post" action="<%= g %>/moderation/modcfg" class="card set-section g-span" id="punroles">
+        <h2>Роли наказаний</h2>
+        <p class="set-lead">Мут ролью работает дольше 28 дней и навсегда, карантин забирает роли и возвращает их при снятии. Оба наказания сохраняются, если участник перезайдёт.</p>
+        <input type="hidden" name="_fields" value="muteRoleId,quarantineRoleId,quarantineChannelId,silentDefault" />
+        <div class="set-row">
+          <div class="set-text"><label for="muteRoleId">Роль мута</label><p class="set-help">Без прав писать и говорить; запреты в каналах бот может проставить сам</p></div>
+          <div class="set-ctl"><select id="muteRoleId" name="muteRoleId"><option value="">Не выбрана</option><%- roleOpts(cfg.muteRoleId) %><% if (goneRole(cfg.muteRoleId)) { %><option value="<%= cfg.muteRoleId %>" selected data-gone>⚠️ Удалённая роль</option><% } %></select></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="quarantineRoleId">Роль карантина</label><p class="set-help">Видит только канал разбора</p></div>
+          <div class="set-ctl"><select id="quarantineRoleId" name="quarantineRoleId"><option value="">Не выбрана</option><%- roleOpts(cfg.quarantineRoleId) %><% if (goneRole(cfg.quarantineRoleId)) { %><option value="<%= cfg.quarantineRoleId %>" selected data-gone>⚠️ Удалённая роль</option><% } %></select></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="quarantineChannelId">Канал разбора</label><p class="set-help">Единственный канал, который видит участник в карантине</p></div>
+          <div class="set-ctl"><select id="quarantineChannelId" name="quarantineChannelId"><option value="">Не выбран</option><% channels.forEach((c) => { %><option value="<%= c.id %>" <%= cfg.quarantineChannelId === c.id ? 'selected' : '' %>>#<%= c.name %></option><% }) %></select></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="silentDefault">Тихий режим по умолчанию</label><p class="set-help">Команды /mod отвечают только модератору, участник в канале ничего не видит. Журнал и ЛС работают как обычно</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="silentDefault" name="silentDefault" <%= cfg.silentDefault ? 'checked' : '' %> /></div>
+        </div>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+      <% [['role_mute', 'mute', 'Проверка роли мута', cfg.muteRoleId], ['quarantine', 'quarantine', 'Проверка роли карантина', cfg.quarantineRoleId]].forEach(([kind, key, title, rid]) => { if (!rid) return; const issues = checks ? checks[key] : null; %>
+        <div class="card set-section g-span role-check" id="check-<%= key %>">
+          <h2><%= title %></h2>
+          <% if (!checks) { %>
+            <p class="hint">Бот сейчас не в сети — проверить каналы нельзя.</p>
+          <% } else if (!issues.length) { %>
+            <p class="hint">Всё в порядке: роль закрыта во всех каналах.</p>
+          <% } else { %>
+            <ul class="check-list">
+              <% issues.forEach((it) => { %><li><%= it.text %><% if (it.channels && it.channels.length) { %> <span class="muted">#<%= it.channels.join(', #') %></span><% } %></li><% }) %>
+            </ul>
+            <form method="post" action="<%= g %>/moderation/roles/fix" data-confirm="Бот проставит права роли во всех каналах и категориях. Продолжить?">
+              <input type="hidden" name="kind" value="<%= kind %>" />
+              <button class="btn btn-secondary" type="submit"><%= kind === 'quarantine' ? 'Закрыть все каналы, кроме канала разбора' : 'Проставить запреты во всех каналах' %></button>
+            </form>
+          <% } %>
+        </div>
+      <% }) %>
+      <% const rr = cfg.restrictRoles.concat([{ label: '', roleId: null }]); %>
+      <form method="post" action="<%= g %>/moderation/modcfg" class="card set-section g-span" id="restrict">
+        <h2>Ограничительные роли</h2>
+        <p class="set-lead">Роли вроде «без картинок» или «без голоса»: /mod restrict выдаёт их на срок или до снятия, с делом в журнале.</p>
+        <input type="hidden" name="_fields" value="restrictRoles" />
+        <div class="table-scroll"><table class="data-table">
+          <thead><tr><th>Название</th><th>Роль</th></tr></thead>
+          <tbody>
+            <% rr.forEach((x, i) => { %>
+              <tr>
+                <td><input type="text" name="restrictRoles_<%= i %>_label" value="<%= x.label %>" maxlength="40" placeholder="Без картинок" aria-label="Название ограничения <%= i + 1 %>" /></td>
+                <td><select name="restrictRoles_<%= i %>_roleId" aria-label="Роль ограничения <%= i + 1 %>"><option value="">—</option><%- roleOpts(x.roleId) %></select></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table></div>
+        <p class="hint">Чтобы убрать ограничение, очистите название. Новая строка появится после сохранения.</p>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
+      <% const PA = [['warn', 'Предупреждение'], ['timeout', 'Тайм-аут'], ['role_mute', 'Мут ролью'], ['quarantine', 'Карантин'], ['kick', 'Кик'], ['ban', 'Бан']];
+         const pr = cfg.presets.concat([{ label: '', reason: '', action: 'warn', minutes: 0, points: 1 }]); %>
+      <form method="post" action="<%= g %>/moderation/modcfg" class="card set-section g-span" id="presets">
+        <h2>Шаблоны причин</h2>
+        <p class="set-lead">Появляются в подсказке поля «шаблон» у команд /mod: причина, срок и вес предупреждения подставятся сами.</p>
+        <input type="hidden" name="_fields" value="presets" />
+        <div class="table-scroll"><table class="data-table">
+          <thead><tr><th>Название</th><th>Причина</th><th>Для</th><th>Срок, мин</th><th>Баллы</th></tr></thead>
+          <tbody>
+            <% pr.forEach((x, i) => { %>
+              <tr>
+                <td><input type="text" name="presets_<%= i %>_label" value="<%= x.label %>" maxlength="60" placeholder="Спам" aria-label="Название шаблона <%= i + 1 %>" /></td>
+                <td><input type="text" name="presets_<%= i %>_reason" value="<%= x.reason %>" maxlength="300" placeholder="Пункт 2.1: спам и флуд" aria-label="Причина шаблона <%= i + 1 %>" /></td>
+                <td><select name="presets_<%= i %>_action" aria-label="Наказание шаблона <%= i + 1 %>"><% PA.forEach(([k, t]) => { %><option value="<%= k %>" <%= x.action === k ? 'selected' : '' %>><%= t %></option><% }) %></select></td>
+                <td><input type="number" name="presets_<%= i %>_minutes" value="<%= x.minutes %>" min="0" max="5256000" style="width:100px" aria-label="Срок шаблона <%= i + 1 %>" /></td>
+                <td><input type="number" name="presets_<%= i %>_points" value="<%= x.points %>" min="1" max="20" style="width:72px" aria-label="Баллы шаблона <%= i + 1 %>" /></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table></div>
+        <p class="hint">Чтобы удалить шаблон, очистите его название. Не больше 25 шаблонов.</p>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить</button></div>
+      </form>
       <div class="card g-span">
         <h2>Права бота</h2>
         <%- include('../partials/bot-ready') %>

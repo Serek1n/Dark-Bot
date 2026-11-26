@@ -18,7 +18,7 @@ async function callDiscord(fn, action) {
   try { return await fn(); } catch (err) { throw refusal(apiErrorText(err, action)); }
 }
 
-const ESCALATION_ACTIONS = ['mute', 'kick', 'ban'];
+const ESCALATION_ACTIONS = ['mute', 'kick', 'ban']; // the older thresholds by count; the ladder (modConfig) has more
 const MAX_THRESHOLDS = 10;
 
 /** [{ count, action, minutes }] from the settings JSON: only valid rows, sorted by count. */
@@ -39,11 +39,15 @@ function parseThresholds(json) {
 
 /** Warnings that still count: an optional expiry (days) hides the old ones. */
 function activeWarningsWhere(guildId, userId, settings) {
-  const where = { guildId, userId, revokedAt: null };
+  // a warning with its own end (points that burn out) counts until then; the older general rule hides old ones too
+  const where = { guildId, userId, revokedAt: null, [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: new Date() } }] };
   const days = Number(settings?.modWarnExpireDays) || 0;
   if (days > 0) where.createdAt = { [Op.gte]: new Date(Date.now() - days * 86400000) };
   return where;
 }
+const modCfg = (settings) => require('../utils/moduleConfig').read(settings, 'mod');
+/** The sum of the points of a member's active warnings. */
+const pointsOf = (warnings) => warnings.reduce((n, w) => n + (Number(w.points) || 1), 0);
 
 async function activeWarnings(guildId, userId, settings) {
   return Warning.findAll({ where: activeWarningsWhere(guildId, userId, settings), order: [['createdAt', 'DESC']] });
@@ -121,33 +125,50 @@ async function unbanUser(guild, userId, { moderatorId, reason }) {
  * Gives a warning and runs the escalation rule for the new number of active warnings
  * (e.g. "3 warnings -> mute 1 hour"). Returns { warning, count, entry, escalation }.
  */
-async function warnMember(guild, user, { moderatorId, reason, settings }) {
+async function warnMember(guild, user, { moderatorId, reason, settings, points = null }) {
   settings = settings ?? (await loadSettings(guild.id));
+  const cfg = modCfg(settings);
+  const weight = Math.max(1, Math.min(20, Math.floor(Number(points) || cfg.defaultPoints)));
+  const expiresAt = cfg.decayDays ? new Date(Date.now() + cfg.decayDays * 86400000) : null;
   // Under a lock, so two simultaneous warnings can't both skip (or both trigger) the same threshold.
-  const { warning, count } = await withLock(`warn:${guild.id}:${user.id}`, async () => {
-    const created = await Warning.create({ guildId: guild.id, userId: user.id, moderatorId, reason });
-    return { warning: created, count: (await activeWarnings(guild.id, user.id, settings)).length };
+  const { warning, count, total, before } = await withLock(`warn:${guild.id}:${user.id}`, async () => {
+    const was = pointsOf(await activeWarnings(guild.id, user.id, settings));
+    const created = await Warning.create({ guildId: guild.id, userId: user.id, moderatorId, reason, points: weight, expiresAt });
+    const now = await activeWarnings(guild.id, user.id, settings);
+    return { warning: created, count: now.length, total: pointsOf(now), before: was };
   });
-  const entry = await recordAndAnnounce(guild, { userId: user.id, moderatorId, action: 'warn', reason });
-  await dmMember(guild, user.id, `⚠️ Вы получили предупреждение (${count}): ${reason}${require('./appeals').appealHint(settings, 'warn')}`, settings);
+  const entry = await recordAndAnnounce(guild, { userId: user.id, moderatorId, action: 'warn', reason: weight > 1 ? `${reason} (${weight} балл.)` : reason });
+  const pts = cfg.escalateBy === 'points' ? ` · баллов: ${total}` : '';
+  await dmMember(guild, user.id, `⚠️ Вы получили предупреждение (${count}${pts}): ${reason}${require('./appeals').appealHint(settings, 'warn')}`, settings);
 
-  const rule = parseThresholds(settings?.modWarnThresholds).find((t) => t.count === count);
+  // the server's ladder (by count, or by points crossed now); without one, the older thresholds by count
+  let rule = null;
+  if (cfg.ladder.length) {
+    const steps = cfg.ladder.slice().sort((a, b) => a.at - b.at);
+    const hit = cfg.escalateBy === 'points' ? steps.filter((st) => before < st.at && total >= st.at) : steps.filter((st) => st.at === count);
+    const step = hit[hit.length - 1];
+    if (step) rule = { ...step, count: step.at, ladder: true };
+  } else {
+    const t = parseThresholds(settings?.modWarnThresholds).find((x) => x.count === count);
+    if (t) rule = { ...t, action: t.action === 'mute' ? 'timeout' : t.action };
+  }
   let escalation = null;
   if (rule) {
     // With "only with the right" on, a moderator cannot get past his own rights through the warning counter (the bot's own warnings, e.g. from automod, always count).
     if (settings?.modEscalateNeedsPerm && moderatorId !== guild.client.user.id && !(await moderatorCan(guild, moderatorId, rule.action))) {
       escalation = { action: rule.action, ms: ruleMs(rule), status: 'skipped', skipped: true, error: 'у модератора нет права на это действие' };
     } else {
-      escalation = await escalate(guild, user.id, rule, count, settings);
+      escalation = await escalate(guild, user.id, rule, cfg.escalateBy === 'points' && rule.ladder ? `${total} баллов предупреждений` : `${count} предупреждений`, settings);
     }
     // the real outcome stays with the warning (never "applied" when it was not)
     const { action, ms, status, error, until } = escalation;
-    await warning.update({ autoAction: JSON.stringify({ action, ms: ms || null, status, error: error || null, until: until || null, threshold: rule.count }) }).catch(() => {});
+    await warning.update({ autoAction: JSON.stringify({ action, ms: ms || null, status, error: error || null, until: until || null, threshold: rule.count, caseNumber: escalation.entry?.caseNumber || null, roleId: rule.roleId || null }) }).catch(() => {});
   }
-  return { warning, count, entry, escalation };
+  return { warning, count, points: total, entry, escalation };
 }
 
-const NEEDED_PERMISSION = { mute: PermissionFlagsBits.ModerateMembers, kick: PermissionFlagsBits.KickMembers, ban: PermissionFlagsBits.BanMembers };
+const NEEDED_PERMISSION = { mute: PermissionFlagsBits.ModerateMembers, timeout: PermissionFlagsBits.ModerateMembers, kick: PermissionFlagsBits.KickMembers, ban: PermissionFlagsBits.BanMembers, tempban: PermissionFlagsBits.BanMembers,
+  role_mute: PermissionFlagsBits.ManageRoles, quarantine: PermissionFlagsBits.ManageRoles, restrict: PermissionFlagsBits.ManageRoles, temprole: PermissionFlagsBits.ManageRoles };
 
 /** Does this person have the server permission that the punishment `action` (mute | kick | ban) needs? */
 async function moderatorCan(guild, moderatorId, action) {
@@ -160,8 +181,10 @@ async function moderatorCan(guild, moderatorId, action) {
 
 /** The length of a threshold's punishment: a mute always has one (1 min .. 28 days), a ban may be permanent (null). */
 function ruleMs(rule) {
-  if (rule.action === 'mute') return Math.min(Math.max(rule.minutes, 1) * MINUTE, MAX_TIMEOUT);
-  if (rule.action === 'ban') return rule.minutes > 0 ? rule.minutes * MINUTE : null;
+  if (rule.action === 'mute' || rule.action === 'timeout') return Math.min(Math.max(rule.minutes, 1) * MINUTE, MAX_TIMEOUT);
+  if (rule.action === 'tempban') return Math.max(rule.minutes, 1) * MINUTE;
+  if (rule.action === 'temprole') return Math.max(rule.minutes, 1) * MINUTE;
+  if (['ban', 'role_mute', 'quarantine', 'restrict'].includes(rule.action)) return rule.minutes > 0 ? rule.minutes * MINUTE : null;
   return null;
 }
 
@@ -169,16 +192,26 @@ function ruleMs(rule) {
  * Runs a threshold's punishment. Always returns { action, ms, status, error?, entry?, until? }:
  * applied · already (a longer mute is already running — not shortened) · failed (with the exact reason).
  */
-async function escalate(guild, userId, rule, count, settings) {
+async function escalate(guild, userId, rule, why, settings) {
   const botId = guild.client.user.id;
-  const reason = `Автоматически: ${count} предупреждений`;
+  const reason = `Автоматически: ${typeof why === 'number' ? `${why} предупреждений` : why}`;
   const ms = ruleMs(rule);
   const base = { action: rule.action, ms };
   try {
-    if (rule.action === 'ban') return { ...base, status: 'applied', entry: await banUser(guild, userId, { moderatorId: botId, reason, ms, settings }) };
+    if (rule.action === 'ban' || rule.action === 'tempban') return { ...base, status: 'applied', entry: await banUser(guild, userId, { moderatorId: botId, reason, ms, settings }) };
     const member = await guild.members.fetch({ user: userId, force: true }).catch(() => null);
     if (!member) return { ...base, status: 'failed', error: 'Участника нет на сервере.' };
     if (rule.action === 'kick') return { ...base, status: 'applied', entry: await kickMember(guild, member, { moderatorId: botId, reason, settings }) };
+    if (['role_mute', 'quarantine', 'restrict'].includes(rule.action)) {
+      const r = await require('./punishments').apply(guild, member, rule.action, { roleId: rule.roleId, ms, moderatorId: botId, reason, settings });
+      return { ...base, status: 'applied', entry: r.entry };
+    }
+    if (rule.action === 'temprole') {
+      const role = rule.roleId && guild.roles.cache.get(rule.roleId);
+      if (!role) return { ...base, status: 'failed', error: 'Роль ступени удалена или не выбрана.' };
+      const r = await require('./tempRoles').giveWithCase(guild, member, role, ms, { byId: botId, reason });
+      return { ...base, status: 'applied', entry: r.entry };
+    }
     const running = Number(member.communicationDisabledUntilTimestamp) || 0;
     if (running > Date.now() + ms) return { ...base, status: 'already', until: running };
     return { ...base, status: 'applied', entry: await muteMember(guild, member, ms, { moderatorId: botId, reason, settings }) };
@@ -190,9 +223,14 @@ async function escalate(guild, userId, rule, count, settings) {
 
 /** "мут на 1 ч", "бан на 2 д", "бан навсегда", "кик" — never "мут на " without the length. */
 function punishmentName(action, ms) {
-  if (action === 'mute') return `мут на ${formatDuration(ms || MINUTE)}`;
-  if (action === 'ban') return ms ? `бан на ${formatDuration(ms)}` : 'бан навсегда';
+  const span = ms ? `на ${formatDuration(ms)}` : 'до снятия';
+  if (action === 'mute' || action === 'timeout') return `мут на ${formatDuration(ms || MINUTE)}`;
+  if (action === 'ban' || action === 'tempban') return ms ? `бан на ${formatDuration(ms)}` : 'бан навсегда';
   if (action === 'kick') return 'кик';
+  if (action === 'role_mute') return `мут ролью ${span}`;
+  if (action === 'quarantine') return `карантин ${span}`;
+  if (action === 'restrict') return `ограничение ${span}`;
+  if (action === 'temprole') return `временная роль на ${formatDuration(ms || MINUTE)}`;
   return action;
 }
 
@@ -207,10 +245,39 @@ function describeEscalation(e) {
 }
 
 /** Removes a warning but keeps it in the history (who, when, why). Returns false when it was already removed. */
-async function revokeWarning(warning, { by, reason }) {
+async function revokeWarning(warning, { by, reason, guild = null }) {
   if (warning.revokedAt) return false;
   await warning.update({ revokedAt: new Date(), revokedBy: by, revokeReason: String(reason || '').slice(0, 250) || null });
+  if (guild) await revertAuto(guild, warning, by).catch((err) => logger.warn(`Auto-revert failed: ${err.message}`));
   return true;
+}
+
+const SOFT = ['timeout', 'mute', 'role_mute', 'quarantine', 'restrict', 'temprole'];
+/**
+ * «Откат»: a warning given by mistake is removed — the soft punishment it triggered is lifted too, when the server
+ * wants it (kicks and bans are never undone by this). Returns what was lifted, or null.
+ */
+async function revertAuto(guild, warning, by) {
+  const settings = await loadSettings(guild.id);
+  if (!modCfg(settings).autoRevert) return null;
+  let a = null; try { a = JSON.parse(warning.autoAction || 'null'); } catch { a = null; }
+  if (!a || a.status !== 'applied' || !SOFT.includes(a.action)) return null;
+  const why = `Снято предупреждение #${warning.id}: откат автонаказания`;
+  if (a.action === 'timeout' || a.action === 'mute') {
+    const m = await guild.members.fetch(warning.userId).catch(() => null);
+    if (m?.communicationDisabledUntilTimestamp > Date.now()) { await m.timeout(null, why); await recordAndAnnounce(guild, { userId: warning.userId, moderatorId: by, action: 'unmute', reason: why }); return a.action; }
+    return null;
+  }
+  if (a.action === 'temprole') {
+    const { TempRole } = require('../../db');
+    const row = a.caseNumber ? await TempRole.findOne({ where: { guildId: guild.id, userId: warning.userId, caseNumber: a.caseNumber } }) : null;
+    if (row) { await require('./tempRoles').removeWithCase(guild, row, { byId: by, reason: why }); return a.action; }
+    return null;
+  }
+  const { RolePunishment } = require('../../db');
+  const row = a.caseNumber ? await RolePunishment.findOne({ where: { guildId: guild.id, userId: warning.userId, caseNumber: a.caseNumber, active: true } }) : null;
+  if (row) { await require('./punishments').lift(guild, row, { by, reason: why }); return a.action; }
+  return null;
 }
 
 /** Lifts the temporary bans that have run out. Returns how many were lifted. */
@@ -250,5 +317,5 @@ function startModScheduler(client) {
 
 module.exports = {
   parseThresholds, activeWarnings, activeWarningsWhere, dmMember, muteMember, kickMember, banUser, unbanUser,
-  warnMember, escalate, liftExpiredBans, punishmentName, describeEscalation, revokeWarning, ruleMs, whyCannot, startModScheduler, moderatorCan, ESCALATION_ACTIONS, MAX_THRESHOLDS
+  warnMember, escalate, liftExpiredBans, punishmentName, describeEscalation, revokeWarning, revertAuto, pointsOf, modCfg, ruleMs, whyCannot, startModScheduler, moderatorCan, ESCALATION_ACTIONS, MAX_THRESHOLDS
 };

@@ -8,7 +8,8 @@ module.exports = (sequelize) => {
       guildId: { type: DataTypes.STRING, allowNull: false },
       userId: { type: DataTypes.STRING, allowNull: false },
       moderatorId: { type: DataTypes.STRING, allowNull: false },
-      action: { type: DataTypes.ENUM('warn', 'unwarn', 'mute', 'unmute', 'kick', 'ban', 'unban', 'clear', 'automod', 'note'), allowNull: false },
+      action: { type: DataTypes.ENUM('warn', 'unwarn', 'mute', 'unmute', 'kick', 'ban', 'unban', 'clear', 'automod', 'note',
+        'role_mute', 'unrole_mute', 'quarantine', 'unquarantine', 'restrict', 'unrestrict', 'temprole', 'untemprole'), allowNull: false },
       reason: { type: DataTypes.STRING, defaultValue: 'Без причины' },
       caseNumber: { type: DataTypes.INTEGER, allowNull: true }, // per server: "дело #12"
       duration: { type: DataTypes.BIGINT, allowNull: true }, // ms, for temporary mutes and bans

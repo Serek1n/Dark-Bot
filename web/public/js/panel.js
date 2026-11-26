@@ -104,6 +104,7 @@
     msgnoright: ['Для вебхука нужно право «Управлять вебхуками»', true],
     whfail: [reasons[params.get('reason')] || 'Не удалось выполнить действие', true],
     reset: ['Стандартные значения восстановлены', false],
+    fixed: [(function (v) { var m = /^(\d+)-(\d+)$/.exec(v || ''); return m ? 'Права проставлены в каналах: ' + m[1] + (m[2] !== '0' ? ', не удалось: ' + m[2] : '') : 'Права проставлены'; })(params.get('fixed')), false],
     logfail: ['Не удалось создать темы. Проверьте права бота в этом форуме', true]
   };
   // the same texts for a form saved in the background: its answer carries the same codes (?saved, ?invalid, ?noperm…).

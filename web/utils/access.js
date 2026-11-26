@@ -59,6 +59,8 @@ const RULES = [
   R(WRITE, /^\/moderation-reports\/\d+\/ignore$/, 'reports.decide'),
   R(WRITE, /^\/moderation\/reports$/, 'reports.decide'),
   R(READ, /^\/moderation(-punishments|-warnings|-log|-auto|-settings)?$/, 'moderation.read'),
+  R(READ, /^\/moderation-case\/\d+$/, 'moderation.read'),
+  R(WRITE, /^\/moderation-case\//, 'moderation.act'),
   R(WRITE, /^\/moderation(-punishments|-warnings|\/|$)/, 'moderation.act'),
   R(ANY, /^\/automod$/, 'settings.core'),
   R(READ, /^\/logs$/, 'logs.view'),

@@ -397,7 +397,7 @@ const { makeUser, makeInteraction } = require('./mock');
     assert(r.status === 200 && html.includes('>№</th>') && /#\d+/.test(html), html.slice(0, 300));
     assert((await fetch(base2 + '/moderation-log?action=note')).status === 200, 'note filter');
     const auto = await (await fetch(base2 + '/moderation-auto')).text();
-    assert(auto.includes('Что делать за предупреждения') && auto.includes('thrCount'), 'rules');
+    assert(auto.includes('Простые пороги') && auto.includes('thrCount'), 'rules');
     for (const p of ['moderation', 'moderation-punishments', 'moderation-warnings', 'moderation-reports', 'moderation-settings', 'moderation-warnings?state=revoked&auto=failed']) {
       const x = await fetch(base2 + '/' + p); assert(x.status === 200, p + ' ' + x.status + (await x.text()).slice(0, 300));
     }

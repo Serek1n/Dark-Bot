@@ -87,6 +87,40 @@ const SPECS = {
       stripMentions: { type: 'bool', def: true }
     }
   },
+  // «Наказания» → roles of punishments, warning points, the ladder of automatic punishments, reason presets
+  mod: {
+    column: 'modConfig',
+    fields: {
+      muteRoleId: { type: 'id', def: null },
+      quarantineRoleId: { type: 'id', def: null },
+      quarantineChannelId: { type: 'id', def: null }, // the one channel a member in quarantine still sees
+      restrictRoles: { type: 'list', max: 10, def: [], item: { label: { type: 'str', max: 40, required: true }, roleId: { type: 'id', def: null } } },
+      defaultPoints: { type: 'int', min: 1, max: 20, def: 1 },
+      decayDays: { type: 'int', min: 0, max: 365, def: 0 }, // a warning burns out after so many days (0: the older general rule)
+      escalateBy: { type: 'enum', values: ['count', 'points'], def: 'count' },
+      ladder: {
+        type: 'list', max: 10, def: [],
+        item: {
+          at: { type: 'int', min: 1, max: 100, def: 3 },
+          action: { type: 'enum', values: ['timeout', 'role_mute', 'quarantine', 'restrict', 'temprole', 'kick', 'tempban', 'ban'], def: 'timeout' },
+          minutes: { type: 'int', min: 0, max: 5256000, def: 60 }, // 0: until lifted (where that makes sense)
+          roleId: { type: 'id', def: null }
+        }
+      },
+      autoRevert: { type: 'bool', def: false }, // a removed warning also lifts the soft punishment it triggered
+      silentDefault: { type: 'bool', def: false },
+      presets: {
+        type: 'list', max: 25, def: [],
+        item: {
+          label: { type: 'str', max: 60, required: true },
+          reason: { type: 'str', max: 300, def: '' },
+          action: { type: 'enum', values: ['warn', 'timeout', 'role_mute', 'quarantine', 'kick', 'ban'], def: 'warn' },
+          minutes: { type: 'int', min: 0, max: 5256000, def: 0 },
+          points: { type: 'int', min: 1, max: 20, def: 1 }
+        }
+      }
+    }
+  },
   brand: {
     column: 'brandConfig',
     fields: {

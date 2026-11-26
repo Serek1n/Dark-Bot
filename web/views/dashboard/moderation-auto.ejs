@@ -11,9 +11,49 @@
         <p class="page-intro">Что бот делает сам, когда у участника набирается несколько предупреждений. Каждое срабатывание записывается у предупреждения: применено, не применено и почему.</p>
       </div>
       <% const g = '/dashboard/' + guild.id; %>
+      <% const ACT = [['timeout', 'Тайм-аут (до 28 дней)'], ['role_mute', 'Мут ролью'], ['quarantine', 'Карантин'], ['restrict', 'Ограничительная роль'], ['temprole', 'Временная роль'], ['kick', 'Кик'], ['tempban', 'Бан на срок'], ['ban', 'Бан навсегда']];
+         const steps = cfg.ladder.concat(Array.from({ length: Math.max(1, 6 - cfg.ladder.length) }, () => ({ at: '', action: 'timeout', minutes: 60, roleId: null }))); %>
+      <form method="post" action="<%= g %>/moderation/modcfg" class="card set-section" id="steps">
+        <h2>Лестница наказаний</h2>
+        <p class="set-lead">Ступени срабатывают по числу действующих предупреждений или по сумме их баллов. Пока лестница пуста, работают простые пороги ниже.</p>
+        <input type="hidden" name="_page" value="auto" />
+        <input type="hidden" name="_fields" value="escalateBy,defaultPoints,decayDays,autoRevert,ladder" />
+        <input type="hidden" name="modEscalateNeedsPerm" value="<%= settings.modEscalateNeedsPerm ? 'on' : '' %>" /><input type="hidden" name="modWarnExpireDays" value="<%= settings.modWarnExpireDays || 0 %>" />
+        <div class="set-row">
+          <div class="set-text"><label for="escalateBy">Считать</label><p class="set-help">По баллам ступень срабатывает, когда сумма перешагнула её порог</p></div>
+          <div class="set-ctl"><select id="escalateBy" name="escalateBy"><option value="count" <%= cfg.escalateBy === 'count' ? 'selected' : '' %>>Число предупреждений</option><option value="points" <%= cfg.escalateBy === 'points' ? 'selected' : '' %>>Сумму баллов</option></select></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="defaultPoints">Баллов за предупреждение</label><p class="set-help">Если модератор не указал свой вес или шаблон</p></div>
+          <div class="set-ctl"><input type="number" id="defaultPoints" name="defaultPoints" min="1" max="20" step="1" value="<%= cfg.defaultPoints %>" /></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="decayDays">Новые предупреждения сгорают через</label><p class="set-help">У каждого свой срок; 0 — по общему правилу ниже</p></div>
+          <div class="set-ctl"><input type="number" id="decayDays" name="decayDays" min="0" max="365" step="1" value="<%= cfg.decayDays %>" /> <span class="set-unit">дн</span></div>
+        </div>
+        <div class="set-row">
+          <div class="set-text"><label for="autoRevert">Откат при снятии предупреждения</label><p class="set-help">Сняли ошибочное предупреждение — бот снимет и мягкое автонаказание за него (мут, роль, карантин). Кик и бан не откатываются</p></div>
+          <div class="set-ctl"><input type="checkbox" class="switch" id="autoRevert" name="autoRevert" <%= cfg.autoRevert ? 'checked' : '' %> /></div>
+        </div>
+        <div class="table-scroll"><table class="data-table ladder-table">
+          <thead><tr><th>Порог</th><th>Наказание</th><th>Срок, мин</th><th>Роль</th></tr></thead>
+          <tbody>
+            <% steps.forEach((st, i) => { %>
+              <tr>
+                <td><input type="number" name="ladder_<%= i %>_at" value="<%= st.at %>" min="1" max="100" placeholder="—" aria-label="Порог ступени <%= i + 1 %>" style="width:88px" /></td>
+                <td><select name="ladder_<%= i %>_action" aria-label="Наказание ступени <%= i + 1 %>"><% ACT.forEach(([k, t]) => { %><option value="<%= k %>" <%= st.action === k ? 'selected' : '' %>><%= t %></option><% }) %></select></td>
+                <td><input type="number" name="ladder_<%= i %>_minutes" value="<%= st.minutes %>" min="0" max="5256000" aria-label="Срок ступени <%= i + 1 %>, минут" style="width:110px" /></td>
+                <td><select name="ladder_<%= i %>_roleId" aria-label="Роль ступени <%= i + 1 %>"><option value="">—</option><% roles.forEach((r) => { %><option value="<%= r.id %>" <%= st.roleId === r.id ? 'selected' : '' %>>@<%= r.name %></option><% }) %></select></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table></div>
+        <p class="hint">Срок 0: мут ролью, карантин и ограничение — до снятия, бан — навсегда. Тайм-аут — не дольше 40320 минут (28 дней). «Роль» нужна для временной и ограничительной роли (ограничительная должна быть в списке на вкладке «Настройки»).</p>
+        <div class="set-actions"><button class="btn" type="submit">Сохранить лестницу</button></div>
+      </form>
       <form method="post" action="<%= g %>/moderation/auto" class="plain">
         <div class="card g-span" id="ladder">
-          <h2>Что делать за предупреждения</h2>
+          <h2>Простые пороги<span class="sub">Работают, пока лестница выше пуста</span></h2>
           <div class="preset-row"><span class="muted">Пресет:</span><button type="button" class="btn btn-secondary btn-sm" data-preset="{&quot;thrCount&quot;:[3,5,7],&quot;thrAction&quot;:[&quot;mute&quot;,&quot;mute&quot;,&quot;ban&quot;],&quot;thrMinutes&quot;:[60,1440,0]}" data-preset-name="Мягкий">Мягкий: 3 → мут, 5 → мут на сутки, 7 → бан</button><button type="button" class="btn btn-secondary btn-sm" data-preset="{&quot;thrCount&quot;:[2,3,4,5],&quot;thrAction&quot;:[&quot;mute&quot;,&quot;mute&quot;,&quot;kick&quot;,&quot;ban&quot;],&quot;thrMinutes&quot;:[60,1440,0,0]}" data-preset-name="Строгий">Строгий: 2 → мут, 3 → сутки, 4 → кик, 5 → бан</button></div>
           <% if (thresholds.length) { %>
             <div class="callout">Сейчас: <b><%= thresholds.map(t => t.count + ' → ' + (t.action === 'mute' ? 'мут на ' + formatDuration(Math.max(t.minutes, 1) * 60000) : t.action === 'kick' ? 'кик' : t.minutes ? 'бан на ' + formatDuration(t.minutes * 60000) : 'бан навсегда')).join(' · ') %></b></div>

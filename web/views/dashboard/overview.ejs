@@ -62,7 +62,7 @@
         const g = '/dashboard/' + guild.id;
         const isOn = (k) => { const m = mods.list.find((x) => x.key === k); return !m || m.on; };
         const sv = (k, i) => (stats[k] && stats[k][i || 0] ? stats[k][i || 0].value : 0);
-        const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка' };
+        const actionRu = { warn: 'Предупреждение', unwarn: 'Снято предупреждение', mute: 'Мут', unmute: 'Размут', kick: 'Кик', ban: 'Бан', unban: 'Разбан', clear: 'Очистка', automod: 'Автомодерация', note: 'Заметка', role_mute: 'Мут ролью', unrole_mute: 'Мут ролью снят', quarantine: 'Карантин', unquarantine: 'Карантин снят', restrict: 'Ограничение', unrestrict: 'Ограничение снято', temprole: 'Временная роль', untemprole: 'Временная роль снята' };
         const ago = (d) => { const m = Math.max(0, Math.round((Date.now() - new Date(d).getTime()) / 60000)); if (m < 1) return 'только что'; if (m < 60) return m + ' мин назад'; const h = Math.round(m / 60); if (h < 24) return h + ' ч назад'; return Math.round(h / 24) + ' дн назад'; };
         const att = locals.attention || [];
         const kpis = [

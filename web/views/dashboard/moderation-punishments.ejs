@@ -67,6 +67,49 @@
           </table></div>
         <% } %>
       </div>
+      <div class="card g-span" id="roles">
+        <h2>Ролевые наказания и временные роли<span class="sub">Мут ролью, карантин, ограничения и роли на время: снять или продлить</span></h2>
+        <form method="get" class="role-filter" action="#roles" data-no-guard>
+          <label for="r_user">ID участника</label>
+          <span class="role-filter-row"><input id="r_user" type="text" name="user" inputmode="numeric" pattern="[0-9]{15,25}" value="<%= q %>" placeholder="Все" /><button class="btn" type="submit">Показать</button></span>
+        </form>
+        <% const KIND = { role_mute: 'Мут ролью', quarantine: 'Карантин', restrict: 'Ограничение' };
+           const restrictLabel = (id) => (cfg.restrictRoles.find((r) => r.roleId === id) || {}).label;
+           const roleLabel = (id) => { const n = roleName(id); return n ? '@' + n : 'удалённая роль'; }; %>
+        <% if (!rolePuns.length && !tempRoles.length) { %>
+          <p class="empty-state">Ролевых наказаний и временных ролей сейчас нет. Их выдают командами <code>/mod rolemute</code>, <code>/mod quarantine</code>, <code>/mod restrict</code>, <code>/temprole give</code> и автонаказания.</p>
+        <% } else { %>
+          <div class="table-wrap table-scroll"><table class="data-table">
+            <thead><tr><th>Участник</th><th>Что</th><th>До</th><th>Дело</th><th></th></tr></thead>
+            <tbody>
+              <% rolePuns.forEach((r) => { %>
+                <tr>
+                  <td class="nowrap"><%- person(r.userId) %></td>
+                  <td><b><%= KIND[r.kind] %></b><% if (r.kind === 'restrict') { %> «<%= restrictLabel(r.roleId) || roleLabel(r.roleId) %>»<% } %><% if (!roleName(r.roleId)) { %> <span class="gone-inline">роль удалена в Discord</span><% } %><% if (r.reason) { %><small class="muted" style="display:block"><%= r.reason %></small><% } %></td>
+                  <td class="nowrap"><%= r.expiresAt ? when(r.expiresAt) : 'до снятия' %></td>
+                  <td><% if (r.caseNumber) { %><a href="<%= g %>/moderation-case/<%= r.caseNumber %>">#<%= r.caseNumber %></a><% } else { %>—<% } %></td>
+                  <td class="row-act">
+                    <form method="post" action="<%= g %>/moderation-punishments/role/<%= r.id %>/extend" class="inline-extend" data-no-guard><input type="text" name="duration" placeholder="+1d" aria-label="На сколько продлить" size="5" /><button class="btn btn-sm btn-secondary" type="submit">Продлить</button></form>
+                    <form method="post" action="<%= g %>/moderation-punishments/role/<%= r.id %>/lift" data-no-guard data-confirm="Снять наказание сейчас?<%= r.kind === 'quarantine' ? ' Роли вернутся.' : '' %>" data-confirm-ok="Снять"><button class="btn btn-sm btn-secondary" type="submit">Снять</button></form>
+                  </td>
+                </tr>
+              <% }) %>
+              <% tempRoles.forEach((t) => { %>
+                <tr>
+                  <td class="nowrap"><%- person(t.userId) %></td>
+                  <td><b>Временная роль</b> <%= roleLabel(t.roleId) %><% if (t.reason) { %><small class="muted" style="display:block"><%= t.reason %></small><% } %></td>
+                  <td class="nowrap"><%= when(t.expiresAt) %></td>
+                  <td><% if (t.caseNumber) { %><a href="<%= g %>/moderation-case/<%= t.caseNumber %>">#<%= t.caseNumber %></a><% } else { %><%= String(t.givenBy || '').startsWith('shop:') ? 'магазин' : '—' %><% } %></td>
+                  <td class="row-act">
+                    <form method="post" action="<%= g %>/moderation-punishments/temprole/<%= t.id %>/extend" class="inline-extend" data-no-guard><input type="text" name="duration" placeholder="+1d" aria-label="На сколько продлить" size="5" /><button class="btn btn-sm btn-secondary" type="submit">Продлить</button></form>
+                    <form method="post" action="<%= g %>/moderation-punishments/temprole/<%= t.id %>/lift" data-no-guard data-confirm="Снять временную роль сейчас?" data-confirm-ok="Снять"><button class="btn btn-sm btn-secondary" type="submit">Снять</button></form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
     </main>
   </div>
 </body>
